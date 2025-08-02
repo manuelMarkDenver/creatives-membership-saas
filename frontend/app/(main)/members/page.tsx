@@ -1,0 +1,639 @@
+'use client'
+
+import { useState } from 'react'
+import { useProfile, useUsersByTenant } from '@/lib/hooks/use-users'
+import { useSystemMemberStats } from '@/lib/hooks/use-stats'
+import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { 
+  Users, 
+  Search, 
+  Plus, 
+  UserCheck,
+  UserX,
+  Calendar,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Building,
+  Globe,
+  Receipt
+} from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { User } from '@/types'
+import { MemberInfoModal } from '@/components/modals/member-info-modal'
+import { AddMemberModal } from '@/components/modals/add-member-modal'
+import { MemberCard } from '@/components/members/member-card'
+import { customerSubscriptionsApi } from '@/lib/api'
+
+export default function MembersPage() {
+  const { data: profile } = useProfile()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedMember, setSelectedMember] = useState(null)
+  const [showMemberInfoModal, setShowMemberInfoModal] = useState(false)
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false)
+  const [showRenewalModal, setShowRenewalModal] = useState(false)
+  const [showCancellationModal, setShowCancellationModal] = useState(false)
+  const [selectedMemberForAction, setSelectedMemberForAction] = useState(null)
+  const [selectedPlanId, setSelectedPlanId] = useState('')
+  const [cancellationReason, setCancellationReason] = useState('')
+  const [cancellationNotes, setCancellationNotes] = useState('')
+  const [showTransactionModal, setShowTransactionModal] = useState(false)
+  const [selectedMemberForTransactions, setSelectedMemberForTransactions] = useState(null)
+
+  const isSuperAdmin = profile?.role === 'SUPER_ADMIN'
+
+  // Fetch data based on user role
+  const { data: membersData, isLoading: isLoadingTenantMembers, error: tenantMembersError, refetch: refetchTenantMembers } = useUsersByTenant(
+    profile?.tenantId || '', 
+    { role: 'GYM_MEMBER' }
+  )
+
+  const { data: systemMemberStats, isLoading: isLoadingSystemMembers, error: systemMembersError } = useSystemMemberStats({
+    enabled: isSuperAdmin
+  })
+
+  // Fetch membership plans for the current tenant
+  const { data: membershipPlans = [] } = useActiveMembershipPlans()
+
+  // Helper functions
+  const handleRenewal = async () => {
+    if (!selectedMemberForAction || !selectedPlanId) {
+      console.error('Missing member or plan selection')
+      return
+    }
+
+    try {
+      const selectedPlan = membershipPlans.find(plan => plan.id === selectedPlanId)
+      if (!selectedPlan) {
+        console.error('Selected plan not found')
+        return
+      }
+
+
+      // Call renewal API using API client
+      const result = await customerSubscriptionsApi.renewMembership(selectedMemberForAction.id, {
+        membershipPlanId: selectedPlanId,
+        paymentMethod: 'cash'
+      })
+      alert(`Success: ${result.message}`)
+      
+      setShowRenewalModal(false)
+      setSelectedMemberForAction(null)
+      setSelectedPlanId('')
+      
+      // Refresh the page to show updated data
+      window.location.reload()
+    } catch (error) {
+      console.error('Renewal failed:', error)
+      alert('Failed to renew membership. Please try again.')
+    }
+  }
+
+  const handleCancellation = async () => {
+    if (!selectedMemberForAction) {
+      console.error('No member selected for cancellation')
+      return
+    }
+
+    try {
+
+      // Call cancellation API using API client
+      const result = await customerSubscriptionsApi.cancelMembership(selectedMemberForAction.id, {
+        cancellationReason,
+        cancellationNotes
+      })
+      alert(`Success: ${result.message}`)
+      
+      setShowCancellationModal(false)
+      setSelectedMemberForAction(null)
+      setCancellationReason('')
+      setCancellationNotes('')
+      
+      // Refresh the page to show updated data
+      window.location.reload()
+    } catch (error) {
+      console.error('Cancellation failed:', error)
+      alert('Failed to cancel membership. Please try again.')
+    }
+  }
+
+  // Determine data source based on user role
+  const isLoading = isSuperAdmin ? isLoadingSystemMembers : isLoadingTenantMembers
+  const error = isSuperAdmin ? systemMembersError : tenantMembersError
+  const allMembers = isSuperAdmin ? 
+    (systemMemberStats?.members || []).filter(m => ['GYM_MEMBER', 'ECOM_CUSTOMER', 'COFFEE_CUSTOMER'].includes(m.role)) :
+    (membersData || [])
+
+  const filteredMembers = allMembers.filter((member: any) => {
+    const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
+    const matchesSearch = memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase()))
+    return matchesSearch
+  })
+
+  const stats = isSuperAdmin ? {
+    total: systemMemberStats?.summary?.totalUsers || 0,
+    active: systemMemberStats?.summary?.activeUsers || 0,
+    inactive: systemMemberStats?.summary?.inactiveUsers || 0,
+    byCategory: systemMemberStats?.summary?.byCategory || []
+  } : {
+    total: allMembers.length,
+    active: allMembers.filter(m => m.isActive).length,
+    inactive: allMembers.filter(m => !m.isActive).length,
+    byCategory: []
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            {isSuperAdmin ? <Globe className="h-8 w-8 text-blue-500" /> : <Users className="h-8 w-8 text-blue-500" />}
+            {isSuperAdmin ? 'All Members' : 'Members'}
+          </h1>
+          <p className="text-muted-foreground">
+            {isSuperAdmin ? 'View all members across all tenants' : 'Manage gym members and their memberships'}
+          </p>
+        </div>
+        {!isSuperAdmin && (
+          <Button onClick={() => setShowAddMemberModal(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Member
+          </Button>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">All registered members</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active</CardTitle>
+            <UserCheck className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{stats.active}</div>
+            <p className="text-xs text-muted-foreground">Currently active</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Inactive</CardTitle>
+            <UserX className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{stats.inactive}</div>
+            <p className="text-xs text-muted-foreground">Inactive members</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{isSuperAdmin ? 'Categories' : 'Branches'}</CardTitle>
+            <Building className="h-4 w-4 text-amber-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">{isSuperAdmin ? stats.byCategory.length : 1}</div>
+            <p className="text-xs text-muted-foreground">{isSuperAdmin ? 'Business types' : 'Active branches'}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search and Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Member Directory</CardTitle>
+          <CardDescription>Search and filter gym members</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4 mb-6">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search members..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Members List */}
+          <div className="space-y-4">
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-pulse">Loading members...</div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8 text-red-600">
+                Failed to load members. Please try again.
+              </div>
+            ) : filteredMembers.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No members found</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {searchTerm ? 'Try adjusting your search.' : 'Get started by adding your first member.'}
+                </p>
+              </div>
+            ) : (
+              filteredMembers.map((member: User) => (
+                <MemberCard
+                  key={member.id}
+                  member={member}
+                  isSuperAdmin={isSuperAdmin}
+                  onViewMemberInfo={(member) => {
+                    setSelectedMember(member)
+                    setShowMemberInfoModal(true)
+                  }}
+                  onViewTransactions={(member) => {
+                    setSelectedMemberForTransactions(member)
+                    setShowTransactionModal(true)
+                  }}
+                  onRenewSubscription={(member) => {
+                    setSelectedMemberForAction(member)
+                    setShowRenewalModal(true)
+                  }}
+                  onCancelSubscription={(member) => {
+                    setSelectedMemberForAction(member)
+                    setShowCancellationModal(true)
+                  }}
+                />
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Member Information Modal */}
+      {showMemberInfoModal && selectedMember && (
+        <MemberInfoModal
+          isOpen={showMemberInfoModal}
+          onClose={() => {
+            setShowMemberInfoModal(false)
+            setSelectedMember(null)
+          }}
+          member={selectedMember}
+          onMemberUpdated={() => {
+            // Refresh the members list if needed
+            // You can add a refetch call here
+            // Member updated
+          }}
+        />
+      )}
+
+      {/* Add Member Modal */}
+      <AddMemberModal
+        isOpen={showAddMemberModal}
+        onClose={() => setShowAddMemberModal(false)}
+        onMemberAdded={() => {
+          // Refresh the members list
+          refetchTenantMembers()
+          setShowAddMemberModal(false)
+        }}
+      />
+
+      {/* Membership Renewal Modal */}
+      <Dialog open={showRenewalModal} onOpenChange={setShowRenewalModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-green-500" />
+              Renew Membership
+            </DialogTitle>
+            <DialogDescription>
+              Renew the expired membership for {selectedMemberForAction?.name || `${selectedMemberForAction?.firstName} ${selectedMemberForAction?.lastName}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {selectedMemberForAction?.businessData?.membership && (
+              <div className="space-y-2">
+                <Label>Current Plan</Label>
+                <div className="p-3 bg-gray-50 rounded-md">
+                  <p className="font-medium">{selectedMemberForAction.businessData.membership.planName}</p>
+                  <p className="text-sm text-muted-foreground">₱{selectedMemberForAction.businessData.membership.price}</p>
+                  <p className="text-xs text-red-600">Expired: {new Date(selectedMemberForAction.businessData.membership.endDate).toLocaleDateString()}</p>
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label>Select New Plan</Label>
+              <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a membership plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {membershipPlans.length === 0 ? (
+                    <SelectItem value="no-plans" disabled>No membership plans available</SelectItem>
+                  ) : (
+                    membershipPlans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name} - ₱{plan.price} ({plan.duration} days)
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedPlanId && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-800">
+                  <strong>Selected Plan:</strong> {membershipPlans.find(p => p.id === selectedPlanId)?.name}
+                </p>
+                <p className="text-sm text-green-700">
+                  Price: ₱{membershipPlans.find(p => p.id === selectedPlanId)?.price}
+                </p>
+                <p className="text-sm text-green-700">
+                  Duration: {membershipPlans.find(p => p.id === selectedPlanId)?.duration} days
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowRenewalModal(false)
+                setSelectedMemberForAction(null)
+                setSelectedPlanId('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              disabled={!selectedPlanId}
+              onClick={handleRenewal}
+            >
+              <UserCheck className="w-4 h-4 mr-2" />
+              Renew Membership
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Membership Cancellation Modal */}
+      <Dialog open={showCancellationModal} onOpenChange={setShowCancellationModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <UserX className="h-5 w-5" />
+              Cancel Membership
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel the active membership for {selectedMemberForAction?.name || `${selectedMemberForAction?.firstName} ${selectedMemberForAction?.lastName}`}?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {selectedMemberForAction?.businessData?.membership && (
+              <div className="space-y-2">
+                <Label>Current Plan</Label>
+                <div className="p-3 bg-gray-50 rounded-md">
+                  <p className="font-medium">{selectedMemberForAction.businessData.membership.planName}</p>
+                  <p className="text-sm text-muted-foreground">₱{selectedMemberForAction.businessData.membership.price}</p>
+                  <p className="text-xs text-green-600">Valid until: {new Date(selectedMemberForAction.businessData.membership.endDate).toLocaleDateString()}</p>
+                </div>
+              </div>
+            )}
+            
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-sm text-yellow-800">
+                <strong>Warning:</strong> Canceling this membership will immediately revoke access to gym facilities. This action cannot be undone.
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Reason for Cancellation (Optional)</Label>
+              <Select value={cancellationReason} onValueChange={setCancellationReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="financial">Financial reasons</SelectItem>
+                  <SelectItem value="relocation">Relocation</SelectItem>
+                  <SelectItem value="dissatisfied">Unsatisfied with service</SelectItem>
+                  <SelectItem value="health">Health issues</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {cancellationReason === 'other' && (
+              <div className="space-y-2">
+                <Label>Please specify the reason</Label>
+                <Textarea 
+                  placeholder="Enter details about the cancellation reason..."
+                  value={cancellationNotes}
+                  onChange={(e) => setCancellationNotes(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowCancellationModal(false)
+                setSelectedMemberForAction(null)
+              }}
+            >
+              Keep Active
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleCancellation}
+            >
+              <UserX className="w-4 h-4 mr-2" />
+              Cancel Membership
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transaction History Modal */}
+      <Dialog open={showTransactionModal} onOpenChange={setShowTransactionModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-blue-500" />
+              Transaction History
+            </DialogTitle>
+            <DialogDescription>
+              Payment and transaction history for {selectedMemberForTransactions?.name || `${selectedMemberForTransactions?.firstName} ${selectedMemberForTransactions?.lastName}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Member Summary */}
+            {selectedMemberForTransactions && (
+              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                  {(selectedMemberForTransactions.name || selectedMemberForTransactions.firstName || selectedMemberForTransactions.email).charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="font-semibold">{selectedMemberForTransactions.name || `${selectedMemberForTransactions.firstName} ${selectedMemberForTransactions.lastName}`}</h4>
+                  <p className="text-sm text-muted-foreground">{selectedMemberForTransactions.email}</p>
+                  {selectedMemberForTransactions.businessData?.membership && (
+                    <p className="text-xs text-purple-600 font-medium">
+                      Current Plan: {selectedMemberForTransactions.businessData.membership.planName} - ₱{selectedMemberForTransactions.businessData.membership.price}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Transaction Table */}
+            <div className="border rounded-lg overflow-hidden">
+              <div className="overflow-auto max-h-96">
+                {selectedMemberForTransactions?.businessData?.paymentHistory && selectedMemberForTransactions.businessData.paymentHistory.length > 0 ? (
+                  <table className="w-full">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="text-left p-3 text-sm font-medium text-gray-900">Date</th>
+                        <th className="text-left p-3 text-sm font-medium text-gray-900">Amount</th>
+                        <th className="text-left p-3 text-sm font-medium text-gray-900">Type</th>
+                        <th className="text-left p-3 text-sm font-medium text-gray-900">Plan</th>
+                        <th className="text-left p-3 text-sm font-medium text-gray-900">Method</th>
+                        <th className="text-left p-3 text-sm font-medium text-gray-900">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {selectedMemberForTransactions.businessData.paymentHistory
+                        .sort((a, b) => new Date(b.date) - new Date(a.date))
+                        .map((transaction, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="p-3 text-sm">
+                            {new Date(transaction.date).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </td>
+                          <td className="p-3 text-sm font-medium text-green-600">
+                            ₱{transaction.amount}
+                          </td>
+                          <td className="p-3 text-sm">
+                            <Badge variant="outline" className="text-xs">
+                              {transaction.type || 'Payment'}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-sm text-purple-600">
+                            {transaction.planName || 'N/A'}
+                          </td>
+                          <td className="p-3 text-sm">
+                            <Badge variant="secondary" className="text-xs">
+                              {transaction.method || 'Cash'}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-sm">
+                            <Badge 
+                              variant={transaction.status === 'completed' ? 'default' : 'destructive'}
+                              className="text-xs"
+                            >
+                              {transaction.status || 'Completed'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="text-center py-12">
+                    <Receipt className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-sm font-medium text-gray-900 mb-2">No Transaction History</h3>
+                    <p className="text-sm text-gray-500">
+                      This member doesn't have any recorded transactions yet.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Transaction Summary */}
+            {selectedMemberForTransactions?.businessData?.paymentHistory && selectedMemberForTransactions.businessData.paymentHistory.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div className="text-sm text-green-800 font-medium">Total Paid</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    ₱{selectedMemberForTransactions.businessData.paymentHistory
+                      .reduce((sum, transaction) => sum + parseFloat(transaction.amount), 0)
+                      .toFixed(2)}
+                  </div>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="text-sm text-blue-800 font-medium">Total Transactions</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {selectedMemberForTransactions.businessData.paymentHistory.length}
+                  </div>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <div className="text-sm text-purple-800 font-medium">Latest Payment</div>
+                  <div className="text-lg font-bold text-purple-600">
+                    {new Date(
+                      selectedMemberForTransactions.businessData.paymentHistory
+                        .sort((a, b) => new Date(b.date) - new Date(a.date))[0].date
+                    ).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowTransactionModal(false)
+                setSelectedMemberForTransactions(null)
+              }}
+            >
+              Close
+            </Button>
+            {/* Add Export or Print functionality later */}
+            <Button variant="default">
+              <Receipt className="w-4 h-4 mr-2" />
+              Export Transactions
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

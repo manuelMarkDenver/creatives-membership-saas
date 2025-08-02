@@ -1,0 +1,350 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DIRECT_URL")
+}
+
+model Tenant {
+  id                 String             @id @default(uuid())
+  name               String
+  slug               String             @unique
+  category           BusinessCategory
+  logoUrl            String?
+  address            String?
+  phoneNumber        String?
+  email              String?
+  primaryColor       String?
+  secondaryColor     String?
+  websiteUrl         String?
+  description        String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  freeBranchOverride Int                @default(0)
+  branches              Branch[]
+  users                 User[]
+  membershipPlans       MembershipPlan[]
+  customerTransactions  CustomerTransaction[]
+  customerSubscriptions CustomerSubscription[]
+  platformRevenues      PlatformRevenue[]
+}
+
+model Branch {
+  id            String         @id @default(uuid())
+  tenantId      String
+  name          String
+  address       String?
+  phoneNumber   String?
+  email         String?
+  isActive      Boolean        @default(true)
+  branchData    Json?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+  userBranches  UserBranch[]
+
+  @@unique([tenantId, name])
+}
+
+model Plan {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  price         Decimal
+  billingCycle  BillingCycle
+  description   String?
+  isActive      Boolean        @default(true)
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id        String             @id @default(uuid())
+  branchId  String
+  planId    String
+  startDate DateTime
+  endDate   DateTime
+  status    SubscriptionStatus @default(ACTIVE)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  payments  Payment[]
+  branch    Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  plan      Plan               @relation(fields: [planId], references: [id])
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  subscriptionId String
+  amount         Decimal
+  paymentDate    DateTime      @default(now())
+  status         PaymentStatus @default(PENDING)
+  paymentMethod  String?
+  transactionId  String?       @unique
+  receiptUrl     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                      String                   @id @default(uuid())
+  tenantId                String?
+  firstName               String
+  lastName                String
+  email                   String?                  @unique
+  phoneNumber             String?
+  role                    Role                     @default(GYM_MEMBER)
+  isActive                Boolean                  @default(true)
+  notes                   String?
+  photoUrl                String?                  // Profile photo URL
+  businessData            Json?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  name                    String?
+  password                String?
+  tenant                  Tenant?                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userBranches            UserBranch[]
+  customerTransactions    CustomerTransaction[]    @relation("CustomerTransactions")
+  processedTransactions   CustomerTransaction[]    @relation("ProcessedTransactions")
+  customerSubscriptions   CustomerSubscription[]   @relation("CustomerSubscriptions")
+}
+
+model UserBranch {
+  id          String      @id @default(uuid())
+  userId      String
+  branchId    String
+  accessLevel AccessLevel @default(STAFF_ACCESS)
+  isPrimary   Boolean     @default(false)
+  permissions Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  branch      Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, branchId])
+}
+
+// Tenant-specific membership plans for their gym members
+model MembershipPlan {
+  id                    String                   @id @default(uuid())
+  tenantId              String
+  name                  String                   // e.g., "Basic Monthly", "Premium Annual", "Day Pass"
+  description           String?
+  price                 Decimal
+  duration              Int                      // Duration in days
+  type                  MembershipType
+  benefits              Json?                    // JSON array of benefits
+  isActive              Boolean                  @default(true)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  tenant                Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerSubscriptions CustomerSubscription[]
+
+  @@unique([tenantId, name])
+}
+
+// Customer Transactions (Universal for all business types)
+model CustomerTransaction {
+  id                    String            @id @default(uuid())
+  tenantId              String
+  customerId            String
+  businessType          String            @default("gym")
+  transactionCategory   String            @default("membership")
+  amount                Decimal           @db.Decimal(12, 2)
+  currency              String?           @default("PHP")
+  taxAmount             Decimal?          @default(0) @db.Decimal(12, 2)
+  discountAmount        Decimal?          @default(0) @db.Decimal(12, 2)
+  netAmount             Decimal           @db.Decimal(12, 2)
+  paymentMethod         String?           @default("cash")
+  paymentReference      String?
+  gatewayTransactionId  String?
+  transactionType       TransactionType   @default(PAYMENT)
+  status                TransactionStatus @default(COMPLETED)
+  relatedEntityType     String?
+  relatedEntityId       String?
+  relatedEntityName     String?
+  description           String?
+  notes                 String?
+  metadata              Json?
+  processedBy           String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  tenant                Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer              User              @relation("CustomerTransactions", fields: [customerId], references: [id], onDelete: Cascade)
+  processor             User?             @relation("ProcessedTransactions", fields: [processedBy], references: [id], onDelete: SetNull)
+  platformRevenue       PlatformRevenue[]
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([businessType])
+  @@index([createdAt])
+  @@index([status])
+  @@index([amount])
+}
+
+// Customer Subscriptions (Gym memberships, Coffee subscriptions, etc.)
+model CustomerSubscription {
+  id                String                      @id @default(uuid())
+  tenantId          String
+  customerId        String
+  membershipPlanId  String
+  status            CustomerSubscriptionStatus  @default(ACTIVE)
+  startDate         DateTime                    @db.Date
+  endDate           DateTime                    @db.Date
+  price             Decimal                     @db.Decimal(12, 2)
+  currency          String?                     @default("PHP")
+  usageData         Json?
+  cancelledAt       DateTime?
+  cancellationReason String?
+  cancellationNotes String?
+  autoRenew         Boolean?                    @default(true)
+  nextBillingDate   DateTime?                   @db.Date
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  tenant            Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer          User                        @relation("CustomerSubscriptions", fields: [customerId], references: [id], onDelete: Cascade)
+  membershipPlan    MembershipPlan              @relation(fields: [membershipPlanId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([membershipPlanId])
+  @@index([status])
+  @@index([endDate])
+}
+
+// Platform Revenue (Your SaaS earnings)
+model PlatformRevenue {
+  id                   String             @id @default(uuid())
+  tenantId             String
+  tenantName           String
+  businessType         String
+  revenueType          String
+  amount               Decimal            @db.Decimal(12, 2)
+  currency             String?            @default("PHP")
+  billingPeriodStart   DateTime?          @db.Date
+  billingPeriodEnd     DateTime?          @db.Date
+  paymentStatus        String?            @default("pending")
+  paymentDate          DateTime?
+  paymentMethod        String?
+  paymentReference     String?
+  sourceTransactionId  String?
+  subscriptionPlanId   String?
+  description          String?
+  notes                String?
+  metadata             Json?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  tenant               Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceTransaction    CustomerTransaction? @relation(fields: [sourceTransactionId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([createdAt])
+  @@index([revenueType])
+  @@index([paymentStatus])
+}
+
+enum BusinessCategory {
+  GYM
+  COFFEE_SHOP
+  ECOMMERCE
+  OTHER
+}
+
+enum Role {
+  SUPER_ADMIN
+  OWNER
+  MANAGER
+  STAFF
+  GYM_TRAINER
+  GYM_NUTRITIONIST
+  GYM_FRONT_DESK
+  GYM_MAINTENANCE
+  GYM_MEMBER
+  STORE_MANAGER
+  PRODUCT_MANAGER
+  INVENTORY_MANAGER
+  CUSTOMER_SERVICE
+  MARKETING_MANAGER
+  FULFILLMENT_STAFF
+  VENDOR
+  ECOM_CUSTOMER
+  COFFEE_MANAGER
+  BARISTA
+  CASHIER
+  BAKER
+  SHIFT_SUPERVISOR
+  COFFEE_CUSTOMER
+}
+
+enum AccessLevel {
+  FULL_ACCESS
+  MANAGER_ACCESS
+  STAFF_ACCESS
+  READ_ONLY
+}
+
+enum PlanType {
+  TRIAL
+  PAID
+}
+
+enum BillingCycle {
+  TRIAL
+  MONTHLY
+  YEARLY
+  ONE_TIME
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+enum MembershipType {
+  DAY_PASS
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+  UNLIMITED
+  STUDENT
+  SENIOR
+  CORPORATE
+}
+
+enum TransactionType {
+  PAYMENT
+  REFUND
+  ADJUSTMENT
+  REVERSAL
+  CHARGEBACK
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum CustomerSubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  CANCELLED
+  EXPIRED
+  PENDING_ACTIVATION
+}

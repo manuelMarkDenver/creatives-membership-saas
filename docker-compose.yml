@@ -1,0 +1,101 @@
+services:
+  # Frontend Next.js App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5000}
+        - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+        - NEXT_PUBLIC_API_BYPASS_AUTH=${NEXT_PUBLIC_API_BYPASS_AUTH:-false}
+    container_name: creatives-saas-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: "production"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - backend
+
+  # Backend API (connects to Supabase)
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: creatives-saas-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      # Supabase Database & Auth
+      DATABASE_URL: "${DATABASE_URL}"
+      DIRECT_URL: "${DIRECT_URL}"
+      SUPABASE_URL: "${SUPABASE_URL}"
+      SUPABASE_ANON_KEY: "${SUPABASE_ANON_KEY}"
+      
+      # Frontend URL
+      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3000}"
+      
+      # Node Environment
+      NODE_ENV: "production"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      # Optional: Mount for file uploads if needed
+      - ./backend/uploads:/app/uploads
+
+  # Redis (Optional - for caching/sessions/rate limiting)
+  redis:
+    image: redis:7-alpine
+    container_name: creatives-saas-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  # Nginx (Optional - Reverse Proxy for production)
+  nginx:
+    image: nginx:alpine
+    container_name: creatives-saas-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+    profiles:
+      - production  # Only run in production profile
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  default:
+    name: creatives-saas-network
+    driver: bridge

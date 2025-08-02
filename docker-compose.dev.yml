@@ -1,0 +1,47 @@
+services:
+  # Frontend Next.js App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5000}
+        - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+        - NEXT_PUBLIC_API_BYPASS_AUTH=${NEXT_PUBLIC_API_BYPASS_AUTH:-true}
+    container_name: creatives-saas-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: "development"
+    env_file:
+      - .env
+    volumes:
+      # Mount source code for hot reload
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: ["npm", "run", "dev"]
+
+  # Development override for backend
+  backend:
+    build:
+      target: builder  # Use builder stage for development
+      args:
+        - NODE_ENV=development
+    environment:
+      NODE_ENV: "development"
+    env_file:
+      - .env
+    volumes:
+      # Mount source code for hot reload
+      - ./backend/src:/app/src:ro
+      - ./backend/package.json:/app/package.json:ro
+      - ./backend/tsconfig.json:/app/tsconfig.json:ro
+      - ./backend/nest-cli.json:/app/nest-cli.json:ro
+    command: ["npm", "run", "start:dev"]
+    ports:
+      - "5000:5000"
+      - "9229:9229"  # Debug port

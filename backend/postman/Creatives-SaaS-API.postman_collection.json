@@ -1,0 +1,1089 @@
+{
+  "info": {
+    "name": "Creatives SaaS API",
+    "description": "Multi-tenant SaaS API for managing different business types (Gym, Coffee Shop, E-commerce)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "creatives-saas-api"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "API Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains Hello World\", function () {",
+                  "    pm.expect(pm.response.text()).to.include(\"Hello World\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tenants",
+      "item": [
+        {
+          "name": "Create or Find Gym Tenant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 or 409 (already exists)\", function () {",
+                  "    pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test(\"Response handled correctly\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    ",
+                  "    if (pm.response.code === 201) {",
+                  "        // New tenant created",
+                  "        pm.expect(jsonData).to.have.property('id');",
+                  "        pm.expect(jsonData).to.have.property('name');",
+                  "        pm.expect(jsonData).to.have.property('category');",
+                  "        pm.expect(jsonData.category).to.eql('GYM');",
+                  "        pm.environment.set('gymTenantId', jsonData.id);",
+                  "    } else if (pm.response.code === 409) {",
+                  "        // Tenant already exists, get the existing one",
+                  "        pm.sendRequest({",
+                  "            url: pm.environment.get('baseUrl') + '/tenants?category=GYM',",
+                  "            method: 'GET'",
+                  "        }, function (err, response) {",
+                  "            if (!err && response.code === 200) {",
+                  "                const tenants = response.json();",
+                  "                const gymTenant = tenants.find(t => t.name === 'Fitness Elite Gym' || t.category === 'GYM');",
+                  "                if (gymTenant) {",
+                  "                    pm.environment.set('gymTenantId', gymTenant.id);",
+                  "                }",
+                  "            }",
+                  "        });",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test(\"Tenant has correct properties (if created)\", function () {",
+                  "    if (pm.response.code === 201) {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.property('slug');",
+                  "        pm.expect(jsonData).to.have.property('createdAt');",
+                  "        pm.expect(jsonData).to.have.property('updatedAt');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Use a unique name to avoid conflicts",
+                  "const timestamp = Date.now();",
+                  "pm.environment.set('uniqueGymName', 'Test Gym ' + timestamp);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{uniqueGymName}}\",\n  \"category\": \"GYM\",\n  \"address\": \"123 Test Fitness Street, Makati City\",\n  \"phoneNumber\": \"+63 2 8555 9999\",\n  \"email\": \"test@testgym.com\",\n  \"primaryColor\": \"#FF6B35\",\n  \"secondaryColor\": \"#2E3440\",\n  \"websiteUrl\": \"https://www.testgym.com\",\n  \"description\": \"Test gym for API testing.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tenants",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenants"]
+            }
+          }
+        },
+        {
+          "name": "Create Coffee Shop Tenant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has tenant ID\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData.category).to.eql('COFFEE_SHOP');",
+                  "    ",
+                  "    // Store tenant ID for subsequent requests",
+                  "    pm.environment.set('coffeeShopTenantId', jsonData.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bean & Brew Cafe\",\n  \"category\": \"COFFEE_SHOP\",\n  \"address\": \"456 Coffee Lane, BGC Taguig\",\n  \"phoneNumber\": \"+63 2 8777 5678\",\n  \"email\": \"hello@beanbrew.com\",\n  \"primaryColor\": \"#8B4513\",\n  \"secondaryColor\": \"#FFF8DC\",\n  \"websiteUrl\": \"https://www.beanbrew.com\",\n  \"description\": \"Artisanal coffee shop serving the finest locally-sourced beans.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tenants",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenants"]
+            }
+          }
+        },
+        {
+          "name": "Get All Tenants",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Each tenant has required fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.length > 0) {",
+                  "        jsonData.forEach(tenant => {",
+                  "            pm.expect(tenant).to.have.property('id');",
+                  "            pm.expect(tenant).to.have.property('name');",
+                  "            pm.expect(tenant).to.have.property('category');",
+                  "            pm.expect(tenant).to.have.property('_count');",
+                  "        });",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tenants",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenants"]
+            }
+          }
+        },
+        {
+          "name": "Get Gym Tenants Only",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"All tenants are GYM category\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    jsonData.forEach(tenant => {",
+                  "        pm.expect(tenant.category).to.eql('GYM');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tenants?category=GYM",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenants"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "GYM"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Tenant by ID",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure we have a gymTenantId set",
+                  "if (!pm.environment.get('gymTenantId')) {",
+                  "    // Get the first GYM tenant as fallback",
+                  "    pm.sendRequest({",
+                  "        url: pm.environment.get('baseUrl') + '/tenants?category=GYM',",
+                  "        method: 'GET'",
+                  "    }, function (err, response) {",
+                  "        if (!err && response.code === 200) {",
+                  "            const tenants = response.json();",
+                  "            if (tenants.length > 0) {",
+                  "                pm.environment.set('gymTenantId', tenants[0].id);",
+                  "            }",
+                  "        }",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has tenant details\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "    pm.expect(jsonData).to.have.property('_count');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tenants/{{gymTenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenants", "{{gymTenantId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Tenant",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure we have a gymTenantId set",
+                  "if (!pm.environment.get('gymTenantId')) {",
+                  "    // Get the first GYM tenant as fallback",
+                  "    pm.sendRequest({",
+                  "        url: pm.environment.get('baseUrl') + '/tenants?category=GYM',",
+                  "        method: 'GET'",
+                  "    }, function (err, response) {",
+                  "        if (!err && response.code === 200) {",
+                  "            const tenants = response.json();",
+                  "            if (tenants.length > 0) {",
+                  "                pm.environment.set('gymTenantId', tenants[0].id);",
+                  "            }",
+                  "        }",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Tenant was updated\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.description).to.include('Test Updated');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Test Updated: Premium fitness center with state-of-the-art equipment and professional trainers.\",\n  \"primaryColor\": \"#FF4500\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tenants/{{gymTenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenants", "{{gymTenantId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users (Gym)",
+      "item": [
+        {
+          "name": "Create Gym Member",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure we have a gymTenantId set",
+                  "if (!pm.environment.get('gymTenantId')) {",
+                  "    console.log('No gymTenantId found, attempting to get one...');",
+                  "    // Get the first GYM tenant as fallback",
+                  "    pm.sendRequest({",
+                  "        url: pm.environment.get('baseUrl') + '/tenants?category=GYM',",
+                  "        method: 'GET'",
+                  "    }, function (err, response) {",
+                  "        if (!err && response.code === 200) {",
+                  "            const tenants = response.json();",
+                  "            if (tenants.length > 0) {",
+                  "                pm.environment.set('gymTenantId', tenants[0].id);",
+                  "                console.log('Set gymTenantId to:', tenants[0].id);",
+                  "            }",
+                  "        }",
+                  "    });",
+                  "}",
+                  "",
+                  "// Generate unique email to avoid conflicts",
+                  "const timestamp = Date.now();",
+                  "pm.environment.set('uniqueEmail', 'testuser' + timestamp + '@example.com');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has user ID\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('firstName');",
+                  "    pm.expect(jsonData).to.have.property('lastName');",
+                  "    pm.expect(jsonData).to.have.property('tenant');",
+                  "    ",
+                  "    // Store user ID for subsequent requests",
+                  "    pm.environment.set('gymUserId', jsonData.id);",
+                  "});",
+                  "",
+                  "pm.test(\"User belongs to gym tenant\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.tenant.category).to.eql('GYM');",
+                  "    pm.expect(jsonData.tenantId).to.eql(pm.environment.get('gymTenantId'));",
+                  "});",
+                  "",
+                  "pm.test(\"Business data contains gym-specific info\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('businessData');",
+                  "    pm.expect(jsonData.businessData).to.have.property('membershipType');",
+                  "    pm.expect(jsonData.businessData).to.have.property('startDate');",
+                  "    pm.expect(jsonData.businessData).to.have.property('endDate');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{gymTenantId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"{{gymTenantId}}\",\n  \"firstName\": \"TestUser\",\n  \"lastName\": \"Member\",\n  \"email\": \"{{uniqueEmail}}\",\n  \"phoneNumber\": \"09171234567\",\n  \"role\": \"GYM_MEMBER\",\n  \"isActive\": true,\n  \"notes\": \"Test member for API testing\",\n  \"businessData\": {\n    \"membershipType\": \"Gold\",\n    \"startDate\": \"2025-08-03T00:00:00.000Z\",\n    \"endDate\": \"2026-08-03T00:00:00.000Z\",\n    \"planFeatures\": [\"Pool access\", \"Personal trainer\", \"Locker\", \"Nutrition counseling\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "Create Another Gym Member",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure we have a gymTenantId set",
+                  "if (!pm.environment.get('gymTenantId')) {",
+                  "    // Get the first GYM tenant as fallback",
+                  "    pm.sendRequest({",
+                  "        url: pm.environment.get('baseUrl') + '/tenants?category=GYM',",
+                  "        method: 'GET'",
+                  "    }, function (err, response) {",
+                  "        if (!err && response.code === 200) {",
+                  "            const tenants = response.json();",
+                  "            if (tenants.length > 0) {",
+                  "                pm.environment.set('gymTenantId', tenants[0].id);",
+                  "            }",
+                  "        }",
+                  "    });",
+                  "}",
+                  "",
+                  "// Generate unique email to avoid conflicts",
+                  "const timestamp = Date.now();",
+                  "pm.environment.set('uniqueEmail2', 'testuser2' + timestamp + '@example.com');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has user ID\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('gymUserId2', jsonData.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{gymTenantId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"{{gymTenantId}}\",\n  \"firstName\": \"TestUser2\",\n  \"lastName\": \"Member2\",\n  \"email\": \"{{uniqueEmail2}}\",\n  \"phoneNumber\": \"09189876543\",\n  \"role\": \"GYM_MEMBER\",\n  \"isActive\": true,\n  \"notes\": \"Second test member\",\n  \"businessData\": {\n    \"membershipType\": \"Silver\",\n    \"startDate\": \"2025-08-03T00:00:00.000Z\",\n    \"endDate\": \"2025-12-03T00:00:00.000Z\",\n    \"planFeatures\": [\"Gym access\", \"Group classes\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "Get All Users (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Users have tenant information\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.length > 0) {",
+                  "        jsonData.forEach(user => {",
+                  "            pm.expect(user).to.have.property('id');",
+                  "            pm.expect(user).to.have.property('firstName');",
+                  "            pm.expect(user).to.have.property('tenant');",
+                  "            pm.expect(user.tenant).to.have.property('name');",
+                  "            pm.expect(user.tenant).to.have.property('category');",
+                  "        });",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "Get Users by Tenant",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure we have a gymTenantId set",
+                  "if (!pm.environment.get('gymTenantId')) {",
+                  "    // Get the first GYM tenant as fallback",
+                  "    pm.sendRequest({",
+                  "        url: pm.environment.get('baseUrl') + '/tenants?category=GYM',",
+                  "        method: 'GET'",
+                  "    }, function (err, response) {",
+                  "        if (!err && response.code === 200) {",
+                  "            const tenants = response.json();",
+                  "            if (tenants.length > 0) {",
+                  "                pm.environment.set('gymTenantId', tenants[0].id);",
+                  "            }",
+                  "        }",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"All users belong to correct tenant\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const expectedTenantId = pm.environment.get('gymTenantId');",
+                  "    jsonData.forEach(user => {",
+                  "        pm.expect(user.tenantId).to.eql(expectedTenantId);",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{gymTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/tenant/{{gymTenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "tenant", "{{gymTenantId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure we have necessary IDs set",
+                  "if (!pm.environment.get('gymTenantId') || !pm.environment.get('gymUserId')) {",
+                  "    // Get existing users to set IDs",
+                  "    pm.sendRequest({",
+                  "        url: pm.environment.get('baseUrl') + '/users',",
+                  "        method: 'GET'",
+                  "    }, function (err, response) {",
+                  "        if (!err && response.code === 200) {",
+                  "            const users = response.json();",
+                  "            const gymUser = users.find(u => u.tenant.category === 'GYM');",
+                  "            if (gymUser) {",
+                  "                pm.environment.set('gymUserId', gymUser.id);",
+                  "                pm.environment.set('gymTenantId', gymUser.tenantId);",
+                  "            }",
+                  "        }",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has user details\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('firstName');",
+                  "    pm.expect(jsonData).to.have.property('tenant');",
+                  "    pm.expect(jsonData).to.have.property('businessData');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{gymTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{gymUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{gymUserId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure we have necessary IDs set",
+                  "if (!pm.environment.get('gymTenantId') || !pm.environment.get('gymUserId')) {",
+                  "    // Get existing users to set IDs",
+                  "    pm.sendRequest({",
+                  "        url: pm.environment.get('baseUrl') + '/users',",
+                  "        method: 'GET'",
+                  "    }, function (err, response) {",
+                  "        if (!err && response.code === 200) {",
+                  "            const users = response.json();",
+                  "            const gymUser = users.find(u => u.tenant.category === 'GYM');",
+                  "            if (gymUser) {",
+                  "                pm.environment.set('gymUserId', gymUser.id);",
+                  "                pm.environment.set('gymTenantId', gymUser.tenantId);",
+                  "            }",
+                  "        }",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"User was updated\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.phoneNumber).to.eql('09171111111');",
+                  "    pm.expect(jsonData.businessData.membershipType).to.eql('Platinum');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{gymTenantId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"09171111111\",\n  \"notes\": \"Updated: VIP member with premium access\",\n  \"businessData\": {\n    \"membershipType\": \"Platinum\",\n    \"startDate\": \"2025-08-03T00:00:00.000Z\",\n    \"endDate\": \"2026-08-03T00:00:00.000Z\",\n    \"planFeatures\": [\"Pool access\", \"Personal trainer\", \"Locker\", \"Nutrition counseling\", \"Spa access\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{gymUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{gymUserId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Testing",
+      "item": [
+        {
+          "name": "Try to Create User for Coffee Shop (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403 (Forbidden)\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message mentions business type restriction\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('GYM');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{coffeeShopTenantId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"{{coffeeShopTenantId}}\",\n  \"firstName\": \"Coffee\",\n  \"lastName\": \"Lover\",\n  \"email\": \"coffee@example.com\",\n  \"role\": \"CUSTOMER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "Invalid Tenant ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 (Bad Request)\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message mentions invalid format\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('Invalid tenant ID format');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tenants/invalid-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenants", "invalid-id"]
+            }
+          }
+        },
+        {
+          "name": "Missing Tenant ID in Header",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404 (Not Found)\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message mentions tenant ID required\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('Tenant ID is required');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"{{gymTenantId}}\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "Invalid Email Format",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 (Bad Request)\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message mentions invalid email\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    // Check for either our custom message or class-validator message",
+                  "    const message = Array.isArray(jsonData.message) ? jsonData.message.join(' ') : jsonData.message;",
+                  "    pm.expect(message).to.satisfy(msg => msg.includes('Invalid email format') || msg.includes('email must be an email'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{gymTenantId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"{{gymTenantId}}\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"email\": \"invalid-email\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        {
+          "name": "Delete Test User",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure we have necessary IDs set for deletion",
+                  "if (!pm.environment.get('gymUserId2')) {",
+                  "    // Get existing users to set ID for second user",
+                  "    pm.sendRequest({",
+                  "        url: pm.environment.get('baseUrl') + '/users',",
+                  "        method: 'GET'",
+                  "    }, function (err, response) {",
+                  "        if (!err && response.code === 200) {",
+                  "            const users = response.json();",
+                  "            const gymUsers = users.filter(u => u.tenant.category === 'GYM');",
+                  "            if (gymUsers.length > 1) {",
+                  "                pm.environment.set('gymUserId2', gymUsers[1].id);",
+                  "                pm.environment.set('gymTenantId', gymUsers[1].tenantId);",
+                  "            } else if (gymUsers.length > 0) {",
+                  "                // Fallback to first user if only one exists",
+                  "                pm.environment.set('gymUserId2', gymUsers[0].id);",
+                  "                pm.environment.set('gymTenantId', gymUsers[0].tenantId);",
+                  "            }",
+                  "        }",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"User was deleted\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{gymTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{gymUserId2}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{gymUserId2}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Test Tenant",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Skip this test if we don't have a coffee shop tenant to delete",
+                  "if (!pm.environment.get('coffeeShopTenantId')) {",
+                  "    console.log('No coffeeShopTenantId found, skipping deletion test');",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Tenant was deleted\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tenants/{{coffeeShopTenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenants", "{{coffeeShopTenantId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "console.log('Running request to:', pm.request.url.toString());",
+          "",
+          "// Add bypass auth header for local testing",
+          "pm.request.headers.add({",
+          "  key: 'x-bypass-auth',",
+          "  value: pm.environment.get('bypassAuth') || 'true'",
+          "});"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "pm.test(\"Response time is less than 2000ms\", function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+          "});",
+          "",
+          "pm.test(\"Response has correct Content-Type\", function () {",
+          "    if (pm.response.code !== 404 && !pm.request.url.toString().endsWith('/')) {",
+          "        pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "    }",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    }
+  ]
+}

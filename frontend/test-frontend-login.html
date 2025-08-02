@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Frontend Login Flow</title>
+</head>
+<body>
+    <h1>Test Frontend Login Integration</h1>
+    <form id="loginForm">
+        <div>
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" value="admin@creatives-saas.com" required>
+        </div>
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" value="SuperAdmin123!" required>
+        </div>
+        <button type="submit">Test Login</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = 'Testing login...';
+            
+            try {
+                // Test 1: Direct backend API call (like our previous test)
+                const backendResponse = await fetch('http://localhost:5000/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const backendResult = await backendResponse.json();
+                
+                resultDiv.innerHTML = `
+                    <h3>Backend API Test:</h3>
+                    <p>Status: ${backendResponse.status}</p>
+                    <pre>${JSON.stringify(backendResult, null, 2)}</pre>
+                    <hr>
+                `;
+
+                if (backendResponse.ok) {
+                    // Test 2: Try to access the frontend dashboard directly
+                    resultDiv.innerHTML += `
+                        <h3>Frontend Dashboard Test:</h3>
+                        <p>Backend login successful! You can now visit:</p>
+                        <p><a href="http://localhost:3000/auth/login" target="_blank">Frontend Login Page</a></p>
+                        <p><a href="http://localhost:3000/dashboard" target="_blank">Frontend Dashboard</a></p>
+                        <p>Note: Frontend login integration depends on the Next.js app handling authentication state.</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

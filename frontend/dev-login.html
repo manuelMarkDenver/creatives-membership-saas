@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dev Login - Quick Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 500px; 
+            margin: 50px auto; 
+            padding: 20px; 
+        }
+        button { 
+            padding: 10px 15px; 
+            margin: 10px 0; 
+            cursor: pointer; 
+            background: #0070f3; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+        }
+        button:hover { background: #0051cc; }
+        .status { 
+            background: #f0f0f0; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 20px 0; 
+        }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Dev Authentication Test</h1>
+    <p>This will simulate logging in as Super Admin and redirect to the dashboard</p>
+    
+    <button onclick="loginAndRedirect()">Login as Super Admin & Go to Dashboard</button>
+    <button onclick="loginAsTenant('fitlife')">Login as FitLife Gym Owner</button>
+    <button onclick="loginAsTenant('powerflex')">Login as PowerFlex Owner</button>
+    <button onclick="testBackendAuth()">Test Backend /auth/me</button>
+    <button onclick="clearAuth()">Clear Auth Data</button>
+    
+    <div id="status"></div>
+    
+    <h3>Links:</h3>
+    <ul>
+        <li><a href="http://localhost:3000/auth/login" target="_blank">Frontend Login Page</a></li>
+        <li><a href="http://localhost:3000/dashboard" target="_blank">Frontend Dashboard</a></li>
+        <li><a href="http://localhost:5000/auth/me" target="_blank">Backend /auth/me (bypassed)</a></li>
+    </ul>
+
+    <script>
+        const SUPER_ADMIN_USER = {
+            id: '675b1a8b-9a47-4f1b-83c7-30b624a3b726',
+            email: 'admin@creatives-saas.com',
+            name: 'Super Admin',
+            firstName: 'Super',
+            lastName: 'Admin',
+            role: 'SUPER_ADMIN',
+            tenantId: null,
+            tenant: null
+        };
+        
+        const FITLIFE_OWNER = {
+            id: 'ee32d918-fd4a-44ca-bd20-5bc28b7080b4',
+            email: 'owner@fitlife-gym.com',
+            name: 'Maria Santos',
+            firstName: 'Maria',
+            lastName: 'Santos',
+            role: 'OWNER',
+            tenantId: 'f7266a30-3df4-4ac6-b122-ecd5adbfdd42',
+            tenant: {
+                id: 'f7266a30-3df4-4ac6-b122-ecd5adbfdd42',
+                name: 'FitLife Gym',
+                slug: 'fitlife-gym'
+            }
+        };
+        
+        const POWERFLEX_OWNER = {
+            id: 'ebb19d16-281a-43a2-98f9-91e2f93dfa04',
+            email: 'owner@powerflex-fitness.com',
+            name: 'Juan Cruz',
+            firstName: 'Juan',
+            lastName: 'Cruz',
+            role: 'OWNER',
+            tenantId: 'bf80c94d-9399-4d50-b13c-aecdd3c9ca8e',
+            tenant: {
+                id: 'bf80c94d-9399-4d50-b13c-aecdd3c9ca8e',
+                name: 'PowerFlex Fitness',
+                slug: 'powerflex-fitness'
+            }
+        };
+
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.innerHTML = message;
+            status.className = `status ${type}`;
+        }
+
+        function loginAndRedirect() {
+            // Simulate frontend auth
+            localStorage.setItem('user_data', JSON.stringify(SUPER_ADMIN_USER));
+            localStorage.setItem('auth_token', 'dev-super-admin-token');
+            
+            showStatus('✅ Logged in as Super Admin! Redirecting to dashboard...', 'success');
+            
+            // Redirect after a short delay
+            setTimeout(() => {
+                window.open('http://localhost:3000/dashboard', '_blank');
+            }, 1000);
+        }
+        
+        function loginAsTenant(tenant) {
+            let user, pagePath;
+            if (tenant === 'fitlife') {
+                user = FITLIFE_OWNER;
+                pagePath = 'members';
+            } else if (tenant === 'powerflex') {
+                user = POWERFLEX_OWNER;
+                pagePath = 'members';
+            } else {
+                showStatus('❌ Unknown tenant', 'error');
+                return;
+            }
+            
+            // Simulate frontend auth
+            localStorage.setItem('user_data', JSON.stringify(user));
+            localStorage.setItem('auth_token', `dev-${tenant}-owner-token`);
+            
+            showStatus(`✅ Logged in as ${user.tenant.name} Owner! Redirecting to ${pagePath}...`, 'success');
+            
+            // Redirect after a short delay
+            setTimeout(() => {
+                window.open(`http://localhost:3000/${pagePath}`, '_blank');
+            }, 1000);
+        }
+
+        async function testBackendAuth() {
+            showStatus('Testing backend /auth/me endpoint...');
+            
+            try {
+                const response = await fetch('http://localhost:5000/auth/me', {
+                    headers: {
+                        'x-bypass-auth': 'true',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`✅ Backend auth working!\n<pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                } else {
+                    showStatus(`❌ Backend error: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearAuth() {
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('auth_token');
+            showStatus('🗑️ Auth data cleared');
+        }
+
+        // Show current auth status on page load
+        window.onload = function() {
+            const userData = localStorage.getItem('user_data');
+            if (userData) {
+                const user = JSON.parse(userData);
+                showStatus(`Current user: ${user.email} (${user.role})`, 'success');
+            } else {
+                showStatus('No auth data found');
+            }
+        };
+    </script>
+</body>
+</html>
