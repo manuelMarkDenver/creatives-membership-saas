@@ -39,15 +39,19 @@ import {
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { User } from '@/types'
 import { MemberInfoModal } from '@/components/modals/member-info-modal'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MemberCard } from '@/components/members/member-card'
 import { customerSubscriptionsApi } from '@/lib/api'
+import { toast } from 'sonner'
 
 export default function MembersPage() {
   const { data: profile } = useProfile()
   const [searchTerm, setSearchTerm] = useState('')
+  const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'inactive' | 'expired' | 'cancelled' | 'deleted'>('all')
+  const [showDeleted, setShowDeleted] = useState(false)
   const [selectedMember, setSelectedMember] = useState(null)
   const [showMemberInfoModal, setShowMemberInfoModal] = useState(false)
   const [showAddMemberModal, setShowAddMemberModal] = useState(false)
@@ -95,17 +99,23 @@ export default function MembersPage() {
         membershipPlanId: selectedPlanId,
         paymentMethod: 'cash'
       })
-      alert(`Success: ${result.message}`)
+      
+      const memberName = selectedMemberForAction.name || `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`
+      toast.success(`Membership renewed successfully for ${memberName}!`, {
+        description: result.message
+      })
       
       setShowRenewalModal(false)
       setSelectedMemberForAction(null)
       setSelectedPlanId('')
       
-      // Refresh the page to show updated data
-      window.location.reload()
-    } catch (error) {
+      // Refresh members list
+      refetchTenantMembers()
+    } catch (error: any) {
       console.error('Renewal failed:', error)
-      alert('Failed to renew membership. Please try again.')
+      toast.error('Failed to renew membership', {
+        description: error?.response?.data?.message || 'Please try again.'
+      })
     }
   }
 
@@ -122,18 +132,24 @@ export default function MembersPage() {
         cancellationReason,
         cancellationNotes
       })
-      alert(`Success: ${result.message}`)
+      
+      const memberName = selectedMemberForAction.name || `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`
+      toast.success(`Membership cancelled successfully for ${memberName}`, {
+        description: result.message
+      })
       
       setShowCancellationModal(false)
       setSelectedMemberForAction(null)
       setCancellationReason('')
       setCancellationNotes('')
       
-      // Refresh the page to show updated data
-      window.location.reload()
-    } catch (error) {
+      // Refresh members list
+      refetchTenantMembers()
+    } catch (error: any) {
       console.error('Cancellation failed:', error)
-      alert('Failed to cancel membership. Please try again.')
+      toast.error('Failed to cancel membership', {
+        description: error?.response?.data?.message || 'Please try again.'
+      })
     }
   }
 
@@ -145,9 +161,55 @@ export default function MembersPage() {
     (membersData || [])
 
   const filteredMembers = allMembers.filter((member: any) => {
+    // Handle deleted members filtering
+    const isDeleted = !member.isActive || member.deletedAt
+    
+    // If not showing deleted and member is deleted, exclude them
+    if (isDeleted && !showDeleted) {
+      return false
+    }
+    
+    // If filtering for deleted only, show only deleted members
+    if (memberStatusFilter === 'deleted') {
+      if (!isDeleted) return false
+    } else {
+      // For all other filters, exclude deleted members unless showDeleted is true
+      if (isDeleted && !showDeleted) return false
+    }
+    
+    // Status-based filtering
+    if (memberStatusFilter !== 'all' && memberStatusFilter !== 'deleted') {
+      const membership = member.businessData?.membership
+      const subscriptionStatus = member.businessData?.subscriptionStatus
+      
+      switch (memberStatusFilter) {
+        case 'active':
+          if (!member.isActive) return false
+          break
+        case 'inactive':
+          if (member.isActive) return false
+          break
+        case 'expired':
+          // Check if membership is expired
+          if (!membership || !membership.endDate) return false
+          const endDate = new Date(membership.endDate)
+          const now = new Date()
+          if (endDate > now) return false
+          break
+        case 'cancelled':
+          // Check if subscription is cancelled
+          if (subscriptionStatus !== 'CANCELLED') return false
+          break
+        default:
+          break
+      }
+    }
+    
+    // Search term filtering
     const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
     const matchesSearch = memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase()))
+    
     return matchesSearch
   })
 
@@ -235,18 +297,68 @@ export default function MembersPage() {
           <CardDescription>Search and filter gym members</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search members..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search members..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Select value={memberStatusFilter} onValueChange={setMemberStatusFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Members</SelectItem>
+                    <SelectItem value="active">Active Only</SelectItem>
+                    <SelectItem value="inactive">Inactive Only</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="deleted">Deleted</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="showDeleted"
+                    checked={showDeleted}
+                    onCheckedChange={setShowDeleted}
+                  />
+                  <Label htmlFor="showDeleted" className="text-sm font-medium whitespace-nowrap">
+                    Show deleted
+                  </Label>
+                </div>
               </div>
             </div>
+            
+            {/* Filter status indicator */}
+            {(memberStatusFilter !== 'all' || showDeleted || searchTerm) && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Showing:</span>
+                {searchTerm && (
+                  <Badge variant="secondary" className="text-xs">
+                    Search: "{searchTerm}"
+                  </Badge>
+                )}
+                {memberStatusFilter !== 'all' && (
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {memberStatusFilter} members
+                  </Badge>
+                )}
+                {showDeleted && (
+                  <Badge variant="destructive" className="text-xs">
+                    Including deleted
+                  </Badge>
+                )}
+                <span className="text-xs">({filteredMembers.length} found)</span>
+              </div>
+            )}
           </div>
 
           {/* Members List */}

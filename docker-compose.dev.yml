@@ -28,6 +28,8 @@ services:
   # Development override for backend
   backend:
     build:
+      context: ./backend
+      dockerfile: Dockerfile
       target: builder  # Use builder stage for development
       args:
         - NODE_ENV=development

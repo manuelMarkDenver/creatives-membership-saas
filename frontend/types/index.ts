@@ -106,6 +106,8 @@ export interface User {
   isActive: boolean
   notes?: string
   businessData?: any // JSON field for business-specific data
+  deletedAt?: string
+  deletedBy?: string
   createdAt: string
   updatedAt: string
   userBranches?: UserBranch[]

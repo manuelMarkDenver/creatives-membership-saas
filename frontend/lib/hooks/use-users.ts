@@ -154,7 +154,7 @@ export function useUpdateProfile() {
   })
 }
 
-// Delete user mutation
+// Delete user mutation (hard delete)
 export function useDeleteUser() {
   const queryClient = useQueryClient()
 
@@ -168,6 +168,34 @@ export function useDeleteUser() {
       // Invalidate lists
       queryClient.invalidateQueries({ queryKey: userKeys.lists() })
       queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'tenant'] })
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'branch'] })
+    },
+  })
+}
+
+// Soft delete user mutation
+export function useSoftDeleteUser() {
+  const queryClient = useQueryClient()
+  const { data: profile } = useProfile()
+
+  return useMutation({
+    mutationFn: (id: string) => {
+      const updateData = {
+        isActive: false,
+        deletedAt: new Date().toISOString(),
+        deletedBy: profile?.id || 'unknown'
+      }
+      return usersApi.update(id, updateData)
+    },
+    onSuccess: (updatedUser: User) => {
+      // Update cached user
+      queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser)
+      
+      // Invalidate lists to filter out soft-deleted users
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+      queryClient.invalidateQueries({ 
+        queryKey: [...userKeys.all, 'tenant', updatedUser.tenantId] 
+      })
       queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'branch'] })
     },
   })

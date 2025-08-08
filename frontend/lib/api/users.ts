@@ -16,6 +16,9 @@ export interface UpdateUserDto {
   name?: string
   role?: Role
   accessLevel?: AccessLevel
+  isActive?: boolean
+  deletedAt?: string
+  deletedBy?: string
 }
 
 export interface UserQueryParams {
@@ -101,7 +104,7 @@ export const usersApi = {
 
   // Update user
   update: async (id: string, data: UpdateUserDto): Promise<User> => {
-    const response = await apiClient.put(`/users/${id}`, data)
+    const response = await apiClient.patch(`/users/${id}`, data)
     return response.data
   },
 
