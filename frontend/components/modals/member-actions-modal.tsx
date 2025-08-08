@@ -116,20 +116,22 @@ export function MemberActionsModal({
   const renewMutation = useRenewMemberSubscription()
 
   // Get relevant reasons for the current action
-  const relevantReasons = (actionReasons?.find(category => {
-    switch (actionType) {
-      case 'activate':
-        return category.category === 'ACCOUNT'
-      case 'cancel':
-        return category.category === 'SUBSCRIPTION' 
-      case 'restore':
-        return category.category === 'ACCOUNT'
-      case 'renew':
-        return category.category === 'SUBSCRIPTION'
-      default:
-        return false
-    }
-  })?.reasons || []).filter(reason => reason && reason.trim() !== '')
+  const relevantReasons = Array.from(new Set(
+    (actionReasons?.find(category => {
+      switch (actionType) {
+        case 'activate':
+          return category.category === 'ACCOUNT'
+        case 'cancel':
+          return category.category === 'SUBSCRIPTION' 
+        case 'restore':
+          return category.category === 'ACCOUNT'
+        case 'renew':
+          return category.category === 'SUBSCRIPTION'
+        default:
+          return false
+      }
+    })?.reasons || []).filter(reason => reason && reason.trim() !== '')
+  ))
 
   // Reset form when modal opens
   useEffect(() => {

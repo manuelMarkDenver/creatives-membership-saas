@@ -154,6 +154,8 @@ export function MemberCard({
 
   // Helper function to open member action modal
   const openMemberActionModal = (action: MemberActionType) => {
+    const currentState = getMemberStatus();
+    console.log(`[DEBUG] Opening modal for member ${member.id} (${memberName}) - currentState: ${currentState}, action: ${action}`);
     setCurrentAction(action)
     setShowMemberActionsModal(true)
   }

@@ -22,19 +22,24 @@ export class MembersController {
     @Body() body: MemberActionRequest,
     @Req() req: AuthenticatedRequest
   ) {
-    console.log('🔄 ACTIVATE endpoint called for member:', id, 'body:', body, 'user:', req.user?.id);
-    const { reason, notes } = body;
-    const performedBy = req.user?.id;
+    try {
+      console.log('🔄 ACTIVATE endpoint called for member:', id, 'body:', body, 'user:', req.user?.id);
+      const { reason, notes } = body || {};
+      const performedBy = req.user?.id;
 
-    if (!performedBy) {
-      throw new Error('User not authenticated');
+      if (!performedBy) {
+        throw new Error('User not authenticated');
+      }
+
+      if (!reason || reason.trim() === '') {
+        throw new Error('Reason is required and cannot be empty');
+      }
+
+      return await this.membersService.activateMember(id, { reason: reason.trim(), notes }, performedBy);
+    } catch (error) {
+      console.error('❌ Error in activateMember controller:', error);
+      throw error;
     }
-
-    if (!reason) {
-      throw new Error('Reason is required');
-    }
-
-    return this.membersService.activateMember(id, { reason, notes }, performedBy);
   }
 
   @Post(':id/cancel')
