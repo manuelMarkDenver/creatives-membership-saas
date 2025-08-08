@@ -154,8 +154,6 @@ export function MemberCard({
 
   // Helper function to open member action modal
   const openMemberActionModal = (action: MemberActionType) => {
-    const currentState = getMemberStatus();
-    console.log(`[DEBUG] Opening modal for member ${member.id} (${memberName}) - currentState: ${currentState}, action: ${action}`);
     setCurrentAction(action)
     setShowMemberActionsModal(true)
   }
@@ -164,27 +162,14 @@ export function MemberCard({
   const getMemberStatus = () => {
     // Use the actual currentState from member status API if available
     if (memberStatus?.currentState) {
-      console.log(`[DEBUG] Member ${member.id} (${memberName}) - API currentState:`, memberStatus.currentState);
       return memberStatus.currentState
     }
     
     // Fallback to computed status
-    const computedStatus = (() => {
-      if (isDeleted) return 'DELETED'
-      if (isExpired) return 'EXPIRED'
-      if (subscription && !isExpired) return 'ACTIVE'
-      return 'INACTIVE'
-    })();
-    
-    console.log(`[DEBUG] Member ${member.id} (${memberName}) - Computed status:`, computedStatus, {
-      isDeleted,
-      isExpired, 
-      hasSubscription: !!subscription,
-      memberStatusLoading: statusLoading,
-      memberStatusError: statusError
-    });
-    
-    return computedStatus;
+    if (isDeleted) return 'DELETED'
+    if (isExpired) return 'EXPIRED'
+    if (subscription && !isExpired) return 'ACTIVE'
+    return 'INACTIVE'
   }
   
   // Helper function to determine the appropriate action based on member state
@@ -459,7 +444,7 @@ export function MemberCard({
             <DropdownMenuSeparator />
             
             {/* General Actions */}
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onViewMemberInfo(member)}>
               <Edit className="mr-2 h-4 w-4" />
               Edit Member
             </DropdownMenuItem>
@@ -496,7 +481,7 @@ export function MemberCard({
           
           <div className="space-y-4 py-4">
             {/* Member Summary */}
-            <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
                 {memberName.charAt(0).toUpperCase()}
               </div>
@@ -511,11 +496,11 @@ export function MemberCard({
               </div>
             </div>
             
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">
+            <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-800 dark:text-red-200">
                 <strong>Warning:</strong> Removing this member will:
               </p>
-              <ul className="text-sm text-red-700 mt-2 ml-4 list-disc">
+              <ul className="text-sm text-red-700 dark:text-red-300 mt-2 ml-4 list-disc">
                 <li>Mark the member as inactive</li>
                 <li>Remove them from the active members list</li>
                 <li>Preserve all their data for record keeping</li>

@@ -37,6 +37,7 @@ import {
   X
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { membersApi } from '@/lib/api/members'
 
 interface MemberInfoModalProps {
   isOpen: boolean
@@ -128,9 +129,51 @@ export function MemberInfoModal({
 
   const handleSave = async () => {
     try {
-      // Here you would typically make an API call to update the member
-      
-      // Mock API call
+      // Prepare data for API
+      const updateData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: formData.phoneNumber,
+        photoUrl: formData.photoUrl,
+        notes: formData.notes,
+        businessData: {
+          personalInfo: {
+            dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
+            gender: formData.gender,
+            height: formData.height ? parseFloat(formData.height) : null,
+            weight: formData.weight ? parseFloat(formData.weight) : null,
+            fitnessGoals: formData.fitnessGoals,
+            emergencyContact: {
+              name: formData.emergencyContactName,
+              phone: formData.emergencyContactPhone,
+              relationship: formData.emergencyContactRelationship
+            }
+          },
+          healthInfo: {
+            medicalConditions: formData.medicalConditions,
+            allergies: formData.allergies,
+            fitnessLevel: formData.fitnessLevel
+          },
+          preferences: {
+            preferredWorkoutTime: formData.preferredWorkoutTime,
+            favoriteEquipment: formData.favoriteEquipment,
+            notifications: {
+              email: formData.emailNotifications,
+              sms: formData.smsNotifications,
+              push: formData.pushNotifications
+            }
+          }
+        }
+      }
+
+      // Remove null/empty values
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === null || updateData[key] === '') {
+          delete updateData[key]
+        }
+      })
+
+      await membersApi.updateMember(member.id, updateData)
       toast.success('Member information updated successfully')
       setIsEditing(false)
       onMemberUpdated?.()
@@ -462,7 +505,7 @@ export function MemberInfoModal({
                 Current Membership
               </h4>
               
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-purple-600">
                     {member.businessData.membership.planName}
@@ -505,26 +548,26 @@ export function MemberInfoModal({
               </h4>
               
               <div className="grid grid-cols-3 gap-4 text-sm">
-                <div className="bg-blue-50 rounded-lg p-3 text-center">
+                <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 text-center">
                   <div className="font-bold text-blue-600 text-lg">
                     {member.businessData.attendance.totalVisits}
                   </div>
-                  <div className="text-blue-600 text-xs">Total Visits</div>
+                  <div className="text-blue-600 dark:text-blue-400 text-xs">Total Visits</div>
                 </div>
-                <div className="bg-green-50 rounded-lg p-3 text-center">
+                <div className="bg-green-50 dark:bg-green-950 rounded-lg p-3 text-center">
                   <div className="font-bold text-green-600 text-lg">
                     {member.businessData.attendance.averageVisitsPerWeek}
                   </div>
-                  <div className="text-green-600 text-xs">Visits/Week</div>
+                  <div className="text-green-600 dark:text-green-400 text-xs">Visits/Week</div>
                 </div>
-                <div className="bg-purple-50 rounded-lg p-3 text-center">
+                <div className="bg-purple-50 dark:bg-purple-950 rounded-lg p-3 text-center">
                   <div className="font-bold text-purple-600 text-xs">
                     {member.businessData.attendance.lastVisit 
                       ? new Date(member.businessData.attendance.lastVisit).toLocaleDateString()
                       : 'N/A'
                     }
                   </div>
-                  <div className="text-purple-600 text-xs">Last Visit</div>
+                  <div className="text-purple-600 dark:text-purple-400 text-xs">Last Visit</div>
                 </div>
               </div>
             </div>

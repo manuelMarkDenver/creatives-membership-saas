@@ -90,6 +90,14 @@ const statusIcons = {
   INACTIVE: { icon: Info, color: 'text-gray-400' },
 }
 
+// Function to format reason options for human readability
+const formatReasonOption = (reason: string): string => {
+  return reason
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
 export function MemberActionsModal({
   isOpen,
   onClose,
@@ -229,10 +237,6 @@ export function MemberActionsModal({
     )
   }
 
-  // Debug logging - can be removed once issue is resolved
-  if (process.env.NODE_ENV === 'development') {
-    console.log('MemberActionsModal - actionType:', actionType, 'memberState:', memberData?.currentState);
-  }
   
   // Safe status icon selection
   const StatusIcon = (memberData.currentState && statusIcons[memberData.currentState]) 
@@ -258,7 +262,7 @@ export function MemberActionsModal({
         <div className="space-y-6">
           {/* Member Information */}
           {memberData && (
-            <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-semibold">{memberData.firstName} {memberData.lastName}</h4>
@@ -274,7 +278,7 @@ export function MemberActionsModal({
 
               {/* Current subscription info */}
               {memberData.subscription && (
-                <div className="pt-2 border-t border-gray-200">
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
                       <span className="text-muted-foreground">Plan:</span>
@@ -322,7 +326,7 @@ export function MemberActionsModal({
               </Select>
               
               {selectedPlanId && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
                   {(() => {
                     const selectedPlan = membershipPlans.find((p: any) => p.id === selectedPlanId)
                     if (!selectedPlan) return null
@@ -332,7 +336,7 @@ export function MemberActionsModal({
                     endDate.setDate(endDate.getDate() + selectedPlan.duration)
                     
                     return (
-                      <div className="space-y-1 text-sm text-green-800">
+                      <div className="space-y-1 text-sm text-green-800 dark:text-green-300">
                         <p><strong>Selected:</strong> {selectedPlan.name}</p>
                         <p><strong>Price:</strong> ₱{selectedPlan.price}</p>
                         <p><strong>Duration:</strong> {selectedPlan.duration} days</p>
@@ -363,7 +367,7 @@ export function MemberActionsModal({
                 ) : (
                   relevantReasons.map((reasonOption) => (
                     <SelectItem key={reasonOption} value={reasonOption}>
-                      {reasonOption}
+                      {formatReasonOption(reasonOption)}
                     </SelectItem>
                   ))
                 )}
@@ -384,8 +388,8 @@ export function MemberActionsModal({
 
           {/* Action Warning/Info */}
           {actionType === 'cancel' && (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="text-sm text-yellow-800">
+            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+              <p className="text-sm text-yellow-800 dark:text-yellow-300">
                 <strong>Warning:</strong> This will immediately cancel the member's access to gym facilities. This action will be logged in their history.
               </p>
             </div>

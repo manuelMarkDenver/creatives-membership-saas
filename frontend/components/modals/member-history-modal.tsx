@@ -146,7 +146,7 @@ export function MemberHistoryModal({
 
         <div className="space-y-4">
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
             <div className="flex-1">
               <Label className="text-xs font-medium text-gray-600">Category</Label>
               <Select value={query.category || 'all'} onValueChange={(value) => updateQuery({ category: value === 'all' ? '' : value })}>
@@ -231,7 +231,7 @@ export function MemberHistoryModal({
                     
                     return (
                       <div key={entry.id} className="border-b border-gray-100 last:border-0">
-                        <div className="p-4 hover:bg-gray-50">
+                        <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-900">
                           <div className="flex items-start gap-3">
                             {/* Action Icon */}
                             <div className={`flex-shrink-0 w-8 h-8 rounded-full border ${actionStyle} flex items-center justify-center`}>
@@ -299,7 +299,7 @@ export function MemberHistoryModal({
 
                 {/* Pagination */}
                 {historyData.pagination && historyData.pagination.pages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t">
+                    <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t">
                     <div className="flex items-center gap-2">
                       <p className="text-sm text-gray-600">
                         Showing {((historyData.pagination.page - 1) * historyData.pagination.limit) + 1} to{' '}

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { MembersService } from './members.service';
 import type { MemberActionRequest, MemberHistoryQuery } from './members.service';
 import { AuthGuard } from '../../core/auth/auth.guard';
@@ -15,6 +15,22 @@ interface AuthenticatedRequest extends Request {
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
 
+  @Patch(':id')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  async updateMember(
+    @Param('id') id: string,
+    @Body() body: any,
+    @Req() req: AuthenticatedRequest
+  ) {
+    const performedBy = req.user?.id;
+
+    if (!performedBy) {
+      throw new Error('User not authenticated');
+    }
+
+    return this.membersService.updateMember(id, body, performedBy);
+  }
+
   @Post(':id/activate')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   async activateMember(
@@ -23,7 +39,6 @@ export class MembersController {
     @Req() req: AuthenticatedRequest
   ) {
     try {
-      console.log('🔄 ACTIVATE endpoint called for member:', id, 'body:', body, 'user:', req.user?.id);
       const { reason, notes } = body || {};
       const performedBy = req.user?.id;
 
@@ -49,7 +64,6 @@ export class MembersController {
     @Body() body: MemberActionRequest,
     @Req() req: AuthenticatedRequest
   ) {
-    console.log('🔄 CANCEL endpoint called for member:', id, 'body:', body, 'user:', req.user?.id);
     const { reason, notes } = body;
     const performedBy = req.user?.id;
 
@@ -71,7 +85,6 @@ export class MembersController {
     @Body() body: MemberActionRequest,
     @Req() req: AuthenticatedRequest
   ) {
-    console.log('🔄 RESTORE endpoint called for member:', id, 'body:', body, 'user:', req.user?.id);
     const { reason, notes } = body;
     const performedBy = req.user?.id;
 
@@ -93,7 +106,6 @@ export class MembersController {
     @Body() body: { membershipPlanId: string },
     @Req() req: AuthenticatedRequest
   ) {
-    console.log('🔄 RENEW endpoint called for member:', id, 'body:', body, 'user:', req.user?.id);
     const { membershipPlanId } = body;
     const performedBy = req.user?.id;
 

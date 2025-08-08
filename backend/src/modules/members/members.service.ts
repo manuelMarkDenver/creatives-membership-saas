@@ -52,6 +52,40 @@ export class MembersService {
     return member;
   }
 
+  async updateMember(memberId: string, updateData: any, performedBy: string) {
+    const member = await this.getMemberById(memberId);
+    const currentState = await this.getMemberState(member);
+    
+    // Update member data
+    const updatedMember = await this.prisma.user.update({
+      where: { id: memberId },
+      data: {
+        ...updateData,
+        updatedAt: new Date()
+      }
+    });
+    
+    // Create audit log for profile update
+    await this.createAuditLog({
+      memberId,
+      action: 'PROFILE_UPDATED',
+      reason: 'PROFILE_UPDATED',
+      previousState: currentState,
+      newState: currentState, // State doesn't change for profile updates
+      performedBy,
+      metadata: {
+        updatedFields: Object.keys(updateData),
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+    return {
+      success: true,
+      message: 'Member updated successfully',
+      member: updatedMember
+    };
+  }
+
   async getMemberState(member: any): Promise<string> {
     // Check if deleted
     if (member.deletedAt || !member.isActive) {
@@ -298,7 +332,6 @@ export class MembersService {
   }
   
   async getMemberHistory(memberId: string, query: MemberHistoryQuery) {
-    console.log('📜 Getting member history for:', memberId, 'with query:', query);
     const { page = 1, limit = 50, category, startDate, endDate } = query;
     const offset = (page - 1) * limit;
     
@@ -347,7 +380,6 @@ export class MembersService {
       this.prisma.memberAuditLog.count({ where })
     ]);
     
-    console.log('🔍 Found', total, 'audit logs for member', memberId, 'returning', events.length, 'items');
     
     return {
       logs: events,

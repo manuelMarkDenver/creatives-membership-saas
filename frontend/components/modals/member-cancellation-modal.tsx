@@ -113,12 +113,12 @@ export function MemberCancellationModal({
         <div className="space-y-6">
           {/* Current Membership Info */}
           {currentMembership && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-blue-700 mb-2">
+            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 mb-2">
                 <User className="h-4 w-4" />
                 <span className="font-medium">Current Active Membership</span>
               </div>
-              <div className="space-y-1 text-sm text-blue-600">
+              <div className="space-y-1 text-sm text-blue-600 dark:text-blue-400">
                 <p><strong>Plan:</strong> {currentMembership.planName}</p>
                 <p><strong>Valid Until:</strong> {new Date(currentMembership.endDate).toLocaleDateString()}</p>
                 <p><strong>Amount Paid:</strong> ₱{currentMembership.price}</p>
@@ -130,12 +130,12 @@ export function MemberCancellationModal({
           )}
 
           {/* Warning */}
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-amber-700 mb-2">
+          <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 mb-2">
               <AlertTriangle className="h-4 w-4" />
               <span className="font-medium">Important Notice</span>
             </div>
-            <p className="text-sm text-amber-600">
+            <p className="text-sm text-amber-600 dark:text-amber-400">
               Once cancelled, this member will lose access to gym facilities according to the cancellation type you select below. 
               This action cannot be undone - you would need to create a new membership to restore access.
             </p>
@@ -184,25 +184,25 @@ export function MemberCancellationModal({
           </div>
 
           {/* Cancellation Summary */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 mb-3">Cancellation Summary</h4>
+          <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Cancellation Summary</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Member:</span>
+                <span className="text-gray-600 dark:text-gray-400">Member:</span>
                 <span className="font-medium">{memberName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Plan:</span>
+                <span className="text-gray-600 dark:text-gray-400">Plan:</span>
                 <span>{currentMembership?.planName || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Cancellation:</span>
+                <span className="text-gray-600 dark:text-gray-400">Cancellation:</span>
                 <span className={cancellationType === 'immediate' ? 'text-red-600 font-medium' : 'text-orange-600'}>
                   {cancellationType === 'immediate' ? 'Immediate' : 'End of Period'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Effective:</span>
+                <span className="text-gray-600 dark:text-gray-400">Effective:</span>
                 <span>
                   {cancellationType === 'immediate' 
                     ? 'Today'
