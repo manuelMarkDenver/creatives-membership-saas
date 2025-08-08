@@ -10,12 +10,22 @@ import {
   Users, 
   Receipt, 
   Edit, 
-  Trash2 
+  Trash2,
+  History,
+  UserCheck,
+  UserX,
+  UserPlus,
+  RefreshCw,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  Info
 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -27,13 +37,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { 
-  useCustomerSubscription, 
-  useCustomerTransactions,
-  isSubscriptionExpired,
-  getSubscriptionDaysRemaining 
-} from '@/lib/hooks/use-customer-subscriptions'
-import { useSoftDeleteUser } from '@/lib/hooks/use-users'
+  useSoftDeleteUser, 
+  useActivateUser, 
+  useDeactivateUser, 
+  useRestoreUser 
+} from '@/lib/hooks/use-users'
+import { useMemberStatus } from '@/lib/hooks/use-member-actions'
 import { TransactionHistoryModal } from '@/components/modals/transaction-history-modal'
+import { MemberActionsModal, type MemberActionType } from '@/components/modals/member-actions-modal'
+import { MemberHistoryModal } from '@/components/modals/member-history-modal'
 import { toast } from 'sonner'
 
 interface MemberCardProps {
@@ -43,6 +55,7 @@ interface MemberCardProps {
   onViewTransactions: (member: User) => void
   onRenewSubscription: (member: User) => void
   onCancelSubscription: (member: User) => void
+  onMemberDeleted?: () => void
 }
 
 export function MemberCard({
@@ -51,31 +64,143 @@ export function MemberCard({
   onViewMemberInfo,
   onViewTransactions,
   onRenewSubscription,
-  onCancelSubscription
+  onCancelSubscription,
+  onMemberDeleted
 }: MemberCardProps) {
   const [showTransactionModal, setShowTransactionModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showActivateModal, setShowActivateModal] = useState(false)
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false)
+  const [showRestoreModal, setShowRestoreModal] = useState(false)
+  // New member management modals
+  const [showMemberActionsModal, setShowMemberActionsModal] = useState(false)
+  const [currentAction, setCurrentAction] = useState<MemberActionType>('activate')
+  const [showMemberHistoryModal, setShowMemberHistoryModal] = useState(false)
   const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
   
-  // Get current subscription and transaction data from new API
-  const { data: subscription, isLoading: subscriptionLoading, error: subscriptionError } = useCustomerSubscription(member.id)
-  const { data: transactions, isLoading: transactionsLoading, error: transactionsError } = useCustomerTransactions(member.id)
+  // Get member status from new API
+  const { data: memberStatus, isLoading: statusLoading, error: statusError } = useMemberStatus(member.id)
   
-  // Soft delete user mutation
+  // User status mutations
   const softDeleteUserMutation = useSoftDeleteUser()
+  const activateUserMutation = useActivateUser()
+  const deactivateUserMutation = useDeactivateUser()
+  const restoreUserMutation = useRestoreUser()
   
-  const isExpired = isSubscriptionExpired(subscription)
-  const daysRemaining = getSubscriptionDaysRemaining(subscription)
-  const lastTransaction = transactions?.[0] // Most recent transaction
+  // Get subscription info from member status
+  const subscription = memberStatus?.subscription
+  const isExpired = subscription && new Date(subscription.endDate) < new Date()
+  const daysRemaining = subscription ? Math.ceil((new Date(subscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null
+  
+  // Check if member is deleted/inactive
+  const isDeleted = !member.isActive || member.deletedAt
   
   const handleDeleteMember = async () => {
     try {
       await softDeleteUserMutation.mutateAsync(member.id)
       toast.success(`Member ${memberName} has been removed successfully`)
       setShowDeleteModal(false)
+      // Call the refresh callback if provided
+      if (onMemberDeleted) {
+        onMemberDeleted()
+      }
     } catch (error: any) {
       console.error('Error removing member:', error)
       toast.error('Failed to remove member. Please try again.')
+    }
+  }
+
+  const handleActivateMember = async () => {
+    try {
+      await activateUserMutation.mutateAsync(member.id)
+      toast.success(`Member ${memberName} has been activated successfully`)
+      setShowActivateModal(false)
+      if (onMemberDeleted) {
+        onMemberDeleted()
+      }
+    } catch (error: any) {
+      console.error('Error activating member:', error)
+      toast.error('Failed to activate member. Please try again.')
+    }
+  }
+
+  const handleDeactivateMember = async () => {
+    try {
+      await deactivateUserMutation.mutateAsync(member.id)
+      toast.success(`Member ${memberName} has been deactivated successfully`)
+      setShowDeactivateModal(false)
+      if (onMemberDeleted) {
+        onMemberDeleted()
+      }
+    } catch (error: any) {
+      console.error('Error deactivating member:', error)
+      toast.error('Failed to deactivate member. Please try again.')
+    }
+  }
+
+  const handleRestoreMember = async () => {
+    try {
+      await restoreUserMutation.mutateAsync(member.id)
+      toast.success(`Member ${memberName} has been restored successfully`)
+      setShowRestoreModal(false)
+      if (onMemberDeleted) {
+        onMemberDeleted()
+      }
+    } catch (error: any) {
+      console.error('Error restoring member:', error)
+      toast.error('Failed to restore member. Please try again.')
+    }
+  }
+
+  // Helper function to open member action modal
+  const openMemberActionModal = (action: MemberActionType) => {
+    setCurrentAction(action)
+    setShowMemberActionsModal(true)
+  }
+
+  // Helper function to determine member status for actions
+  const getMemberStatus = () => {
+    // Use the actual currentState from member status API if available
+    if (memberStatus?.currentState) {
+      console.log(`[DEBUG] Member ${member.id} (${memberName}) - API currentState:`, memberStatus.currentState);
+      return memberStatus.currentState
+    }
+    
+    // Fallback to computed status
+    const computedStatus = (() => {
+      if (isDeleted) return 'DELETED'
+      if (isExpired) return 'EXPIRED'
+      if (subscription && !isExpired) return 'ACTIVE'
+      return 'INACTIVE'
+    })();
+    
+    console.log(`[DEBUG] Member ${member.id} (${memberName}) - Computed status:`, computedStatus, {
+      isDeleted,
+      isExpired, 
+      hasSubscription: !!subscription,
+      memberStatusLoading: statusLoading,
+      memberStatusError: statusError
+    });
+    
+    return computedStatus;
+  }
+  
+  // Helper function to determine the appropriate action based on member state
+  const getAppropriateAction = (): MemberActionType => {
+    const currentState = getMemberStatus()
+    
+    switch (currentState) {
+      case 'CANCELLED':
+        return 'activate' // Cancelled members can be activated
+      case 'EXPIRED':
+        return 'renew' // Expired members need renewal
+      case 'DELETED':
+        return 'restore' // Deleted members can be restored
+      case 'ACTIVE':
+        return 'cancel' // Active members can be cancelled
+      case 'INACTIVE':
+      default:
+        return 'activate' // Default to activate for inactive members
     }
   }
   
@@ -105,7 +230,7 @@ export function MemberCard({
           )}
           
           {/* Subscription Information */}
-          {subscriptionLoading ? (
+          {statusLoading ? (
             <div className="mt-2 text-xs text-muted-foreground">Loading subscription...</div>
           ) : (subscription && typeof subscription === 'object' && subscription.id) ? (
             <div className="mt-2 space-y-1">
@@ -131,22 +256,13 @@ export function MemberCard({
                   </>
                 )}
               </div>
-              {lastTransaction && (
-                <div className="text-xs text-muted-foreground">
-                  Last payment: ₱{lastTransaction.amount.toLocaleString()} 
-                  ({new Date(lastTransaction.createdAt).toLocaleDateString()})
-                </div>
-              )}
+              {/* Note: Transaction history would need separate API call if needed */}
             </div>
           ) : (
             <div className="mt-2 space-y-1">
               <div className="text-xs text-red-500">No active subscription</div>
               <div className="text-xs text-muted-foreground">
-                {lastTransaction ? (
-                  `Last payment: ₱${(typeof lastTransaction.amount === 'string' ? parseFloat(lastTransaction.amount) : lastTransaction.amount).toLocaleString()} (${new Date(lastTransaction.createdAt).toLocaleDateString()})`
-                ) : (
-                  'Never made a payment'
-                )}
+                No payment history available
               </div>
             </div>
           )}
@@ -154,31 +270,94 @@ export function MemberCard({
       </div>
       
       <div className="flex items-center space-x-3">
-        {/* Active/Expired Status Button or Start Subscription */}
-        {(subscription && typeof subscription === 'object' && subscription.id) ? (
-          <Button
-            variant={isExpired ? "destructive" : "default"}
-            size="sm"
-            className={isExpired ? "hover:bg-red-600" : "hover:bg-green-600"}
-            onClick={() => {
-              if (isExpired) {
-                onRenewSubscription(member)
-              } else {
-                onCancelSubscription(member)
-              }
-            }}
-          >
-            {isExpired ? 'Expired' : 'Active'}
-          </Button>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            className="hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700"
-            onClick={() => onRenewSubscription(member)}
-          >
-            Start Subscription
-          </Button>
+        {/* Status Button - considers both subscription expiry AND member state */}
+        {(() => {
+          const currentState = getMemberStatus();
+          
+          // No subscription case
+          if (!subscription || typeof subscription !== 'object' || !subscription.id) {
+            return (
+              <Button
+                variant="outline"
+                size="sm"
+                className="hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700"
+                onClick={() => onRenewSubscription(member)}
+              >
+                Start Subscription
+              </Button>
+            )
+          }
+          
+          // Handle different member states
+          switch (currentState) {
+            case 'CANCELLED':
+              return (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="hover:bg-red-600"
+                  onClick={() => openMemberActionModal('activate')}
+                >
+                  Cancelled
+                </Button>
+              )
+              
+            case 'EXPIRED':
+              return (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="hover:bg-red-600"
+                  onClick={() => onRenewSubscription(member)}
+                >
+                  Expired
+                </Button>
+              )
+              
+            case 'ACTIVE':
+              return (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="hover:bg-green-600"
+                  onClick={() => onCancelSubscription(member)}
+                >
+                  Active
+                </Button>
+              )
+              
+            case 'DELETED':
+              return (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="hover:bg-gray-600"
+                  onClick={() => openMemberActionModal('restore')}
+                >
+                  Deleted
+                </Button>
+              )
+              
+            case 'INACTIVE':
+            default:
+              return (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700"
+                  onClick={() => openMemberActionModal('activate')}
+                >
+                  Inactive
+                </Button>
+              )
+          }
+        })()}
+        
+        {/* Deleted status badge */}
+        {isDeleted && (
+          <Badge variant="destructive" className="text-xs">
+            Deleted
+          </Badge>
         )}
         
         {/* Additional info badges for super admin */}
@@ -195,6 +374,7 @@ export function MemberCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {/* Basic Info */}
             <DropdownMenuItem onClick={() => onViewMemberInfo(member)}>
               <Users className="mr-2 h-4 w-4" />
               Member Information
@@ -203,6 +383,80 @@ export function MemberCard({
               <Receipt className="mr-2 h-4 w-4" />
               Transaction History
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowMemberHistoryModal(true)}>
+              <History className="mr-2 h-4 w-4" />
+              Member History
+            </DropdownMenuItem>
+            
+            <DropdownMenuSeparator />
+            
+            {/* Member Actions - Use state-based logic */}
+            {(() => {
+              const currentState = getMemberStatus()
+              const appropriateAction = getAppropriateAction()
+              
+              switch (currentState) {
+                case 'DELETED':
+                  return (
+                    <DropdownMenuItem 
+                      className="text-blue-600"
+                      onClick={() => openMemberActionModal('restore')}
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Restore Member
+                    </DropdownMenuItem>
+                  )
+                
+                case 'CANCELLED':
+                  return (
+                    <DropdownMenuItem 
+                      className="text-green-600"
+                      onClick={() => openMemberActionModal('activate')}
+                    >
+                      <UserCheck className="mr-2 h-4 w-4" />
+                      Activate Member
+                    </DropdownMenuItem>
+                  )
+                
+                case 'EXPIRED':
+                  return (
+                    <DropdownMenuItem 
+                      className="text-purple-600"
+                      onClick={() => openMemberActionModal('renew')}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Renew Membership
+                    </DropdownMenuItem>
+                  )
+                
+                case 'ACTIVE':
+                  return (
+                    <DropdownMenuItem 
+                      className="text-orange-600"
+                      onClick={() => openMemberActionModal('cancel')}
+                    >
+                      <UserX className="mr-2 h-4 w-4" />
+                      Cancel Membership
+                    </DropdownMenuItem>
+                  )
+                
+                case 'INACTIVE':
+                default:
+                  return (
+                    <DropdownMenuItem 
+                      className="text-green-600"
+                      onClick={() => openMemberActionModal('activate')}
+                    >
+                      <UserCheck className="mr-2 h-4 w-4" />
+                      Activate Member
+                    </DropdownMenuItem>
+                  )
+              }
+            })()}
+            
+            <DropdownMenuSeparator />
+            
+            {/* General Actions */}
             <DropdownMenuItem>
               <Edit className="mr-2 h-4 w-4" />
               Edit Member
@@ -293,6 +547,28 @@ export function MemberCard({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Member Actions Modal */}
+      <MemberActionsModal
+        isOpen={showMemberActionsModal}
+        onClose={() => setShowMemberActionsModal(false)}
+        memberId={member.id}
+        actionType={currentAction}
+        onActionComplete={() => {
+          // Refresh member data after action
+          if (onMemberDeleted) {
+            onMemberDeleted()
+          }
+        }}
+      />
+      
+      {/* Member History Modal */}
+      <MemberHistoryModal
+        isOpen={showMemberHistoryModal}
+        onClose={() => setShowMemberHistoryModal(false)}
+        memberId={member.id}
+        memberName={memberName}
+      />
     </div>
   )
 }

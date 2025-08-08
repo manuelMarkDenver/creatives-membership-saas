@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useMembershipPlans } from '@/lib/hooks/use-membership-plans'
 import { useProfile } from '@/lib/hooks/use-users'
+import { useRenewMemberSubscription } from '@/lib/hooks/use-member-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,7 +49,8 @@ export function MemberRenewalModal({
   const { data: profile } = useProfile()
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [startDate, setStartDate] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  
+  const renewMemberMutation = useRenewMemberSubscription()
 
   const { data: membershipPlans, isLoading: plansLoading } = useMembershipPlans(
     profile?.tenantId || '',
@@ -86,31 +88,24 @@ export function MemberRenewalModal({
       return
     }
 
-    setIsLoading(true)
+    const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
     
-    try {
-      // Here you would make an API call to renew the membership
-      const renewalData = {
-        memberId: member.id,
-        planId: selectedPlanId,
-        startDate,
-        endDate: calculateEndDate(),
-        amount: selectedPlan.price
+    renewMemberMutation.mutate({
+      memberId: member.id,
+      data: {
+        membershipPlanId: selectedPlanId
       }
-      
-      
-      // Mock API call - replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      toast.success(`Membership renewed successfully for ${member.name}`)
-      onRenewed?.()
-      onClose()
-    } catch (error) {
-      console.error('Error renewing membership:', error)
-      toast.error('Failed to renew membership')
-    } finally {
-      setIsLoading(false)
-    }
+    }, {
+      onSuccess: () => {
+        toast.success(`Membership renewed successfully for ${memberName}`)
+        onRenewed?.()
+        onClose()
+      },
+      onError: (error: any) => {
+        console.error('Error renewing membership:', error)
+        toast.error('Failed to renew membership')
+      }
+    })
   }
 
   const handleClose = () => {
@@ -258,14 +253,14 @@ export function MemberRenewalModal({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+          <Button variant="outline" onClick={handleClose} disabled={renewMemberMutation.isPending}>
             Cancel
           </Button>
           <Button 
             onClick={handleRenew} 
-            disabled={!selectedPlanId || !startDate || isLoading}
+            disabled={!selectedPlanId || !startDate || renewMemberMutation.isPending}
           >
-            {isLoading ? 'Processing...' : `Renew Membership`}
+            {renewMemberMutation.isPending ? 'Processing...' : `Renew Membership`}
           </Button>
         </DialogFooter>
       </DialogContent>

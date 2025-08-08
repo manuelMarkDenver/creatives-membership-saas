@@ -56,9 +56,9 @@ apiClient.interceptors.request.use(
     // Add tenant context
     if (currentTenantId) {
       config.headers['x-tenant-id'] = currentTenantId
-      console.log(`[API Client] Adding tenant context: ${currentTenantId} for ${config.method?.toUpperCase()} ${config.url}`)
+      // console.log(`[API Client] Adding tenant context: ${currentTenantId} for ${config.method?.toUpperCase()} ${config.url}`)
     } else {
-      console.warn(`[API Client] No tenant context for ${config.method?.toUpperCase()} ${config.url}`)
+      // console.warn(`[API Client] No tenant context for ${config.method?.toUpperCase()} ${config.url}`)
     }
 
     return config

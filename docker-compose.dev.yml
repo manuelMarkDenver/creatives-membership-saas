@@ -43,6 +43,7 @@ services:
       - ./backend/package.json:/app/package.json:ro
       - ./backend/tsconfig.json:/app/tsconfig.json:ro
       - ./backend/nest-cli.json:/app/nest-cli.json:ro
+      - ./backend/prisma:/app/prisma:ro
     command: ["npm", "run", "start:dev"]
     ports:
       - "5000:5000"

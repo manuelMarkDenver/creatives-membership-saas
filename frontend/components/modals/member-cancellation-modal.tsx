@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useCancelMember } from '@/lib/hooks/use-member-actions'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -43,7 +44,8 @@ export function MemberCancellationModal({
 }: MemberCancellationModalProps) {
   const [cancellationType, setCancellationType] = useState<'immediate' | 'end_of_period'>('end_of_period')
   const [reason, setReason] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  
+  const cancelMemberMutation = useCancelMember()
 
   const handleCancel = async () => {
     if (!reason.trim()) {
@@ -51,34 +53,32 @@ export function MemberCancellationModal({
       return
     }
 
-    setIsLoading(true)
+    const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
     
-    try {
-      // Here you would make an API call to cancel the membership
-      const cancellationData = {
-        memberId: member.id,
-        type: cancellationType,
+    // Create notes with cancellation type info
+    const notes = `Cancellation type: ${cancellationType === 'immediate' ? 'Immediate' : 'End of period'}`
+    
+    cancelMemberMutation.mutate({
+      memberId: member.id,
+      data: {
         reason: reason.trim(),
-        cancelledAt: new Date().toISOString()
+        notes: notes
       }
-      
-      
-      // Mock API call - replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const message = cancellationType === 'immediate' 
-        ? `Membership cancelled immediately for ${member.name}`
-        : `Membership will expire at end of current period for ${member.name}`
-      
-      toast.success(message)
-      onCancelled?.()
-      onClose()
-    } catch (error) {
-      console.error('Error cancelling membership:', error)
-      toast.error('Failed to cancel membership')
-    } finally {
-      setIsLoading(false)
-    }
+    }, {
+      onSuccess: () => {
+        const message = cancellationType === 'immediate' 
+          ? `Membership cancelled immediately for ${memberName}`
+          : `Membership will expire at end of current period for ${memberName}`
+        
+        toast.success(message)
+        onCancelled?.()
+        onClose()
+      },
+      onError: (error: any) => {
+        console.error('Error cancelling membership:', error)
+        toast.error('Failed to cancel membership')
+      }
+    })
   }
 
   const handleClose = () => {
@@ -215,15 +215,15 @@ export function MemberCancellationModal({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+          <Button variant="outline" onClick={handleClose} disabled={cancelMemberMutation.isPending}>
             Cancel
           </Button>
           <Button 
             variant="destructive"
             onClick={handleCancel} 
-            disabled={!reason.trim() || isLoading}
+            disabled={!reason.trim() || cancelMemberMutation.isPending}
           >
-            {isLoading ? 'Processing...' : 'Confirm Cancellation'}
+            {cancelMemberMutation.isPending ? 'Processing...' : 'Confirm Cancellation'}
           </Button>
         </DialogFooter>
       </DialogContent>

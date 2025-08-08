@@ -8,6 +8,7 @@ export { statsApi } from './stats'
 export { plansApi } from './plans'
 export { subscriptionsApi } from './subscriptions'
 export { customerSubscriptionsApi } from './customer-subscriptions'
+export { membersApi } from './members'
 
 // Export DTOs and types
 export type { CreateTenantDto, UpdateTenantDto, TenantQueryParams } from './tenants'
@@ -44,3 +45,11 @@ export type {
   CustomerSubscriptionCancellationData,
   CustomerSubscriptionResponse
 } from './customer-subscriptions'
+export type {
+  MemberActionRequest,
+  MemberRenewRequest,
+  MemberHistoryQuery,
+  MemberHistoryItem,
+  MemberHistoryResponse,
+  MemberActionResponse
+} from './members'

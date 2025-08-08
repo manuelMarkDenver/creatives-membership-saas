@@ -275,3 +275,82 @@ export function useAcceptInvite() {
       usersApi.acceptInvite(token, data),
   })
 }
+
+// Activate user mutation
+export function useActivateUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => {
+      const updateData = {
+        isActive: true,
+        deletedAt: null,
+        deletedBy: null
+      }
+      return usersApi.update(id, updateData)
+    },
+    onSuccess: (updatedUser: User) => {
+      // Update cached user
+      queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser)
+      
+      // Invalidate lists to show updated user
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+      queryClient.invalidateQueries({ 
+        queryKey: [...userKeys.all, 'tenant', updatedUser.tenantId] 
+      })
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'branch'] })
+    },
+  })
+}
+
+// Deactivate user mutation
+export function useDeactivateUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => {
+      const updateData = {
+        isActive: false
+      }
+      return usersApi.update(id, updateData)
+    },
+    onSuccess: (updatedUser: User) => {
+      // Update cached user
+      queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser)
+      
+      // Invalidate lists
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+      queryClient.invalidateQueries({ 
+        queryKey: [...userKeys.all, 'tenant', updatedUser.tenantId] 
+      })
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'branch'] })
+    },
+  })
+}
+
+// Restore deleted user mutation
+export function useRestoreUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => {
+      const updateData = {
+        isActive: true,
+        deletedAt: null,
+        deletedBy: null
+      }
+      return usersApi.update(id, updateData)
+    },
+    onSuccess: (updatedUser: User) => {
+      // Update cached user
+      queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser)
+      
+      // Invalidate lists
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+      queryClient.invalidateQueries({ 
+        queryKey: [...userKeys.all, 'tenant', updatedUser.tenantId] 
+      })
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'branch'] })
+    },
+  })
+}

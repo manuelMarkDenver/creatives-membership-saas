@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useProfile, useUsersByTenant } from '@/lib/hooks/use-users'
+import { useQueryClient } from '@tanstack/react-query'
+import { useProfile, useUsersByTenant, userKeys } from '@/lib/hooks/use-users'
 import { useSystemMemberStats } from '@/lib/hooks/use-stats'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
 import { Button } from '@/components/ui/button'
@@ -44,13 +45,14 @@ import { User } from '@/types'
 import { MemberInfoModal } from '@/components/modals/member-info-modal'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MemberCard } from '@/components/members/member-card'
-import { customerSubscriptionsApi } from '@/lib/api'
+import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-member-actions'
 import { toast } from 'sonner'
 
 export default function MembersPage() {
   const { data: profile } = useProfile()
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
-  const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'inactive' | 'expired' | 'cancelled' | 'deleted'>('all')
+  const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'inactive' | 'cancelled' | 'deleted'>('all')
   const [showDeleted, setShowDeleted] = useState(false)
   const [selectedMember, setSelectedMember] = useState(null)
   const [showMemberInfoModal, setShowMemberInfoModal] = useState(false)
@@ -78,79 +80,97 @@ export default function MembersPage() {
 
   // Fetch membership plans for the current tenant
   const { data: membershipPlans = [] } = useActiveMembershipPlans()
+  
+  // Mutation hooks for membership operations
+  const renewMembershipMutation = useRenewMemberSubscription()
+  const cancelMembershipMutation = useCancelMember()
+  
+  // Helper function to refresh all members data
+  const refreshMembersData = async () => {
+    try {
+      // Invalidate and refetch tenant members query
+      await queryClient.invalidateQueries({ 
+        queryKey: userKeys.byTenant(profile?.tenantId || '', { role: 'GYM_MEMBER' })
+      })
+      
+      // Also invalidate all user queries to ensure consistency  
+      await queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+      
+      // Force refetch
+      await refetchTenantMembers()
+      
+      console.log('Members data refreshed successfully')
+    } catch (error) {
+      console.error('Error refreshing members data:', error)
+    }
+  }
 
   // Helper functions
-  const handleRenewal = async () => {
+  const handleRenewal = () => {
     if (!selectedMemberForAction || !selectedPlanId) {
       console.error('Missing member or plan selection')
       return
     }
 
-    try {
-      const selectedPlan = membershipPlans.find(plan => plan.id === selectedPlanId)
-      if (!selectedPlan) {
-        console.error('Selected plan not found')
-        return
-      }
-
-
-      // Call renewal API using API client
-      const result = await customerSubscriptionsApi.renewMembership(selectedMemberForAction.id, {
-        membershipPlanId: selectedPlanId,
-        paymentMethod: 'cash'
-      })
-      
-      const memberName = selectedMemberForAction.name || `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`
-      toast.success(`Membership renewed successfully for ${memberName}!`, {
-        description: result.message
-      })
-      
-      setShowRenewalModal(false)
-      setSelectedMemberForAction(null)
-      setSelectedPlanId('')
-      
-      // Refresh members list
-      refetchTenantMembers()
-    } catch (error: any) {
-      console.error('Renewal failed:', error)
-      toast.error('Failed to renew membership', {
-        description: error?.response?.data?.message || 'Please try again.'
-      })
+    const selectedPlan = membershipPlans.find(plan => plan.id === selectedPlanId)
+    if (!selectedPlan) {
+      console.error('Selected plan not found')
+      return
     }
+
+    const memberName = selectedMemberForAction.name || `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`
+    
+    renewMembershipMutation.mutate({
+      memberId: selectedMemberForAction.id,
+      data: { membershipPlanId: selectedPlanId }
+    }, {
+      onSuccess: (result) => {
+        toast.success(`Membership renewed successfully for ${memberName}!`, {
+          description: result.message
+        })
+        
+        setShowRenewalModal(false)
+        setSelectedMemberForAction(null)
+        setSelectedPlanId('')
+      },
+      onError: (error: any) => {
+        console.error('Renewal failed:', error)
+        toast.error('Failed to renew membership', {
+          description: error?.response?.data?.message || 'Please try again.'
+        })
+      }
+    })
   }
 
-  const handleCancellation = async () => {
+  const handleCancellation = () => {
     if (!selectedMemberForAction) {
       console.error('No member selected for cancellation')
       return
     }
 
-    try {
-
-      // Call cancellation API using API client
-      const result = await customerSubscriptionsApi.cancelMembership(selectedMemberForAction.id, {
-        cancellationReason,
-        cancellationNotes
-      })
-      
-      const memberName = selectedMemberForAction.name || `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`
-      toast.success(`Membership cancelled successfully for ${memberName}`, {
-        description: result.message
-      })
-      
-      setShowCancellationModal(false)
-      setSelectedMemberForAction(null)
-      setCancellationReason('')
-      setCancellationNotes('')
-      
-      // Refresh members list
-      refetchTenantMembers()
-    } catch (error: any) {
-      console.error('Cancellation failed:', error)
-      toast.error('Failed to cancel membership', {
-        description: error?.response?.data?.message || 'Please try again.'
-      })
-    }
+    const memberName = selectedMemberForAction.name || `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`
+    
+    cancelMembershipMutation.mutate({
+      memberId: selectedMemberForAction.id,
+      data: { reason: cancellationReason || 'No reason specified', notes: cancellationNotes }
+    }, {
+      onSuccess: (result) => {
+        toast.success(`Membership cancelled successfully for ${memberName}`, {
+          description: result.message
+        })
+        
+        setShowCancellationModal(false)
+        setSelectedMemberForAction(null)
+        setCancellationReason('')
+        setCancellationNotes('')
+      },
+      onError: (error: any) => {
+        console.error('Cancellation failed:', error)
+        toast.error('Failed to cancel membership', {
+          description: error?.response?.data?.message || 'Please try again.'
+        })
+      }
+    })
   }
 
   // Determine data source based on user role
@@ -161,56 +181,45 @@ export default function MembersPage() {
     (membersData || [])
 
   const filteredMembers = allMembers.filter((member: any) => {
+    // First, apply search term filtering
+    const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
+    const matchesSearch = !searchTerm || 
+      memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase()))
+    
+    if (!matchesSearch) return false
+    
     // Handle deleted members filtering
     const isDeleted = !member.isActive || member.deletedAt
     
-    // If not showing deleted and member is deleted, exclude them
-    if (isDeleted && !showDeleted) {
-      return false
-    }
-    
-    // If filtering for deleted only, show only deleted members
-    if (memberStatusFilter === 'deleted') {
-      if (!isDeleted) return false
-    } else {
-      // For all other filters, exclude deleted members unless showDeleted is true
-      if (isDeleted && !showDeleted) return false
-    }
-    
     // Status-based filtering
-    if (memberStatusFilter !== 'all' && memberStatusFilter !== 'deleted') {
-      const membership = member.businessData?.membership
-      const subscriptionStatus = member.businessData?.subscriptionStatus
-      
-      switch (memberStatusFilter) {
-        case 'active':
-          if (!member.isActive) return false
-          break
-        case 'inactive':
-          if (member.isActive) return false
-          break
-        case 'expired':
-          // Check if membership is expired
-          if (!membership || !membership.endDate) return false
-          const endDate = new Date(membership.endDate)
-          const now = new Date()
-          if (endDate > now) return false
-          break
-        case 'cancelled':
-          // Check if subscription is cancelled
-          if (subscriptionStatus !== 'CANCELLED') return false
-          break
-        default:
-          break
-      }
+    switch (memberStatusFilter) {
+      case 'all':
+        // For 'all', only show deleted members if explicitly requested
+        return showDeleted ? true : !isDeleted
+        
+      case 'active':
+        // Only show active (not deleted) members
+        return member.isActive && !member.deletedAt
+        
+      case 'inactive':
+        // Show inactive but not deleted members (unless showDeleted is true)
+        if (isDeleted && !showDeleted) return false
+        return !member.isActive || isDeleted
+        
+      case 'deleted':
+        // Only show deleted members
+        return isDeleted
+        
+      case 'cancelled':
+        // Show cancelled subscriptions (but not deleted unless showDeleted is true)
+        if (isDeleted && !showDeleted) return false
+        const subscriptionStatus = member.businessData?.subscriptionStatus
+        return subscriptionStatus === 'CANCELLED'
+        
+      default:
+        return showDeleted ? true : !isDeleted
     }
-    
-    // Search term filtering
-    const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
-    const matchesSearch = memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase()))
-    
-    return matchesSearch
   })
 
   const stats = isSuperAdmin ? {
@@ -319,7 +328,6 @@ export default function MembersPage() {
                     <SelectItem value="all">All Members</SelectItem>
                     <SelectItem value="active">Active Only</SelectItem>
                     <SelectItem value="inactive">Inactive Only</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                     <SelectItem value="deleted">Deleted</SelectItem>
                   </SelectContent>
@@ -401,6 +409,10 @@ export default function MembersPage() {
                     setSelectedMemberForAction(member)
                     setShowCancellationModal(true)
                   }}
+                  onMemberDeleted={async () => {
+                    // Refresh members list after deletion
+                    await refreshMembersData()
+                  }}
                 />
               ))
             )}
@@ -417,10 +429,9 @@ export default function MembersPage() {
             setSelectedMember(null)
           }}
           member={selectedMember}
-          onMemberUpdated={() => {
-            // Refresh the members list if needed
-            // You can add a refetch call here
-            // Member updated
+          onMemberUpdated={async () => {
+            // Refresh the members list after member update
+            await refreshMembersData()
           }}
         />
       )}
@@ -429,9 +440,9 @@ export default function MembersPage() {
       <AddMemberModal
         isOpen={showAddMemberModal}
         onClose={() => setShowAddMemberModal(false)}
-        onMemberAdded={() => {
+        onMemberAdded={async () => {
           // Refresh the members list
-          refetchTenantMembers()
+          await refreshMembersData()
           setShowAddMemberModal(false)
         }}
       />
@@ -508,11 +519,11 @@ export default function MembersPage() {
               Cancel
             </Button>
             <Button 
-              disabled={!selectedPlanId}
+              disabled={!selectedPlanId || renewMembershipMutation.isPending}
               onClick={handleRenewal}
             >
               <UserCheck className="w-4 h-4 mr-2" />
-              Renew Membership
+              {renewMembershipMutation.isPending ? 'Renewing...' : 'Renew Membership'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -556,16 +567,17 @@ export default function MembersPage() {
                   <SelectValue placeholder="Select a reason" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="financial">Financial reasons</SelectItem>
-                  <SelectItem value="relocation">Relocation</SelectItem>
-                  <SelectItem value="dissatisfied">Unsatisfied with service</SelectItem>
-                  <SelectItem value="health">Health issues</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="NON_PAYMENT">Non-payment</SelectItem>
+                  <SelectItem value="POLICY_VIOLATION">Policy violation</SelectItem>
+                  <SelectItem value="MEMBER_REQUEST">Member request</SelectItem>
+                  <SelectItem value="FACILITY_ABUSE">Facility abuse</SelectItem>
+                  <SelectItem value="ADMIN_DECISION">Admin decision</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            {cancellationReason === 'other' && (
+            {cancellationReason === 'OTHER' && (
               <div className="space-y-2">
                 <Label>Please specify the reason</Label>
                 <Textarea 
@@ -590,10 +602,11 @@ export default function MembersPage() {
             </Button>
             <Button 
               variant="destructive"
+              disabled={cancelMembershipMutation.isPending}
               onClick={handleCancellation}
             >
               <UserX className="w-4 h-4 mr-2" />
-              Cancel Membership
+              {cancelMembershipMutation.isPending ? 'Cancelling...' : 'Cancel Membership'}
             </Button>
           </DialogFooter>
         </DialogContent>
