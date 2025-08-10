@@ -815,23 +815,94 @@ export class UsersService {
   // }
 
   /**
-   * Get count of expiring members for a tenant
+   * Get count of expiring members with role-based branch filtering
    */
-  async getExpiringMembersCount(tenantId: string, daysBefore: number = 7) {
+  async getExpiringMembersCount(tenantId: string, daysBefore: number = 7, userContext?: any) {
     try {
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + daysBefore);
+      
+      this.logger.debug(`[COUNT DEBUG] TenantID: ${tenantId}, DaysBefore: ${daysBefore}, TargetDate: ${targetDate.toISOString()}`);
+      
+      // Build base where clause
+      let whereClause: any = {
+        tenantId,
+        status: 'ACTIVE', // Only active subscriptions
+        endDate: {
+          lte: targetDate,
+          gte: new Date() // Not already expired
+        },
+        // Exclude subscriptions for deleted users
+        customer: {
+          deletedAt: null,
+          isActive: true // Only active users
+        }
+      };
 
-      // Count expiring members using customerSubscriptions
-      const count = await this.prisma.customerSubscription.count({
-        where: {
-          tenantId,
-          status: 'ACTIVE',
-          endDate: {
-            lte: targetDate,
-            gte: new Date() // Not already expired
+      // Apply role-based branch filtering if user context is provided
+      if (userContext && userContext.role !== 'SUPER_ADMIN') {
+        // Get user's branch access for non-super-admin users
+        const userWithBranches = await this.prisma.user.findUnique({
+          where: { id: userContext.userId },
+          include: {
+            userBranches: {
+              include: {
+                branch: {
+                  select: {
+                    id: true,
+                    name: true,
+                    isActive: true
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        const userBranchAccess = userWithBranches?.userBranches || [];
+        const accessibleBranchIds = userBranchAccess.map(ub => ub.branchId);
+        
+        if (userContext.role === 'MANAGER' || userContext.role === 'STAFF') {
+          // Managers and Staff can only see branches they have access to
+          if (accessibleBranchIds.length > 0) {
+            whereClause.branchId = { in: accessibleBranchIds };
+            this.logger.debug(`[COUNT DEBUG] ${userContext.role}: Limited to branches: ${accessibleBranchIds}`);
+          } else {
+            // No branch access = no results
+            whereClause.branchId = { in: [] };
+            this.logger.debug(`[COUNT DEBUG] ${userContext.role}: No branch access, returning 0`);
           }
         }
+        // OWNER role sees all branches in their tenant (no additional filtering needed)
+      }
+      
+      const count = await this.prisma.customerSubscription.count({ where: whereClause });
+
+      // Also get the actual records for debugging
+      const records = await this.prisma.customerSubscription.findMany({
+        where: whereClause,
+        include: {
+          customer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              isActive: true,
+              deletedAt: true
+            }
+          },
+          membershipPlan: {
+            select: {
+              name: true
+            }
+          }
+        }
+      });
+      
+      this.logger.debug(`[COUNT DEBUG] Found ${count} expiring members:`);
+      records.forEach((record, idx) => {
+        this.logger.debug(`  ${idx + 1}. ${record.customer.email} - Plan: ${record.membershipPlan.name} - End: ${record.endDate} - Status: ${record.status}`);
       });
 
       return { count, daysBefore };
@@ -861,6 +932,7 @@ export class UsersService {
       
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + daysBefore);
+      
 
       // Get user's branch access information
       const userId = filters.userId;
@@ -984,6 +1056,16 @@ export class UsersService {
           address: ub.branch.address
         }));
       }
+
+      // Add filter to exclude deleted and inactive users from the where clause
+      whereClause.customer = {
+        deletedAt: null,
+        isActive: true // Only active users should appear in expiring list
+      };
+
+      this.logger.debug(`[OVERVIEW DEBUG] WhereClause:`, JSON.stringify(whereClause, null, 2));
+      this.logger.debug(`[OVERVIEW DEBUG] TargetDate: ${targetDate.toISOString()}, DaysBefore: ${daysBefore}`);
+      this.logger.debug(`[OVERVIEW DEBUG] User Role: ${filters.userRole}, Tenant: ${filters.userTenantId}`);
 
       const [subscriptions, totalCount] = await Promise.all([
         this.prisma.customerSubscription.findMany({

@@ -102,37 +102,44 @@ export class UsersController {
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
   @AllowedBusinessTypes(BusinessCategory.GYM)
-  async getExpiringGymMembers(
-    @Param('tenantId') tenantId: string,
-    @Query('daysBefore') daysBefore?: string,
-  ) {
-    const days = parseInt(daysBefore || '30', 10);
+  async getExpiringMembers(@Param('tenantId') tenantId: string, @Query('daysBefore') daysBefore?: string) {
+    const days = parseInt(daysBefore || '7', 10);
     return this.usersService.getExpiringGymMembers(tenantId, days);
   }
 
+  // Notifications for expiring memberships
   @Get('expiring/:tenantId/notifications')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
   @AllowedBusinessTypes(BusinessCategory.GYM)
-  async getExpiringGymMembersWithNotifications(
+  async getExpiringMembersWithNotifications(
     @Param('tenantId') tenantId: string,
-    @Query('daysBefore') daysBefore?: string,
+    @Query('daysBefore') daysBefore?: string
   ) {
-    const days = parseInt(daysBefore || '30', 10);
+    const days = parseInt(daysBefore || '7', 10);
     return this.usersService.getExpiringGymMembersWithNotifications(tenantId, days);
   }
 
-  // Get expiring members count for current user's context
+  // Get count of expiring memberships for badges/notifications
   @Get('expiring-count/:tenantId')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
   @AllowedBusinessTypes(BusinessCategory.GYM)
   async getExpiringMembersCount(
     @Param('tenantId') tenantId: string,
-    @Query('daysBefore') daysBefore?: string,
+    @Req() req: any,
+    @Query('daysBefore') daysBefore?: string
   ) {
     const days = parseInt(daysBefore || '7', 10);
-    return this.usersService.getExpiringMembersCount(tenantId, days);
+    
+    // Pass user context for role-based filtering
+    const userContext = {
+      userId: req.user?.id,
+      role: req.user?.role,
+      tenantId: req.user?.tenantId
+    };
+    
+    return this.usersService.getExpiringMembersCount(tenantId, days, userContext);
   }
 
   // Super Admin + role-based expiring members overview

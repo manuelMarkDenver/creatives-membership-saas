@@ -3,11 +3,41 @@ nohup: ignoring input
 > frontend@0.1.0 dev
 > next dev
 
- ⚠ Port 3000 is in use by process 257134, using available port 3003 instead.
    ▲ Next.js 15.4.5
-   - Local:        http://localhost:3003
-   - Network:      http://192.168.1.8:3003
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.8:3000
    - Environments: .env.local
 
  ✓ Starting...
- ✓ Ready in 2.4s
+ ✓ Ready in 2.1s
+ ✓ Compiled /middleware in 241ms (108 modules)
+ ○ Compiling /auth/login ...
+ ✓ Compiled /auth/login in 1960ms (966 modules)
+ GET /auth/login 200 in 2495ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1409ms (990 modules)
+ GET / 307 in 1898ms
+ GET /auth/login?email=admin%40creatives-saas.com&password=SuperAdmin123%21 200 in 250ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1591ms (1326 modules)
+ GET /dashboard 200 in 1787ms
+ GET /dashboard 200 in 319ms
+ ○ Compiling /members ...
+ ✓ Compiled /members in 1274ms (1505 modules)
+ GET /members 200 in 1479ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 646ms (1500 modules)
+ GET /installHook.js.map 404 in 990ms
+ ✓ Compiled in 955ms (1509 modules)
+ GET /members 200 in 155ms
+ GET /members 200 in 437ms
+ ✓ Compiled in 538ms (1509 modules)
+ GET /members 200 in 85ms
+ GET /members 200 in 380ms
+ GET /members 200 in 177ms
+ GET /members 200 in 207ms
+ GET /members 200 in 144ms
+ ✓ Compiled /_not-found in 482ms (1500 modules)
+ GET /installHook.js.map 404 in 688ms
+ GET /members 200 in 397ms
+ GET /members 200 in 185ms

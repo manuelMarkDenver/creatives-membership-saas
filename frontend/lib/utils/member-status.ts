@@ -104,10 +104,10 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
   const isCancelled = subscriptionStatus === 'CANCELLED' || Boolean(subscriptionCancelledAt)
 
   // Determine effective status with priority:
-  // 1. Cancelled subscription
-  // 2. Expired subscription  
-  // 3. Active subscription
-  // 4. Account status
+  // 1. Cancelled subscription - never show as expired
+  // 2. Inactive account - never show as expired
+  // 3. Expired subscription (only for active users with active subscriptions)
+  // 4. Active subscription
 
   if (isCancelled) {
     return {
@@ -119,7 +119,19 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
     }
   }
 
-  if (isExpired) {
+  // Check account-level status before checking subscription expiry
+  if (!member.isActive) {
+    return {
+      canAccessFacilities: false,
+      displayStatus: 'INACTIVE',
+      primaryIssue: 'Account inactive',
+      statusColor: 'gray',
+      statusIcon: 'info'
+    }
+  }
+
+  // Only show as expired if user is active and subscription is active but expired
+  if (isExpired && subscriptionStatus === 'ACTIVE') {
     const daysOverdue = subscriptionEndDate 
       ? Math.ceil((currentDate.getTime() - subscriptionEndDate.getTime()) / (1000 * 60 * 60 * 24))
       : 0
@@ -157,17 +169,6 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
       primaryIssue: daysRemaining <= 7 ? `Expires in ${daysRemaining} days` : undefined,
       statusColor: 'green',
       statusIcon: 'check'
-    }
-  }
-
-  // Check account-level status as fallback
-  if (!member.isActive) {
-    return {
-      canAccessFacilities: false,
-      displayStatus: 'INACTIVE',
-      primaryIssue: 'Account inactive',
-      statusColor: 'gray',
-      statusIcon: 'info'
     }
   }
 
@@ -241,7 +242,8 @@ export function filterMembersByStatus(
         return status.displayStatus === 'ACTIVE'
         
       case 'expired':
-        return status.displayStatus === 'EXPIRED'
+        // Only show expired members who are not deleted
+        return status.displayStatus === 'EXPIRED' && !Boolean(member.deletedAt)
         
       case 'cancelled':
         return status.displayStatus === 'CANCELLED'
@@ -272,7 +274,10 @@ export function calculateMemberStats(members: MemberData[]) {
         acc.active++
         break
       case 'EXPIRED':
-        acc.expired++
+        // Only count expired members who are not deleted
+        if (!Boolean(member.deletedAt)) {
+          acc.expired++
+        }
         break
       case 'CANCELLED':
         acc.cancelled++
