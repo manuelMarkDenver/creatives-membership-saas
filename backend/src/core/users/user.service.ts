@@ -453,7 +453,8 @@ export class UsersService {
               where: {
                 tenantId,
                 branchId: { in: accessibleBranchIds },
-                status: 'ACTIVE'
+                // Include both ACTIVE and CANCELLED members so frontend can filter properly
+                status: { in: ['ACTIVE', 'CANCELLED'] }
               },
               select: { customerId: true },
               distinct: ['customerId']
@@ -1106,6 +1107,349 @@ export class UsersService {
     } catch (error) {
       this.logger.error(`Failed to get expiring members overview: ${(error as Error).message}`);
       throw new InternalServerErrorException('Failed to get expiring members overview');
+    }
+  }
+
+  // Member Management Methods
+  async getMemberState(member: any): Promise<string> {
+    // Check if deleted (has deletedAt timestamp)
+    if (member.deletedAt) {
+      return 'DELETED';
+    }
+
+    // Check subscription status
+    const activeSubscription = member.customerSubscriptions?.[0];
+    if (!activeSubscription) {
+      // No subscription - determine if inactive or cancelled based on isActive flag
+      return !member.isActive ? 'INACTIVE' : 'CANCELLED';
+    }
+
+    // Check if subscription is cancelled
+    if (activeSubscription.status === 'CANCELLED') {
+      return 'CANCELLED';
+    }
+
+    // Check if subscription is expired
+    const now = new Date();
+    const endDate = new Date(activeSubscription.endDate);
+    if (endDate < now || activeSubscription.status === 'EXPIRED') {
+      return 'EXPIRED';
+    }
+
+    // Member has active subscription - check if account is active
+    if (!member.isActive) {
+      return 'INACTIVE';
+    }
+
+    return 'ACTIVE';
+  }
+
+  async getMemberById(memberId: string) {
+    const member = await this.prisma.user.findUnique({
+      where: { id: memberId },
+      include: {
+        customerSubscriptions: {
+          include: {
+            membershipPlan: true
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      }
+    });
+    
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+    
+    return member;
+  }
+
+  async activateMember(memberId: string, request: { reason: string; notes?: string }, performedBy: string) {
+    const member = await this.getMemberById(memberId);
+    const currentState = await this.getMemberState(member);
+    
+    // Validate current state - can only activate cancelled, expired, or inactive members
+    if (currentState !== 'CANCELLED' && currentState !== 'EXPIRED' && currentState !== 'INACTIVE') {
+      throw new BadRequestException(`Cannot activate member in ${currentState} state. Member must be cancelled, expired, or inactive.`);
+    }
+    
+    // Update member status
+    const updatedMember = await this.prisma.user.update({
+      where: { id: memberId },
+      data: { 
+        isActive: true,
+        updatedAt: new Date()
+      }
+    });
+
+    // If there's a cancelled subscription, reactivate it
+    const cancelledSubscription = member.customerSubscriptions?.[0];
+    if (cancelledSubscription && cancelledSubscription.status === 'CANCELLED') {
+      await this.prisma.customerSubscription.update({
+        where: { id: cancelledSubscription.id },
+        data: { 
+          status: 'ACTIVE',
+          cancelledAt: null,
+          cancellationReason: null,
+          cancellationNotes: null
+        }
+      });
+    }
+    
+    // Create audit log
+    await this.createAuditLog({
+      memberId,
+      action: 'ACCOUNT_ACTIVATED',
+      reason: request.reason,
+      notes: request.notes,
+      previousState: currentState,
+      newState: 'ACTIVE',
+      performedBy,
+      metadata: {
+        subscriptionId: cancelledSubscription?.id,
+        subscriptionStatus: cancelledSubscription?.status
+      }
+    });
+    
+    return { 
+      success: true, 
+      message: 'Member activated successfully',
+      member: updatedMember
+    };
+  }
+
+  async cancelMember(memberId: string, request: { reason: string; notes?: string }, performedBy: string) {
+    const member = await this.getMemberById(memberId);
+    const currentState = await this.getMemberState(member);
+    
+    if (currentState !== 'ACTIVE' && currentState !== 'EXPIRED') {
+      throw new BadRequestException(`Cannot cancel member in ${currentState} state. Only active or expired members can be cancelled.`);
+    }
+    
+    // Cancel current subscription if exists
+    const activeSubscription = member.customerSubscriptions?.[0];
+    if (activeSubscription) {
+      await this.prisma.customerSubscription.update({
+        where: { id: activeSubscription.id },
+        data: { 
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
+          cancellationReason: request.reason,
+          cancellationNotes: request.notes
+        }
+      });
+    }
+    
+    // Create audit log
+    await this.createAuditLog({
+      memberId,
+      action: 'ACCOUNT_DEACTIVATED',
+      reason: request.reason,
+      notes: request.notes,
+      previousState: currentState,
+      newState: 'CANCELLED',
+      performedBy,
+      metadata: {
+        subscriptionId: activeSubscription?.id,
+        subscriptionEndDate: activeSubscription?.endDate
+      }
+    });
+    
+    return { 
+      success: true, 
+      message: 'Member cancelled successfully'
+    };
+  }
+
+  async renewMemberSubscription(memberId: string, planId: string, performedBy: string) {
+    const member = await this.getMemberById(memberId);
+    const currentState = await this.getMemberState(member);
+    
+    // Get the membership plan
+    const membershipPlan = await this.prisma.membershipPlan.findUnique({
+      where: { id: planId }
+    });
+    
+    if (!membershipPlan) {
+      throw new NotFoundException('Membership plan not found');
+    }
+    
+    // Calculate new dates
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + membershipPlan.duration);
+    
+    // Create new subscription
+    const newSubscription = await this.prisma.customerSubscription.create({
+      data: {
+        tenantId: member.tenantId!,
+        customerId: memberId,
+        membershipPlanId: planId,
+        status: 'ACTIVE',
+        startDate,
+        endDate,
+        price: membershipPlan.price,
+        autoRenew: true
+      }
+    });
+
+    // Update member to active if not already
+    await this.prisma.user.update({
+      where: { id: memberId },
+      data: { 
+        isActive: true,
+        updatedAt: new Date()
+      }
+    });
+    
+    // Create audit log
+    await this.createAuditLog({
+      memberId,
+      action: 'SUBSCRIPTION_RENEWED',
+      reason: 'SUBSCRIPTION_RENEWED',
+      previousState: currentState,
+      newState: 'ACTIVE',
+      performedBy,
+      metadata: { 
+        planId, 
+        subscriptionId: newSubscription.id,
+        planName: membershipPlan.name,
+        duration: membershipPlan.duration,
+        price: membershipPlan.price.toString(),
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      }
+    });
+    
+    return { 
+      success: true, 
+      message: 'Membership renewed successfully',
+      subscription: newSubscription
+    };
+  }
+
+  async getMemberWithStatus(memberId: string) {
+    const member = await this.getMemberById(memberId);
+    const state = await this.getMemberState(member);
+    
+    // Get the active subscription if it exists
+    const subscription = member.customerSubscriptions?.[0] || null;
+    
+    return {
+      id: member.id,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      email: member.email,
+      phoneNumber: member.phoneNumber,
+      isActive: member.isActive,
+      currentState: state,
+      subscription: subscription
+    };
+  }
+
+  async getMemberHistory(memberId: string, query: { page?: number; limit?: number; category?: 'ACCOUNT' | 'SUBSCRIPTION' | 'PAYMENT' | 'ACCESS'; startDate?: string; endDate?: string }) {
+    const { page = 1, limit = 50, category, startDate, endDate } = query;
+    const offset = (page - 1) * limit;
+    
+    // Build where clause
+    const where: any = { memberId };
+    
+    if (category) {
+      // Filter by action category
+      const categoryActions = {
+        ACCOUNT: ['ACCOUNT_CREATED', 'ACCOUNT_ACTIVATED', 'ACCOUNT_DEACTIVATED', 'ACCOUNT_DELETED', 'ACCOUNT_RESTORED'],
+        SUBSCRIPTION: ['SUBSCRIPTION_STARTED', 'SUBSCRIPTION_RENEWED', 'SUBSCRIPTION_CANCELLED', 'SUBSCRIPTION_EXPIRED', 'SUBSCRIPTION_SUSPENDED', 'SUBSCRIPTION_RESUMED'],
+        PAYMENT: ['PAYMENT_RECEIVED', 'PAYMENT_FAILED', 'PAYMENT_REFUNDED'],
+        ACCESS: ['FACILITY_ACCESS_GRANTED', 'FACILITY_ACCESS_REVOKED', 'LOGIN_SUCCESSFUL', 'LOGIN_FAILED']
+      };
+      
+      where.action = { in: categoryActions[category] || [] };
+    }
+    
+    if (startDate) {
+      where.performedAt = { ...where.performedAt, gte: new Date(startDate) };
+    }
+    
+    if (endDate) {
+      where.performedAt = { ...where.performedAt, lte: new Date(endDate) };
+    }
+    
+    // Get events and total count
+    const [events, total] = await Promise.all([
+      this.prisma.memberAuditLog.findMany({
+        where,
+        include: {
+          performer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          }
+        },
+        orderBy: { performedAt: 'desc' },
+        skip: offset,
+        take: limit
+      }),
+      
+      this.prisma.memberAuditLog.count({ where })
+    ]);
+    
+    return {
+      logs: events,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  getActionReasons() {
+    return [
+      {
+        category: 'ACCOUNT',
+        reasons: ['Member request', 'Payment received', 'System error resolved', 'Administrative decision', 'Policy compliance']
+      },
+      {
+        category: 'SUBSCRIPTION',
+        reasons: ['Member request', 'Non-payment', 'Policy violation', 'System maintenance', 'Membership transfer', 'SUBSCRIPTION_RENEWED']
+      }
+    ];
+  }
+
+  private async createAuditLog(data: {
+    memberId: string;
+    action: string;
+    reason?: string;
+    notes?: string;
+    previousState?: string;
+    newState?: string;
+    performedBy?: string;
+    metadata?: any;
+  }) {
+    try {
+      const result = await this.prisma.memberAuditLog.create({
+        data: {
+          memberId: data.memberId,
+          action: data.action as any,
+          reason: data.reason,
+          notes: data.notes,
+          previousState: data.previousState,
+          newState: data.newState,
+          performedBy: data.performedBy,
+          metadata: data.metadata
+        }
+      });
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to create audit log:', error);
+      throw error;
     }
   }
 

@@ -50,6 +50,7 @@ import { TransactionHistoryModal } from '@/components/modals/transaction-history
 import { MemberActionsModal, type MemberActionType } from '@/components/modals/member-actions-modal'
 import { MemberHistoryModal } from '@/components/modals/member-history-modal'
 import { toast } from 'sonner'
+import { calculateMemberStatus, getAvailableMemberActions, type MemberData } from '@/lib/utils/member-status'
 
 interface MemberCardProps {
   member: User
@@ -137,13 +138,10 @@ export function MemberCard({
     setShowMemberActionsModal(true)
   }
 
-  // Helper function to determine member status for actions
+  // Use our new status calculation utility
+  const memberStatus = calculateMemberStatus(member as MemberData)
   const getMemberStatus = () => {
-    // Computed status based on user data and subscription
-    if (isDeleted) return 'DELETED'
-    if (isExpired) return 'EXPIRED'
-    if (subscription && !isExpired) return 'ACTIVE'
-    return 'INACTIVE'
+    return memberStatus.displayStatus
   }
   
   // Helper function to determine the appropriate action based on member state

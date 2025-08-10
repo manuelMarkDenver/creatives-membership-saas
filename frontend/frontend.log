@@ -1,16 +1,13 @@
+nohup: ignoring input
 
 > frontend@0.1.0 dev
 > next dev
 
- ⚠ Warning: Found multiple lockfiles. Selecting /home/mhackeedev/_apps/creatives-saas/package-lock.json.
-   Consider removing the lockfiles at:
-   * /home/mhackeedev/_apps/creatives-saas/frontend/package-lock.json
-
- ⚠ Port 3000 is in use by process 6046, using available port 3001 instead.
+ ⚠ Port 3000 is in use by process 257134, using available port 3003 instead.
    ▲ Next.js 15.4.5
-   - Local:        http://localhost:3001
-   - Network:      http://192.168.1.8:3001
+   - Local:        http://localhost:3003
+   - Network:      http://192.168.1.8:3003
    - Environments: .env.local
 
  ✓ Starting...
- ✓ Ready in 3s
+ ✓ Ready in 2.4s

@@ -47,12 +47,13 @@ import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MemberCard } from '@/components/members/member-card'
 import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-member-actions'
 import { toast } from 'sonner'
+import { calculateMemberStatus, filterMembersByStatus, calculateMemberStats, type MemberData } from '@/lib/utils/member-status'
 
 export default function MembersPage() {
   const { data: profile } = useProfile()
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
-  const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'inactive' | 'expired' | 'cancelled' | 'deleted'>('all')
+  const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'expired' | 'cancelled' | 'deleted'>('all')
   const [showDeleted, setShowDeleted] = useState(false)
   const [selectedMember, setSelectedMember] = useState(null)
   const [showMemberInfoModal, setShowMemberInfoModal] = useState(false)
@@ -180,113 +181,43 @@ export default function MembersPage() {
     (systemMemberStats?.members || []).filter(m => ['GYM_MEMBER', 'ECOM_CUSTOMER', 'COFFEE_CUSTOMER'].includes(m.role)) :
     (membersData || [])
 
-  const filteredMembers = allMembers.filter((member: any) => {
-    // First, apply search term filtering
+
+  // Apply search term filtering first
+  const searchFilteredMembers = allMembers.filter((member: any) => {
     const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
-    const matchesSearch = !searchTerm || 
+    return !searchTerm || 
       memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase()))
-    
-    if (!matchesSearch) return false
-    
-    // Handle deleted members filtering - only check deletedAt, not isActive
-    const isDeleted = Boolean(member.deletedAt)
-    
-    // Check subscription status - using customerSubscriptions
-    const subscription = member.customerSubscriptions?.[0] // Get most recent subscription
-    const subscriptionStatus = subscription?.status
-    const currentDate = new Date()
-    currentDate.setHours(0, 0, 0, 0) // Set to start of day for accurate comparison
-    
-    const endDate = subscription?.endDate ? new Date(subscription.endDate) : null
-    if (endDate) endDate.setHours(0, 0, 0, 0) // Set to start of day
-    
-    const isExpired = endDate && endDate < currentDate
-    const isCancelled = subscriptionStatus === 'CANCELLED'
-    
-    // Managers can see ALL members from all branches in the tenant, but can only manage their assigned branch
-    // Branch access filtering is now removed from visibility - handled in action permissions instead
-    
-    // Status-based filtering with improved logic
-    switch (memberStatusFilter) {
-      case 'all':
-        // For 'all', only show deleted members if explicitly requested
-        return showDeleted ? true : !isDeleted
-        
-      case 'active':
-        // Only show active members with active subscriptions (not deleted, not expired, not cancelled)
-        if (isDeleted) return false
-        return member.isActive && subscription && !isExpired && !isCancelled
-        
-      case 'inactive':
-        // Inactive means member account is deactivated (different from expired subscription)
-        // Show members who are not active (but not deleted unless showDeleted is true)
-        if (isDeleted && !showDeleted) return false
-        return !member.isActive
-        
-      case 'expired':
-        // Show members with expired subscriptions (active account but expired subscription)
-        if (isDeleted && !showDeleted) return false
-        return member.isActive && subscription && isExpired && !isCancelled
-        
-      case 'cancelled':
-        // Show cancelled subscriptions (active account but cancelled subscription)
-        if (isDeleted && !showDeleted) return false
-        return member.isActive && subscription && isCancelled
-        
-      case 'deleted':
-        // Only show deleted members
-        return isDeleted
-        
-      default:
-        return showDeleted ? true : !isDeleted
-    }
   })
 
-  // Calculate detailed stats based on the same logic used in filtering
-  const calculateMemberStats = (members: any[]) => {
-    const currentDate = new Date()
-    currentDate.setHours(0, 0, 0, 0)
-    
-    return members.reduce((acc, member) => {
-      const isDeleted = Boolean(member.deletedAt) // Fixed: only check deletedAt, not isActive
-      const subscription = member.customerSubscriptions?.[0] // Get most recent subscription
-      const subscriptionStatus = subscription?.status
-      const endDate = subscription?.endDate ? new Date(subscription.endDate) : null
-      if (endDate) endDate.setHours(0, 0, 0, 0)
-      
-      const isExpired = endDate && endDate < currentDate
-      const isCancelled = subscriptionStatus === 'CANCELLED'
-      
-      acc.total++
-      
-      if (isDeleted) {
-        acc.deleted++
-      } else if (member.isActive && subscription && !isExpired && !isCancelled) {
-        acc.active++
-      } else if (!member.isActive && !isDeleted) {
-        acc.inactive++
-      } else if (member.isActive && subscription && isExpired && !isCancelled) {
-        acc.expired++
-      } else if (member.isActive && subscription && isCancelled) {
-        acc.cancelled++
-      }
-      
-      return acc
-    }, {
-      total: 0,
-      active: 0,
-      inactive: 0,
-      expired: 0,
-      cancelled: 0,
-      deleted: 0
+  // Apply status filtering using our new utility
+  const filteredMembers = filterMembersByStatus(
+    searchFilteredMembers as MemberData[], 
+    memberStatusFilter, 
+    showDeleted
+  )
+
+  // Debug logging to compare with previous logs
+  if (memberStatusFilter === 'cancelled') {
+    console.log('\n🔧 NEW STATUS CALCULATION DEBUG:')
+    filteredMembers.forEach((member: any) => {
+      const status = calculateMemberStatus(member)
+      const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
+      console.log(`✅ ${memberName}: ${status.displayStatus} (${status.primaryIssue || 'No issues'})`, {
+        canAccess: status.canAccessFacilities,
+        color: status.statusColor,
+        icon: status.statusIcon
+      })
     })
+    console.log(`\n📊 FILTERED RESULTS: Found ${filteredMembers.length} cancelled members`)
   }
 
+  // Calculate stats using our new utility function
   const stats = isSuperAdmin ? {
-    ...calculateMemberStats(allMembers),
+    ...calculateMemberStats(allMembers as MemberData[]),
     byCategory: systemMemberStats?.summary?.byCategory || []
-  } : calculateMemberStats(allMembers)
+  } : calculateMemberStats(allMembers as MemberData[])
+
 
   return (
     <div className="space-y-8">
@@ -310,7 +241,7 @@ export default function MembersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Members</CardTitle>
@@ -353,22 +284,12 @@ export default function MembersPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactive</CardTitle>
-            <UserX className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-600">{stats.inactive}</div>
-            <p className="text-xs text-muted-foreground">Account inactive</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{isSuperAdmin ? 'Categories' : 'Branches'}</CardTitle>
+            <CardTitle className="text-sm font-medium">{isSuperAdmin ? 'Categories' : 'Deleted'}</CardTitle>
             <Building className="h-4 w-4 text-amber-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">{isSuperAdmin ? stats.byCategory.length : 1}</div>
-            <p className="text-xs text-muted-foreground">{isSuperAdmin ? 'Business types' : 'Active branches'}</p>
+            <div className="text-2xl font-bold text-amber-600">{isSuperAdmin ? stats.byCategory.length : stats.deleted}</div>
+            <p className="text-xs text-muted-foreground">{isSuperAdmin ? 'Business types' : 'Soft deleted'}</p>
           </CardContent>
         </Card>
       </div>
@@ -401,7 +322,6 @@ export default function MembersPage() {
                   <SelectContent>
                     <SelectItem value="all">All Members</SelectItem>
                     <SelectItem value="active">Active Only</SelectItem>
-                    <SelectItem value="inactive">Inactive Only</SelectItem>
                     <SelectItem value="expired">Expired</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                     <SelectItem value="deleted">Deleted</SelectItem>

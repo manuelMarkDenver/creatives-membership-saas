@@ -162,6 +162,15 @@ export class UsersController {
     return await this.usersService.getExpiringMembersOverview(days, filters);
   }
 
+  // Get action reasons - MUST be before parameterized routes
+  @Get('action-reasons')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  getActionReasons() {
+    return this.usersService.getActionReasons();
+  }
+
   // Parameterized routes - MUST be after specific routes to avoid conflicts
   @Get(':id')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
@@ -207,5 +216,103 @@ export class UsersController {
   @AllowedBusinessTypes(BusinessCategory.GYM)
   restoreUser(@Param('id') id: string) {
     return this.usersService.restoreUser(id);
+  }
+
+  // Member management endpoints
+  @Post(':id/activate')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  async activateMember(
+    @Param('id') id: string,
+    @Body() body: { reason: string; notes?: string },
+    @Req() req: any
+  ) {
+    const { reason, notes } = body || {};
+    const performedBy = req.user?.id;
+
+    if (!performedBy) {
+      throw new BadRequestException('User not authenticated');
+    }
+
+    if (!reason || reason.trim() === '') {
+      throw new BadRequestException('Reason is required and cannot be empty');
+    }
+
+    return await this.usersService.activateMember(id, { reason: reason.trim(), notes }, performedBy);
+  }
+
+  @Post(':id/cancel')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  async cancelMember(
+    @Param('id') id: string,
+    @Body() body: { reason: string; notes?: string },
+    @Req() req: any
+  ) {
+    const { reason, notes } = body;
+    const performedBy = req.user?.id;
+
+    if (!performedBy) {
+      throw new BadRequestException('User not authenticated');
+    }
+
+    if (!reason) {
+      throw new BadRequestException('Reason is required');
+    }
+
+    return this.usersService.cancelMember(id, { reason, notes }, performedBy);
+  }
+
+  @Post(':id/renew')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  async renewMemberSubscription(
+    @Param('id') id: string,
+    @Body() body: { membershipPlanId: string },
+    @Req() req: any
+  ) {
+    const { membershipPlanId } = body;
+    const performedBy = req.user?.id;
+
+    if (!performedBy) {
+      throw new BadRequestException('User not authenticated');
+    }
+
+    if (!membershipPlanId) {
+      throw new BadRequestException('Membership plan ID is required');
+    }
+
+    return this.usersService.renewMemberSubscription(id, membershipPlanId, performedBy);
+  }
+
+  @Get(':id/status')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  async getMemberWithStatus(@Param('id') id: string) {
+    return this.usersService.getMemberWithStatus(id);
+  }
+
+  @Get(':id/history')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  async getMemberHistory(
+    @Param('id') id: string,
+    @Query() query: { page?: string; limit?: string; category?: string; startDate?: string; endDate?: string }
+  ) {
+    // Convert string numbers to integers
+    const parsedQuery = {
+      page: query.page ? parseInt(query.page, 10) : undefined,
+      limit: query.limit ? parseInt(query.limit, 10) : undefined,
+      category: query.category as 'ACCOUNT' | 'SUBSCRIPTION' | 'PAYMENT' | 'ACCESS' | undefined,
+      startDate: query.startDate,
+      endDate: query.endDate
+    };
+
+    return this.usersService.getMemberHistory(id, parsedQuery);
   }
 }

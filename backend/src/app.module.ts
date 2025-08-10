@@ -15,7 +15,6 @@ import { StatsModule } from './modules/stats/stats.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { MembershipPlansModule } from './modules/membership-plans/membership-plans.module';
 import { CustomerSubscriptionsModule } from './modules/customer-subscriptions/customer-subscriptions.module';
-import { MembersModule } from './modules/members/members.module';
 
 @Module({
   imports: [
@@ -32,7 +31,6 @@ import { MembersModule } from './modules/members/members.module';
     PlansModule,
     MembershipPlansModule,
     CustomerSubscriptionsModule,
-    MembersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
