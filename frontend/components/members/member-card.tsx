@@ -163,6 +163,11 @@ export function MemberCard({
     }
   }
   
+  // Helper function to get member's branch ID from subscription
+  const getMemberBranchId = (): string | null => {
+    return member.customerSubscriptions?.[0]?.branchId || null
+  }
+
   // Helper function to check if current user can manage this member based on branch access
   const canManageMember = (): boolean => {
     // Super admin and owners can manage all members
@@ -172,13 +177,15 @@ export function MemberCard({
     
     // For managers and staff, check if they have access to the member's branch
     if (profile?.userBranches && profile.userBranches.length > 0) {
+      const memberBranchId = getMemberBranchId()
+      
       // If member has no branchId, they can be managed by anyone in the tenant
-      if (!member.branchId) {
+      if (!memberBranchId) {
         return true
       }
       
       // Check if user has access to the member's branch
-      return profile.userBranches.some((ub: any) => ub.branchId === member.branchId)
+      return profile.userBranches.some((ub: any) => ub.branchId === memberBranchId)
     }
     
     // Default: if no branch restrictions, allow management

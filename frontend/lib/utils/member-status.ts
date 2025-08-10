@@ -96,8 +96,9 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
     subscriptionStatus = 'UNKNOWN'
   }
 
-  // Check if subscription is expired (end date passed)
+  // Check if subscription is expired or expiring soon (within 7 days)
   const isExpired = subscriptionEndDate && subscriptionEndDate < currentDate
+  const isExpiringSoon = subscriptionEndDate && subscriptionEndDate <= new Date(currentDate.getTime() + (7 * 24 * 60 * 60 * 1000))
 
   // Check if subscription is cancelled
   const isCancelled = subscriptionStatus === 'CANCELLED' || Boolean(subscriptionCancelledAt)
@@ -129,6 +130,21 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
       primaryIssue: daysOverdue > 0 ? `Expired ${daysOverdue} days ago` : 'Subscription expired',
       statusColor: 'orange',
       statusIcon: 'clock'
+    }
+  }
+  
+  // Check if subscription is expiring soon (but still active)
+  if (isExpiringSoon && subscriptionStatus === 'ACTIVE') {
+    const daysRemaining = subscriptionEndDate 
+      ? Math.ceil((subscriptionEndDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
+      : 0
+      
+    return {
+      canAccessFacilities: true,
+      displayStatus: 'EXPIRED', // Show as expired/critical for filtering purposes
+      primaryIssue: `Expires in ${daysRemaining} days`,
+      statusColor: 'orange',
+      statusIcon: 'alert'
     }
   }
 

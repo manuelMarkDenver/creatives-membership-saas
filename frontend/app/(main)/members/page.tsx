@@ -174,12 +174,45 @@ export default function MembersPage() {
     })
   }
 
+  // Helper function to get member's branch ID from subscription
+  const getMemberBranchId = (member: any): string | null => {
+    return member.customerSubscriptions?.[0]?.branchId || null
+  }
+
+  // Helper function to check if current user can manage a member based on branch access
+  // This should match the logic in MemberCard component
+  const canManageMember = (member: any): boolean => {
+    // Super admin and owners can manage all members
+    if (isSuperAdmin || profile?.role === 'SUPER_ADMIN' || profile?.role === 'OWNER') {
+      return true
+    }
+    
+    // For managers and staff, check if they have access to the member's branch
+    if (profile?.userBranches && profile.userBranches.length > 0) {
+      const memberBranchId = getMemberBranchId(member)
+      
+      // If member has no branchId, they can be managed by anyone in the tenant
+      if (!memberBranchId) {
+        return true
+      }
+      
+      // Check if user has access to the member's branch
+      return profile.userBranches.some((ub: any) => ub.branchId === memberBranchId)
+    }
+    
+    // Default: if no branch restrictions, allow management
+    return true
+  }
+
   // Determine data source based on user role
   const isLoading = isSuperAdmin ? isLoadingSystemMembers : isLoadingTenantMembers
   const error = isSuperAdmin ? systemMembersError : tenantMembersError
-  const allMembers = isSuperAdmin ? 
+  const rawMembers = isSuperAdmin ? 
     (systemMemberStats?.members || []).filter(m => ['GYM_MEMBER', 'ECOM_CUSTOMER', 'COFFEE_CUSTOMER'].includes(m.role)) :
     (membersData || [])
+  
+  // Apply branch filtering to ensure consistency between stats and displayed members
+  const allMembers = rawMembers.filter(member => canManageMember(member))
 
 
   // Apply search term filtering first
@@ -197,26 +230,12 @@ export default function MembersPage() {
     showDeleted
   )
 
-  // Debug logging to compare with previous logs
-  if (memberStatusFilter === 'cancelled') {
-    console.log('\n🔧 NEW STATUS CALCULATION DEBUG:')
-    filteredMembers.forEach((member: any) => {
-      const status = calculateMemberStatus(member)
-      const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
-      console.log(`✅ ${memberName}: ${status.displayStatus} (${status.primaryIssue || 'No issues'})`, {
-        canAccess: status.canAccessFacilities,
-        color: status.statusColor,
-        icon: status.statusIcon
-      })
-    })
-    console.log(`\n📊 FILTERED RESULTS: Found ${filteredMembers.length} cancelled members`)
-  }
-
   // Calculate stats using our new utility function
   const stats = isSuperAdmin ? {
     ...calculateMemberStats(allMembers as MemberData[]),
     byCategory: systemMemberStats?.summary?.byCategory || []
   } : calculateMemberStats(allMembers as MemberData[])
+
 
 
   return (
