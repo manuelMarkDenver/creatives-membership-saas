@@ -32,19 +32,20 @@ model Tenant {
 }
 
 model Branch {
-  id            String         @id @default(uuid())
-  tenantId      String
-  name          String
-  address       String?
-  phoneNumber   String?
-  email         String?
-  isActive      Boolean        @default(true)
-  branchData    Json?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  subscriptions Subscription[]
-  userBranches  UserBranch[]
+  id                    String                 @id @default(uuid())
+  tenantId              String
+  name                  String
+  address               String?
+  phoneNumber           String?
+  email                 String?
+  isActive              Boolean                @default(true)
+  branchData            Json?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  tenant                Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscriptions         Subscription[]
+  userBranches          UserBranch[]
+  customerSubscriptions CustomerSubscription[]
 
   @@unique([tenantId, name])
 }
@@ -193,6 +194,7 @@ model CustomerTransaction {
 model CustomerSubscription {
   id                String                      @id @default(uuid())
   tenantId          String
+  branchId          String?                     // Optional branch association for multi-branch filtering
   customerId        String
   membershipPlanId  String
   status            CustomerSubscriptionStatus  @default(ACTIVE)
@@ -209,10 +211,12 @@ model CustomerSubscription {
   createdAt         DateTime                    @default(now())
   updatedAt         DateTime                    @updatedAt
   tenant            Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch            Branch?                     @relation(fields: [branchId], references: [id], onDelete: SetNull)
   customer          User                        @relation("CustomerSubscriptions", fields: [customerId], references: [id], onDelete: Cascade)
   membershipPlan    MembershipPlan              @relation(fields: [membershipPlanId], references: [id], onDelete: Restrict)
 
   @@index([tenantId])
+  @@index([branchId])
   @@index([customerId])
   @@index([membershipPlanId])
   @@index([status])

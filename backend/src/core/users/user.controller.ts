@@ -142,6 +142,7 @@ export class UsersController {
       
       const days = parseInt(daysBefore || '7', 10);
       const filters = {
+        userId: req.user?.id, // Pass user ID for branch access validation
         tenantId,
         branchId,
         page: page ? parseInt(page, 10) : 1,
