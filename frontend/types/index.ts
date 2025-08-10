@@ -48,6 +48,28 @@ export enum AccessLevel {
   READ_ONLY = 'READ_ONLY'
 }
 
+export enum CustomerSubscriptionStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED',
+  PENDING_ACTIVATION = 'PENDING_ACTIVATION'
+}
+
+export enum MembershipType {
+  DAY_PASS = 'DAY_PASS',
+  WEEKLY = 'WEEKLY',
+  MONTHLY = 'MONTHLY',
+  QUARTERLY = 'QUARTERLY',
+  SEMI_ANNUAL = 'SEMI_ANNUAL',
+  ANNUAL = 'ANNUAL',
+  UNLIMITED = 'UNLIMITED',
+  STUDENT = 'STUDENT',
+  SENIOR = 'SENIOR',
+  CORPORATE = 'CORPORATE'
+}
+
 // Core Models
 export interface Tenant {
   id: string
@@ -111,6 +133,7 @@ export interface User {
   createdAt: string
   updatedAt: string
   userBranches?: UserBranch[]
+  customerSubscriptions?: CustomerSubscription[]
 }
 
 export interface UserBranch {
@@ -124,6 +147,46 @@ export interface UserBranch {
   permissions?: any // JSON field for fine-grained permissions
   createdAt: string
   updatedAt: string
+}
+
+export interface MembershipPlan {
+  id: string
+  tenantId: string
+  tenant?: Tenant
+  name: string
+  description?: string
+  price: number
+  duration: number // Duration in days
+  type: MembershipType
+  benefits?: any[] // JSON array of benefits
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CustomerSubscription {
+  id: string
+  tenantId: string
+  branchId?: string
+  customerId: string
+  membershipPlanId: string
+  status: CustomerSubscriptionStatus
+  startDate: string
+  endDate: string
+  price: number
+  currency?: string
+  usageData?: any
+  cancelledAt?: string
+  cancellationReason?: string
+  cancellationNotes?: string
+  autoRenew?: boolean
+  nextBillingDate?: string
+  createdAt: string
+  updatedAt: string
+  tenant?: Tenant
+  branch?: Branch
+  customer?: User
+  membershipPlan?: MembershipPlan
 }
 
 // Authentication

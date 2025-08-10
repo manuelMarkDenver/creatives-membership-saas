@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from 'sonner'
 import { Building2, Crown, ShieldCheck, User, Star, Search, Save, X } from 'lucide-react'
 import { bulkAssignUserToBranches, getUserBranches, UserBranch } from '@/lib/api/user-branches'
-import { getBranches } from '@/lib/api/branches'
+import { branchesApi } from '@/lib/api/branches'
 import { useProfile } from '@/lib/hooks/use-users'
 
 interface BranchAssignmentManagerProps {
@@ -64,11 +64,28 @@ export function BranchAssignmentManager({
   const [searchTerm, setSearchTerm] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Get available branches
+  // Get available branches based on current user's role and access
   const { data: branchesData, isLoading: branchesLoading } = useQuery({
-    queryKey: ['branches'],
-    queryFn: getBranches,
-    enabled: open
+    queryKey: ['branches', profile?.tenantId, profile?.role],
+    queryFn: async () => {
+      if (!profile) return { branches: [] }
+      
+      // Super Admin can see all branches system-wide
+      if (profile.role === 'SUPER_ADMIN') {
+        return await branchesApi.getSystemWide()
+      }
+      
+      // Owner and Manager can see all branches in their tenant
+      if (profile.role === 'OWNER' || profile.role === 'MANAGER') {
+        return await branchesApi.getByTenant(profile.tenantId)
+      }
+      
+      // For staff and other roles, only show branches in their tenant
+      // They should only be able to assign to branches within the same tenant
+      // but the backend should enforce specific branch access control
+      return await branchesApi.getByTenant(profile.tenantId)
+    },
+    enabled: open && !!profile && !!profile.tenantId
   })
 
   // Get user's current branch assignments
@@ -201,6 +218,31 @@ export function BranchAssignmentManager({
               </div>
             </CardHeader>
           </Card>
+
+          {/* Current User Access Info */}
+          {profile && (
+            <Card>
+              <CardContent className="pt-4">
+                <div className="text-xs text-muted-foreground mb-2">
+                  Your Access Level: <strong className={profile.role === 'SUPER_ADMIN' ? 'text-purple-600' : profile.role === 'OWNER' ? 'text-amber-600' : profile.role === 'MANAGER' ? 'text-blue-600' : 'text-gray-600'}>{profile.role}</strong>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {profile.role === 'SUPER_ADMIN' && (
+                    <>Can manage branch assignments for all users across all tenants with any access level.</>
+                  )}
+                  {profile.role === 'OWNER' && (
+                    <>Can manage branch assignments for all users in your tenant and assign Manager or Staff access levels.</>
+                  )}
+                  {profile.role === 'MANAGER' && (
+                    <>Can manage branch assignments for staff in your tenant with Staff access level only.</>
+                  )}
+                  {!['SUPER_ADMIN', 'OWNER', 'MANAGER'].includes(profile.role) && (
+                    <>You have limited access to manage branch assignments.</>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {user.role === 'OWNER' ? (
             <Card>

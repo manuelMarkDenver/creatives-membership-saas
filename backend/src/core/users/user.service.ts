@@ -158,6 +158,239 @@ export class UsersService {
     }
   }
 
+  async updateUser(id: string, data: UpdateUserDto) {
+    try {
+      // Validate user ID format
+      if (!this.isValidUUID(id)) {
+        throw new BadRequestException('Invalid user ID format');
+      }
+
+      // Check if user exists
+      const existingUser = await this.prisma.user.findUnique({
+        where: { id },
+      });
+
+      if (!existingUser) {
+        throw new NotFoundException(`User with ID '${id}' not found`);
+      }
+
+      // Clean and prepare update data
+      const updateData: any = { ...data };
+      if (updateData.firstName) updateData.firstName = updateData.firstName.trim();
+      if (updateData.lastName) updateData.lastName = updateData.lastName.trim();
+      if (updateData.email) updateData.email = updateData.email.trim().toLowerCase();
+      if (updateData.phoneNumber) updateData.phoneNumber = updateData.phoneNumber.trim();
+      if (updateData.notes) updateData.notes = updateData.notes.trim();
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id },
+        data: {
+          ...updateData,
+          updatedAt: new Date(),
+        },
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              category: true,
+            },
+          },
+        },
+      });
+
+      this.logger.log(`Updated user: ${updatedUser.firstName} ${updatedUser.lastName} (${id})`);
+      return updatedUser;
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const field = error.meta?.target as string[];
+          if (field?.includes('email')) {
+            throw new ConflictException(
+              'A user with this email address already exists',
+            );
+          }
+        }
+      }
+
+      this.logger.error(
+        `Failed to update user ${id}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to update user. Please try again.',
+      );
+    }
+  }
+
+  async deleteUser(id: string) {
+    try {
+      // Validate user ID format
+      if (!this.isValidUUID(id)) {
+        throw new BadRequestException('Invalid user ID format');
+      }
+
+      // Check if user exists
+      const existingUser = await this.prisma.user.findUnique({
+        where: { id },
+      });
+
+      if (!existingUser) {
+        throw new NotFoundException(`User with ID '${id}' not found`);
+      }
+
+      // Hard delete the user
+      await this.prisma.user.delete({
+        where: { id },
+      });
+
+      this.logger.log(`Deleted user: ${existingUser.firstName} ${existingUser.lastName} (${id})`);
+      return { success: true, message: 'User deleted successfully' };
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to delete user ${id}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to delete user. Please try again.',
+      );
+    }
+  }
+
+  async softDeleteUser(id: string, deletedBy: string) {
+    try {
+      // Validate user ID format
+      if (!this.isValidUUID(id)) {
+        throw new BadRequestException('Invalid user ID format');
+      }
+
+      // Check if user exists and is not already deleted
+      const existingUser = await this.prisma.user.findUnique({
+        where: { id },
+      });
+
+      if (!existingUser) {
+        throw new NotFoundException(`User with ID '${id}' not found`);
+      }
+
+      if (existingUser.deletedAt) {
+        throw new BadRequestException('User is already deleted');
+      }
+
+      // Soft delete the user
+      const deletedUser = await this.prisma.user.update({
+        where: { id },
+        data: {
+          isActive: false,
+          deletedAt: new Date(),
+          deletedBy,
+          updatedAt: new Date(),
+        },
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              category: true,
+            },
+          },
+        },
+      });
+
+      this.logger.log(`Soft deleted user: ${deletedUser.firstName} ${deletedUser.lastName} (${id})`);
+      return deletedUser;
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to soft delete user ${id}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to delete user. Please try again.',
+      );
+    }
+  }
+
+  async restoreUser(id: string) {
+    try {
+      // Validate user ID format
+      if (!this.isValidUUID(id)) {
+        throw new BadRequestException('Invalid user ID format');
+      }
+
+      // Check if user exists and is deleted
+      const existingUser = await this.prisma.user.findUnique({
+        where: { id },
+      });
+
+      if (!existingUser) {
+        throw new NotFoundException(`User with ID '${id}' not found`);
+      }
+
+      if (!existingUser.deletedAt) {
+        throw new BadRequestException('User is not deleted');
+      }
+
+      // Restore the user
+      const restoredUser = await this.prisma.user.update({
+        where: { id },
+        data: {
+          isActive: true,
+          deletedAt: null,
+          deletedBy: null,
+          updatedAt: new Date(),
+        },
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              category: true,
+            },
+          },
+        },
+      });
+
+      this.logger.log(`Restored user: ${restoredUser.firstName} ${restoredUser.lastName} (${id})`);
+      return restoredUser;
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to restore user ${id}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to restore user. Please try again.',
+      );
+    }
+  }
+
   async getUsersByTenant(tenantId: string, filters?: {
     role?: Role,
     search?: string,
@@ -291,6 +524,28 @@ export class UsersService {
               },
             },
           },
+          customerSubscriptions: {
+            include: {
+              membershipPlan: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  duration: true,
+                  type: true,
+                },
+              },
+              branch: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -363,182 +618,6 @@ export class UsersService {
     }
   }
 
-  async updateUser(id: string, data: UpdateUserDto) {
-    try {
-      // Validate user ID format
-      if (!this.isValidUUID(id)) {
-        throw new BadRequestException('Invalid user ID format');
-      }
-
-      // Check if user exists
-      const existingUser = await this.prisma.user.findUnique({
-        where: { id },
-        include: {
-          tenant: {
-            select: { id: true, name: true },
-          },
-        },
-      });
-
-      if (!existingUser) {
-        throw new NotFoundException(`User with ID '${id}' not found`);
-      }
-
-      // Validate email format if provided
-      if (data.email && !this.isValidEmail(data.email)) {
-        throw new BadRequestException('Invalid email format');
-      }
-
-      // Validate role if provided (disable for now to avoid enum validation issues)
-      // if (data.role && !Object.values(Role).includes(data.role)) {
-      //   throw new BadRequestException(
-      //     `Invalid role. Must be one of: ${Object.values(Role).join(', ')}`,
-      //   );
-      // }
-
-      // If tenantId is being changed, verify the new tenant exists
-      if (data.tenantId && data.tenantId !== existingUser.tenantId) {
-        if (!this.isValidUUID(data.tenantId)) {
-          throw new BadRequestException('Invalid tenant ID format');
-        }
-
-        const newTenant = await this.prisma.tenant.findUnique({
-          where: { id: data.tenantId },
-        });
-
-        if (!newTenant) {
-          throw new NotFoundException(
-            `Tenant with ID '${data.tenantId}' not found`,
-          );
-        }
-      }
-
-      // Clean and prepare update data
-      const updateData: any = {
-        ...data,
-        firstName: data.firstName?.trim(),
-        lastName: data.lastName?.trim(),
-        email: data.email?.trim().toLowerCase(),
-        phoneNumber: data.phoneNumber?.trim(),
-        notes: data.notes?.trim(),
-      };
-      
-      // Remove tenantId from update to avoid the type error
-      delete updateData.tenantId;
-
-      // Remove undefined values
-      Object.keys(updateData).forEach((key) => {
-        if (updateData[key] === undefined) {
-          delete updateData[key];
-        }
-      });
-
-      const updatedUser = await this.prisma.user.update({
-        where: { id },
-        data: updateData,
-        include: {
-          tenant: {
-            select: {
-              id: true,
-              name: true,
-              category: true,
-            },
-          },
-        },
-      });
-
-      this.logger.log(
-        `Updated user: ${updatedUser.firstName} ${updatedUser.lastName} (${updatedUser.id})`,
-      );
-      return updatedUser;
-    } catch (error) {
-      if (
-        error instanceof BadRequestException ||
-        error instanceof NotFoundException
-      ) {
-        throw error;
-      }
-
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          const field = error.meta?.target as string[];
-          if (field?.includes('email')) {
-            throw new ConflictException(
-              'A user with this email address already exists',
-            );
-          }
-          throw new ConflictException(
-            'A user with this information already exists',
-          );
-        }
-        if (error.code === 'P2025') {
-          throw new NotFoundException(`User with ID '${id}' not found`);
-        }
-        if (error.code === 'P2003') {
-          throw new BadRequestException('Invalid tenant ID provided');
-        }
-      }
-
-      this.logger.error(
-        `Failed to update user ${id}: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw new InternalServerErrorException(
-        'Failed to update user. Please try again.',
-      );
-    }
-  }
-
-  async deleteUser(id: string) {
-    try {
-      // Validate user ID format
-      if (!this.isValidUUID(id)) {
-        throw new BadRequestException('Invalid user ID format');
-      }
-
-      // Check if user exists
-      const user = await this.prisma.user.findUnique({
-        where: { id },
-        include: {
-          tenant: {
-            select: { id: true, name: true },
-          },
-        },
-      });
-
-      if (!user) {
-        throw new NotFoundException(`User with ID '${id}' not found`);
-      }
-
-      const deletedUser = await this.prisma.user.delete({ where: { id } });
-
-      this.logger.log(
-        `Deleted user: ${deletedUser.firstName} ${deletedUser.lastName} (${deletedUser.id}) from tenant ${user.tenant?.name || 'Unknown'}`,
-      );
-      return deletedUser;
-    } catch (error) {
-      if (
-        error instanceof BadRequestException ||
-        error instanceof NotFoundException
-      ) {
-        throw error;
-      }
-
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
-          throw new NotFoundException(`User with ID '${id}' not found`);
-        }
-      }
-
-      this.logger.error(
-        `Failed to delete user ${id}: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw new InternalServerErrorException(
-        'Failed to delete user. Please try again.',
-      );
-    }
-  }
 
   /**
    * Get gym members with expiring memberships

@@ -19,7 +19,10 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
-  Info
+  Info,
+  Building,
+  Eye,
+  Lock
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -37,12 +40,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { 
-  useSoftDeleteUser, 
-  useActivateUser, 
-  useDeactivateUser, 
-  useRestoreUser 
+  useProfile,
+  useSoftDeleteUser,
+  useActivateUser,
+  useDeactivateUser,
+  useRestoreUser
 } from '@/lib/hooks/use-users'
-import { useMemberStatus } from '@/lib/hooks/use-member-actions'
 import { TransactionHistoryModal } from '@/components/modals/transaction-history-modal'
 import { MemberActionsModal, type MemberActionType } from '@/components/modals/member-actions-modal'
 import { MemberHistoryModal } from '@/components/modals/member-history-modal'
@@ -78,78 +81,54 @@ export function MemberCard({
   const [showMemberHistoryModal, setShowMemberHistoryModal] = useState(false)
   const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
   
-  // Get member status from new API
-  const { data: memberStatus, isLoading: statusLoading, error: statusError } = useMemberStatus(member.id)
+  // Get current user profile for branch permissions
+  const { data: profile } = useProfile()
   
-  // User status mutations
-  const softDeleteUserMutation = useSoftDeleteUser()
-  const activateUserMutation = useActivateUser()
-  const deactivateUserMutation = useDeactivateUser()
-  const restoreUserMutation = useRestoreUser()
+  // User mutations (universal user management)
+  const softDeleteMutation = useSoftDeleteUser()
+  const activateMutation = useActivateUser()
+  const deactivateMutation = useDeactivateUser()
+  const restoreMutation = useRestoreUser()
   
-  // Get subscription info from member status
-  const subscription = memberStatus?.subscription
+  // Get subscription info from member customerSubscriptions
+  const subscription = member.customerSubscriptions?.[0] // Get most recent subscription
   const isExpired = subscription && new Date(subscription.endDate) < new Date()
   const daysRemaining = subscription ? Math.ceil((new Date(subscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null
   
-  // Check if member is deleted/inactive
+  // Check if member is deleted/inactive  
   const isDeleted = !member.isActive || member.deletedAt
+  const isInactive = member.isActive && !member.deletedAt && !subscription
   
   const handleDeleteMember = async () => {
     try {
-      await softDeleteUserMutation.mutateAsync(member.id)
-      toast.success(`Member ${memberName} has been removed successfully`)
+      await softDeleteMutation.mutateAsync(member.id)
       setShowDeleteModal(false)
-      // Call the refresh callback if provided
+      toast.success(`${memberName} has been removed successfully`)
+      
+      // Refresh member data
       if (onMemberDeleted) {
         onMemberDeleted()
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error removing member:', error)
       toast.error('Failed to remove member. Please try again.')
     }
   }
 
+  // These handlers are no longer used - actions go through MemberActionsModal
   const handleActivateMember = async () => {
-    try {
-      await activateUserMutation.mutateAsync(member.id)
-      toast.success(`Member ${memberName} has been activated successfully`)
-      setShowActivateModal(false)
-      if (onMemberDeleted) {
-        onMemberDeleted()
-      }
-    } catch (error: any) {
-      console.error('Error activating member:', error)
-      toast.error('Failed to activate member. Please try again.')
-    }
+    // Redirect to member actions modal
+    openMemberActionModal('activate')
   }
 
   const handleDeactivateMember = async () => {
-    try {
-      await deactivateUserMutation.mutateAsync(member.id)
-      toast.success(`Member ${memberName} has been deactivated successfully`)
-      setShowDeactivateModal(false)
-      if (onMemberDeleted) {
-        onMemberDeleted()
-      }
-    } catch (error: any) {
-      console.error('Error deactivating member:', error)
-      toast.error('Failed to deactivate member. Please try again.')
-    }
+    // Redirect to member actions modal  
+    openMemberActionModal('cancel')
   }
 
   const handleRestoreMember = async () => {
-    try {
-      await restoreUserMutation.mutateAsync(member.id)
-      toast.success(`Member ${memberName} has been restored successfully`)
-      setShowRestoreModal(false)
-      if (onMemberDeleted) {
-        onMemberDeleted()
-      }
-    } catch (error: any) {
-      console.error('Error restoring member:', error)
-      toast.error('Failed to restore member. Please try again.')
-    }
+    // Redirect to member actions modal
+    openMemberActionModal('restore')
   }
 
   // Helper function to open member action modal
@@ -160,12 +139,7 @@ export function MemberCard({
 
   // Helper function to determine member status for actions
   const getMemberStatus = () => {
-    // Use the actual currentState from member status API if available
-    if (memberStatus?.currentState) {
-      return memberStatus.currentState
-    }
-    
-    // Fallback to computed status
+    // Computed status based on user data and subscription
     if (isDeleted) return 'DELETED'
     if (isExpired) return 'EXPIRED'
     if (subscription && !isExpired) return 'ACTIVE'
@@ -189,6 +163,42 @@ export function MemberCard({
       default:
         return 'activate' // Default to activate for inactive members
     }
+  }
+  
+  // Helper function to check if current user can manage this member based on branch access
+  const canManageMember = (): boolean => {
+    // Super admin and owners can manage all members
+    if (isSuperAdmin || profile?.role === 'SUPER_ADMIN' || profile?.role === 'OWNER') {
+      return true
+    }
+    
+    // For managers and staff, check if they have access to the member's branch
+    if (profile?.userBranches && profile.userBranches.length > 0) {
+      // If member has no branchId, they can be managed by anyone in the tenant
+      if (!member.branchId) {
+        return true
+      }
+      
+      // Check if user has access to the member's branch
+      return profile.userBranches.some((ub: any) => ub.branchId === member.branchId)
+    }
+    
+    // Default: if no branch restrictions, allow management
+    return true
+  }
+  
+  // Helper function to render an action that requires management permissions
+  const renderManagedAction = (action: () => void, children: React.ReactNode, canManage: boolean = canManageMember()) => {
+    if (!canManage) {
+      // Return a disabled/read-only version
+      return (
+        <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
+          <Lock className="h-3 w-3" />
+          <span>View Only - Different Branch</span>
+        </div>
+      )
+    }
+    return children
   }
   
   return (
@@ -217,9 +227,7 @@ export function MemberCard({
           )}
           
           {/* Subscription Information */}
-          {statusLoading ? (
-            <div className="mt-2 text-xs text-muted-foreground">Loading subscription...</div>
-          ) : (subscription && typeof subscription === 'object' && subscription.id) ? (
+          {(subscription && typeof subscription === 'object' && subscription.id) ? (
             <div className="mt-2 space-y-1">
               <div className="flex items-center gap-2 text-xs">
                 <span className="font-medium text-purple-600">
@@ -260,6 +268,7 @@ export function MemberCard({
         {/* Status Button - considers both subscription expiry AND member state */}
         {(() => {
           const currentState = getMemberStatus();
+          const canManage = canManageMember();
           
           // No subscription case
           if (!subscription || typeof subscription !== 'object' || !subscription.id) {
@@ -268,9 +277,10 @@ export function MemberCard({
                 variant="outline"
                 size="sm"
                 className="hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700"
-                onClick={() => onRenewSubscription(member)}
+                onClick={() => canManage ? onRenewSubscription(member) : toast.info('You can only manage members from your assigned branches')}
+                disabled={!canManage}
               >
-                Start Subscription
+                {canManage ? 'Start Subscription' : 'View Only'}
               </Button>
             )
           }
@@ -282,22 +292,24 @@ export function MemberCard({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600 hover:border-yellow-600 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-500 dark:hover:text-black dark:border-yellow-400 dark:hover:border-yellow-500"
-                  onClick={() => openMemberActionModal('activate')}
+                  className={canManage ? "bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600 hover:border-yellow-600 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-500 dark:hover:text-black dark:border-yellow-400 dark:hover:border-yellow-500" : "bg-yellow-200 text-yellow-800 border-yellow-300"}
+                  onClick={() => canManage ? openMemberActionModal('activate') : toast.info('You can only manage members from your assigned branches')}
+                  disabled={!canManage}
                 >
-                  Cancelled
+                  {canManage ? 'Cancelled' : 'Cancelled (View Only)'}
                 </Button>
               )
               
             case 'EXPIRED':
               return (
                 <Button
-                  variant="destructive"
+                  variant={canManage ? "destructive" : "outline"}
                   size="sm"
-                  className="hover:bg-red-600"
-                  onClick={() => onRenewSubscription(member)}
+                  className={canManage ? "hover:bg-red-600" : "bg-red-100 text-red-800 border-red-300"}
+                  onClick={() => canManage ? onRenewSubscription(member) : toast.info('You can only manage members from your assigned branches')}
+                  disabled={!canManage}
                 >
-                  Expired
+                  {canManage ? 'Expired' : 'Expired (View Only)'}
                 </Button>
               )
               
@@ -306,22 +318,39 @@ export function MemberCard({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-green-500 text-white border-green-500 hover:bg-green-600 hover:border-green-600 dark:bg-green-400 dark:text-black dark:hover:bg-green-500 dark:hover:text-black dark:border-green-400 dark:hover:border-green-500"
-                  onClick={() => onCancelSubscription(member)}
+                  className={canManage ? "bg-green-500 text-white border-green-500 hover:bg-green-600 hover:border-green-600 dark:bg-green-400 dark:text-black dark:hover:bg-green-500 dark:hover:text-black dark:border-green-400 dark:hover:border-green-500" : "bg-green-100 text-green-800 border-green-300"}
+                  onClick={() => canManage ? onCancelSubscription(member) : toast.info('You can only manage members from your assigned branches')}
+                  disabled={!canManage}
                 >
-                  Active
+                  {canManage ? 'Active' : 'Active (View Only)'}
                 </Button>
               )
               
             case 'DELETED':
               return (
                 <Button
-                  variant="destructive"
+                  variant={canManage ? "destructive" : "outline"}
                   size="sm"
-                  className="bg-red-500 text-white hover:bg-red-600"
-                  onClick={() => openMemberActionModal('restore')}
+                  className={canManage ? "bg-red-500 text-white hover:bg-red-600" : "bg-red-100 text-red-800 border-red-300"}
+                  onClick={async () => {
+                    if (!canManage) {
+                      toast.info('You can only manage members from your assigned branches')
+                      return
+                    }
+                    try {
+                      await restoreMutation.mutateAsync(member.id)
+                      toast.success(`${memberName} has been restored successfully`)
+                      if (onMemberDeleted) {
+                        onMemberDeleted()
+                      }
+                    } catch (error) {
+                      console.error('Error restoring member:', error)
+                      toast.error('Failed to restore member. Please try again.')
+                    }
+                  }}
+                  disabled={!canManage}
                 >
-                  Deleted
+                  {canManage ? 'Deleted' : 'Deleted (View Only)'}
                 </Button>
               )
               
@@ -331,10 +360,11 @@ export function MemberCard({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700"
-                  onClick={() => openMemberActionModal('activate')}
+                  className={canManage ? "hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700" : "bg-gray-100 text-gray-600 border-gray-300"}
+                  onClick={() => canManage ? openMemberActionModal('activate') : toast.info('You can only manage members from your assigned branches')}
+                  disabled={!canManage}
                 >
-                  Inactive
+                  {canManage ? 'Inactive' : 'Inactive (View Only)'}
                 </Button>
               )
           }
@@ -371,17 +401,39 @@ export function MemberCard({
             
             <DropdownMenuSeparator />
             
-            {/* Member Actions - Use state-based logic */}
+            {/* Member Actions - Use state-based logic with branch permissions */}
             {(() => {
               const currentState = getMemberStatus()
               const appropriateAction = getAppropriateAction()
+              const canManage = canManageMember()
+              
+              // If user cannot manage this member, show a disabled item
+              if (!canManage) {
+                return (
+                  <DropdownMenuItem disabled className="text-muted-foreground">
+                    <Lock className="mr-2 h-4 w-4" />
+                    View Only - Different Branch
+                  </DropdownMenuItem>
+                )
+              }
               
               switch (currentState) {
                 case 'DELETED':
                   return (
                     <DropdownMenuItem 
                       className="text-blue-600"
-                      onClick={() => openMemberActionModal('restore')}
+                      onClick={async () => {
+                        try {
+                          await restoreMutation.mutateAsync(member.id)
+                          toast.success(`${memberName} has been restored successfully`)
+                          if (onMemberDeleted) {
+                            onMemberDeleted()
+                          }
+                        } catch (error) {
+                          console.error('Error restoring member:', error)
+                          toast.error('Failed to restore member. Please try again.')
+                        }
+                      }}
                     >
                       <UserPlus className="mr-2 h-4 w-4" />
                       Restore Member
@@ -437,18 +489,28 @@ export function MemberCard({
             
             <DropdownMenuSeparator />
             
-            {/* General Actions */}
-            <DropdownMenuItem onClick={() => onViewMemberInfo(member)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Member
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-red-600"
-              onClick={() => setShowDeleteModal(true)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Remove Member
-            </DropdownMenuItem>
+            {/* General Actions - with branch permissions */}
+            {canManageMember() ? (
+              <DropdownMenuItem onClick={() => onViewMemberInfo(member)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Member
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => onViewMemberInfo(member)}>
+                <Eye className="mr-2 h-4 w-4" />
+                View Member Details
+              </DropdownMenuItem>
+            )}
+            
+            {canManageMember() && (
+              <DropdownMenuItem 
+                className="text-red-600"
+                onClick={() => setShowDeleteModal(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Remove Member
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -507,23 +569,15 @@ export function MemberCard({
             <Button 
               variant="outline" 
               onClick={() => setShowDeleteModal(false)}
-              disabled={softDeleteUserMutation.isPending}
             >
               Cancel
             </Button>
             <Button 
               variant="destructive"
               onClick={handleDeleteMember}
-              disabled={softDeleteUserMutation.isPending}
             >
-              {softDeleteUserMutation.isPending ? (
-                <>Removing...</>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Remove Member
-                </>
-              )}
+              <Trash2 className="w-4 h-4 mr-2" />
+              Remove Member
             </Button>
           </DialogFooter>
         </DialogContent>

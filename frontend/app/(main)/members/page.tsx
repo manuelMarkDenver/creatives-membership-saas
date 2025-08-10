@@ -52,7 +52,7 @@ export default function MembersPage() {
   const { data: profile } = useProfile()
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
-  const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'inactive' | 'cancelled' | 'deleted'>('all')
+  const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'inactive' | 'expired' | 'cancelled' | 'deleted'>('all')
   const [showDeleted, setShowDeleted] = useState(false)
   const [selectedMember, setSelectedMember] = useState(null)
   const [showMemberInfoModal, setShowMemberInfoModal] = useState(false)
@@ -189,50 +189,104 @@ export default function MembersPage() {
     
     if (!matchesSearch) return false
     
-    // Handle deleted members filtering
-    const isDeleted = !member.isActive || member.deletedAt
+    // Handle deleted members filtering - only check deletedAt, not isActive
+    const isDeleted = Boolean(member.deletedAt)
     
-    // Status-based filtering
+    // Check subscription status - using customerSubscriptions
+    const subscription = member.customerSubscriptions?.[0] // Get most recent subscription
+    const subscriptionStatus = subscription?.status
+    const currentDate = new Date()
+    currentDate.setHours(0, 0, 0, 0) // Set to start of day for accurate comparison
+    
+    const endDate = subscription?.endDate ? new Date(subscription.endDate) : null
+    if (endDate) endDate.setHours(0, 0, 0, 0) // Set to start of day
+    
+    const isExpired = endDate && endDate < currentDate
+    const isCancelled = subscriptionStatus === 'CANCELLED'
+    
+    // Managers can see ALL members from all branches in the tenant, but can only manage their assigned branch
+    // Branch access filtering is now removed from visibility - handled in action permissions instead
+    
+    // Status-based filtering with improved logic
     switch (memberStatusFilter) {
       case 'all':
         // For 'all', only show deleted members if explicitly requested
         return showDeleted ? true : !isDeleted
         
       case 'active':
-        // Only show active (not deleted) members
-        return member.isActive && !member.deletedAt
+        // Only show active members with active subscriptions (not deleted, not expired, not cancelled)
+        if (isDeleted) return false
+        return member.isActive && subscription && !isExpired && !isCancelled
         
       case 'inactive':
-        // Show inactive but not deleted members (unless showDeleted is true)
+        // Inactive means member account is deactivated (different from expired subscription)
+        // Show members who are not active (but not deleted unless showDeleted is true)
         if (isDeleted && !showDeleted) return false
-        return !member.isActive || isDeleted
+        return !member.isActive
+        
+      case 'expired':
+        // Show members with expired subscriptions (active account but expired subscription)
+        if (isDeleted && !showDeleted) return false
+        return member.isActive && subscription && isExpired && !isCancelled
+        
+      case 'cancelled':
+        // Show cancelled subscriptions (active account but cancelled subscription)
+        if (isDeleted && !showDeleted) return false
+        return member.isActive && subscription && isCancelled
         
       case 'deleted':
         // Only show deleted members
         return isDeleted
-        
-      case 'cancelled':
-        // Show cancelled subscriptions (but not deleted unless showDeleted is true)
-        if (isDeleted && !showDeleted) return false
-        const subscriptionStatus = member.businessData?.subscriptionStatus
-        return subscriptionStatus === 'CANCELLED'
         
       default:
         return showDeleted ? true : !isDeleted
     }
   })
 
-  const stats = isSuperAdmin ? {
-    total: systemMemberStats?.summary?.totalUsers || 0,
-    active: systemMemberStats?.summary?.activeUsers || 0,
-    inactive: systemMemberStats?.summary?.inactiveUsers || 0,
-    byCategory: systemMemberStats?.summary?.byCategory || []
-  } : {
-    total: allMembers.length,
-    active: allMembers.filter(m => m.isActive).length,
-    inactive: allMembers.filter(m => !m.isActive).length,
-    byCategory: []
+  // Calculate detailed stats based on the same logic used in filtering
+  const calculateMemberStats = (members: any[]) => {
+    const currentDate = new Date()
+    currentDate.setHours(0, 0, 0, 0)
+    
+    return members.reduce((acc, member) => {
+      const isDeleted = Boolean(member.deletedAt) // Fixed: only check deletedAt, not isActive
+      const subscription = member.customerSubscriptions?.[0] // Get most recent subscription
+      const subscriptionStatus = subscription?.status
+      const endDate = subscription?.endDate ? new Date(subscription.endDate) : null
+      if (endDate) endDate.setHours(0, 0, 0, 0)
+      
+      const isExpired = endDate && endDate < currentDate
+      const isCancelled = subscriptionStatus === 'CANCELLED'
+      
+      acc.total++
+      
+      if (isDeleted) {
+        acc.deleted++
+      } else if (member.isActive && subscription && !isExpired && !isCancelled) {
+        acc.active++
+      } else if (!member.isActive && !isDeleted) {
+        acc.inactive++
+      } else if (member.isActive && subscription && isExpired && !isCancelled) {
+        acc.expired++
+      } else if (member.isActive && subscription && isCancelled) {
+        acc.cancelled++
+      }
+      
+      return acc
+    }, {
+      total: 0,
+      active: 0,
+      inactive: 0,
+      expired: 0,
+      cancelled: 0,
+      deleted: 0
+    })
   }
+
+  const stats = isSuperAdmin ? {
+    ...calculateMemberStats(allMembers),
+    byCategory: systemMemberStats?.summary?.byCategory || []
+  } : calculateMemberStats(allMembers)
 
   return (
     <div className="space-y-8">
@@ -256,7 +310,7 @@ export default function MembersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Members</CardTitle>
@@ -279,12 +333,32 @@ export default function MembersPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactive</CardTitle>
+            <CardTitle className="text-sm font-medium">Expired</CardTitle>
+            <Calendar className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{stats.expired}</div>
+            <p className="text-xs text-muted-foreground">Subscription expired</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cancelled</CardTitle>
             <UserX className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.inactive}</div>
-            <p className="text-xs text-muted-foreground">Inactive members</p>
+            <div className="text-2xl font-bold text-red-600">{stats.cancelled}</div>
+            <p className="text-xs text-muted-foreground">Subscription cancelled</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Inactive</CardTitle>
+            <UserX className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-600">{stats.inactive}</div>
+            <p className="text-xs text-muted-foreground">Account inactive</p>
           </CardContent>
         </Card>
         <Card>
@@ -328,6 +402,7 @@ export default function MembersPage() {
                     <SelectItem value="all">All Members</SelectItem>
                     <SelectItem value="active">Active Only</SelectItem>
                     <SelectItem value="inactive">Inactive Only</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                     <SelectItem value="deleted">Deleted</SelectItem>
                   </SelectContent>
@@ -561,7 +636,7 @@ export default function MembersPage() {
             </div>
             
             <div className="space-y-2">
-              <Label>Reason for Cancellation (Optional)</Label>
+              <Label>Reason for Cancellation <span className="text-red-500">*</span></Label>
               <Select value={cancellationReason} onValueChange={setCancellationReason}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a reason" />
@@ -602,7 +677,7 @@ export default function MembersPage() {
             </Button>
             <Button 
               variant="destructive"
-              disabled={cancelMembershipMutation.isPending}
+              disabled={!cancellationReason || cancelMembershipMutation.isPending}
               onClick={handleCancellation}
             >
               <UserX className="w-4 h-4 mr-2" />

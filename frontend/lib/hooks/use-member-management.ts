@@ -126,6 +126,12 @@ const memberManagementApi = {
     return response.data
   },
 
+  // Delete member (soft delete)
+  deleteMember: async (memberId: string, request: MemberActionRequest): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post(`/members/${memberId}/delete`, request)
+    return response.data
+  },
+
   // Renew member subscription
   renewMemberSubscription: async (memberId: string, membershipPlanId: string): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.post(`/members/${memberId}/renew`, { membershipPlanId })
@@ -202,6 +208,23 @@ export function useRestoreMember() {
   return useMutation({
     mutationFn: ({ memberId, request }: { memberId: string; request: MemberActionRequest }) =>
       memberManagementApi.restoreMember(memberId, request),
+    onSuccess: (data, { memberId }) => {
+      // Invalidate member status
+      queryClient.invalidateQueries({ queryKey: memberManagementKeys.status(memberId) })
+      // Invalidate all member history queries for this member
+      queryClient.invalidateQueries({ queryKey: [...memberManagementKeys.all, 'history', memberId] })
+      // Invalidate members lists
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
+  })
+}
+
+export function useDeleteMember() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ memberId, request }: { memberId: string; request: MemberActionRequest }) =>
+      memberManagementApi.deleteMember(memberId, request),
     onSuccess: (data, { memberId }) => {
       // Invalidate member status
       queryClient.invalidateQueries({ queryKey: memberManagementKeys.status(memberId) })

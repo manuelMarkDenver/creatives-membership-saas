@@ -186,4 +186,26 @@ export class UsersController {
   remove(@Param('id') id: string) {
     return this.usersService.deleteUser(id);
   }
+
+  // Soft delete user (business agnostic)
+  @Post(':id/soft-delete')
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  softDelete(@Param('id') id: string, @Req() req: any) {
+    const deletedBy = req.user?.id;
+    if (!deletedBy) {
+      throw new Error('User not authenticated');
+    }
+    return this.usersService.softDeleteUser(id, deletedBy);
+  }
+
+  // Restore soft-deleted user (business agnostic)
+  @Post(':id/restore')
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  restoreUser(@Param('id') id: string) {
+    return this.usersService.restoreUser(id);
+  }
 }

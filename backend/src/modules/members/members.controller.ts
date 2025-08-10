@@ -99,6 +99,27 @@ export class MembersController {
     return this.membersService.restoreMember(id, { reason, notes }, performedBy);
   }
 
+  @Post(':id/delete')
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  async deleteMember(
+    @Param('id') id: string,
+    @Body() body: MemberActionRequest,
+    @Req() req: AuthenticatedRequest
+  ) {
+    const { reason, notes } = body;
+    const performedBy = req.user?.id;
+
+    if (!performedBy) {
+      throw new Error('User not authenticated');
+    }
+
+    if (!reason) {
+      throw new Error('Reason is required');
+    }
+
+    return this.membersService.deleteMember(id, { reason, notes }, performedBy);
+  }
+
   @Post(':id/renew')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   async renewMemberSubscription(

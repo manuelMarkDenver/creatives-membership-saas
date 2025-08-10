@@ -78,6 +78,12 @@ export const membersApi = {
     return response.data
   },
 
+  // Delete member (soft delete)
+  async deleteMember(memberId: string, data: MemberActionRequest): Promise<MemberActionResponse> {
+    const response = await apiClient.post(`/members/${memberId}/delete`, data)
+    return response.data
+  },
+
   // Renew member subscription
   async renewMemberSubscription(memberId: string, data: MemberRenewRequest): Promise<MemberActionResponse> {
     const response = await apiClient.post(`/members/${memberId}/renew`, data)

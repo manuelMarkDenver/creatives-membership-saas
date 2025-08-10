@@ -87,14 +87,20 @@ export class MembersService {
   }
 
   async getMemberState(member: any): Promise<string> {
-    // Check if deleted
-    if (member.deletedAt || !member.isActive) {
+    // Check if deleted (has deletedAt timestamp)
+    if (member.deletedAt) {
       return MEMBER_STATES.DELETED;
     }
 
     // Check subscription status
     const activeSubscription = member.customerSubscriptions?.[0];
     if (!activeSubscription) {
+      // No subscription - determine if inactive or cancelled based on isActive flag
+      return !member.isActive ? 'INACTIVE' : MEMBER_STATES.CANCELLED;
+    }
+
+    // Check if subscription is cancelled
+    if (activeSubscription.status === 'CANCELLED') {
       return MEMBER_STATES.CANCELLED;
     }
 
@@ -105,9 +111,9 @@ export class MembersService {
       return MEMBER_STATES.EXPIRED;
     }
 
-    // Check if subscription is cancelled
-    if (activeSubscription.status === 'CANCELLED') {
-      return MEMBER_STATES.CANCELLED;
+    // Member has active subscription - check if account is active
+    if (!member.isActive) {
+      return 'INACTIVE';
     }
 
     return MEMBER_STATES.ACTIVE;
@@ -117,9 +123,9 @@ export class MembersService {
     const member = await this.getMemberById(memberId);
     const currentState = await this.getMemberState(member);
     
-    // Validate current state - can only activate cancelled or expired members
-    if (currentState !== MEMBER_STATES.CANCELLED && currentState !== MEMBER_STATES.EXPIRED) {
-      throw new Error(`Cannot activate member in ${currentState} state. Member must be cancelled or expired.`);
+    // Validate current state - can only activate cancelled, expired, or inactive members
+    if (currentState !== MEMBER_STATES.CANCELLED && currentState !== MEMBER_STATES.EXPIRED && currentState !== 'INACTIVE') {
+      throw new Error(`Cannot activate member in ${currentState} state. Member must be cancelled, expired, or inactive.`);
     }
 
     // Validate reason
@@ -261,6 +267,51 @@ export class MembersService {
       success: true, 
       message: 'Member restored successfully',
       member: restoredMember
+    };
+  }
+  
+  async deleteMember(memberId: string, request: MemberActionRequest, performedBy: string) {
+    const member = await this.getMemberById(memberId);
+    const currentState = await this.getMemberState(member);
+    
+    if (currentState === MEMBER_STATES.DELETED) {
+      throw new Error('Member is already deleted');
+    }
+
+    // Validate reason (we can use deactivation reasons for deletion)
+    if (!MEMBER_ACTION_REASONS.DEACTIVATION.includes(request.reason)) {
+      throw new Error('Invalid deletion reason');
+    }
+    
+    // Soft delete member
+    const deletedMember = await this.prisma.user.update({
+      where: { id: memberId },
+      data: { 
+        isActive: false,
+        deletedAt: new Date(),
+        deletedBy: performedBy,
+        updatedAt: new Date()
+      }
+    });
+    
+    // Create audit log
+    await this.createAuditLog({
+      memberId,
+      action: 'ACCOUNT_DELETED',
+      reason: request.reason,
+      notes: request.notes,
+      previousState: currentState,
+      newState: MEMBER_STATES.DELETED,
+      performedBy,
+      metadata: {
+        deletedAt: new Date().toISOString()
+      }
+    });
+    
+    return { 
+      success: true, 
+      message: 'Member deleted successfully',
+      member: deletedMember
     };
   }
   
