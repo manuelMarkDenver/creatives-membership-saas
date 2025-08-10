@@ -30,12 +30,29 @@
     </style>
 </head>
 <body>
-    <h1>🚀 Dev Authentication Test</h1>
-    <p>This will simulate logging in as Super Admin and redirect to the dashboard</p>
+    <h1>🚀 Dev One-Click Login Test</h1>
+    <p><strong>⚠️ DEV ONLY - Remove before production!</strong><br/>Quick login buttons for all test users with automatic redirect to dashboard.</p>
     
-    <button onclick="loginAndRedirect()">Login as Super Admin & Go to Dashboard</button>
-    <button onclick="loginAsTenant('fitlife')">Login as FitLife Gym Owner</button>
-    <button onclick="loginAsTenant('powerflex')">Login as PowerFlex Owner</button>
+    <h3>🔴 Super Admin</h3>
+    <button onclick="quickLogin('superadmin@system.com', 'SuperAdmin123!')">Super Admin - Global Access</button>
+    
+    <h3>🔵 PowerFlex Fitness</h3>
+    <button onclick="quickLogin('owner@powerflex-fitness.com', 'Owner123!')">Owner - All 3 Branches</button>
+    <button onclick="quickLogin('manager1@powerflex-fitness.com', 'Manager123!')">Manager1 - Main + North</button>
+    <button onclick="quickLogin('manager2@powerflex-fitness.com', 'Manager123!')">Manager2 - South + North</button>
+    <button onclick="quickLogin('staff11@powerflex-fitness.com', 'Staff123!')">Staff1 - Main Only</button>
+    <button onclick="quickLogin('staff12@powerflex-fitness.com', 'Staff123!')">Staff2 - South Only</button>
+    
+    <h3>🟢 FitLife Gym</h3>
+    <button onclick="quickLogin('owner@fitlife-gym.com', 'Owner123!')">Owner - All 3 Branches</button>
+    <button onclick="quickLogin('manager11@fitlife-gym.com', 'Manager123!')">Manager1 - Main + East</button>
+    <button onclick="quickLogin('manager12@fitlife-gym.com', 'Manager123!')">Manager2 - West + East</button>
+    <button onclick="quickLogin('staff11@fitlife-gym.com', 'Staff123!')">Staff1 - Main + East</button>
+    <button onclick="quickLogin('staff12@fitlife-gym.com', 'Staff123!')">Staff2 - Main + East</button>
+    <button onclick="quickLogin('staff21@fitlife-gym.com', 'Staff123!')">Staff3 - West + East</button>
+    <button onclick="quickLogin('staff22@fitlife-gym.com', 'Staff123!')">Staff4 - West Only</button>
+    
+    <hr>
     <button onclick="testBackendAuth()">Test Backend /auth/me</button>
     <button onclick="clearAuth()">Clear Auth Data</button>
     
@@ -161,6 +178,47 @@
             localStorage.removeItem('user_data');
             localStorage.removeItem('auth_token');
             showStatus('🗑️ Auth data cleared');
+        }
+        
+        async function quickLogin(email, password) {
+            showStatus(`🔐 Logging in as ${email}...`);
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Login failed');
+                }
+                
+                if (data.success && data.data.user && data.data.token) {
+                    // Store user data and token
+                    localStorage.setItem('auth_token', data.data.token);
+                    localStorage.setItem('user_data', JSON.stringify(data.data.user));
+                    
+                    const user = data.data.user;
+                    const roleName = user.role.replace('_', ' ');
+                    const tenantInfo = user.tenant ? ` (${user.tenant.name})` : '';
+                    
+                    showStatus(`✅ Logged in as ${user.firstName} ${user.lastName} - ${roleName}${tenantInfo}! Redirecting...`, 'success');
+                    
+                    // Redirect after a short delay
+                    setTimeout(() => {
+                        window.open('http://localhost:3000/dashboard', '_blank');
+                    }, 1500);
+                } else {
+                    throw new Error('Invalid response from server');
+                }
+            } catch (error) {
+                showStatus(`❌ Login failed: ${error.message}`, 'error');
+            }
         }
 
         // Show current auth status on page load

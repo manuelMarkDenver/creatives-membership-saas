@@ -145,14 +145,98 @@ export default function LoginPage() {
               </Button>
             </form>
             
-            {/* Sample credentials for testing */}
-            <div className="mt-6 p-3 bg-gray-50 rounded-md">
-              <p className="text-sm font-medium text-gray-700 mb-2">Sample Login Credentials:</p>
-              <div className="text-xs text-gray-600 space-y-1">
-                <div><strong>Super Admin:</strong> admin@creatives-saas.com / SuperAdmin123!</div>
-                <div><strong>Owner:</strong> owner@fitlife-gym.com / FitLifeOwner123!</div>
-                <div><strong>Manager:</strong> manager1@fitlife-gym.com / Manager123!</div>
-                <div><strong>Staff:</strong> staff11@fitlife-gym.com / Staff1123!</div>
+            {/* Sample credentials for testing - DELETE BEFORE PRODUCTION */}
+            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md max-h-96 overflow-y-auto">
+              <p className="text-sm font-semibold text-yellow-800 mb-3 flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                DEV ONLY - Login Credentials (Remove before production):
+              </p>
+              
+              <div className="space-y-4 text-xs">
+                {/* Super Admin */}
+                <div>
+                  <div className="font-medium text-purple-800 border-b pb-1 mb-2">🔧 Super Admin</div>
+                  <div className="pl-2 text-gray-700 bg-purple-50 p-2 rounded">
+                    <strong>Email:</strong> admin@creatives-saas.com<br/>
+                    <strong>Password:</strong> SuperAdmin123!
+                  </div>
+                </div>
+
+                {/* Muscle Mania - Beta Tester */}
+                <div>
+                  <div className="font-medium text-orange-800 border-b pb-1 mb-2">💪 Muscle Mania (Beta Tester)</div>
+                  <div className="pl-2 text-gray-700 space-y-1">
+                    <div className="bg-orange-50 p-2 rounded">
+                      <strong>Owner:</strong> owner@muscle-mania.com<br/>
+                      <strong>Password:</strong> MuscleManiaOwner123!
+                    </div>
+                    <div className="bg-blue-50 p-2 rounded">
+                      <strong>Managers:</strong><br/>
+                      • manager1@muscle-mania.com / Manager123! (Manggahan)<br/>
+                      • manager2@muscle-mania.com / Manager223! (San Rafael)<br/>
+                      • manager3@muscle-mania.com / Manager323! (San Jose)
+                    </div>
+                    <div className="bg-gray-50 p-2 rounded">
+                      <strong>Staff:</strong><br/>
+                      • staff11@muscle-mania.com / Staff1123! (Manggahan)<br/>
+                      • staff12@muscle-mania.com / Staff1223! (Manggahan)<br/>
+                      • staff21@muscle-mania.com / Staff2123! (San Rafael)<br/>
+                      • staff22@muscle-mania.com / Staff2223! (San Rafael)<br/>
+                      • staff31@muscle-mania.com / Staff3123! (San Jose)<br/>
+                      • staff32@muscle-mania.com / Staff3223! (San Jose)
+                    </div>
+                  </div>
+                </div>
+
+                {/* Chakara */}
+                <div>
+                  <div className="font-medium text-green-800 border-b pb-1 mb-2">🧘 Chakara</div>
+                  <div className="pl-2 text-gray-700 space-y-1">
+                    <div className="bg-green-50 p-2 rounded">
+                      <strong>Owner:</strong> owner@chakara.com<br/>
+                      <strong>Password:</strong> ChakaraOwner123!
+                    </div>
+                    <div className="bg-blue-50 p-2 rounded">
+                      <strong>Managers:</strong><br/>
+                      • manager1@chakara.com / Manager123! (Rosario)<br/>
+                      • manager2@chakara.com / Manager223! (San Rafael)<br/>
+                      • manager3@chakara.com / Manager323! (Burgos)
+                    </div>
+                    <div className="bg-gray-50 p-2 rounded">
+                      <strong>Staff:</strong><br/>
+                      • staff11@chakara.com / Staff1123! (Rosario)<br/>
+                      • staff12@chakara.com / Staff1223! (Rosario)<br/>
+                      • staff21@chakara.com / Staff2123! (San Rafael)<br/>
+                      • staff22@chakara.com / Staff2223! (San Rafael)<br/>
+                      • staff31@chakara.com / Staff3123! (Burgos)<br/>
+                      • staff32@chakara.com / Staff3223! (Burgos)
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sample Members */}
+                <div>
+                  <div className="font-medium text-indigo-800 border-b pb-1 mb-2">👥 Sample Members</div>
+                  <div className="pl-2 text-gray-700 bg-indigo-50 p-2 rounded text-xs">
+                    <strong>Muscle Mania:</strong> john1b1@muscle-mania.com / Member123!<br/>
+                    <strong>Chakara:</strong> john1b1@chakara.com / Member123!<br/>
+                    <em>(Many more available - check seeder output)</em>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-3 pt-2 border-t border-yellow-300 text-xs text-yellow-700">
+                <strong>Branch Access:</strong><br/>
+                • <strong>Owner:</strong> Full access to all branches<br/>
+                • <strong>Manager:</strong> Access to assigned branch only<br/>
+                • <strong>Staff:</strong> Limited to assigned branch only<br/>
+                • <strong>Members:</strong> View own profile and branch data only
+              </div>
+              
+              <div className="mt-2 pt-2 border-t border-yellow-300 text-xs text-yellow-600">
+                <strong>💡 Testing Tip:</strong> Try logging in as different roles to see branch-based access control in action!
               </div>
             </div>
           </CardContent>

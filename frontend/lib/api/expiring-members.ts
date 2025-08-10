@@ -5,6 +5,7 @@ export interface ExpiringMember {
   customerId: string
   membershipPlanId: string
   tenantId: string
+  branchId?: string
   status: string
   startDate: string
   endDate: string
@@ -32,6 +33,11 @@ export interface ExpiringMember {
     name: string
     category: string
   }
+  branch?: {
+    id: string
+    name: string
+    address?: string
+  }
 }
 
 export interface ExpiringMembersOverview {
@@ -46,6 +52,28 @@ export interface ExpiringMembersOverview {
       members: ExpiringMember[]
       count: number
     }
+  }
+  groupedByBranch?: {
+    [branchName: string]: {
+      branch: {
+        id: string
+        name: string
+        address?: string
+      }
+      members: ExpiringMember[]
+      count: number
+    }
+  }
+  availableBranches?: Array<{
+    id: string
+    name: string
+    address?: string
+  }>
+  userRole?: 'SUPER_ADMIN' | 'OWNER' | 'MANAGER' | 'STAFF'
+  accessSummary?: {
+    totalAccessibleBranches: number
+    canFilterByBranch: boolean
+    canFilterByTenant: boolean
   }
   pagination: {
     page: number

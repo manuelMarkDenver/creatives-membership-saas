@@ -21,7 +21,8 @@ import {
   Edit,
   Trash2,
   Globe,
-  Building
+  Building,
+  Building2
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -30,6 +31,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { User as UserType } from '@/types'
+import { BranchAssignmentBadge } from '@/components/ui/branch-assignment-badge'
+import { BranchAssignmentManager } from '@/components/branch-assignment-manager'
 
 const roleConfig = {
   OWNER: { icon: Crown, color: 'text-amber-600', bg: 'bg-amber-100' },
@@ -41,8 +44,12 @@ export default function StaffPage() {
   const { data: profile } = useProfile()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState('ALL')
+  const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [branchManagerOpen, setBranchManagerOpen] = useState(false)
 
   const isSuperAdmin = profile?.role === 'SUPER_ADMIN'
+  const isOwner = profile?.role === 'OWNER'
+  const canManageBranches = isOwner || isSuperAdmin
 
   // Conditionally fetch staff data based on user role
   const { data: tenantStaffData, isLoading: isTenantLoading, error: tenantError } = useUsersByTenant(
@@ -260,8 +267,8 @@ export default function StaffPage() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <div className="flex items-center gap-2 mb-2">
+                      <div className="text-right space-y-2">
+                        <div className="flex items-center gap-2">
                           <Badge variant="outline" className={roleInfo.color}>
                             {staff.role}
                           </Badge>
@@ -269,11 +276,11 @@ export default function StaffPage() {
                             ACTIVE
                           </Badge>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {staff.branches && staff.branches.length > 0 && (
-                            <>Access: {staff.branches[0].accessLevel || 'BASIC'}</>
-                          )}
-                        </div>
+                        <BranchAssignmentBadge 
+                          assignments={staff.userBranches || []} 
+                          userRole={staff.role}
+                          variant="compact"
+                        />
                       </div>
                       
                       <DropdownMenu>
@@ -287,6 +294,17 @@ export default function StaffPage() {
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Staff
                           </DropdownMenuItem>
+                          {canManageBranches && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser(staff)
+                                setBranchManagerOpen(true)
+                              }}
+                            >
+                              <Building2 className="mr-2 h-4 w-4" />
+                              Manage Branch Access
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem className="text-red-600">
                             <Trash2 className="mr-2 h-4 w-4" />
                             Remove Staff
@@ -301,6 +319,19 @@ export default function StaffPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Branch Assignment Manager */}
+      {selectedUser && (
+        <BranchAssignmentManager
+          user={selectedUser}
+          open={branchManagerOpen}
+          onOpenChange={setBranchManagerOpen}
+          onSuccess={() => {
+            // Optionally refetch the staff data to show updated assignments
+            // This will happen automatically due to the query invalidation in the component
+          }}
+        />
+      )}
     </div>
   )
 }

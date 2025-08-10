@@ -40,10 +40,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Building2,
-  MapPin
+  MapPin,
+  CreditCard,
+  RotateCcw
 } from 'lucide-react'
 import { useExpiringMembersOverview, useRefreshExpiringMembers } from '@/lib/hooks/use-expiring-members'
-import type { ExpiringMembersFilters } from '@/lib/api/expiring-members'
+import type { ExpiringMembersFilters, ExpiringMember } from '@/lib/api/expiring-members'
 import { toast } from 'sonner'
 
 interface ExpiringMembersModalProps {
@@ -115,7 +117,8 @@ export function ExpiringMembersModal({
       member.memberName.toLowerCase().includes(searchLower) ||
       member.customer.email.toLowerCase().includes(searchLower) ||
       member.membershipPlan.name.toLowerCase().includes(searchLower) ||
-      member.tenant.name.toLowerCase().includes(searchLower)
+      member.tenant.name.toLowerCase().includes(searchLower) ||
+      (member.branch?.name && member.branch.name.toLowerCase().includes(searchLower))
     )
   }) || []
 
@@ -173,6 +176,26 @@ export function ExpiringMembersModal({
                   <SelectContent>
                     <SelectItem value="all">All Gyms</SelectItem>
                     {/* We'd need to fetch tenants list here */}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Branch Filter - Show only if user can filter by branch (not for STAFF role) */}
+              {expiringData?.accessSummary?.canFilterByBranch && userRole !== 'STAFF' && expiringData?.availableBranches && expiringData.availableBranches.length > 1 && (
+                <Select 
+                  value={filters.branchId || 'all'} 
+                  onValueChange={(value) => updateFilters({ branchId: value === 'all' ? undefined : value })}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="All Branches" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Branches</SelectItem>
+                    {expiringData.availableBranches.map((branch) => (
+                      <SelectItem key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               )}
@@ -331,87 +354,165 @@ export function ExpiringMembersModal({
 }
 
 interface MemberCardProps {
-  member: any
+  member: ExpiringMember
   showTenant?: boolean
   compact?: boolean
 }
 
 function MemberCard({ member, showTenant = false, compact = false }: MemberCardProps) {
-  const getUrgencyColor = (urgency: 'critical' | 'high' | 'medium') => {
+  const getUrgencyInfo = (urgency: 'critical' | 'high' | 'medium', days: number) => {
+    if (days <= 0) {
+      const expiredDays = Math.abs(days)
+      return {
+        badgeClass: 'bg-red-600 text-white border-red-700',
+        cardBorder: 'border-red-200 dark:border-red-800',
+        cardBg: 'bg-red-50/50 dark:bg-red-950/20',
+        text: expiredDays === 0 ? 'Expires Today' : `${expiredDays} day${expiredDays > 1 ? 's' : ''} overdue`,
+        pillClass: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+      }
+    }
+    
     switch (urgency) {
-      case 'critical': return 'bg-red-500 text-white'
-      case 'high': return 'bg-orange-500 text-white'
-      case 'medium': return 'bg-yellow-500 text-white'
-      default: return 'bg-gray-500 text-white'
+      case 'critical':
+        return {
+          badgeClass: 'bg-red-500 text-white border-red-600',
+          cardBorder: 'border-red-200 dark:border-red-800',
+          cardBg: 'bg-red-50/30 dark:bg-red-950/10',
+          text: days === 1 ? '1 day left' : `${days} days left`,
+          pillClass: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+        }
+      case 'high':
+        return {
+          badgeClass: 'bg-orange-500 text-white border-orange-600',
+          cardBorder: 'border-orange-200 dark:border-orange-800',
+          cardBg: 'bg-orange-50/30 dark:bg-orange-950/10',
+          text: days === 1 ? '1 day left' : `${days} days left`,
+          pillClass: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
+        }
+      case 'medium':
+        return {
+          badgeClass: 'bg-yellow-500 text-white border-yellow-600',
+          cardBorder: 'border-yellow-200 dark:border-yellow-800',
+          cardBg: 'bg-yellow-50/30 dark:bg-yellow-950/10',
+          text: days === 1 ? '1 day left' : `${days} days left`,
+          pillClass: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+        }
+      default:
+        return {
+          badgeClass: 'bg-gray-500 text-white border-gray-600',
+          cardBorder: 'border-gray-200 dark:border-gray-700',
+          cardBg: '',
+          text: 'Unknown',
+          pillClass: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+        }
     }
   }
 
-  const formatDaysRemaining = (days: number) => {
-    if (days <= 0) return 'Expired'
-    if (days === 1) return '1 day'
-    return `${days} days`
+  const handleRenewClick = () => {
+    // TODO: Implement renewal logic - redirect to renewal page or open renewal modal
+    toast.success(`Opening renewal for ${member.memberName}...`)
+    // You can implement this to navigate to renewal page or open a renewal modal
+    // For example: router.push(`/members/${member.customerId}/renew`)
   }
 
+  const urgencyInfo = getUrgencyInfo(member.urgency, member.daysUntilExpiry)
+
   return (
-    <div className={`flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 dark:border-gray-700 ${compact ? 'text-sm' : ''}`}>
+    <div className={`flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors ${
+      urgencyInfo.cardBorder
+    } ${
+      urgencyInfo.cardBg
+    } ${
+      compact ? 'text-sm p-3' : ''
+    }`}>
       <div className="flex items-center space-x-3 flex-1">
+        {/* Member Avatar */}
         {member.customer.photoUrl ? (
           <img 
             src={member.customer.photoUrl} 
             alt={member.memberName}
-            className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-full object-cover border-2 border-gray-200`}
+            className={`${compact ? 'w-8 h-8' : 'w-12 h-12'} rounded-full object-cover border-2 border-gray-200`}
           />
         ) : (
-          <div className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm`}>
+          <div className={`${compact ? 'w-8 h-8' : 'w-12 h-12'} bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold ${compact ? 'text-sm' : 'text-base'}`}>
             {member.memberName.charAt(0).toUpperCase()}
           </div>
         )}
         
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h4 className={`font-semibold ${compact ? 'text-sm' : ''}`}>{member.memberName}</h4>
-            <Badge className={`text-xs ${getUrgencyColor(member.urgency)}`}>
-              {formatDaysRemaining(member.daysUntilExpiry)}
-            </Badge>
+        <div className="flex-1 min-w-0">
+          {/* Member Name and Urgency Badge */}
+          <div className="flex items-center gap-2 mb-2">
+            <h4 className={`font-semibold text-gray-900 dark:text-gray-100 truncate ${compact ? 'text-sm' : 'text-base'}`}>
+              {member.memberName}
+            </h4>
+            <div className={`px-2 py-1 rounded-full text-xs font-medium ${urgencyInfo.pillClass}`}>
+              {urgencyInfo.text}
+            </div>
           </div>
           
-          <div className={`flex items-center gap-4 ${compact ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
+          {/* Contact Information */}
+          <div className={`flex items-center gap-4 mb-2 ${compact ? 'text-xs' : 'text-sm'} text-gray-600 dark:text-gray-400`}>
             {member.customer.email && (
-              <div className="flex items-center gap-1">
-                <Mail className="h-3 w-3" />
-                {member.customer.email}
+              <div className="flex items-center gap-1 truncate">
+                <Mail className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">{member.customer.email}</span>
               </div>
             )}
             {member.customer.phoneNumber && (
               <div className="flex items-center gap-1">
-                <Phone className="h-3 w-3" />
-                {member.customer.phoneNumber}
+                <Phone className="h-3 w-3 flex-shrink-0" />
+                <span>{member.customer.phoneNumber}</span>
               </div>
             )}
           </div>
           
-          <div className={`flex items-center gap-4 mt-1 ${compact ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
-            <span className="font-medium text-purple-600">
+          {/* Plan, Price, Branch, and Tenant Info */}
+          <div className={`flex items-center gap-4 ${compact ? 'text-xs' : 'text-sm'} text-gray-600 dark:text-gray-400 flex-wrap`}>
+            <span className="font-medium text-purple-600 dark:text-purple-400">
               {member.membershipPlan.name}
             </span>
-            <span className="text-green-600">
+            <span className="text-green-600 dark:text-green-400 font-medium">
               ₱{member.price.toLocaleString()}
             </span>
+            
+            {/* Branch Information - Always show if available */}
+            {member.branch?.name && (
+              <div className="flex items-center gap-1">
+                <MapPin className="h-3 w-3 flex-shrink-0" />
+                <span className="font-medium text-blue-600 dark:text-blue-400">{member.branch.name}</span>
+              </div>
+            )}
+            
+            {/* Tenant Information - Show only when showTenant is true */}
             {showTenant && (
               <div className="flex items-center gap-1">
-                <Building2 className="h-3 w-3" />
-                {member.tenant.name}
+                <Building2 className="h-3 w-3 flex-shrink-0" />
+                <span className="font-medium">{member.tenant.name}</span>
               </div>
             )}
           </div>
         </div>
       </div>
       
-      <div className={`text-right ${compact ? 'text-xs' : 'text-sm'}`}>
-        <div className="flex items-center gap-1 text-muted-foreground mb-1">
+      {/* Right Section: Expiry Date and Action Button */}
+      <div className={`text-right flex flex-col items-end gap-2 ${compact ? 'text-xs' : 'text-sm'} ml-4`}>
+        <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
           <Calendar className="h-3 w-3" />
-          {new Date(member.endDate).toLocaleDateString()}
+          <span>{new Date(member.endDate).toLocaleDateString()}</span>
         </div>
+        
+        {/* Renew Button */}
+        {!compact && (
+          <Button
+            size="sm"
+            variant={member.daysUntilExpiry <= 0 ? "destructive" : "default"}
+            onClick={handleRenewClick}
+            className="text-xs h-7 px-3"
+          >
+            <RotateCcw className="h-3 w-3 mr-1" />
+            Renew
+          </Button>
+        )}
       </div>
     </div>
   )

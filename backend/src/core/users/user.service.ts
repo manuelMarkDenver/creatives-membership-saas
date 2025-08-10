@@ -162,7 +162,9 @@ export class UsersService {
     role?: Role,
     search?: string,
     page?: number,
-    limit?: number
+    limit?: number,
+    requestingUserId?: string,
+    requestingUserRole?: Role
   }) {
     try {
       // Validate tenant ID format
@@ -195,6 +197,72 @@ export class UsersService {
           { email: { contains: filters.search, mode: 'insensitive' } },
           { phoneNumber: { contains: filters.search, mode: 'insensitive' } },
         ];
+      }
+
+      // Apply branch-based filtering for MANAGER and STAFF roles
+      if (filters?.requestingUserId && filters?.requestingUserRole && 
+          ['MANAGER', 'STAFF'].includes(filters.requestingUserRole)) {
+        
+        // Get the requesting user's branch access
+        const requestingUser = await this.prisma.user.findUnique({
+          where: { id: filters.requestingUserId },
+          include: {
+            userBranches: { select: { branchId: true } }
+          }
+        });
+
+        const accessibleBranchIds = requestingUser?.userBranches.map(ub => ub.branchId) || [];
+        
+        if (accessibleBranchIds.length > 0) {
+          // For members (GYM_MEMBER), filter by customers who have subscriptions in accessible branches
+          if (filters.role === 'GYM_MEMBER') {
+            const membersInAccessibleBranches = await this.prisma.customerSubscription.findMany({
+              where: {
+                tenantId,
+                branchId: { in: accessibleBranchIds },
+                status: 'ACTIVE'
+              },
+              select: { customerId: true },
+              distinct: ['customerId']
+            });
+            
+            const memberUserIds = membersInAccessibleBranches.map(cs => cs.customerId);
+            if (memberUserIds.length > 0) {
+              whereClause.id = { in: memberUserIds };
+            } else {
+              whereClause.id = { in: [] }; // No accessible members
+            }
+          } 
+          // For staff/managers, show users who have branch assignments in accessible branches
+          else if (['MANAGER', 'STAFF', 'OWNER'].includes(filters.role || '')) {
+            const usersInAccessibleBranches = await this.prisma.userBranch.findMany({
+              where: {
+                branchId: { in: accessibleBranchIds }
+              },
+              select: { userId: true },
+              distinct: ['userId']
+            });
+            
+            const staffUserIds = usersInAccessibleBranches.map(ub => ub.userId);
+            if (staffUserIds.length > 0) {
+              // Include requesting user's tenant colleagues who share branches
+              const existingIdFilter = whereClause.id;
+              if (existingIdFilter) {
+                // Intersect with existing filter
+                whereClause.id = { 
+                  in: staffUserIds.filter(id => existingIdFilter.in?.includes(id))
+                };
+              } else {
+                whereClause.id = { in: staffUserIds };
+              }
+            } else {
+              whereClause.id = { in: [] }; // No accessible staff
+            }
+          }
+        } else {
+          // User has no branch assignments, show no results
+          whereClause.id = { in: [] };
+        }
       }
 
       // Handle pagination
@@ -703,24 +771,16 @@ export class UsersService {
    */
   async getExpiringMembersOverview(daysBefore: number = 7, filters: any) {
     try {
-      console.log('=== Role-Based Expiring Members Debug ===');
-      console.log('daysBefore:', daysBefore);
-      console.log('filters:', JSON.stringify(filters, null, 2));
-      
       // Validate filters
       if (!filters.page || isNaN(filters.page) || filters.page < 1) {
-        console.log('Invalid page, setting to 1');
         filters.page = 1;
       }
       if (!filters.limit || isNaN(filters.limit) || filters.limit < 1) {
-        console.log('Invalid limit, setting to 10');
         filters.limit = 10;
       }
       
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + daysBefore);
-      console.log('targetDate:', targetDate.toISOString());
-      console.log('today:', new Date().toISOString());
 
       // Get user's branch access information
       const userId = filters.userId;
@@ -750,13 +810,6 @@ export class UsersService {
 
         userBranchAccess = userWithBranches?.userBranches || [];
         accessibleBranchIds = userBranchAccess.map(ub => ub.branchId);
-        
-        console.log('User branch access:', {
-          userId,
-          role: filters.userRole,
-          accessibleBranches: accessibleBranchIds.length,
-          branchIds: accessibleBranchIds
-        });
       }
 
       // Build where clause based on user role
@@ -770,11 +823,9 @@ export class UsersService {
 
       // Apply role-based filtering
       if (filters.userRole === 'SUPER_ADMIN') {
-        console.log('SUPER_ADMIN: Access to all tenants');
         // Super Admin can filter by specific tenant
         if (filters.tenantId) {
           whereClause.tenantId = filters.tenantId;
-          console.log('SUPER_ADMIN: Filtering by tenantId:', filters.tenantId);
           
           // If tenant is specified, get available branches for filtering
           availableBranches = await this.prisma.branch.findMany({
@@ -786,16 +837,13 @@ export class UsersService {
           const allTenants = await this.prisma.tenant.findMany({
             select: { id: true, name: true, category: true }
           });
-          console.log('SUPER_ADMIN: Access to all tenants:', allTenants.length);
         }
         
         // Super admin can also filter by specific branch
         if (filters.branchId) {
           whereClause.branchId = filters.branchId;
-          console.log('SUPER_ADMIN: Filtering by branchId:', filters.branchId);
         }
       } else if (filters.userRole === 'OWNER') {
-        console.log('OWNER: Access to all branches in tenant');
         // Owners can see all branches in their tenant
         whereClause.tenantId = filters.userTenantId;
         
@@ -808,10 +856,8 @@ export class UsersService {
         // Owner can filter by specific branch
         if (filters.branchId) {
           whereClause.branchId = filters.branchId;
-          console.log('OWNER: Filtering by branchId:', filters.branchId);
         }
       } else if (filters.userRole === 'MANAGER') {
-        console.log('MANAGER: Access based on branch permissions');
         // Managers can see branches they have access to
         whereClause.tenantId = filters.userTenantId;
         
@@ -819,18 +865,14 @@ export class UsersService {
           if (filters.branchId && accessibleBranchIds.includes(filters.branchId)) {
             // Filter by specific branch if they have access
             whereClause.branchId = filters.branchId;
-            console.log('MANAGER: Filtering by accessible branchId:', filters.branchId);
           } else if (!filters.branchId) {
             // Show all accessible branches by default
             whereClause.branchId = { in: accessibleBranchIds };
-            console.log('MANAGER: Showing all accessible branches:', accessibleBranchIds);
           } else {
             // Trying to access branch they don't have permission to
-            console.log('MANAGER: No access to requested branchId:', filters.branchId);
             whereClause.branchId = { in: [] }; // Return no results
           }
         } else {
-          console.log('MANAGER: No branch access found, returning empty results');
           whereClause.branchId = { in: [] }; // Return no results
         }
         
@@ -841,21 +883,17 @@ export class UsersService {
           address: ub.branch.address
         }));
       } else if (filters.userRole === 'STAFF') {
-        console.log('STAFF: Limited to assigned branches only');
         // Staff can only see branches they're explicitly assigned to
         whereClause.tenantId = filters.userTenantId;
         
         if (accessibleBranchIds.length > 0) {
           if (filters.branchId && accessibleBranchIds.includes(filters.branchId)) {
             whereClause.branchId = filters.branchId;
-            console.log('STAFF: Filtering by accessible branchId:', filters.branchId);
           } else {
             // Show only branches they have access to
             whereClause.branchId = { in: accessibleBranchIds };
-            console.log('STAFF: Limited to accessible branches:', accessibleBranchIds);
           }
         } else {
-          console.log('STAFF: No branch access, returning empty results');
           whereClause.branchId = { in: [] }; // Return no results
         }
         
@@ -866,8 +904,6 @@ export class UsersService {
           address: ub.branch.address
         }));
       }
-      
-      console.log('Final whereClause:', JSON.stringify(whereClause, null, 2));
 
       const [subscriptions, totalCount] = await Promise.all([
         this.prisma.customerSubscription.findMany({
@@ -913,18 +949,6 @@ export class UsersService {
         this.prisma.customerSubscription.count({ where: whereClause })
       ]);
       
-      console.log('Raw subscriptions found:', subscriptions.length);
-      console.log('Total count:', totalCount);
-      if (subscriptions.length > 0) {
-        console.log('First subscription sample:', {
-          id: subscriptions[0].id,
-          memberName: `${subscriptions[0].customer.firstName} ${subscriptions[0].customer.lastName}`,
-          branchName: subscriptions[0].branch?.name || 'No branch',
-          tenantName: subscriptions[0].tenant.name,
-          endDate: subscriptions[0].endDate
-        });
-      }
-
       // Calculate days until expiry for each subscription
       const enrichedSubscriptions = subscriptions.map(subscription => {
         const daysUntilExpiry = Math.ceil(

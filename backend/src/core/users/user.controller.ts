@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   BusinessTypeGuard,
@@ -37,6 +38,7 @@ export class UsersController {
   @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER)
   @SkipBusinessTypeGuard()
   findAll(
+    @Req() req: any,
     @Query('tenantId') tenantId?: string,
     @Query('role') role?: string,
     @Query('search') search?: string,
@@ -48,10 +50,18 @@ export class UsersController {
         role: role as Role,
         search,
         page: page ? parseInt(page, 10) : undefined,
-        limit: limit ? parseInt(limit, 10) : undefined
+        limit: limit ? parseInt(limit, 10) : undefined,
+        requestingUserId: req.user?.id,
+        requestingUserRole: req.user?.role
       };
       return this.usersService.getUsersByTenant(tenantId, filters);
     }
+    
+    // Only SUPER_ADMIN should be able to call getAllUsers without tenantId
+    if (req.user?.role !== 'SUPER_ADMIN') {
+      throw new BadRequestException('tenantId parameter is required for non-super-admin users');
+    }
+    
     return this.usersService.getAllUsers();
   }
 
@@ -69,6 +79,7 @@ export class UsersController {
   @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
   @AllowedBusinessTypes(BusinessCategory.GYM)
   getByTenant(
+    @Req() req: any,
     @Param('tenantId') tenantId: string,
     @Query('role') role?: string,
     @Query('search') search?: string,
@@ -79,7 +90,9 @@ export class UsersController {
       role: role as Role,
       search,
       page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined
+      limit: limit ? parseInt(limit, 10) : undefined,
+      requestingUserId: req.user?.id,
+      requestingUserRole: req.user?.role
     };
     return this.usersService.getUsersByTenant(tenantId, filters);
   }
@@ -135,32 +148,18 @@ export class UsersController {
     @Query('page') page?: string,
     @Query('limit') limit?: string
   ) {
-    try {
-      console.log('=== Controller Debug ===');
-      console.log('req.user:', req.user);
-      console.log('Query params:', { daysBefore, tenantId, branchId, page, limit });
-      
-      const days = parseInt(daysBefore || '7', 10);
-      const filters = {
-        userId: req.user?.id, // Pass user ID for branch access validation
-        tenantId,
-        branchId,
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 50,
-        userRole: req.user?.role,
-        userTenantId: req.user?.tenantId
-      };
-      
-      console.log('About to call service with:', { days, filters });
-      
-      const result = await this.usersService.getExpiringMembersOverview(days, filters);
-      console.log('Service returned successfully:', result ? 'data received' : 'no data');
-      return result;
-    } catch (error) {
-      console.error('ERROR in controller:', error);
-      console.error('Error stack:', error.stack);
-      throw error;
-    }
+    const days = parseInt(daysBefore || '7', 10);
+    const filters = {
+      userId: req.user?.id, // Pass user ID for branch access validation
+      tenantId,
+      branchId,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 50,
+      userRole: req.user?.role,
+      userTenantId: req.user?.tenantId
+    };
+    
+    return await this.usersService.getExpiringMembersOverview(days, filters);
   }
 
   // Parameterized routes - MUST be after specific routes to avoid conflicts

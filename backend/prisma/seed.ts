@@ -83,44 +83,53 @@ async function main() {
   
   const tenantData = [
     {
-      name: 'FitLife Gym',
-      slug: 'fitlife-gym',
-      category: BusinessCategory.GYM,
-      address: '123 Fitness Street, Metro Manila',
-      email: 'contact@fitlife-gym.com',
-      phoneNumber: '+63 2 123 4567',
-      owner: {
-        email: 'owner@fitlife-gym.com',
-        password: 'FitLifeOwner123!',
-        firstName: 'Maria',
-        lastName: 'Santos',
-        name: 'Maria Santos'
-      },
-      branches: [{
-        name: 'FitLife Downtown',
-        address: '123 Fitness Street, Makati City'
-      }, {
-        name: 'FitLife Uptown', 
-        address: '456 Health Avenue, Quezon City'
-      }]
-    },
-    {
-      name: 'PowerFlex Fitness',
-      slug: 'powerflex-fitness',
+      name: 'Muscle Mania',
+      slug: 'muscle-mania',
       category: BusinessCategory.GYM,
       address: '789 Muscle Road, Cebu City',
-      email: 'info@powerflex-fitness.com',
+      email: 'info@muscle-mania.com',
       phoneNumber: '+63 32 987 6543',
       owner: {
-        email: 'owner@powerflex-fitness.com',
-        password: 'PowerFlex123!',
+        email: 'owner@muscle-mania.com',
+        password: 'MuscleManiaOwner123!',
         firstName: 'Juan',
         lastName: 'Cruz',
         name: 'Juan Cruz'
       },
       branches: [{
-        name: 'PowerFlex Main',
-        address: '789 Muscle Road, Cebu City'
+        name: 'Muscle Mania Manggahan',
+        address: '123 Manggahan Street, Pasig City'
+      }, {
+        name: 'Muscle Mania San Rafael',
+        address: '456 San Rafael Avenue, Bulacan'
+      }, {
+        name: 'Muscle Mania San Jose',
+        address: '789 San Jose Road, Nueva Ecija'
+      }]
+    },
+    {
+      name: 'Chakara',
+      slug: 'chakara',
+      category: BusinessCategory.GYM,
+      address: '123 Fitness Street, Metro Manila',
+      email: 'contact@chakara.com',
+      phoneNumber: '+63 2 123 4567',
+      owner: {
+        email: 'owner@chakara.com',
+        password: 'ChakaraOwner123!',
+        firstName: 'Maria',
+        lastName: 'Santos',
+        name: 'Maria Santos'
+      },
+      branches: [{
+        name: 'Chakara Rosario',
+        address: '123 Rosario Street, Cavite'
+      }, {
+        name: 'Chakara San Rafael',
+        address: '456 San Rafael Avenue, Bataan'
+      }, {
+        name: 'Chakara Burgos',
+        address: '789 Burgos Road, Pangasinan'
       }]
     }
   ];
@@ -390,21 +399,31 @@ async function main() {
           });
         }
         
-        // Create UserBranch relationships for staff members
-        const branchStaff = await prisma.user.findMany({
-          where: {
-            tenantId: tenant.id,
-            role: { in: [Role.MANAGER, Role.STAFF] }
+        // Assign only the current branch's manager to this branch
+        await prisma.userBranch.create({
+          data: {
+            userId: manager.id,
+            branchId: branch.id,
+            accessLevel: 'MANAGER_ACCESS'
           }
         });
         
-        // Assign staff to this branch
-        for (const staffMember of branchStaff) {
+        // Assign only the current branch's staff to this branch
+        const currentBranchStaff = await prisma.user.findMany({
+          where: {
+            tenantId: tenant.id,
+            role: Role.STAFF,
+            firstName: { startsWith: 'Staff' },
+            lastName: `Branch${i + 1}`
+          }
+        });
+        
+        for (const staffMember of currentBranchStaff) {
           await prisma.userBranch.create({
             data: {
               userId: staffMember.id,
               branchId: branch.id,
-              accessLevel: staffMember.role === Role.MANAGER ? 'MANAGER_ACCESS' : 'STAFF_ACCESS'
+              accessLevel: 'STAFF_ACCESS'
             }
           });
         }
@@ -533,6 +552,7 @@ async function main() {
                 tenantId: tenant.id,
                 customerId: member.id,
                 membershipPlanId: membershipPlan.id,
+                branchId: branch.id, // Associate subscription with specific branch
                 status: subscriptionStatus,
                 startDate: membershipStartDate,
                 endDate: membershipEndDate,
