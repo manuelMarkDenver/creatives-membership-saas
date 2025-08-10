@@ -137,6 +137,8 @@ export function MemberCard({
         return 'activate' // Cancelled members can be activated
       case 'EXPIRED':
         return 'renew' // Expired members need renewal
+      case 'EXPIRING':
+        return 'cancel' // Expiring members can still be cancelled
       case 'DELETED':
         return 'restore' // Deleted members can be restored
       case 'ACTIVE':
@@ -302,6 +304,19 @@ export function MemberCard({
                 </Button>
               )
               
+            case 'EXPIRING':
+              return (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={canManage ? "bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600 hover:border-yellow-600 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-500 dark:hover:text-black dark:border-yellow-400 dark:hover:border-yellow-500" : "bg-yellow-100 text-yellow-800 border-yellow-300"}
+                  onClick={() => canManage ? onCancelSubscription(member) : toast.info('You can only manage members from your assigned branches')}
+                  disabled={!canManage}
+                >
+                  {canManage ? 'Expiring Soon' : 'Expiring Soon (View Only)'}
+                </Button>
+              )
+              
             case 'ACTIVE':
               return (
                 <Button
@@ -428,6 +443,17 @@ export function MemberCard({
                     >
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Renew Membership
+                    </DropdownMenuItem>
+                  )
+                
+                case 'EXPIRING':
+                  return (
+                    <DropdownMenuItem 
+                      className="text-orange-600"
+                      onClick={() => openMemberActionModal('cancel')}
+                    >
+                      <UserX className="mr-2 h-4 w-4" />
+                      Cancel Membership
                     </DropdownMenuItem>
                   )
                 

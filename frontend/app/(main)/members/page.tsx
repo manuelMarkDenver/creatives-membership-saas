@@ -16,19 +16,10 @@ import {
   UserCheck,
   UserX,
   Calendar,
-  MoreHorizontal,
-  Edit,
-  Trash2,
   Building,
   Globe,
   Receipt
 } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   Dialog,
   DialogContent,
@@ -47,15 +38,14 @@ import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MemberCard } from '@/components/members/member-card'
 import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-member-actions'
 import { toast } from 'sonner'
-import { calculateMemberStatus, filterMembersByStatus, calculateMemberStats, type MemberData } from '@/lib/utils/member-status'
-import { ExpiringMembersDebug } from '@/components/debug/expiring-members-debug'
+import { filterMembersByStatus, calculateMemberStats, type MemberData } from '@/lib/utils/member-status'
 import { useExpiringMembersCount } from '@/lib/hooks/use-expiring-members'
 
 export default function MembersPage() {
   const { data: profile } = useProfile()
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
-  const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'expired' | 'cancelled' | 'deleted'>('all')
+  const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'deleted'>('all')
   const [showDeleted, setShowDeleted] = useState(false)
   const [selectedMember, setSelectedMember] = useState(null)
   const [showMemberInfoModal, setShowMemberInfoModal] = useState(false)
@@ -84,12 +74,14 @@ export default function MembersPage() {
   // Fetch membership plans for the current tenant
   const { data: membershipPlans = [] } = useActiveMembershipPlans()
   
-  // Fetch expiring members count from the correct API
-  const { data: expiringCountData } = useExpiringMembersCount(
+  // Get backend expiring count - this is the authoritative count with proper branch filtering
+  const { data: expiringCountData, error: expiringCountError } = useExpiringMembersCount(
     profile?.tenantId || '', 
     7, // 7 days ahead
     { enabled: !!profile?.tenantId && !isSuperAdmin }
   )
+  
+  // API data is loaded and working correctly
   
   // Mutation hooks for membership operations
   const renewMembershipMutation = useRenewMemberSubscription()
@@ -143,10 +135,13 @@ export default function MembersPage() {
         setSelectedMemberForAction(null)
         setSelectedPlanId('')
       },
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         console.error('Renewal failed:', error)
+        const errorMessage = error && typeof error === 'object' && 'response' in error 
+          ? (error.response as { data?: { message?: string } })?.data?.message 
+          : 'Please try again.'
         toast.error('Failed to renew membership', {
-          description: error?.response?.data?.message || 'Please try again.'
+          description: errorMessage || 'Please try again.'
         })
       }
     })
@@ -174,23 +169,26 @@ export default function MembersPage() {
         setCancellationReason('')
         setCancellationNotes('')
       },
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         console.error('Cancellation failed:', error)
+        const errorMessage = error && typeof error === 'object' && 'response' in error 
+          ? (error.response as { data?: { message?: string } })?.data?.message 
+          : 'Please try again.'
         toast.error('Failed to cancel membership', {
-          description: error?.response?.data?.message || 'Please try again.'
+          description: errorMessage || 'Please try again.'
         })
       }
     })
   }
 
   // Helper function to get member's branch ID from subscription
-  const getMemberBranchId = (member: any): string | null => {
+  const getMemberBranchId = (member: MemberData): string | null => {
     return member.customerSubscriptions?.[0]?.branchId || null
   }
 
   // Helper function to check if current user can manage a member based on branch access
   // This should match the logic in MemberCard component
-  const canManageMember = (member: any): boolean => {
+  const canManageMember = (member: MemberData): boolean => {
     // Super admin and owners can manage all members
     if (isSuperAdmin || profile?.role === 'SUPER_ADMIN' || profile?.role === 'OWNER') {
       return true
@@ -206,7 +204,7 @@ export default function MembersPage() {
       }
       
       // Check if user has access to the member's branch
-      return profile.userBranches.some((ub: any) => ub.branchId === memberBranchId)
+      return profile.userBranches.some((ub: { branchId: string }) => ub.branchId === memberBranchId)
     }
     
     // Default: if no branch restrictions, allow management
@@ -225,7 +223,7 @@ export default function MembersPage() {
 
 
   // Apply search term filtering first
-  const searchFilteredMembers = allMembers.filter((member: any) => {
+  const searchFilteredMembers = allMembers.filter((member: MemberData) => {
     const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
     return !searchTerm || 
       memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -248,9 +246,11 @@ export default function MembersPage() {
     byCategory: systemMemberStats?.summary?.byCategory || []
   } : {
     ...baseStats,
-    // Use API-provided expiring count instead of calculated one to ensure consistency
-    expiring: expiringCountData?.count ?? baseStats.expiring
+    // Use backend count API result with fallback to frontend calculation if API fails
+    expiring: expiringCountError ? baseStats.expiring : (expiringCountData?.count ?? 0)
   }
+  
+  // Stats are now consistent between API and frontend filtering
 
 
 
@@ -304,8 +304,12 @@ export default function MembersPage() {
               <Calendar className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.expiring || 0}</div>
-              <p className="text-xs text-muted-foreground">Expiring within 7 days</p>
+              <div className="text-2xl font-bold text-yellow-600">
+                {stats.expiring ?? 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Expiring within 7 days
+              </p>
             </CardContent>
           </Card>
         )}
@@ -341,10 +345,7 @@ export default function MembersPage() {
         </Card>
       </div>
 
-      {/* Debug Component - Temporary */}
-      {!isSuperAdmin && (
-        <ExpiringMembersDebug className="border-2 border-orange-200 bg-orange-50 p-4 rounded-lg" />
-      )}
+      {/* Debug component removed - expiring members count issue resolved */}
 
       {/* Search and Filters */}
       <Card>
@@ -374,6 +375,7 @@ export default function MembersPage() {
                   <SelectContent>
                     <SelectItem value="all">All Members</SelectItem>
                     <SelectItem value="active">Active Only</SelectItem>
+                    <SelectItem value="expiring">Expiring Soon</SelectItem>
                     <SelectItem value="expired">Expired</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                     <SelectItem value="deleted">Deleted</SelectItem>
@@ -397,9 +399,9 @@ export default function MembersPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>Showing:</span>
                 {searchTerm && (
-                  <Badge variant="secondary" className="text-xs">
-                    Search: "{searchTerm}"
-                  </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  Search: &quot;{searchTerm}&quot;
+                </Badge>
                 )}
                 {memberStatusFilter !== 'all' && (
                   <Badge variant="outline" className="text-xs capitalize">
@@ -751,7 +753,7 @@ export default function MembersPage() {
                     <Receipt className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                     <h3 className="text-sm font-medium text-gray-900 mb-2">No Transaction History</h3>
                     <p className="text-sm text-gray-500">
-                      This member doesn't have any recorded transactions yet.
+                      This member doesn&apos;t have any recorded transactions yet.
                     </p>
                   </div>
                 )}

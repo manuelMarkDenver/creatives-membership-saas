@@ -850,18 +850,20 @@ export class UsersService {
    */
   async getExpiringMembersCount(tenantId: string, daysBefore: number = 7, userContext?: any) {
     try {
+      const currentDate = new Date();
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + daysBefore);
       
-      this.logger.debug(`[COUNT DEBUG] TenantID: ${tenantId}, DaysBefore: ${daysBefore}, TargetDate: ${targetDate.toISOString()}`);
+      // Count expiring members with proper role-based branch filtering
       
-      // Build base where clause
+      // Build base where clause - only count truly "expiring" members (not expired)
       let whereClause: any = {
         tenantId,
         status: 'ACTIVE', // Only active subscriptions
+        cancelledAt: null, // Exclude cancelled subscriptions (matches frontend logic)
         endDate: {
-          lte: targetDate,
-          gte: new Date() // Not already expired
+          gt: currentDate, // Must be in the future (not expired)
+          lte: targetDate  // But within the expiring window
         },
         // Exclude subscriptions for deleted users
         customer: {
@@ -897,44 +899,15 @@ export class UsersService {
           // Managers and Staff can only see branches they have access to
           if (accessibleBranchIds.length > 0) {
             whereClause.branchId = { in: accessibleBranchIds };
-            this.logger.debug(`[COUNT DEBUG] ${userContext.role}: Limited to branches: ${accessibleBranchIds}`);
           } else {
             // No branch access = no results
             whereClause.branchId = { in: [] };
-            this.logger.debug(`[COUNT DEBUG] ${userContext.role}: No branch access, returning 0`);
           }
         }
         // OWNER role sees all branches in their tenant (no additional filtering needed)
       }
       
       const count = await this.prisma.customerSubscription.count({ where: whereClause });
-
-      // Also get the actual records for debugging
-      const records = await this.prisma.customerSubscription.findMany({
-        where: whereClause,
-        include: {
-          customer: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              isActive: true,
-              deletedAt: true
-            }
-          },
-          membershipPlan: {
-            select: {
-              name: true
-            }
-          }
-        }
-      });
-      
-      this.logger.debug(`[COUNT DEBUG] Found ${count} expiring members:`);
-      records.forEach((record, idx) => {
-        this.logger.debug(`  ${idx + 1}. ${record.customer.email} - Plan: ${record.membershipPlan.name} - End: ${record.endDate} - Status: ${record.status}`);
-      });
 
       return { count, daysBefore };
     } catch (error) {

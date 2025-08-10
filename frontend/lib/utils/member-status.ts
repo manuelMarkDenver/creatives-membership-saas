@@ -3,14 +3,18 @@
 
 export interface MemberEffectiveStatus {
   canAccessFacilities: boolean
-  displayStatus: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'SUSPENDED' | 'INACTIVE' | 'DELETED'
+  displayStatus: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'SUSPENDED' | 'INACTIVE' | 'DELETED'
   primaryIssue?: string
-  statusColor: 'green' | 'orange' | 'red' | 'gray' | 'blue'
+  statusColor: 'green' | 'orange' | 'yellow' | 'red' | 'gray' | 'blue'
   statusIcon: 'check' | 'clock' | 'x' | 'alert' | 'info' | 'trash'
 }
 
 export interface MemberData {
   id: string
+  name?: string
+  firstName?: string
+  lastName?: string
+  email: string
   isActive: boolean
   deletedAt?: string | null
   customerSubscriptions?: Array<{
@@ -19,6 +23,7 @@ export interface MemberData {
     startDate: string
     endDate: string
     cancelledAt?: string | null
+    branchId?: string
   }>
   businessData?: {
     membership?: {
@@ -146,16 +151,16 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
   }
   
   // Check if subscription is expiring soon (but still active)
-  if (isExpiringSoon && subscriptionStatus === 'ACTIVE') {
+  if (isExpiringSoon && !isExpired && subscriptionStatus === 'ACTIVE') {
     const daysRemaining = subscriptionEndDate 
       ? Math.ceil((subscriptionEndDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
       : 0
       
     return {
       canAccessFacilities: true,
-      displayStatus: 'EXPIRED', // Show as expired/critical for filtering purposes
+      displayStatus: 'EXPIRING',
       primaryIssue: `Expires in ${daysRemaining} days`,
-      statusColor: 'orange',
+      statusColor: 'yellow',
       statusIcon: 'alert'
     }
   }
@@ -202,6 +207,10 @@ export function getAvailableMemberActions(member: MemberData) {
       actions.push('renew-subscription')
       break
       
+    case 'EXPIRING':
+      actions.push('cancel-subscription')
+      break
+      
     case 'CANCELLED':
       actions.push('renew-subscription')
       break
@@ -227,7 +236,7 @@ export function getAvailableMemberActions(member: MemberData) {
  */
 export function filterMembersByStatus(
   members: MemberData[], 
-  filterStatus: 'all' | 'active' | 'expired' | 'cancelled' | 'deleted' | 'inactive',
+  filterStatus: 'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'deleted' | 'inactive',
   showDeleted: boolean = false
 ): MemberData[] {
   return members.filter(member => {
@@ -244,6 +253,10 @@ export function filterMembersByStatus(
       case 'expired':
         // Only show expired members who are not deleted
         return status.displayStatus === 'EXPIRED' && !Boolean(member.deletedAt)
+        
+      case 'expiring':
+        // Show members expiring soon (active but expiring within 7 days)
+        return status.displayStatus === 'EXPIRING' && !Boolean(member.deletedAt)
         
       case 'cancelled':
         return status.displayStatus === 'CANCELLED'
@@ -265,20 +278,18 @@ export function filterMembersByStatus(
  * This matches the backend logic that only includes ACTIVE subscriptions
  */
 export function isMemberConsideredExpiring(member: MemberData, daysBefore: number = 7): boolean {
-  const status = calculateMemberStatus(member)
-  
   // Must have active account and not be deleted
   if (!member.isActive || member.deletedAt) {
     return false
   }
   
-  // Must have active subscription
+  // Must have active subscription that is not cancelled
   const subscription = member.customerSubscriptions?.[0]
-  if (!subscription || subscription.status !== 'ACTIVE') {
+  if (!subscription || subscription.status !== 'ACTIVE' || subscription.cancelledAt) {
     return false
   }
   
-  // Must be expiring within the specified days
+  // Must be expiring within the specified days (but not expired)
   const currentDate = new Date()
   currentDate.setHours(0, 0, 0, 0)
   
@@ -288,21 +299,27 @@ export function isMemberConsideredExpiring(member: MemberData, daysBefore: numbe
   const endDate = new Date(subscription.endDate)
   endDate.setHours(0, 0, 0, 0)
   
-  // Should be expiring within the time window (including already expired)
-  return endDate <= targetDate
+  // Should be expiring within the time window but NOT already expired
+  return endDate > currentDate && endDate <= targetDate
 }
 
 /**
  * Get count of truly expiring members using same logic as backend
  */
 export function getExpiringMembersCount(members: MemberData[], daysBefore: number = 7): number {
-  return members.filter(member => isMemberConsideredExpiring(member, daysBefore)).length
+  const expiringMembers = members.filter(member => isMemberConsideredExpiring(member, daysBefore))
+  
+  // Frontend and backend logic now consistent
+  
+  return expiringMembers.length
 }
 
 /**
  * Calculate member statistics from a list of members
  */
 export function calculateMemberStats(members: MemberData[]) {
+  // Debug logging removed - issue resolved with backend API fix
+  
   return members.reduce((acc, member) => {
     const status = calculateMemberStatus(member)
     
@@ -316,6 +333,12 @@ export function calculateMemberStats(members: MemberData[]) {
         // Only count expired members who are not deleted
         if (!Boolean(member.deletedAt)) {
           acc.expired++
+        }
+        break
+      case 'EXPIRING':
+        // Count expiring members separately
+        if (!Boolean(member.deletedAt)) {
+          acc.expiring++
         }
         break
       case 'CANCELLED':
@@ -334,6 +357,7 @@ export function calculateMemberStats(members: MemberData[]) {
     total: 0,
     active: 0,
     expired: 0,
+    expiring: 0,
     cancelled: 0,
     deleted: 0,
     inactive: 0,
