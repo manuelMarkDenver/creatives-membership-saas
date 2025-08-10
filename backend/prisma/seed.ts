@@ -429,14 +429,14 @@ async function main() {
           const isActive = Math.random() > 0.15;
           
           // Determine subscription status for realistic scenarios:
-          // 60% active subscriptions, 25% expired subscriptions, 15% no subscription
+          // 40% active subscriptions (with some expiring soon), 30% expired subscriptions, 20% expiring within 7 days, 10% no subscription
           const subscriptionScenario = Math.random();
           let hasSubscription = true;
           let subscriptionStatus: CustomerSubscriptionStatus = CustomerSubscriptionStatus.ACTIVE;
           let membershipPlan, membershipStartDate, membershipEndDate;
           
-          if (subscriptionScenario < 0.15) {
-            // 15% no active subscription (new members or lapsed members)
+          if (subscriptionScenario < 0.10) {
+            // 10% no active subscription (new members or lapsed members)
             hasSubscription = false;
             membershipPlan = createdPlans[Math.floor(Math.random() * createdPlans.length)];
             membershipStartDate = null;
@@ -452,13 +452,24 @@ async function main() {
             membershipEndDate.setDate(membershipEndDate.getDate() + membershipPlan.duration);
             
             if (subscriptionScenario < 0.40) {
-              // 25% expired subscriptions (end date in the past)
+              // 30% expired subscriptions (end date in the past)
               const daysAgo = Math.floor(Math.random() * 90) + 1; // 1-90 days ago
               membershipEndDate = new Date();
               membershipEndDate.setDate(membershipEndDate.getDate() - daysAgo);
               subscriptionStatus = CustomerSubscriptionStatus.EXPIRED;
+            } else if (subscriptionScenario < 0.60) {
+              // 20% expiring within 7 days (critical expiring members for testing)
+              const daysToExpire = Math.floor(Math.random() * 7); // 0-6 days from now (including today and already expired)
+              membershipEndDate = new Date();
+              if (daysToExpire === 0) {
+                // Some expire today (great for testing the popup)
+                membershipEndDate.setHours(23, 59, 59, 999); // End of today
+              } else {
+                membershipEndDate.setDate(membershipEndDate.getDate() + daysToExpire);
+              }
+              subscriptionStatus = CustomerSubscriptionStatus.ACTIVE;
             } else {
-              // 60% active subscriptions (extend end date to future for active status)
+              // 40% active subscriptions with longer time remaining
               const daysToAdd = Math.floor(Math.random() * 90) + 30; // 30-120 days from now
               membershipEndDate = new Date();
               membershipEndDate.setDate(membershipEndDate.getDate() + daysToAdd);

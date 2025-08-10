@@ -1,0 +1,418 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
+import { 
+  AlertTriangle,
+  Clock,
+  Users,
+  Calendar,
+  Mail,
+  Phone,
+  Search,
+  RefreshCw,
+  Filter,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Building2,
+  MapPin
+} from 'lucide-react'
+import { useExpiringMembersOverview, useRefreshExpiringMembers } from '@/lib/hooks/use-expiring-members'
+import type { ExpiringMembersFilters } from '@/lib/api/expiring-members'
+import { toast } from 'sonner'
+
+interface ExpiringMembersModalProps {
+  isOpen: boolean
+  onClose: () => void
+  userRole: 'SUPER_ADMIN' | 'OWNER' | 'MANAGER' | 'STAFF'
+  userTenantId?: string
+  defaultTab?: 'overview' | 'critical' | 'all'
+}
+
+export function ExpiringMembersModal({
+  isOpen,
+  onClose,
+  userRole,
+  userTenantId,
+  defaultTab = 'overview'
+}: ExpiringMembersModalProps) {
+  const [activeTab, setActiveTab] = useState(defaultTab)
+  const [filters, setFilters] = useState<ExpiringMembersFilters>({
+    daysBefore: 7,
+    page: 1,
+    limit: 10
+  })
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const { data: expiringData, isLoading, error, refetch } = useExpiringMembersOverview(filters)
+  const refreshMutation = useRefreshExpiringMembers()
+
+  // Handle "Remind me later" localStorage logic
+  const handleRemindLater = () => {
+    const today = new Date().toDateString()
+    localStorage.setItem('expiring-members-remind-later', today)
+    toast.success('You\'ll be reminded again tomorrow')
+    onClose()
+  }
+
+  const handleRefresh = () => {
+    refreshMutation.mutate()
+    refetch()
+  }
+
+  const updateFilters = (newFilters: Partial<ExpiringMembersFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters, page: 1 }))
+  }
+
+  const changePage = (page: number) => {
+    setFilters(prev => ({ ...prev, page }))
+  }
+
+  const getUrgencyColor = (urgency: 'critical' | 'high' | 'medium') => {
+    switch (urgency) {
+      case 'critical': return 'bg-red-500 text-white'
+      case 'high': return 'bg-orange-500 text-white'
+      case 'medium': return 'bg-yellow-500 text-white'
+      default: return 'bg-gray-500 text-white'
+    }
+  }
+
+  const formatDaysRemaining = (days: number) => {
+    if (days <= 0) return 'Expired'
+    if (days === 1) return '1 day left'
+    return `${days} days left`
+  }
+
+  const filteredMembers = expiringData?.subscriptions.filter(member => {
+    if (!searchTerm) return true
+    const searchLower = searchTerm.toLowerCase()
+    return (
+      member.memberName.toLowerCase().includes(searchLower) ||
+      member.customer.email.toLowerCase().includes(searchLower) ||
+      member.membershipPlan.name.toLowerCase().includes(searchLower) ||
+      member.tenant.name.toLowerCase().includes(searchLower)
+    )
+  }) || []
+
+  const criticalMembers = filteredMembers.filter(m => m.urgency === 'critical')
+  const highMembers = filteredMembers.filter(m => m.urgency === 'high')
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            Expiring Memberships
+          </DialogTitle>
+          <DialogDescription>
+            Review and manage members with expiring subscriptions within the next {filters.daysBefore} days
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Controls */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex items-center gap-2 flex-1">
+              <Search className="h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search members, plans, or gyms..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Label className="text-sm whitespace-nowrap">Days ahead:</Label>
+              <Select 
+                value={filters.daysBefore?.toString()} 
+                onValueChange={(value) => updateFilters({ daysBefore: parseInt(value) })}
+              >
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">3</SelectItem>
+                  <SelectItem value="7">7</SelectItem>
+                  <SelectItem value="14">14</SelectItem>
+                  <SelectItem value="30">30</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {userRole === 'SUPER_ADMIN' && (
+                <Select value={filters.tenantId || 'all'} onValueChange={(value) => updateFilters({ tenantId: value === 'all' ? undefined : value })}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="All Gyms" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Gyms</SelectItem>
+                    {/* We'd need to fetch tenants list here */}
+                  </SelectContent>
+                </Select>
+              )}
+
+              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshMutation.isPending}>
+                <RefreshCw className={`h-4 w-4 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Summary Cards */}
+          {expiringData?.summary && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <div className="text-2xl font-bold text-red-600">{expiringData.summary.critical}</div>
+                <div className="text-xs text-red-600 dark:text-red-400">Critical (≤1 day)</div>
+              </div>
+              <div className="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg p-3">
+                <div className="text-2xl font-bold text-orange-600">{expiringData.summary.high}</div>
+                <div className="text-xs text-orange-600 dark:text-orange-400">High (≤3 days)</div>
+              </div>
+              <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                <div className="text-2xl font-bold text-yellow-600">{expiringData.summary.medium}</div>
+                <div className="text-xs text-yellow-600 dark:text-yellow-400">Medium (4-7 days)</div>
+              </div>
+              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <div className="text-2xl font-bold text-blue-600">{expiringData.summary.totalExpiring}</div>
+                <div className="text-xs text-blue-600 dark:text-blue-400">Total Expiring</div>
+              </div>
+            </div>
+          )}
+
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="critical">
+                Critical ({criticalMembers.length})
+              </TabsTrigger>
+              <TabsTrigger value="all">
+                All Members ({filteredMembers.length})
+              </TabsTrigger>
+              {userRole === 'SUPER_ADMIN' && (
+                <TabsTrigger value="by-gym">
+                  By Gym
+                </TabsTrigger>
+              )}
+            </TabsList>
+
+            <TabsContent value="critical" className="space-y-4">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {criticalMembers.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Clock className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-2">No critical expiring members</p>
+                  </div>
+                ) : (
+                  criticalMembers.map((member) => (
+                    <MemberCard key={member.id} member={member} showTenant={userRole === 'SUPER_ADMIN'} />
+                  ))
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="all" className="space-y-4">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <RefreshCw className="mx-auto h-8 w-8 animate-spin text-gray-400" />
+                    <p className="mt-2 text-gray-500">Loading expiring members...</p>
+                  </div>
+                ) : filteredMembers.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-2">No expiring members found</p>
+                  </div>
+                ) : (
+                  filteredMembers.map((member) => (
+                    <MemberCard key={member.id} member={member} showTenant={userRole === 'SUPER_ADMIN'} />
+                  ))
+                )}
+              </div>
+
+              {/* Pagination */}
+              {expiringData?.pagination && expiringData.pagination.pages > 1 && (
+                <div className="flex items-center justify-between border-t pt-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {((expiringData.pagination.page - 1) * expiringData.pagination.limit) + 1} to{' '}
+                    {Math.min(expiringData.pagination.page * expiringData.pagination.limit, expiringData.pagination.total)} of{' '}
+                    {expiringData.pagination.total} members
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => changePage(expiringData.pagination.page - 1)}
+                      disabled={!expiringData.pagination.hasPrev}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => changePage(expiringData.pagination.page + 1)}
+                      disabled={!expiringData.pagination.hasNext}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {userRole === 'SUPER_ADMIN' && (
+              <TabsContent value="by-gym" className="space-y-4">
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {expiringData?.groupedByTenant ? (
+                    Object.entries(expiringData.groupedByTenant).map(([tenantName, group]) => (
+                      <div key={group.tenant.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-5 w-5 text-blue-500" />
+                            <h3 className="font-semibold">{tenantName}</h3>
+                            <Badge variant="secondary">{group.count} expiring</Badge>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {group.members.map((member) => (
+                            <MemberCard key={member.id} member={member} showTenant={false} compact />
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Building2 className="mx-auto h-12 w-12 text-gray-400" />
+                      <p className="mt-2">No gyms with expiring members</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            )}
+          </Tabs>
+        </div>
+
+        <DialogFooter className="flex justify-between">
+          <Button variant="outline" onClick={handleRemindLater}>
+            Remind Me Tomorrow
+          </Button>
+          <Button onClick={onClose}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface MemberCardProps {
+  member: any
+  showTenant?: boolean
+  compact?: boolean
+}
+
+function MemberCard({ member, showTenant = false, compact = false }: MemberCardProps) {
+  const getUrgencyColor = (urgency: 'critical' | 'high' | 'medium') => {
+    switch (urgency) {
+      case 'critical': return 'bg-red-500 text-white'
+      case 'high': return 'bg-orange-500 text-white'
+      case 'medium': return 'bg-yellow-500 text-white'
+      default: return 'bg-gray-500 text-white'
+    }
+  }
+
+  const formatDaysRemaining = (days: number) => {
+    if (days <= 0) return 'Expired'
+    if (days === 1) return '1 day'
+    return `${days} days`
+  }
+
+  return (
+    <div className={`flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 dark:border-gray-700 ${compact ? 'text-sm' : ''}`}>
+      <div className="flex items-center space-x-3 flex-1">
+        {member.customer.photoUrl ? (
+          <img 
+            src={member.customer.photoUrl} 
+            alt={member.memberName}
+            className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-full object-cover border-2 border-gray-200`}
+          />
+        ) : (
+          <div className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm`}>
+            {member.memberName.charAt(0).toUpperCase()}
+          </div>
+        )}
+        
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className={`font-semibold ${compact ? 'text-sm' : ''}`}>{member.memberName}</h4>
+            <Badge className={`text-xs ${getUrgencyColor(member.urgency)}`}>
+              {formatDaysRemaining(member.daysUntilExpiry)}
+            </Badge>
+          </div>
+          
+          <div className={`flex items-center gap-4 ${compact ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
+            {member.customer.email && (
+              <div className="flex items-center gap-1">
+                <Mail className="h-3 w-3" />
+                {member.customer.email}
+              </div>
+            )}
+            {member.customer.phoneNumber && (
+              <div className="flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                {member.customer.phoneNumber}
+              </div>
+            )}
+          </div>
+          
+          <div className={`flex items-center gap-4 mt-1 ${compact ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
+            <span className="font-medium text-purple-600">
+              {member.membershipPlan.name}
+            </span>
+            <span className="text-green-600">
+              ₱{member.price.toLocaleString()}
+            </span>
+            {showTenant && (
+              <div className="flex items-center gap-1">
+                <Building2 className="h-3 w-3" />
+                {member.tenant.name}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      <div className={`text-right ${compact ? 'text-xs' : 'text-sm'}`}>
+        <div className="flex items-center gap-1 text-muted-foreground mb-1">
+          <Calendar className="h-3 w-3" />
+          {new Date(member.endDate).toLocaleDateString()}
+        </div>
+      </div>
+    </div>
+  )
+}

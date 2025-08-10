@@ -23,6 +23,8 @@ import { useRoleNavigation } from '@/lib/hooks/use-role-navigation'
 import { useSubscriptionStatus } from '@/lib/hooks/use-subscription'
 import { signOut } from '@/lib/auth/supabase'
 import TenantSwitcher from './tenant-switcher'
+import { ExpiringMembersButton } from '@/components/ui/expiring-members-button'
+import { ExpiringMembersAutoPopup } from '@/components/ui/expiring-members-auto-popup'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -170,6 +172,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
               )}
             </div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
+              {/* Expiring Members Button - only for gym staff with tenant */}
+              {profile?.role && ['OWNER', 'MANAGER', 'STAFF'].includes(profile.role) && currentTenant?.id && (
+                <ExpiringMembersButton
+                  userRole={profile.role as 'OWNER' | 'MANAGER' | 'STAFF'}
+                  userTenantId={currentTenant.id}
+                />
+              )}
+              
               <Button variant="ghost" size="sm">
                 <Bell className="h-5 w-5" />
               </Button>
@@ -238,6 +248,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </div>
         </main>
       </div>
+      
+      {/* Expiring Members Auto Popup - only for gym staff with tenant */}
+      {profile?.role && ['OWNER', 'MANAGER', 'STAFF'].includes(profile.role) && currentTenant?.id && (
+        <ExpiringMembersAutoPopup
+          userRole={profile.role as 'OWNER' | 'MANAGER' | 'STAFF'}
+          userTenantId={currentTenant.id}
+        />
+      )}
     </div>
   )
 }

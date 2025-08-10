@@ -31,7 +31,9 @@ export class AuthGuard implements CanActivate {
       // Try to decode as custom token first (base64 encoded JSON)
       try {
         const decodedToken = JSON.parse(Buffer.from(token, 'base64').toString());
+        console.log('🔍 [Auth Debug] Decoded custom token:', decodedToken);
         if (decodedToken.userId && decodedToken.email) {
+          console.log('🔍 [Auth Debug] Looking for user with ID:', decodedToken.userId);
           // This is our custom token
           dbUser = await this.prisma.user.findUnique({
             where: { id: decodedToken.userId },
@@ -43,8 +45,13 @@ export class AuthGuard implements CanActivate {
               },
             },
           });
+          console.log('🔍 [Auth Debug] Found user:', dbUser ? 'YES' : 'NO');
+          if (dbUser) {
+            console.log('🔍 [Auth Debug] User details:', { id: dbUser.id, email: dbUser.email, role: dbUser.role, tenantId: dbUser.tenantId });
+          }
         }
-      } catch {
+      } catch (customTokenError) {
+        console.log('🔍 [Auth Debug] Custom token decode failed:', customTokenError.message);
         // Not a custom token, try Supabase
       }
       

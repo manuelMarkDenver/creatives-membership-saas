@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   BusinessTypeGuard,
@@ -83,31 +84,7 @@ export class UsersController {
     return this.usersService.getUsersByTenant(tenantId, filters);
   }
 
-  @Get(':id')
-  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
-  @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
-  @AllowedBusinessTypes(BusinessCategory.GYM)
-  getOne(@Param('id') id: string) {
-    return this.usersService.getUser(id);
-  }
-
-  @Patch(':id')
-  @RequiredRoles(Role.OWNER, Role.MANAGER)
-  @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
-  @AllowedBusinessTypes(BusinessCategory.GYM)
-  update(@Param('id') id: string, @Body() data: UpdateUserDto) {
-    return this.usersService.updateUser(id, data);
-  }
-
-  @Delete(':id')
-  @RequiredRoles(Role.OWNER)
-  @RequiredAccessLevel(AccessLevel.FULL_ACCESS)
-  @AllowedBusinessTypes(BusinessCategory.GYM)
-  remove(@Param('id') id: string) {
-    return this.usersService.deleteUser(id);
-  }
-
-  // Gym-specific routes for expiring memberships
+  // Gym-specific routes for expiring memberships - MUST be before parameterized routes
   @Get('expiring/:tenantId')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
@@ -130,5 +107,83 @@ export class UsersController {
   ) {
     const days = parseInt(daysBefore || '30', 10);
     return this.usersService.getExpiringGymMembersWithNotifications(tenantId, days);
+  }
+
+  // Get expiring members count for current user's context
+  @Get('expiring-count/:tenantId')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  async getExpiringMembersCount(
+    @Param('tenantId') tenantId: string,
+    @Query('daysBefore') daysBefore?: string,
+  ) {
+    const days = parseInt(daysBefore || '7', 10);
+    return this.usersService.getExpiringMembersCount(tenantId, days);
+  }
+
+  // Super Admin + role-based expiring members overview
+  @Get('expiring-overview')
+  @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER, Role.STAFF)
+  @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
+  @SkipBusinessTypeGuard() // Super Admin can access all
+  async getExpiringMembersOverview(
+    @Req() req: any,
+    @Query('daysBefore') daysBefore?: string,
+    @Query('tenantId') tenantId?: string,
+    @Query('branchId') branchId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string
+  ) {
+    try {
+      console.log('=== Controller Debug ===');
+      console.log('req.user:', req.user);
+      console.log('Query params:', { daysBefore, tenantId, branchId, page, limit });
+      
+      const days = parseInt(daysBefore || '7', 10);
+      const filters = {
+        tenantId,
+        branchId,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 50,
+        userRole: req.user?.role,
+        userTenantId: req.user?.tenantId
+      };
+      
+      console.log('About to call service with:', { days, filters });
+      
+      const result = await this.usersService.getExpiringMembersOverview(days, filters);
+      console.log('Service returned successfully:', result ? 'data received' : 'no data');
+      return result;
+    } catch (error) {
+      console.error('ERROR in controller:', error);
+      console.error('Error stack:', error.stack);
+      throw error;
+    }
+  }
+
+  // Parameterized routes - MUST be after specific routes to avoid conflicts
+  @Get(':id')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  getOne(@Param('id') id: string) {
+    return this.usersService.getUser(id);
+  }
+
+  @Patch(':id')
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  update(@Param('id') id: string, @Body() data: UpdateUserDto) {
+    return this.usersService.updateUser(id, data);
+  }
+
+  @Delete(':id')
+  @RequiredRoles(Role.OWNER)
+  @RequiredAccessLevel(AccessLevel.FULL_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  remove(@Param('id') id: string) {
+    return this.usersService.deleteUser(id);
   }
 }

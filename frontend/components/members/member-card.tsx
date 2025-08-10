@@ -280,9 +280,9 @@ export function MemberCard({
             case 'CANCELLED':
               return (
                 <Button
-                  variant="destructive"
+                  variant="outline"
                   size="sm"
-                  className="hover:bg-red-600"
+                  className="bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600 hover:border-yellow-600 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-500 dark:hover:text-black dark:border-yellow-400 dark:hover:border-yellow-500"
                   onClick={() => openMemberActionModal('activate')}
                 >
                   Cancelled
@@ -304,9 +304,9 @@ export function MemberCard({
             case 'ACTIVE':
               return (
                 <Button
-                  variant="default"
+                  variant="outline"
                   size="sm"
-                  className="hover:bg-green-600"
+                  className="bg-green-500 text-white border-green-500 hover:bg-green-600 hover:border-green-600 dark:bg-green-400 dark:text-black dark:hover:bg-green-500 dark:hover:text-black dark:border-green-400 dark:hover:border-green-500"
                   onClick={() => onCancelSubscription(member)}
                 >
                   Active
@@ -316,9 +316,9 @@ export function MemberCard({
             case 'DELETED':
               return (
                 <Button
-                  variant="secondary"
+                  variant="destructive"
                   size="sm"
-                  className="hover:bg-gray-600"
+                  className="bg-red-500 text-white hover:bg-red-600"
                   onClick={() => openMemberActionModal('restore')}
                 >
                   Deleted
@@ -340,12 +340,6 @@ export function MemberCard({
           }
         })()}
         
-        {/* Deleted status badge */}
-        {isDeleted && (
-          <Badge variant="destructive" className="text-xs">
-            Deleted
-          </Badge>
-        )}
         
         {/* Additional info badges for super admin */}
         {isSuperAdmin && member.tenant && (

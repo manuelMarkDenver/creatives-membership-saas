@@ -666,6 +666,183 @@ export class UsersService {
   //   }
   // }
 
+  /**
+   * Get count of expiring members for a tenant
+   */
+  async getExpiringMembersCount(tenantId: string, daysBefore: number = 7) {
+    try {
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + daysBefore);
+
+      // Count expiring members using customerSubscriptions
+      const count = await this.prisma.customerSubscription.count({
+        where: {
+          tenantId,
+          status: 'ACTIVE',
+          endDate: {
+            lte: targetDate,
+            gte: new Date() // Not already expired
+          }
+        }
+      });
+
+      return { count, daysBefore };
+    } catch (error) {
+      this.logger.error(`Failed to get expiring members count: ${(error as Error).message}`);
+      throw new InternalServerErrorException('Failed to get expiring members count');
+    }
+  }
+
+  /**
+   * Get expiring members overview with role-based filtering
+   */
+  async getExpiringMembersOverview(daysBefore: number = 7, filters: any) {
+    try {
+      console.log('=== Expiring Members Debug ===');
+      console.log('daysBefore:', daysBefore);
+      console.log('filters:', JSON.stringify(filters, null, 2));
+      
+      // Validate filters
+      if (!filters.page || isNaN(filters.page) || filters.page < 1) {
+        console.log('Invalid page, setting to 1');
+        filters.page = 1;
+      }
+      if (!filters.limit || isNaN(filters.limit) || filters.limit < 1) {
+        console.log('Invalid limit, setting to 10');
+        filters.limit = 10;
+      }
+      
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + daysBefore);
+      console.log('targetDate:', targetDate.toISOString());
+      console.log('today:', new Date().toISOString());
+
+      // Build where clause based on user role and filters
+      let whereClause: any = {
+        status: 'ACTIVE',
+        endDate: {
+          lte: targetDate,
+          gte: new Date() // Not already expired
+        }
+      };
+
+      // Role-based filtering
+      if (filters.userRole !== 'SUPER_ADMIN') {
+        // Non-super-admin users can only see their own tenant
+        whereClause.tenantId = filters.userTenantId;
+        console.log('Non-super-admin: filtering by tenantId:', filters.userTenantId);
+      } else if (filters.tenantId) {
+        // Super Admin can filter by specific tenant
+        whereClause.tenantId = filters.tenantId;
+        console.log('Super-admin: filtering by tenantId:', filters.tenantId);
+      }
+      
+      console.log('Final whereClause:', JSON.stringify(whereClause, null, 2));
+
+      // Branch filtering (for future use)
+      if (filters.branchId) {
+        whereClause.branchId = filters.branchId;
+      }
+
+      const [subscriptions, totalCount] = await Promise.all([
+        this.prisma.customerSubscription.findMany({
+          where: whereClause,
+          include: {
+            customer: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phoneNumber: true,
+                photoUrl: true
+              }
+            },
+            membershipPlan: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+                price: true
+              }
+            },
+            tenant: {
+              select: {
+                id: true,
+                name: true,
+                category: true
+              }
+            }
+          },
+          orderBy: { endDate: 'asc' },
+          skip: Math.max(0, (filters.page - 1) * filters.limit),
+          take: Math.min(100, filters.limit)
+        }),
+        this.prisma.customerSubscription.count({ where: whereClause })
+      ]);
+      
+      console.log('Raw subscriptions found:', subscriptions.length);
+      console.log('Total count:', totalCount);
+      if (subscriptions.length > 0) {
+        console.log('First subscription sample:', JSON.stringify(subscriptions[0], null, 2));
+      }
+
+      // Calculate days until expiry for each subscription
+      const enrichedSubscriptions = subscriptions.map(subscription => {
+        const daysUntilExpiry = Math.ceil(
+          (new Date(subscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        return {
+          ...subscription,
+          daysUntilExpiry,
+          memberName: `${subscription.customer.firstName} ${subscription.customer.lastName}`.trim(),
+          isExpired: daysUntilExpiry <= 0,
+          urgency: daysUntilExpiry <= 1 ? 'critical' : daysUntilExpiry <= 3 ? 'high' : 'medium'
+        };
+      });
+
+      // Group by tenant for Super Admin view
+      const groupedByTenant = filters.userRole === 'SUPER_ADMIN' ? 
+        enrichedSubscriptions.reduce((acc, subscription) => {
+          const tenantName = subscription.tenant.name;
+          if (!acc[tenantName]) {
+            acc[tenantName] = {
+              tenant: subscription.tenant,
+              members: [],
+              count: 0
+            };
+          }
+          acc[tenantName].members.push(subscription);
+          acc[tenantName].count++;
+          return acc;
+        }, {} as any) : null;
+
+      return {
+        subscriptions: enrichedSubscriptions,
+        groupedByTenant,
+        pagination: {
+          page: filters.page,
+          limit: filters.limit,
+          total: totalCount,
+          pages: Math.ceil(totalCount / filters.limit),
+          hasNext: filters.page * filters.limit < totalCount,
+          hasPrev: filters.page > 1
+        },
+        summary: {
+          totalExpiring: totalCount,
+          daysBefore,
+          critical: enrichedSubscriptions.filter(s => s.urgency === 'critical').length,
+          high: enrichedSubscriptions.filter(s => s.urgency === 'high').length,
+          medium: enrichedSubscriptions.filter(s => s.urgency === 'medium').length
+        }
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get expiring members overview: ${(error as Error).message}`);
+      throw new InternalServerErrorException('Failed to get expiring members overview');
+    }
+  }
+
   // Helper methods
   private isValidUUID(uuid: string): boolean {
     const uuidRegex =
