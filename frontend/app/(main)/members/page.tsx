@@ -48,6 +48,8 @@ import { MemberCard } from '@/components/members/member-card'
 import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-member-actions'
 import { toast } from 'sonner'
 import { calculateMemberStatus, filterMembersByStatus, calculateMemberStats, type MemberData } from '@/lib/utils/member-status'
+import { ExpiringMembersDebug } from '@/components/debug/expiring-members-debug'
+import { useExpiringMembersCount } from '@/lib/hooks/use-expiring-members'
 
 export default function MembersPage() {
   const { data: profile } = useProfile()
@@ -81,6 +83,13 @@ export default function MembersPage() {
 
   // Fetch membership plans for the current tenant
   const { data: membershipPlans = [] } = useActiveMembershipPlans()
+  
+  // Fetch expiring members count from the correct API
+  const { data: expiringCountData } = useExpiringMembersCount(
+    profile?.tenantId || '', 
+    7, // 7 days ahead
+    { enabled: !!profile?.tenantId && !isSuperAdmin }
+  )
   
   // Mutation hooks for membership operations
   const renewMembershipMutation = useRenewMemberSubscription()
@@ -231,10 +240,17 @@ export default function MembersPage() {
   )
 
   // Calculate stats using our new utility function
+  // Stats should be constant and not affected by filters (except search)
+  // This gives consistent stats regardless of filter selections
+  const baseStats = calculateMemberStats(searchFilteredMembers as MemberData[])
   const stats = isSuperAdmin ? {
-    ...calculateMemberStats(allMembers as MemberData[]),
+    ...baseStats,
     byCategory: systemMemberStats?.summary?.byCategory || []
-  } : calculateMemberStats(allMembers as MemberData[])
+  } : {
+    ...baseStats,
+    // Use API-provided expiring count instead of calculated one to ensure consistency
+    expiring: expiringCountData?.count ?? baseStats.expiring
+  }
 
 
 
@@ -260,7 +276,7 @@ export default function MembersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Members</CardTitle>
@@ -281,6 +297,18 @@ export default function MembersPage() {
             <p className="text-xs text-muted-foreground">Currently active</p>
           </CardContent>
         </Card>
+        {!isSuperAdmin && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
+              <Calendar className="h-4 w-4 text-yellow-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-600">{stats.expiring || 0}</div>
+              <p className="text-xs text-muted-foreground">Expiring within 7 days</p>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Expired</CardTitle>
@@ -312,6 +340,11 @@ export default function MembersPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Debug Component - Temporary */}
+      {!isSuperAdmin && (
+        <ExpiringMembersDebug className="border-2 border-orange-200 bg-orange-50 p-4 rounded-lg" />
+      )}
 
       {/* Search and Filters */}
       <Card>

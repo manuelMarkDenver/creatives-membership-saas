@@ -208,12 +208,23 @@ export class UsersController {
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
   @AllowedBusinessTypes(BusinessCategory.GYM)
-  softDelete(@Param('id') id: string, @Req() req: any) {
+  softDelete(
+    @Param('id') id: string, 
+    @Body() body: { reason: string; notes?: string },
+    @Req() req: any
+  ) {
+    const { reason, notes } = body;
     const deletedBy = req.user?.id;
+    
     if (!deletedBy) {
-      throw new Error('User not authenticated');
+      throw new BadRequestException('User not authenticated');
     }
-    return this.usersService.softDeleteUser(id, deletedBy);
+    
+    if (!reason || reason.trim() === '') {
+      throw new BadRequestException('Reason is required for member deletion');
+    }
+    
+    return this.usersService.softDeleteUser(id, deletedBy, { reason: reason.trim(), notes });
   }
 
   // Restore soft-deleted user (business agnostic)
@@ -221,8 +232,23 @@ export class UsersController {
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
   @AllowedBusinessTypes(BusinessCategory.GYM)
-  restoreUser(@Param('id') id: string) {
-    return this.usersService.restoreUser(id);
+  restoreUser(
+    @Param('id') id: string,
+    @Body() body: { reason: string; notes?: string },
+    @Req() req: any
+  ) {
+    const { reason, notes } = body;
+    const performedBy = req.user?.id;
+    
+    if (!performedBy) {
+      throw new BadRequestException('User not authenticated');
+    }
+    
+    if (!reason || reason.trim() === '') {
+      throw new BadRequestException('Reason is required for member restoration');
+    }
+    
+    return this.usersService.restoreUser(id, performedBy, { reason: reason.trim(), notes });
   }
 
   // Member management endpoints

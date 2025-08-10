@@ -271,7 +271,7 @@ export class UsersService {
     }
   }
 
-  async softDeleteUser(id: string, deletedBy: string) {
+  async softDeleteUser(id: string, deletedBy: string, actionData?: { reason: string; notes?: string }) {
     try {
       // Validate user ID format
       if (!this.isValidUUID(id)) {
@@ -312,6 +312,22 @@ export class UsersService {
       });
 
       this.logger.log(`Soft deleted user: ${deletedUser.firstName} ${deletedUser.lastName} (${id})`);
+      
+      // Create audit log for the deletion
+      await this.createAuditLog({
+        memberId: id,
+        action: 'ACCOUNT_DELETED',
+        reason: actionData?.reason || 'Administrative action',
+        notes: actionData?.notes || 'Member account soft deleted',
+        previousState: 'ACTIVE',
+        newState: 'DELETED',
+        performedBy: deletedBy,
+        metadata: {
+          deletedAt: deletedUser.deletedAt?.toISOString(),
+          deletedBy: deletedBy
+        }
+      });
+      
       return deletedUser;
     } catch (error) {
       if (
@@ -331,7 +347,7 @@ export class UsersService {
     }
   }
 
-  async restoreUser(id: string) {
+  async restoreUser(id: string, performedBy?: string, actionData?: { reason: string; notes?: string }) {
     try {
       // Validate user ID format
       if (!this.isValidUUID(id)) {
@@ -372,6 +388,21 @@ export class UsersService {
       });
 
       this.logger.log(`Restored user: ${restoredUser.firstName} ${restoredUser.lastName} (${id})`);
+      
+      // Create audit log for the restoration
+      await this.createAuditLog({
+        memberId: id,
+        action: 'ACCOUNT_RESTORED',
+        reason: actionData?.reason || 'Administrative action',
+        notes: actionData?.notes || 'Member account restored from deleted state',
+        previousState: 'DELETED',
+        newState: 'ACTIVE',
+        performedBy: performedBy,
+        metadata: {
+          restoredAt: new Date().toISOString()
+        }
+      });
+      
       return restoredUser;
     } catch (error) {
       if (

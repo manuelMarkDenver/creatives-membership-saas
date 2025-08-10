@@ -49,6 +49,8 @@ import {
 import { TransactionHistoryModal } from '@/components/modals/transaction-history-modal'
 import { MemberActionsModal, type MemberActionType } from '@/components/modals/member-actions-modal'
 import { MemberHistoryModal } from '@/components/modals/member-history-modal'
+import { DeleteMemberModal } from '@/components/modals/delete-member-modal'
+import { RestoreMemberModal } from '@/components/modals/restore-member-modal'
 import { toast } from 'sonner'
 import { calculateMemberStatus, getAvailableMemberActions, type MemberData } from '@/lib/utils/member-status'
 
@@ -73,8 +75,6 @@ export function MemberCard({
 }: MemberCardProps) {
   const [showTransactionModal, setShowTransactionModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [showActivateModal, setShowActivateModal] = useState(false)
-  const [showDeactivateModal, setShowDeactivateModal] = useState(false)
   const [showRestoreModal, setShowRestoreModal] = useState(false)
   // New member management modals
   const [showMemberActionsModal, setShowMemberActionsModal] = useState(false)
@@ -99,22 +99,6 @@ export function MemberCard({
   // Check if member is deleted/inactive  
   const isDeleted = !member.isActive || member.deletedAt
   const isInactive = member.isActive && !member.deletedAt && !subscription
-  
-  const handleDeleteMember = async () => {
-    try {
-      await softDeleteMutation.mutateAsync(member.id)
-      setShowDeleteModal(false)
-      toast.success(`${memberName} has been removed successfully`)
-      
-      // Refresh member data
-      if (onMemberDeleted) {
-        onMemberDeleted()
-      }
-    } catch (error) {
-      console.error('Error removing member:', error)
-      toast.error('Failed to remove member. Please try again.')
-    }
-  }
 
   // These handlers are no longer used - actions go through MemberActionsModal
   const handleActivateMember = async () => {
@@ -337,21 +321,12 @@ export function MemberCard({
                   variant={canManage ? "destructive" : "outline"}
                   size="sm"
                   className={canManage ? "bg-red-500 text-white hover:bg-red-600" : "bg-red-100 text-red-800 border-red-300"}
-                  onClick={async () => {
+                  onClick={() => {
                     if (!canManage) {
                       toast.info('You can only manage members from your assigned branches')
                       return
                     }
-                    try {
-                      await restoreMutation.mutateAsync(member.id)
-                      toast.success(`${memberName} has been restored successfully`)
-                      if (onMemberDeleted) {
-                        onMemberDeleted()
-                      }
-                    } catch (error) {
-                      console.error('Error restoring member:', error)
-                      toast.error('Failed to restore member. Please try again.')
-                    }
+                    setShowRestoreModal(true)
                   }}
                   disabled={!canManage}
                 >
@@ -427,18 +402,7 @@ export function MemberCard({
                   return (
                     <DropdownMenuItem 
                       className="text-blue-600"
-                      onClick={async () => {
-                        try {
-                          await restoreMutation.mutateAsync(member.id)
-                          toast.success(`${memberName} has been restored successfully`)
-                          if (onMemberDeleted) {
-                            onMemberDeleted()
-                          }
-                        } catch (error) {
-                          console.error('Error restoring member:', error)
-                          toast.error('Failed to restore member. Please try again.')
-                        }
-                      }}
+                      onClick={() => setShowRestoreModal(true)}
                     >
                       <UserPlus className="mr-2 h-4 w-4" />
                       Restore Member
@@ -507,13 +471,14 @@ export function MemberCard({
               </DropdownMenuItem>
             )}
             
-            {canManageMember() && (
+            {/* Show Delete Member option only for non-deleted members */}
+            {canManageMember() && getMemberStatus() !== 'DELETED' && (
               <DropdownMenuItem 
                 className="text-red-600"
                 onClick={() => setShowDeleteModal(true)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Remove Member
+                Delete Member
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -527,66 +492,18 @@ export function MemberCard({
         member={member}
       />
       
-      {/* Delete Confirmation Modal */}
-      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <Trash2 className="h-5 w-5" />
-              Remove Member
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to remove {memberName} from your gym? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            {/* Member Summary */}
-            <div className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                {memberName.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h4 className="font-semibold">{memberName}</h4>
-                <p className="text-sm text-muted-foreground">{member.email}</p>
-                {subscription && (
-                  <p className="text-xs text-purple-600 font-medium">
-                    Current Plan: {subscription.membershipPlan?.name || 'N/A'}
-                  </p>
-                )}
-              </div>
-            </div>
-            
-            <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-sm text-red-800 dark:text-red-200">
-                <strong>Warning:</strong> Removing this member will:
-              </p>
-              <ul className="text-sm text-red-700 dark:text-red-300 mt-2 ml-4 list-disc">
-                <li>Mark the member as inactive</li>
-                <li>Remove them from the active members list</li>
-                <li>Preserve all their data for record keeping</li>
-                <li>Keep their transaction history intact</li>
-              </ul>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDeleteModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive"
-              onClick={handleDeleteMember}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Remove Member
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Member Modal with Reason */}
+      <DeleteMemberModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        member={member}
+        onDeleteComplete={() => {
+          setShowDeleteModal(false)
+          if (onMemberDeleted) {
+            onMemberDeleted()
+          }
+        }}
+      />
       
       {/* Member Actions Modal */}
       <MemberActionsModal
@@ -608,6 +525,19 @@ export function MemberCard({
         onClose={() => setShowMemberHistoryModal(false)}
         memberId={member.id}
         memberName={memberName}
+      />
+      
+      {/* Restore Member Modal */}
+      <RestoreMemberModal
+        isOpen={showRestoreModal}
+        onClose={() => setShowRestoreModal(false)}
+        member={member}
+        onRestoreComplete={() => {
+          setShowRestoreModal(false)
+          if (onMemberDeleted) {
+            onMemberDeleted()
+          }
+        }}
       />
     </div>
   )

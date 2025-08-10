@@ -261,6 +261,45 @@ export function filterMembersByStatus(
 }
 
 /**
+ * Check if a member should be considered for expiring members count
+ * This matches the backend logic that only includes ACTIVE subscriptions
+ */
+export function isMemberConsideredExpiring(member: MemberData, daysBefore: number = 7): boolean {
+  const status = calculateMemberStatus(member)
+  
+  // Must have active account and not be deleted
+  if (!member.isActive || member.deletedAt) {
+    return false
+  }
+  
+  // Must have active subscription
+  const subscription = member.customerSubscriptions?.[0]
+  if (!subscription || subscription.status !== 'ACTIVE') {
+    return false
+  }
+  
+  // Must be expiring within the specified days
+  const currentDate = new Date()
+  currentDate.setHours(0, 0, 0, 0)
+  
+  const targetDate = new Date(currentDate)
+  targetDate.setDate(targetDate.getDate() + daysBefore)
+  
+  const endDate = new Date(subscription.endDate)
+  endDate.setHours(0, 0, 0, 0)
+  
+  // Should be expiring within the time window (including already expired)
+  return endDate <= targetDate
+}
+
+/**
+ * Get count of truly expiring members using same logic as backend
+ */
+export function getExpiringMembersCount(members: MemberData[], daysBefore: number = 7): number {
+  return members.filter(member => isMemberConsideredExpiring(member, daysBefore)).length
+}
+
+/**
  * Calculate member statistics from a list of members
  */
 export function calculateMemberStats(members: MemberData[]) {
@@ -297,6 +336,8 @@ export function calculateMemberStats(members: MemberData[]) {
     expired: 0,
     cancelled: 0,
     deleted: 0,
-    inactive: 0
+    inactive: 0,
+    // Add expiring count that matches backend logic
+    trulyExpiring: getExpiringMembersCount(members, 7)
   })
 }

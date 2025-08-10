@@ -41,3 +41,85 @@ nohup: ignoring input
  GET /installHook.js.map 404 in 688ms
  GET /members 200 in 397ms
  GET /members 200 in 185ms
+ ✓ Compiled in 371ms (673 modules)
+ GET /members 200 in 20ms
+ ✓ Compiled in 959ms (1509 modules)
+ GET /members 200 in 120ms
+ ✓ Compiled in 486ms (1509 modules)
+ GET /members 200 in 64ms
+ ✓ Compiled in 631ms (1513 modules)
+ GET /members 200 in 63ms
+ ✓ Compiled in 505ms (1513 modules)
+ GET /members 200 in 45ms
+ GET /members 200 in 197ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 661ms (1504 modules)
+ GET /installHook.js.map 404 in 792ms
+ ✓ Compiled in 721ms (1513 modules)
+ GET /members 200 in 109ms
+ ✓ Compiled in 405ms (1513 modules)
+ GET /members 200 in 77ms
+ ✓ Compiled in 451ms (1513 modules)
+ GET /members 200 in 49ms
+ ✓ Compiled in 351ms (1513 modules)
+ GET /members 200 in 69ms
+ ✓ Compiled in 646ms (1513 modules)
+ GET /members 200 in 52ms
+ ✓ Compiled in 343ms (1513 modules)
+ GET /members 200 in 52ms
+ ✓ Compiled in 352ms (1513 modules)
+ GET /members 200 in 54ms
+ GET /members 200 in 235ms
+ ✓ Compiled in 334ms (675 modules)
+ GET /members 200 in 41ms
+ ✓ Compiled in 719ms (1513 modules)
+ GET /members 200 in 85ms
+ ✓ Compiled in 378ms (1513 modules)
+ GET /members 200 in 70ms
+ ✓ Compiled in 640ms (1513 modules)
+ GET /members 200 in 54ms
+ ✓ Compiled in 310ms (1513 modules)
+ GET /members 200 in 42ms
+ GET /members 200 in 199ms
+ ✓ Compiled in 747ms (1517 modules)
+ GET /members 200 in 59ms
+ ✓ Compiled in 930ms (1517 modules)
+ GET /members 200 in 75ms
+ GET /members 200 in 218ms
+ ✓ Compiled / in 274ms (850 modules)
+ GET / 307 in 421ms
+ GET /dashboard 200 in 93ms
+ GET /members 200 in 131ms
+ ✓ Compiled in 698ms (1517 modules)
+ GET /members 200 in 142ms
+ GET /members 200 in 209ms
+ ✓ Compiled in 617ms (1517 modules)
+ GET /members 200 in 75ms
+ ✓ Compiled in 396ms (1517 modules)
+ GET /members 200 in 52ms
+ ✓ Compiled in 288ms (677 modules)
+ GET /members 200 in 212ms
+ ✓ Compiled in 231ms (677 modules)
+ GET /members 200 in 19ms
+ ✓ Compiled in 494ms (1517 modules)
+ GET /members 200 in 47ms
+ ✓ Compiled in 697ms (1523 modules)
+ GET /members 200 in 73ms
+ ✓ Compiled in 526ms (1523 modules)
+ GET /members 200 in 58ms
+ GET /members 200 in 216ms
+ ✓ Compiled in 698ms (1523 modules)
+ GET /members 200 in 65ms
+ ✓ Compiled in 341ms (1523 modules)
+ GET /members 200 in 57ms
+ ✓ Compiled in 475ms (1523 modules)
+ GET /members 200 in 44ms
+ ✓ Compiled in 361ms (1523 modules)
+ GET /members 200 in 72ms
+ GET /members 200 in 218ms
+ ✓ Compiled in 515ms (1523 modules)
+ GET /members 200 in 88ms
+ GET /members 200 in 155ms
+ GET /members 200 in 100ms
+ ✓ Compiled /favicon.ico in 365ms (860 modules)
+ GET /favicon.ico 200 in 477ms
