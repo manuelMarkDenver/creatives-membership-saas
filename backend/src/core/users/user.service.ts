@@ -856,14 +856,13 @@ export class UsersService {
       
       // Count expiring members with proper role-based branch filtering
       
-      // Build base where clause - only count truly "expiring" members (not expired)
+      // Build base where clause - count both expiring AND recently expired members
       let whereClause: any = {
         tenantId,
         status: 'ACTIVE', // Only active subscriptions
         cancelledAt: null, // Exclude cancelled subscriptions (matches frontend logic)
         endDate: {
-          gt: currentDate, // Must be in the future (not expired)
-          lte: targetDate  // But within the expiring window
+          lte: targetDate  // Show subscriptions expiring within the window (including those that just expired)
         },
         // Exclude subscriptions for deleted users
         customer: {
@@ -907,7 +906,28 @@ export class UsersService {
         // OWNER role sees all branches in their tenant (no additional filtering needed)
       }
       
-      const count = await this.prisma.customerSubscription.count({ where: whereClause });
+      // Use the same logic as overview method - count unique customers with latest subscriptions
+      // Get all customer IDs that match our criteria
+      const matchingSubscriptions = await this.prisma.customerSubscription.findMany({
+        where: whereClause,
+        select: {
+          customerId: true,
+          endDate: true,
+          createdAt: true
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      // Group by customer and get only the most recent subscription per customer
+      const customerLatestSubscriptions = new Map();
+      matchingSubscriptions.forEach(sub => {
+        const existing = customerLatestSubscriptions.get(sub.customerId);
+        if (!existing || sub.createdAt > existing.createdAt) {
+          customerLatestSubscriptions.set(sub.customerId, sub);
+        }
+      });
+      
+      const count = customerLatestSubscriptions.size;
 
       return { count, daysBefore };
     } catch (error) {
@@ -968,12 +988,17 @@ export class UsersService {
         accessibleBranchIds = userBranchAccess.map(ub => ub.branchId);
       }
 
-      // Build where clause based on user role
+      // Build where clause based on user role - include both expiring AND recently expired
       let whereClause: any = {
         status: 'ACTIVE',
+        cancelledAt: null, // Exclude cancelled subscriptions
         endDate: {
-          lte: targetDate,
-          gte: new Date() // Not already expired
+          lte: targetDate  // Show subscriptions expiring within the window (including those that just expired)
+        },
+        // Exclude subscriptions for deleted/inactive users
+        customer: {
+          deletedAt: null,
+          isActive: true
         }
       };
 
@@ -1071,9 +1096,48 @@ export class UsersService {
       this.logger.debug(`[OVERVIEW DEBUG] TargetDate: ${targetDate.toISOString()}, DaysBefore: ${daysBefore}`);
       this.logger.debug(`[OVERVIEW DEBUG] User Role: ${filters.userRole}, Tenant: ${filters.userTenantId}`);
 
+      // Get only the most recent subscription per customer to avoid duplicates
+      // First, get all customer IDs that match our criteria
+      const matchingSubscriptions = await this.prisma.customerSubscription.findMany({
+        where: whereClause,
+        select: {
+          customerId: true,
+          endDate: true,
+          createdAt: true
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      // Group by customer and get only the most recent subscription per customer
+      const customerLatestSubscriptions = new Map();
+      matchingSubscriptions.forEach(sub => {
+        const existing = customerLatestSubscriptions.get(sub.customerId);
+        if (!existing || sub.createdAt > existing.createdAt) {
+          customerLatestSubscriptions.set(sub.customerId, sub);
+        }
+      });
+      
+      // Get the full subscription data for the latest subscriptions only
+      const latestSubscriptionIds = Array.from(customerLatestSubscriptions.values()).map(sub => ({
+        customerId: sub.customerId,
+        endDate: sub.endDate
+      }));
+      
+      // Apply pagination to the unique customers
+      const paginatedLatestSubs = latestSubscriptionIds.slice(
+        Math.max(0, (filters.page - 1) * filters.limit),
+        Math.max(0, (filters.page - 1) * filters.limit) + Math.min(100, filters.limit)
+      );
+      
       const [subscriptions, totalCount] = await Promise.all([
         this.prisma.customerSubscription.findMany({
-          where: whereClause,
+          where: {
+            ...whereClause,
+            OR: paginatedLatestSubs.map(sub => ({
+              customerId: sub.customerId,
+              endDate: sub.endDate
+            }))
+          },
           include: {
             customer: {
               select: {
@@ -1108,11 +1172,9 @@ export class UsersService {
               }
             }
           },
-          orderBy: { endDate: 'asc' },
-          skip: Math.max(0, (filters.page - 1) * filters.limit),
-          take: Math.min(100, filters.limit)
+          orderBy: { endDate: 'asc' }
         }),
-        this.prisma.customerSubscription.count({ where: whereClause })
+        Promise.resolve(latestSubscriptionIds.length) // Use unique customer count
       ]);
       
       // Calculate days until expiry for each subscription

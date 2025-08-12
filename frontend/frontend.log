@@ -26,3 +26,52 @@ nohup: ignoring input
  GET /members 200 in 96ms
  ✓ Compiled in 440ms (1489 modules)
  GET /members 200 in 50ms
+ ○ Compiling /member-subscriptions ...
+ ✓ Compiled /member-subscriptions in 696ms (1492 modules)
+ GET /member-subscriptions 200 in 764ms
+ ○ Compiling /staff ...
+ ✓ Compiled /staff in 953ms (1517 modules)
+ GET /staff 200 in 1033ms
+ ✓ Compiled /_not-found in 183ms (1522 modules)
+ GET /installHook.js.map 404 in 315ms
+ GET /members 200 in 24ms
+ GET /members 200 in 168ms
+ ✓ Compiled in 627ms (1522 modules)
+ GET /members 200 in 103ms
+ GET /members 200 in 216ms
+ GET /members 200 in 72ms
+ ✓ Compiled /favicon.ico in 312ms (854 modules)
+ GET /favicon.ico 200 in 391ms
+ ✓ Compiled in 563ms (1539 modules)
+ GET /members 200 in 103ms
+ ✓ Compiled /_not-found in 192ms (1530 modules)
+ GET /installHook.js.map 404 in 337ms
+ GET /members 200 in 193ms
+ GET /installHook.js.map 404 in 31ms
+ ✓ Compiled in 939ms (1522 modules)
+ GET /members 200 in 172ms
+ GET /members 200 in 498ms
+ GET /members 200 in 192ms
+ ✓ Compiled /favicon.ico in 325ms (854 modules)
+ GET /favicon.ico 200 in 435ms
+ ✓ Compiled in 841ms (1522 modules)
+ GET /members 200 in 207ms
+ ✓ Compiled in 1387ms (1522 modules)
+ GET /members 200 in 134ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⨯ ReferenceError: getExpiringMembersCount is not defined
+    at MembersPage (app/(main)/members/page.tsx:251:14)
+  249 |     // Use frontend calculation to ensure consistency with filtered member list
+  250 |     // This uses the same data that goes through branch filtering (searchFilteredMembers)
+> 251 |     expiring: getExpiringMembersCount(searchFilteredMembers as MemberData[], 7)
+      |              ^
+  252 |   }
+  253 |   
+  254 |   // Stats are now consistent between API and frontend filtering {
+  digest: '1670514214'
+}
+ GET /members 500 in 426ms
+ ✓ Compiled in 737ms (1522 modules)
+ GET /members 200 in 455ms
+ GET /members 200 in 169ms
+[?25h

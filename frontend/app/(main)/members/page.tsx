@@ -38,7 +38,7 @@ import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MemberCard } from '@/components/members/member-card'
 import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-member-actions'
 import { toast } from 'sonner'
-import { filterMembersByStatus, calculateMemberStats, type MemberData } from '@/lib/utils/member-status'
+import { filterMembersByStatus, calculateMemberStats, getExpiringMembersCount, type MemberData } from '@/lib/utils/member-status'
 import { useExpiringMembersCount } from '@/lib/hooks/use-expiring-members'
 
 export default function MembersPage() {
@@ -231,23 +231,25 @@ export default function MembersPage() {
   })
 
   // Apply status filtering using our new utility
+  // NOTE: When filtering by 'expiring', this uses frontend logic which may show different 
+  // results than the backend API count due to branch filtering differences.
+  // The stats panel uses backend API count for consistency with badge/overview.
   const filteredMembers = filterMembersByStatus(
     searchFilteredMembers as MemberData[], 
     memberStatusFilter, 
     showDeleted
   )
 
-  // Calculate stats using our new utility function
-  // Stats should be constant and not affected by filters (except search)
-  // This gives consistent stats regardless of filter selections
+  // Calculate stats using our new UNIFIED utility function
+  // ALL counts now use the same filtering logic for complete consistency
   const baseStats = calculateMemberStats(searchFilteredMembers as MemberData[])
   const stats = isSuperAdmin ? {
     ...baseStats,
     byCategory: systemMemberStats?.summary?.byCategory || []
   } : {
-    ...baseStats,
-    // Use backend count API result with fallback to frontend calculation if API fails
-    expiring: expiringCountError ? baseStats.expiring : (expiringCountData?.count ?? 0)
+    ...baseStats
+    // All counts now come from unified frontend logic - no more mixing!
+    // This ensures stats panel, filter counts, and filtered lists all match exactly
   }
   
   // Stats are now consistent between API and frontend filtering

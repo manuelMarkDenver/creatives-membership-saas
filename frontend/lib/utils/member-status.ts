@@ -1,5 +1,5 @@
-// Member Status Utility - Separates User and Subscription Status Concerns
-// This is a quick fix to resolve filtering issues while maintaining existing APIs
+// REDESIGNED Member Status System - Proper Separation of Concerns
+// This fixes the fundamental conflict between display and notification logic
 
 export interface MemberEffectiveStatus {
   canAccessFacilities: boolean
@@ -7,6 +7,20 @@ export interface MemberEffectiveStatus {
   primaryIssue?: string
   statusColor: 'green' | 'orange' | 'yellow' | 'red' | 'gray' | 'blue'
   statusIcon: 'check' | 'clock' | 'x' | 'alert' | 'info' | 'trash'
+}
+
+export interface DisplayStatus {
+  status: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'INACTIVE' | 'DELETED'
+  label: string
+  color: 'green' | 'orange' | 'yellow' | 'red' | 'gray'
+  canAccess: boolean
+}
+
+export interface NotificationStatus {
+  needsAttention: boolean
+  category: 'EXPIRING_SOON' | 'RECENTLY_EXPIRED' | 'LONG_EXPIRED' | 'OK'
+  urgency: 'critical' | 'high' | 'medium' | 'low'
+  daysFromExpiry: number
 }
 
 export interface MemberData {
@@ -232,7 +246,8 @@ export function getAvailableMemberActions(member: MemberData) {
 }
 
 /**
- * Helper function for filtering members by status
+ * Helper function for filtering members by status - CLEAN SEPARATION
+ * No more conflicts - filters purely by display status
  */
 export function filterMembersByStatus(
   members: MemberData[], 
@@ -251,11 +266,11 @@ export function filterMembersByStatus(
         return status.displayStatus === 'ACTIVE'
         
       case 'expired':
-        // Only show expired members who are not deleted
+        // Show members who are truly expired (their display status is EXPIRED)
         return status.displayStatus === 'EXPIRED' && !Boolean(member.deletedAt)
         
       case 'expiring':
-        // Show members expiring soon (active but expiring within 7 days)
+        // Show members who are expiring (their display status is EXPIRING)
         return status.displayStatus === 'EXPIRING' && !Boolean(member.deletedAt)
         
       case 'cancelled':
@@ -275,7 +290,7 @@ export function filterMembersByStatus(
 
 /**
  * Check if a member should be considered for expiring members count
- * This matches the backend logic that only includes ACTIVE subscriptions
+ * This matches the backend logic that includes BOTH expiring AND recently expired members
  */
 export function isMemberConsideredExpiring(member: MemberData, daysBefore: number = 7): boolean {
   // Must have active account and not be deleted
@@ -289,18 +304,16 @@ export function isMemberConsideredExpiring(member: MemberData, daysBefore: numbe
     return false
   }
   
-  // Must be expiring within the specified days (but not expired)
-  const currentDate = new Date()
-  currentDate.setHours(0, 0, 0, 0)
-  
-  const targetDate = new Date(currentDate)
+  // Must be expiring within the specified days (INCLUDING recently expired)
+  // Use the same date handling as backend - NO normalization to start of day
+  const targetDate = new Date()
   targetDate.setDate(targetDate.getDate() + daysBefore)
   
   const endDate = new Date(subscription.endDate)
-  endDate.setHours(0, 0, 0, 0)
   
-  // Should be expiring within the time window but NOT already expired
-  return endDate > currentDate && endDate <= targetDate
+  // Backend logic: endDate <= targetDate (includes recently expired members)
+  // This includes members whose subscriptions expired recently but are still within the notification window
+  return endDate <= targetDate
 }
 
 /**
@@ -316,52 +329,26 @@ export function getExpiringMembersCount(members: MemberData[], daysBefore: numbe
 
 /**
  * Calculate member statistics from a list of members
+ * UNIFIED LOGIC - Uses the same filtering logic as the filter functions
  */
 export function calculateMemberStats(members: MemberData[]) {
-  // Debug logging removed - issue resolved with backend API fix
+  // Use the same filtering logic to ensure consistency
+  const activeMembers = filterMembersByStatus(members, 'active')
+  const expiredMembers = filterMembersByStatus(members, 'expired')
+  const expiringMembers = filterMembersByStatus(members, 'expiring')
+  const cancelledMembers = filterMembersByStatus(members, 'cancelled')
+  const deletedMembers = filterMembersByStatus(members, 'deleted')
+  const inactiveMembers = filterMembersByStatus(members, 'inactive')
   
-  return members.reduce((acc, member) => {
-    const status = calculateMemberStatus(member)
-    
-    acc.total++
-    
-    switch (status.displayStatus) {
-      case 'ACTIVE':
-        acc.active++
-        break
-      case 'EXPIRED':
-        // Only count expired members who are not deleted
-        if (!Boolean(member.deletedAt)) {
-          acc.expired++
-        }
-        break
-      case 'EXPIRING':
-        // Count expiring members separately
-        if (!Boolean(member.deletedAt)) {
-          acc.expiring++
-        }
-        break
-      case 'CANCELLED':
-        acc.cancelled++
-        break
-      case 'DELETED':
-        acc.deleted++
-        break
-      case 'INACTIVE':
-        acc.inactive++
-        break
-    }
-    
-    return acc
-  }, {
-    total: 0,
-    active: 0,
-    expired: 0,
-    expiring: 0,
-    cancelled: 0,
-    deleted: 0,
-    inactive: 0,
-    // Add expiring count that matches backend logic
-    trulyExpiring: getExpiringMembersCount(members, 7)
-  })
+  return {
+    total: members.length,
+    active: activeMembers.length,
+    expired: expiredMembers.length,
+    expiring: expiringMembers.length,
+    cancelled: cancelledMembers.length,
+    deleted: deletedMembers.length,
+    inactive: inactiveMembers.length,
+    // Deprecated - use expiring instead
+    trulyExpiring: expiringMembers.length
+  }
 }
