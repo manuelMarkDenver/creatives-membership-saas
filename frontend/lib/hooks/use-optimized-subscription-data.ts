@@ -1,0 +1,206 @@
+import { useEffect, useCallback } from 'react'
+import { useBusinessStore, useSubscriptionStore, useApiStore, CacheKeys } from '../stores'
+import { getMembersWithSubscriptions } from '../api/members'
+import { getCustomerSubscriptionStats } from '../api/customer-subscriptions'
+import { getExpiringMembersOverview } from '../api/expiring-members'
+
+/**
+ * Optimized hook for subscription data management
+ * Eliminates re-render loops by using Zustand stores and caching
+ */
+export const useOptimizedSubscriptionData = () => {
+  const businessStore = useBusinessStore()
+  const subscriptionStore = useSubscriptionStore()
+  const apiStore = useApiStore()
+  
+  const { currentBusiness, user, isSuperAdmin } = businessStore
+  const { 
+    members, 
+    subscriptionStats, 
+    expiringMembers,
+    isLoadingMembers,
+    isLoadingStats,
+    isLoadingExpiring 
+  } = subscriptionStore
+
+  // Generate cache keys based on current business context
+  const cacheKeys = {
+    members: currentBusiness ? CacheKeys.MEMBERS(currentBusiness.tenantId, currentBusiness.branchId) : null,
+    stats: currentBusiness ? CacheKeys.SUBSCRIPTION_STATS(currentBusiness.tenantId, currentBusiness.branchId) : null,
+    expiring: currentBusiness ? CacheKeys.EXPIRING_MEMBERS(currentBusiness.tenantId, currentBusiness.branchId) : null,
+  }
+
+  // Fetch members data with caching
+  const fetchMembers = useCallback(async () => {
+    if (!currentBusiness || !cacheKeys.members) return
+
+    // Check cache first
+    const cachedMembers = apiStore.getCache(cacheKeys.members)
+    if (cachedMembers) {
+      subscriptionStore.setMembers(cachedMembers)
+      return
+    }
+
+    // Fetch from API
+    try {
+      subscriptionStore.setLoadingMembers(true)
+      subscriptionStore.setMembersError(null)
+
+      const response = await getMembersWithSubscriptions({
+        tenantId: currentBusiness.tenantId,
+        branchId: currentBusiness.branchId,
+      })
+
+      // Cache the response
+      apiStore.setCache(cacheKeys.members, response, 5 * 60 * 1000) // 5 minutes
+      subscriptionStore.setMembers(response)
+      
+    } catch (error) {
+      console.error('Error fetching members:', error)
+      subscriptionStore.setMembersError(error instanceof Error ? error.message : 'Unknown error')
+    } finally {
+      subscriptionStore.setLoadingMembers(false)
+    }
+  }, [currentBusiness, cacheKeys.members, apiStore, subscriptionStore])
+
+  // Fetch subscription stats with caching
+  const fetchSubscriptionStats = useCallback(async () => {
+    if (!currentBusiness || !cacheKeys.stats || isSuperAdmin()) return
+
+    // Check cache first
+    const cachedStats = apiStore.getCache(cacheKeys.stats)
+    if (cachedStats) {
+      subscriptionStore.setSubscriptionStats(cachedStats)
+      return
+    }
+
+    // Fetch from API
+    try {
+      subscriptionStore.setLoadingStats(true)
+      subscriptionStore.setStatsError(null)
+
+      const response = await getCustomerSubscriptionStats({
+        tenantId: currentBusiness.tenantId,
+        branchId: currentBusiness.branchId,
+      })
+
+      // Cache the response
+      apiStore.setCache(cacheKeys.stats, response, 2 * 60 * 1000) // 2 minutes for stats
+      subscriptionStore.setSubscriptionStats(response)
+      
+    } catch (error) {
+      console.error('Error fetching subscription stats:', error)
+      subscriptionStore.setStatsError(error instanceof Error ? error.message : 'Unknown error')
+    } finally {
+      subscriptionStore.setLoadingStats(false)
+    }
+  }, [currentBusiness, cacheKeys.stats, apiStore, subscriptionStore, isSuperAdmin])
+
+  // Fetch expiring members with caching
+  const fetchExpiringMembers = useCallback(async () => {
+    if (!currentBusiness || !cacheKeys.expiring) return
+
+    // Check cache first
+    const cachedExpiring = apiStore.getCache(cacheKeys.expiring)
+    if (cachedExpiring) {
+      subscriptionStore.setExpiringMembers(cachedExpiring)
+      return
+    }
+
+    // Fetch from API
+    try {
+      subscriptionStore.setLoadingExpiring(true)
+      subscriptionStore.setExpiringError(null)
+
+      const response = await getExpiringMembersOverview({
+        tenantId: currentBusiness.tenantId,
+        branchId: currentBusiness.branchId,
+        daysBefore: 7,
+      })
+
+      // Cache the response
+      apiStore.setCache(cacheKeys.expiring, response, 3 * 60 * 1000) // 3 minutes
+      subscriptionStore.setExpiringMembers(response)
+      
+    } catch (error) {
+      console.error('Error fetching expiring members:', error)
+      subscriptionStore.setExpiringError(error instanceof Error ? error.message : 'Unknown error')
+    } finally {
+      subscriptionStore.setLoadingExpiring(false)
+    }
+  }, [currentBusiness, cacheKeys.expiring, apiStore, subscriptionStore])
+
+  // Auto-fetch data when business context changes
+  useEffect(() => {
+    if (currentBusiness && user) {
+      fetchMembers()
+      fetchSubscriptionStats()
+      fetchExpiringMembers()
+    }
+  }, [currentBusiness, user, fetchMembers, fetchSubscriptionStats, fetchExpiringMembers])
+
+  // Clean expired cache periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      apiStore.cleanExpiredCache()
+    }, 60 * 1000) // Every minute
+
+    return () => clearInterval(interval)
+  }, [apiStore])
+
+  // Refresh functions
+  const refreshMembers = useCallback(() => {
+    if (cacheKeys.members) {
+      apiStore.clearCache(cacheKeys.members)
+      fetchMembers()
+    }
+  }, [cacheKeys.members, apiStore, fetchMembers])
+
+  const refreshStats = useCallback(() => {
+    if (cacheKeys.stats) {
+      apiStore.clearCache(cacheKeys.stats)
+      fetchSubscriptionStats()
+    }
+  }, [cacheKeys.stats, apiStore, fetchSubscriptionStats])
+
+  const refreshExpiring = useCallback(() => {
+    if (cacheKeys.expiring) {
+      apiStore.clearCache(cacheKeys.expiring)
+      fetchExpiringMembers()
+    }
+  }, [cacheKeys.expiring, apiStore, fetchExpiringMembers])
+
+  const refreshAll = useCallback(() => {
+    refreshMembers()
+    refreshStats()
+    refreshExpiring()
+  }, [refreshMembers, refreshStats, refreshExpiring])
+
+  return {
+    // Data
+    members,
+    subscriptionStats,
+    expiringMembers,
+    
+    // Loading states
+    isLoadingMembers,
+    isLoadingStats,
+    isLoadingExpiring,
+    isLoading: isLoadingMembers || isLoadingStats || isLoadingExpiring,
+    
+    // Error states
+    membersError: subscriptionStore.membersError,
+    statsError: subscriptionStore.statsError,
+    expiringError: subscriptionStore.expiringError,
+    
+    // Computed data (cached to prevent re-renders)
+    getMemberStatus: subscriptionStore.getMemberStatus,
+    getFilteredMembers: subscriptionStore.getFilteredMembers,
+    
+    // Refresh functions
+    refreshMembers,
+    refreshStats,
+    refreshExpiring,
+    refreshAll,
+  }
+}

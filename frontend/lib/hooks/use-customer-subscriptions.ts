@@ -62,11 +62,12 @@ export const customerSubscriptionKeys = {
 }
 
 // Get customer subscription stats for current tenant
-export function useCustomerSubscriptionStats() {
+export function useCustomerSubscriptionStats(options?: { enabled?: boolean }) {
   return useQuery<CustomerSubscriptionStats>({
     queryKey: customerSubscriptionKeys.stats(),
     queryFn: () => customerSubscriptionsApi.getSubscriptionStats(),
     staleTime: 2 * 60 * 1000, // 2 minutes
+    enabled: options?.enabled ?? true,
   })
 }
 

@@ -11,11 +11,12 @@ async function main() {
   try {
     console.log('🔍 Checking expiring members data...\n')
     
-    // Check the specific members mentioned
+    // Check the specific members mentioned - show ALL subscriptions
     const targetEmails = [
       'lisa8b1@muscle-mania.com',
       'anthony23b1@muscle-mania.com', 
-      'stephanie20b1@muscle-mania.com'
+      'stephanie20b1@muscle-mania.com',
+      'daniel15b1@muscle-mania.com'
     ]
     
     console.log('=== CHECKING USERS ===')
@@ -24,45 +25,50 @@ async function main() {
         where: { email },
         include: {
           customerSubscriptions: {
-            orderBy: { createdAt: 'desc' },
-            take: 1
+            orderBy: { createdAt: 'desc' }
           }
         }
       })
       
       if (user) {
-        const subscription = user.customerSubscriptions?.[0]
         console.log(`\n👤 ${email}:`)
         console.log(`   User Active: ${user.isActive}`)
         console.log(`   User Deleted: ${user.deletedAt}`)
+        console.log(`   Total Subscriptions: ${user.customerSubscriptions?.length || 0}`)
         
-        if (subscription) {
-          console.log(`   Subscription Status: ${subscription.status}`)
-          console.log(`   Subscription End Date: ${subscription.endDate}`)
-          console.log(`   Subscription Cancelled: ${subscription.cancelledAt}`)
-          
-          // Calculate days
-          const now = new Date()
-          const endDate = new Date(subscription.endDate)
-          const daysUntilExpiry = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-          console.log(`   Days Until Expiry: ${daysUntilExpiry}`)
-          
-          // Check if it would be included in expiring query
-          const targetDate = new Date()
-          targetDate.setDate(targetDate.getDate() + 7)
-          
-          const wouldBeIncluded = (
-            subscription.status === 'ACTIVE' &&
-            !subscription.cancelledAt &&
-            endDate > now &&
-            endDate <= targetDate &&
-            !user.deletedAt &&
-            user.isActive
-          )
-          
-          console.log(`   Would be in expiring list: ${wouldBeIncluded}`)
+        if (user.customerSubscriptions?.length) {
+          user.customerSubscriptions.forEach((subscription, index) => {
+            console.log(`\n   📋 Subscription ${index + 1} (${index === 0 ? 'MOST RECENT' : 'older'}):`)
+            console.log(`      ID: ${subscription.id}`)
+            console.log(`      Status: ${subscription.status}`)
+            console.log(`      Start Date: ${subscription.startDate}`)
+            console.log(`      End Date: ${subscription.endDate}`)
+            console.log(`      Cancelled: ${subscription.cancelledAt}`)
+            console.log(`      Created: ${subscription.createdAt}`)
+            
+            // Calculate days
+            const now = new Date()
+            const endDate = new Date(subscription.endDate)
+            const daysUntilExpiry = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+            console.log(`      Days Until Expiry: ${daysUntilExpiry}`)
+            
+            // Check if it would be included in expiring query
+            const targetDate = new Date()
+            targetDate.setDate(targetDate.getDate() + 7)
+            
+            const wouldBeIncluded = (
+              subscription.status === 'ACTIVE' &&
+              !subscription.cancelledAt &&
+              endDate > now &&
+              endDate <= targetDate &&
+              !user.deletedAt &&
+              user.isActive
+            )
+            
+            console.log(`      Would be in expiring list: ${wouldBeIncluded}`)
+          })
         } else {
-          console.log(`   ❌ No subscription`)
+          console.log(`   ❌ No subscriptions`)
         }
       } else {
         console.log(`\n❌ User ${email} not found`)

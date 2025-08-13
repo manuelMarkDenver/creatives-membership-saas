@@ -15,6 +15,7 @@ import { StatsModule } from './modules/stats/stats.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { MembershipPlansModule } from './modules/membership-plans/membership-plans.module';
 import { CustomerSubscriptionsModule } from './modules/customer-subscriptions/customer-subscriptions.module';
+import { GymModule } from './modules/gym/gym.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CustomerSubscriptionsModule } from './modules/customer-subscriptions/cu
     PlansModule,
     MembershipPlansModule,
     CustomerSubscriptionsModule,
+    GymModule,
   ],
   controllers: [AppController],
   providers: [AppService],

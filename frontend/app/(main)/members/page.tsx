@@ -40,6 +40,7 @@ import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-mem
 import { toast } from 'sonner'
 import { filterMembersByStatus, calculateMemberStats, getExpiringMembersCount, type MemberData } from '@/lib/utils/member-status'
 import { useExpiringMembersCount } from '@/lib/hooks/use-expiring-members'
+import { useCustomerSubscriptionStats } from '@/lib/hooks/use-customer-subscriptions'
 
 export default function MembersPage() {
   const { data: profile } = useProfile()
@@ -74,14 +75,17 @@ export default function MembersPage() {
   // Fetch membership plans for the current tenant
   const { data: membershipPlans = [] } = useActiveMembershipPlans()
   
+  // Get backend subscription stats for current tenant (non-super admin only)
+  const { data: customerSubscriptionStats, error: subscriptionStatsError } = useCustomerSubscriptionStats({
+    enabled: !isSuperAdmin && !!profile?.tenantId
+  })
+  
   // Get backend expiring count - this is the authoritative count with proper branch filtering
   const { data: expiringCountData, error: expiringCountError } = useExpiringMembersCount(
     profile?.tenantId || '', 
     7, // 7 days ahead
     { enabled: !!profile?.tenantId && !isSuperAdmin }
   )
-  
-  // API data is loaded and working correctly
   
   // Mutation hooks for membership operations
   const renewMembershipMutation = useRenewMemberSubscription()
@@ -219,7 +223,20 @@ export default function MembersPage() {
     (membersData || [])
   
   // Apply branch filtering to ensure consistency between stats and displayed members
-  const allMembers = rawMembers.filter(member => canManageMember(member))
+  console.log('[DEBUG] Raw members count:', rawMembers.length)
+  console.log('[DEBUG] Raw members:', rawMembers.map(m => ({ email: m.email, branchId: getMemberBranchId(m) })))
+  console.log('[DEBUG] User branches:', profile?.userBranches?.map(ub => ub.branchId))
+  
+  const allMembers = rawMembers.filter(member => {
+    const canManage = canManageMember(member)
+    const memberBranchId = getMemberBranchId(member)
+    
+    console.log(`[DEBUG] ${member.email}: branchId=${memberBranchId}, canManage=${canManage}`)
+    
+    return canManage
+  })
+  
+  console.log('[DEBUG] Filtered members count:', allMembers.length)
 
 
   // Apply search term filtering first
@@ -240,19 +257,28 @@ export default function MembersPage() {
     showDeleted
   )
 
-  // Calculate stats using our new UNIFIED utility function
-  // ALL counts now use the same filtering logic for complete consistency
-  const baseStats = calculateMemberStats(searchFilteredMembers as MemberData[])
+  // Calculate stats - use backend subscription stats for more accurate counts when available
+  const frontendStats = calculateMemberStats(searchFilteredMembers as MemberData[])
+  
+  // Debug logging for customer subscription stats
+  console.log('[DEBUG] Customer subscription stats:', customerSubscriptionStats)
+  console.log('[DEBUG] Frontend calculated stats:', frontendStats)
+  console.log('[DEBUG] Subscription stats error:', subscriptionStatsError)
+  
   const stats = isSuperAdmin ? {
-    ...baseStats,
+    ...frontendStats,
     byCategory: systemMemberStats?.summary?.byCategory || []
   } : {
-    ...baseStats
-    // All counts now come from unified frontend logic - no more mixing!
-    // This ensures stats panel, filter counts, and filtered lists all match exactly
+    // For tenant admins, use backend subscription stats when available for better accuracy
+    // This counts unique members by their current subscription status
+    total: customerSubscriptionStats?.total || frontendStats.total,
+    active: customerSubscriptionStats?.active || frontendStats.active,
+    expired: customerSubscriptionStats?.expired || frontendStats.expired,
+    cancelled: customerSubscriptionStats?.cancelled || frontendStats.cancelled,
+    // Frontend calculation for other stats that backend doesn't provide
+    expiring: frontendStats.expiring,
+    deleted: frontendStats.deleted
   }
-  
-  // Stats are now consistent between API and frontend filtering
 
 
 

@@ -3,14 +3,14 @@
 
 export interface MemberEffectiveStatus {
   canAccessFacilities: boolean
-  displayStatus: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'SUSPENDED' | 'INACTIVE' | 'DELETED'
+  displayStatus: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'SUSPENDED' | 'NO_SUBSCRIPTION' | 'DELETED'
   primaryIssue?: string
   statusColor: 'green' | 'orange' | 'yellow' | 'red' | 'gray' | 'blue'
   statusIcon: 'check' | 'clock' | 'x' | 'alert' | 'info' | 'trash'
 }
 
 export interface DisplayStatus {
-  status: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'INACTIVE' | 'DELETED'
+  status: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'NO_SUBSCRIPTION' | 'DELETED'
   label: string
   color: 'green' | 'orange' | 'yellow' | 'red' | 'gray'
   canAccess: boolean
@@ -38,6 +38,7 @@ export interface MemberData {
     endDate: string
     cancelledAt?: string | null
     branchId?: string
+    createdAt?: string
   }>
   businessData?: {
     membership?: {
@@ -52,6 +53,23 @@ export interface MemberData {
  * Calculate a member's effective status from both user account and subscription data
  */
 export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus {
+  // Debug logging for specific members
+  const debugEmails = ['stephanie20b1@muscle-mania.com', 'daniel15b1@muscle-mania.com', 'lisa8b1@muscle-mania.com', 'anthony23b1@muscle-mania.com']
+  const isDebugMember = debugEmails.includes(member.email)
+  
+  if (isDebugMember) {
+    console.log(`[DEBUG] Calculating status for ${member.email}:`, {
+      subscriptions: member.customerSubscriptions?.map(sub => ({
+        id: sub.id,
+        status: sub.status,
+        endDate: sub.endDate,
+        cancelledAt: sub.cancelledAt
+      })),
+      isActive: member.isActive,
+      deletedAt: member.deletedAt
+    })
+  }
+
   // Check if user account is deleted (soft delete)
   const isDeleted = Boolean(member.deletedAt)
   if (isDeleted) {
@@ -64,28 +82,45 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
     }
   }
 
-  // Get the most recent subscription
-  const subscription = member.customerSubscriptions?.[0]
+  // Get the most recent subscription matching backend logic
+  // Backend uses the most recent subscription by creation date
+  // Sort by creation date (most recent first), then by end date (latest first)
+  const subscriptions = [...(member.customerSubscriptions || [])]
+    .sort((a, b) => {
+      // First sort by creation date if available (most recent first)
+      const aCreated = new Date(a.createdAt || a.startDate).getTime()
+      const bCreated = new Date(b.createdAt || b.startDate).getTime()
+      if (aCreated !== bCreated) {
+        return bCreated - aCreated
+      }
+      // Then by end date (latest first)
+      return new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
+    })
+  
+  // Select the most recent subscription (matching backend logic)
+  const subscription = subscriptions[0]
   const businessMembership = member.businessData?.membership
   
-  // If no subscription data available, check account status
+  if (isDebugMember) {
+    console.log(`[DEBUG] Selected subscription for ${member.email}:`, {
+      subscription: subscription ? {
+        id: subscription.id,
+        status: subscription.status,
+        endDate: subscription.endDate,
+        cancelledAt: subscription.cancelledAt
+      } : null,
+      businessMembership: businessMembership
+    })
+  }
+  
+  // If no subscription data available, member has no subscription
   if (!subscription && !businessMembership) {
-    if (member.isActive) {
-      return {
-        canAccessFacilities: false,
-        displayStatus: 'INACTIVE',
-        primaryIssue: 'No subscription',
-        statusColor: 'gray',
-        statusIcon: 'info'
-      }
-    } else {
-      return {
-        canAccessFacilities: false,
-        displayStatus: 'INACTIVE',
-        primaryIssue: 'Account inactive',
-        statusColor: 'gray',
-        statusIcon: 'info'
-      }
+    return {
+      canAccessFacilities: false,
+      displayStatus: 'NO_SUBSCRIPTION',
+      primaryIssue: 'No subscription found',
+      statusColor: 'gray',
+      statusIcon: 'info'
     }
   }
 
@@ -129,25 +164,28 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
   // 4. Active subscription
 
   if (isCancelled) {
-    return {
+    const result = {
       canAccessFacilities: false,
-      displayStatus: 'CANCELLED',
+      displayStatus: 'CANCELLED' as const,
       primaryIssue: 'Subscription cancelled',
-      statusColor: 'red',
-      statusIcon: 'x'
+      statusColor: 'red' as const,
+      statusIcon: 'x' as const
     }
+    
+    if (isDebugMember) {
+      console.log(`[DEBUG] Final status for ${member.email}: CANCELLED`, {
+        subscriptionEndDate: subscriptionEndDate?.toISOString(),
+        currentDate: currentDate.toISOString(),
+        subscriptionStatus,
+        cancelledAt: subscriptionCancelledAt
+      })
+    }
+    
+    return result
   }
 
-  // Check account-level status before checking subscription expiry
-  if (!member.isActive) {
-    return {
-      canAccessFacilities: false,
-      displayStatus: 'INACTIVE',
-      primaryIssue: 'Account inactive',
-      statusColor: 'gray',
-      statusIcon: 'info'
-    }
-  }
+  // Note: We don't check member.isActive here because INACTIVE status has been removed
+  // Members are either ACTIVE, EXPIRED, EXPIRING, CANCELLED, NO_SUBSCRIPTION, or DELETED
 
   // Only show as expired if user is active and subscription is active but expired
   if (isExpired && subscriptionStatus === 'ACTIVE') {
@@ -155,13 +193,24 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
       ? Math.ceil((currentDate.getTime() - subscriptionEndDate.getTime()) / (1000 * 60 * 60 * 24))
       : 0
     
-    return {
+    const result = {
       canAccessFacilities: false,
-      displayStatus: 'EXPIRED',
+      displayStatus: 'EXPIRED' as const,
       primaryIssue: daysOverdue > 0 ? `Expired ${daysOverdue} days ago` : 'Subscription expired',
-      statusColor: 'orange',
-      statusIcon: 'clock'
+      statusColor: 'orange' as const,
+      statusIcon: 'clock' as const
     }
+    
+    if (isDebugMember) {
+      console.log(`[DEBUG] Final status for ${member.email}: EXPIRED`, {
+        subscriptionEndDate: subscriptionEndDate?.toISOString(),
+        currentDate: currentDate.toISOString(),
+        daysOverdue,
+        subscriptionStatus
+      })
+    }
+    
+    return result
   }
   
   // Check if subscription is expiring soon (but still active)
@@ -170,35 +219,67 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
       ? Math.ceil((subscriptionEndDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
       : 0
       
-    return {
+    const result = {
       canAccessFacilities: true,
-      displayStatus: 'EXPIRING',
+      displayStatus: 'EXPIRING' as const,
       primaryIssue: `Expires in ${daysRemaining} days`,
-      statusColor: 'yellow',
-      statusIcon: 'alert'
+      statusColor: 'yellow' as const,
+      statusIcon: 'alert' as const
     }
+    
+    if (isDebugMember) {
+      console.log(`[DEBUG] Final status for ${member.email}: EXPIRING`, {
+        subscriptionEndDate: subscriptionEndDate?.toISOString(),
+        currentDate: currentDate.toISOString(),
+        daysRemaining,
+        subscriptionStatus
+      })
+    }
+    
+    return result
   }
 
   if (subscriptionStatus === 'ACTIVE' && subscriptionEndDate && subscriptionEndDate >= currentDate) {
     const daysRemaining = Math.ceil((subscriptionEndDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
     
-    return {
+    const result = {
       canAccessFacilities: true,
       displayStatus: 'ACTIVE',
       primaryIssue: daysRemaining <= 7 ? `Expires in ${daysRemaining} days` : undefined,
       statusColor: 'green',
       statusIcon: 'check'
     }
+    
+    if (isDebugMember) {
+      console.log(`[DEBUG] Final status for ${member.email}: ACTIVE`, {
+        subscriptionEndDate: subscriptionEndDate?.toISOString(),
+        currentDate: currentDate.toISOString(),
+        daysRemaining,
+        subscriptionStatus
+      })
+    }
+    
+    return result
   }
 
-  // Default case - active account but unknown subscription status
-  return {
+  // Default case - subscription exists but status is unknown
+  const defaultResult = {
     canAccessFacilities: false,
-    displayStatus: 'INACTIVE',
+    displayStatus: 'NO_SUBSCRIPTION' as const,
     primaryIssue: 'Subscription status unknown',
-    statusColor: 'gray',
-    statusIcon: 'info'
+    statusColor: 'gray' as const,
+    statusIcon: 'info' as const
   }
+  
+  if (isDebugMember) {
+    console.log(`[DEBUG] Final status for ${member.email}: NO_SUBSCRIPTION (default)`, {
+      subscriptionStatus,
+      subscriptionEndDate: subscriptionEndDate?.toISOString(),
+      currentDate: currentDate.toISOString()
+    })
+  }
+  
+  return defaultResult
 }
 
 /**
@@ -233,12 +314,8 @@ export function getAvailableMemberActions(member: MemberData) {
       actions.push('restore-account')
       break
       
-    case 'INACTIVE':
-      if (member.customerSubscriptions?.length || member.businessData?.membership) {
-        actions.push('renew-subscription')
-      } else {
-        actions.push('create-subscription')
-      }
+    case 'NO_SUBSCRIPTION':
+      actions.push('create-subscription')
       break
   }
 
@@ -251,7 +328,7 @@ export function getAvailableMemberActions(member: MemberData) {
  */
 export function filterMembersByStatus(
   members: MemberData[], 
-  filterStatus: 'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'deleted' | 'inactive',
+  filterStatus: 'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'deleted' | 'no_subscription',
   showDeleted: boolean = false
 ): MemberData[] {
   return members.filter(member => {
@@ -276,8 +353,8 @@ export function filterMembersByStatus(
       case 'cancelled':
         return status.displayStatus === 'CANCELLED'
         
-      case 'inactive':
-        return status.displayStatus === 'INACTIVE'
+      case 'no_subscription':
+        return status.displayStatus === 'NO_SUBSCRIPTION'
         
       case 'deleted':
         return status.displayStatus === 'DELETED'
@@ -298,8 +375,19 @@ export function isMemberConsideredExpiring(member: MemberData, daysBefore: numbe
     return false
   }
   
-  // Must have active subscription that is not cancelled
-  const subscription = member.customerSubscriptions?.[0]
+  // Must have active subscription that is not cancelled - use same logic as calculateMemberStatus
+  const subscriptions = [...(member.customerSubscriptions || [])]
+    .sort((a, b) => {
+      // First sort by creation date if available (most recent first)
+      const aCreated = new Date(a.createdAt || a.startDate).getTime()
+      const bCreated = new Date(b.createdAt || b.startDate).getTime()
+      if (aCreated !== bCreated) {
+        return bCreated - aCreated
+      }
+      // Then by end date (latest first)
+      return new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
+    })
+  const subscription = subscriptions[0]
   if (!subscription || subscription.status !== 'ACTIVE' || subscription.cancelledAt) {
     return false
   }
@@ -338,7 +426,7 @@ export function calculateMemberStats(members: MemberData[]) {
   const expiringMembers = filterMembersByStatus(members, 'expiring')
   const cancelledMembers = filterMembersByStatus(members, 'cancelled')
   const deletedMembers = filterMembersByStatus(members, 'deleted')
-  const inactiveMembers = filterMembersByStatus(members, 'inactive')
+  const noSubscriptionMembers = filterMembersByStatus(members, 'no_subscription')
   
   return {
     total: members.length,
@@ -347,7 +435,7 @@ export function calculateMemberStats(members: MemberData[]) {
     expiring: expiringMembers.length,
     cancelled: cancelledMembers.length,
     deleted: deletedMembers.length,
-    inactive: inactiveMembers.length,
+    noSubscription: noSubscriptionMembers.length,
     // Deprecated - use expiring instead
     trulyExpiring: expiringMembers.length
   }
