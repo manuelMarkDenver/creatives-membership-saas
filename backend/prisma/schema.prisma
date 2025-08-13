@@ -23,7 +23,11 @@ model Tenant {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   freeBranchOverride    Int                    @default(0)
+  paidModeEnabled       Boolean                @default(false) // Global paid mode toggle
+  freeUnitsLimit        Int                    @default(1) // How many free units allowed
+  trialDurationDays     Int                    @default(28) // Default trial duration
   branches              Branch[]
+  businessUnits         BusinessUnit[]
   customerSubscriptions CustomerSubscription[]
   customerTransactions  CustomerTransaction[]
   membershipPlans       MembershipPlan[]
@@ -48,6 +52,33 @@ model Branch {
   userBranches          UserBranch[]
 
   @@unique([tenantId, name])
+}
+
+model BusinessUnit {
+  id                    String                 @id @default(uuid())
+  tenantId              String
+  name                  String
+  unitType              BusinessUnitType       @default(LOCATION) // LOCATION for gyms, CHANNEL for ecommerce
+  address               String?
+  phoneNumber           String?
+  email                 String?
+  isActive              Boolean                @default(true)
+  isPaid                Boolean                @default(false) // For paid mode toggle
+  trialEndsAt           DateTime?              // When trial expires
+  subscriptionTier      String?                @default("basic") // basic, premium, enterprise
+  monthlyPrice          Decimal?               @default(3999) @db.Decimal(8, 2) // PHP pricing
+  businessUnitData      Json?                  // Business-specific configuration
+  settings              Json?                  // Unit-specific settings
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  tenant                Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  saasSubscriptions     SaasSubscription[]     // SaaS subscriptions for this unit
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([unitType])
+  @@index([isPaid])
+  @@index([trialEndsAt])
 }
 
 model Plan {
@@ -270,6 +301,35 @@ model MemberAuditLog {
   @@index([action])
 }
 
+model SaasSubscription {
+  id                    String                 @id @default(uuid())
+  businessUnitId        String
+  planName              String                 @default("basic") // basic, premium, enterprise
+  status                SaasSubscriptionStatus @default(TRIAL)
+  startDate             DateTime               @db.Date
+  endDate               DateTime?              @db.Date
+  trialEndsAt           DateTime?              @db.Date
+  monthlyPrice          Decimal                @default(3999) @db.Decimal(8, 2) // PHP pricing
+  currency              String                 @default("PHP")
+  paymentMethod         String?                // gcash, paymongo, bank_transfer
+  paymentReference      String?                // Reference from payment gateway
+  lastPaymentDate       DateTime?
+  nextBillingDate       DateTime?              @db.Date
+  autoRenew             Boolean                @default(true)
+  cancelledAt           DateTime?
+  cancellationReason    String?
+  metadata              Json?                  // Additional subscription data
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  businessUnit          BusinessUnit           @relation(fields: [businessUnitId], references: [id], onDelete: Cascade)
+
+  @@index([businessUnitId])
+  @@index([status])
+  @@index([endDate])
+  @@index([nextBillingDate])
+  @@index([trialEndsAt])
+}
+
 enum BusinessCategory {
   GYM
   COFFEE_SHOP
@@ -396,4 +456,20 @@ enum MemberAuditAction {
   FACILITY_ACCESS_REVOKED
   LOGIN_SUCCESSFUL
   LOGIN_FAILED
+}
+
+enum BusinessUnitType {
+  LOCATION      // Physical locations (gyms, coffee shops)
+  CHANNEL       // Sales channels (ecommerce stores)
+  DEPARTMENT    // Departments within a business
+  FRANCHISE     // Franchise units
+}
+
+enum SaasSubscriptionStatus {
+  TRIAL         // Free trial period
+  ACTIVE        // Paid and active
+  PAST_DUE      // Payment failed, grace period
+  SUSPENDED     // Temporarily suspended
+  CANCELLED     // User cancelled
+  EXPIRED       // Trial or subscription expired
 }
