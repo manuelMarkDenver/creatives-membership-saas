@@ -91,8 +91,13 @@ export function MemberCard({
   const deactivateMutation = useDeactivateUser()
   const restoreMutation = useRestoreUser()
   
-  // Get subscription info from member customerSubscriptions
-  const subscription = member.customerSubscriptions?.[0] // Get most recent subscription
+  // Get subscription info from member gymSubscriptions (most recent subscription)
+  const subscriptions = member.gymSubscriptions?.sort((a, b) => {
+    const aCreated = new Date(a.createdAt || a.startDate).getTime()
+    const bCreated = new Date(b.createdAt || b.startDate).getTime()
+    return bCreated - aCreated // Most recent first
+  })
+  const subscription = subscriptions?.[0] // Get most recent subscription
   const isExpired = subscription && new Date(subscription.endDate) < new Date()
   const daysRemaining = subscription ? Math.ceil((new Date(subscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null
   
@@ -151,7 +156,7 @@ export function MemberCard({
   
   // Helper function to get member's branch ID from subscription
   const getMemberBranchId = (): string | null => {
-    return member.customerSubscriptions?.[0]?.branchId || null
+    return member.gymSubscriptions?.[0]?.branchId || null
   }
 
   // Helper function to check if current user can manage this member based on branch access

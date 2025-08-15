@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
-import { BusinessUnitsService, CreateBusinessUnitDto, UpdateBusinessUnitDto } from './business-units.service';
+import { BusinessUnitsService } from './business-units.service';
+import type { CreateBusinessUnitDto, UpdateBusinessUnitDto } from './business-units.service';
 import { AuthGuard } from '../../core/auth/auth.guard';
 import { RBACGuard, RequiredRoles } from '../../core/guard/rbac.guard';
 import { Role } from '@prisma/client';

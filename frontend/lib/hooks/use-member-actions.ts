@@ -62,9 +62,9 @@ export function useActivateMember() {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() })
       queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'tenant'] })
       
-      // Invalidate customer subscription data
+      // Invalidate gym subscription data
       queryClient.invalidateQueries({ 
-        queryKey: ['customer-subscriptions', 'subscription', memberId] 
+        queryKey: ['gym-subscriptions', 'subscription', memberId] 
       })
     },
   })
@@ -96,9 +96,9 @@ export function useCancelMember() {
       // Force invalidation of all user queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: userKeys.all })
       
-      // Invalidate customer subscription data
+      // Invalidate gym subscription data
       queryClient.invalidateQueries({ 
-        queryKey: ['customer-subscriptions', 'subscription', memberId] 
+        queryKey: ['gym-subscriptions', 'subscription', memberId] 
       })
       
       console.log('🔄 All queries invalidated after member cancellation')
@@ -127,9 +127,9 @@ export function useRestoreMember() {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() })
       queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'tenant'] })
       
-      // Invalidate customer subscription data
+      // Invalidate gym subscription data
       queryClient.invalidateQueries({ 
-        queryKey: ['customer-subscriptions', 'subscription', memberId] 
+        queryKey: ['gym-subscriptions', 'subscription', memberId] 
       })
     },
   })
@@ -153,15 +153,18 @@ export function useRenewMemberSubscription() {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() })
       queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'tenant'] })
       
-      // Invalidate customer subscription data
+      // Invalidate gym subscription data
       queryClient.invalidateQueries({ 
-        queryKey: ['customer-subscriptions', 'subscription', memberId] 
+        queryKey: ['gym-subscriptions', 'subscription', memberId] 
       })
       queryClient.invalidateQueries({ 
-        queryKey: ['customer-subscriptions', 'history', memberId] 
+        queryKey: ['gym-subscriptions', 'history', memberId] 
       })
       queryClient.invalidateQueries({ 
-        queryKey: ['customer-subscriptions', 'transactions', memberId] 
+        queryKey: ['gym-subscriptions', 'transactions', memberId] 
+      })
+      queryClient.invalidateQueries({ 
+        queryKey: ['gym-subscriptions', 'stats'] 
       })
     },
   })

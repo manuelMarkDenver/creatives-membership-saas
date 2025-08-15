@@ -39,7 +39,7 @@ import {
 import { toast } from 'sonner'
 import { formatPHP } from '@/lib/utils/currency'
 import { usersApi } from '@/lib/api'
-import { customerSubscriptionsApi } from '@/lib/api/customer-subscriptions'
+import { gymSubscriptionsApi } from '@/lib/api/gym-subscriptions'
 
 interface AddMemberModalProps {
   isOpen: boolean
@@ -268,7 +268,7 @@ export function AddMemberModal({
             paymentMethod: formData.paymentMethod
           }
 
-          await customerSubscriptionsApi.renewMembership(createdUser.id, subscriptionData)
+          await gymSubscriptionsApi.renewMembership(createdUser.id, subscriptionData)
           
           toast.success(`Member ${formData.firstName} ${formData.lastName} added successfully with active subscription!`)
           onMemberAdded?.()

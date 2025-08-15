@@ -1,4 +1,4 @@
-import { PrismaClient, BillingCycle, Role, BusinessCategory, MembershipType, CustomerSubscriptionStatus } from '@prisma/client';
+import { PrismaClient, BillingCycle, Role, BusinessCategory, MembershipType, GymMemberSubscriptionStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -451,7 +451,7 @@ async function main() {
           // 40% active subscriptions (with some expiring soon), 30% expired subscriptions, 20% expiring within 7 days, 10% no subscription
           const subscriptionScenario = Math.random();
           let hasSubscription = true;
-          let subscriptionStatus: CustomerSubscriptionStatus = CustomerSubscriptionStatus.ACTIVE;
+          let subscriptionStatus: GymMemberSubscriptionStatus = GymMemberSubscriptionStatus.ACTIVE;
           let membershipPlan, membershipStartDate, membershipEndDate;
           
           if (subscriptionScenario < 0.10) {
@@ -475,7 +475,7 @@ async function main() {
               const daysAgo = Math.floor(Math.random() * 90) + 1; // 1-90 days ago
               membershipEndDate = new Date();
               membershipEndDate.setDate(membershipEndDate.getDate() - daysAgo);
-              subscriptionStatus = CustomerSubscriptionStatus.EXPIRED;
+              subscriptionStatus = GymMemberSubscriptionStatus.EXPIRED;
             } else if (subscriptionScenario < 0.60) {
               // 20% expiring within 7 days (critical expiring members for testing)
               const daysToExpire = Math.floor(Math.random() * 7); // 0-6 days from now (including today and already expired)
@@ -486,13 +486,13 @@ async function main() {
               } else {
                 membershipEndDate.setDate(membershipEndDate.getDate() + daysToExpire);
               }
-              subscriptionStatus = CustomerSubscriptionStatus.ACTIVE;
+              subscriptionStatus = GymMemberSubscriptionStatus.ACTIVE;
             } else {
               // 40% active subscriptions with longer time remaining
               const daysToAdd = Math.floor(Math.random() * 90) + 30; // 30-120 days from now
               membershipEndDate = new Date();
               membershipEndDate.setDate(membershipEndDate.getDate() + daysToAdd);
-              subscriptionStatus = CustomerSubscriptionStatus.ACTIVE;
+              subscriptionStatus = GymMemberSubscriptionStatus.ACTIVE;
             }
           }
           
@@ -545,12 +545,12 @@ async function main() {
             }
           });
           
-          // Create CustomerSubscription record only if member has subscription
+          // Create GymMemberSubscription record only if member has subscription
           if (hasSubscription && membershipStartDate && membershipEndDate) {
-            const customerSubscription = await prisma.customerSubscription.create({
+            const gymMemberSubscription = await prisma.gymMemberSubscription.create({
               data: {
                 tenantId: tenant.id,
-                customerId: member.id,
+                memberId: member.id,
                 membershipPlanId: membershipPlan.id,
                 branchId: branch.id, // Associate subscription with specific branch
                 status: subscriptionStatus,

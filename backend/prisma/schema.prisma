@@ -8,71 +8,71 @@ datasource db {
 }
 
 model Tenant {
-  id                    String                 @id @default(uuid())
-  name                  String
-  slug                  String                 @unique
-  category              BusinessCategory
-  logoUrl               String?
-  address               String?
-  phoneNumber           String?
-  email                 String?
-  primaryColor          String?
-  secondaryColor        String?
-  websiteUrl            String?
-  description           String?
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  freeBranchOverride    Int                    @default(0)
-  paidModeEnabled       Boolean                @default(false) // Global paid mode toggle
-  freeUnitsLimit        Int                    @default(1) // How many free units allowed
-  trialDurationDays     Int                    @default(28) // Default trial duration
-  branches              Branch[]
-  businessUnits         BusinessUnit[]
-  customerSubscriptions CustomerSubscription[]
-  customerTransactions  CustomerTransaction[]
-  membershipPlans       MembershipPlan[]
-  platformRevenues      PlatformRevenue[]
-  users                 User[]
+  id                     String                  @id @default(uuid())
+  name                   String
+  slug                   String                  @unique
+  category               BusinessCategory
+  logoUrl                String?
+  address                String?
+  phoneNumber            String?
+  email                  String?
+  primaryColor           String?
+  secondaryColor         String?
+  websiteUrl             String?
+  description            String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  freeBranchOverride     Int                     @default(0)
+  paidModeEnabled        Boolean                 @default(false) // Global paid mode toggle
+  freeUnitsLimit         Int                     @default(1) // How many free units allowed
+  trialDurationDays      Int                     @default(28) // Default trial duration
+  branches               Branch[]
+  businessUnits          BusinessUnit[]
+  gymMemberSubscriptions GymMemberSubscription[]
+  customerTransactions   CustomerTransaction[]
+  membershipPlans        MembershipPlan[]
+  platformRevenues       PlatformRevenue[]
+  users                  User[]
 }
 
 model Branch {
-  id                    String                 @id @default(uuid())
-  tenantId              String
-  name                  String
-  address               String?
-  phoneNumber           String?
-  email                 String?
-  isActive              Boolean                @default(true)
-  branchData            Json?
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  tenant                Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customerSubscriptions CustomerSubscription[]
-  subscriptions         Subscription[]
-  userBranches          UserBranch[]
+  id                     String                  @id @default(uuid())
+  tenantId               String
+  name                   String
+  address                String?
+  phoneNumber            String?
+  email                  String?
+  isActive               Boolean                 @default(true)
+  branchData             Json?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gymMemberSubscriptions GymMemberSubscription[]
+  subscriptions          Subscription[]
+  userBranches           UserBranch[]
 
   @@unique([tenantId, name])
 }
 
 model BusinessUnit {
-  id                    String                 @id @default(uuid())
-  tenantId              String
-  name                  String
-  unitType              BusinessUnitType       @default(LOCATION) // LOCATION for gyms, CHANNEL for ecommerce
-  address               String?
-  phoneNumber           String?
-  email                 String?
-  isActive              Boolean                @default(true)
-  isPaid                Boolean                @default(false) // For paid mode toggle
-  trialEndsAt           DateTime?              // When trial expires
-  subscriptionTier      String?                @default("basic") // basic, premium, enterprise
-  monthlyPrice          Decimal?               @default(3999) @db.Decimal(8, 2) // PHP pricing
-  businessUnitData      Json?                  // Business-specific configuration
-  settings              Json?                  // Unit-specific settings
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  tenant                Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  saasSubscriptions     SaasSubscription[]     // SaaS subscriptions for this unit
+  id                String             @id @default(uuid())
+  tenantId          String
+  name              String
+  unitType          BusinessUnitType   @default(LOCATION) // LOCATION for gyms, CHANNEL for ecommerce
+  address           String?
+  phoneNumber       String?
+  email             String?
+  isActive          Boolean            @default(true)
+  isPaid            Boolean            @default(false) // For paid mode toggle
+  trialEndsAt       DateTime? // When trial expires
+  subscriptionTier  String?            @default("basic") // basic, premium, enterprise
+  monthlyPrice      Decimal?           @default(3999) @db.Decimal(8, 2) // PHP pricing
+  businessUnitData  Json? // Business-specific configuration
+  settings          Json? // Unit-specific settings
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  saasSubscriptions SaasSubscription[] // SaaS subscriptions for this unit
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -120,32 +120,32 @@ model Payment {
 }
 
 model User {
-  id                    String                 @id @default(uuid())
-  tenantId              String?
-  firstName             String
-  lastName              String
-  email                 String?                @unique
-  phoneNumber           String?
-  role                  Role                   @default(GYM_MEMBER)
-  isActive              Boolean                @default(true)
-  notes                 String?
-  photoUrl              String?
-  businessData          Json?
-  deletedAt             DateTime?
-  deletedBy             String?
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  name                  String?
-  password              String?
-  customerSubscriptions CustomerSubscription[] @relation("CustomerSubscriptions")
-  customerTransactions  CustomerTransaction[]  @relation("CustomerTransactions")
-  processedTransactions CustomerTransaction[]  @relation("ProcessedTransactions")
-  memberAuditLogs       MemberAuditLog[]       @relation("MemberAuditLogs")
-  performedAuditLogs    MemberAuditLog[]       @relation("PerformedAuditLogs")
-  deletedByUser         User?                  @relation("UserDeletions", fields: [deletedBy], references: [id])
-  deletedUsers          User[]                 @relation("UserDeletions")
-  tenant                Tenant?                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  userBranches          UserBranch[]
+  id                     String                  @id @default(uuid())
+  tenantId               String?
+  firstName              String
+  lastName               String
+  email                  String?                 @unique
+  phoneNumber            String?
+  role                   Role                    @default(GYM_MEMBER)
+  isActive               Boolean                 @default(true)
+  notes                  String?
+  photoUrl               String?
+  businessData           Json?
+  deletedAt              DateTime?
+  deletedBy              String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  name                   String?
+  password               String?
+  gymMemberSubscriptions GymMemberSubscription[] @relation("GymMemberSubscriptions")
+  customerTransactions   CustomerTransaction[]   @relation("CustomerTransactions")
+  processedTransactions  CustomerTransaction[]   @relation("ProcessedTransactions")
+  memberAuditLogs        MemberAuditLog[]        @relation("MemberAuditLogs")
+  performedAuditLogs     MemberAuditLog[]        @relation("PerformedAuditLogs")
+  deletedByUser          User?                   @relation("UserDeletions", fields: [deletedBy], references: [id])
+  deletedUsers           User[]                  @relation("UserDeletions")
+  tenant                 Tenant?                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userBranches           UserBranch[]
 }
 
 model UserBranch {
@@ -164,19 +164,19 @@ model UserBranch {
 }
 
 model MembershipPlan {
-  id                    String                 @id @default(uuid())
-  tenantId              String
-  name                  String
-  description           String?
-  price                 Decimal
-  duration              Int
-  type                  MembershipType
-  benefits              Json?
-  isActive              Boolean                @default(true)
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  customerSubscriptions CustomerSubscription[]
-  tenant                Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                     String                  @id @default(uuid())
+  tenantId               String
+  name                   String
+  description            String?
+  price                  Decimal
+  duration               Int
+  type                   MembershipType
+  benefits               Json?
+  isActive               Boolean                 @default(true)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  gymMemberSubscriptions GymMemberSubscription[]
+  tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, name])
 }
@@ -219,33 +219,33 @@ model CustomerTransaction {
   @@index([amount])
 }
 
-model CustomerSubscription {
-  id                 String                     @id @default(uuid())
+model GymMemberSubscription {
+  id                 String                      @id @default(uuid())
   tenantId           String
   branchId           String?
-  customerId         String
+  memberId           String
   membershipPlanId   String
-  status             CustomerSubscriptionStatus @default(ACTIVE)
-  startDate          DateTime                   @db.Date
-  endDate            DateTime                   @db.Date
-  price              Decimal                    @db.Decimal(12, 2)
-  currency           String?                    @default("PHP")
+  status             GymMemberSubscriptionStatus @default(ACTIVE)
+  startDate          DateTime                    @db.Date
+  endDate            DateTime                    @db.Date
+  price              Decimal                     @db.Decimal(12, 2)
+  currency           String?                     @default("PHP")
   usageData          Json?
   cancelledAt        DateTime?
   cancellationReason String?
   cancellationNotes  String?
-  autoRenew          Boolean?                   @default(true)
-  nextBillingDate    DateTime?                  @db.Date
-  createdAt          DateTime                   @default(now())
-  updatedAt          DateTime                   @updatedAt
-  branch             Branch?                    @relation(fields: [branchId], references: [id])
-  customer           User                       @relation("CustomerSubscriptions", fields: [customerId], references: [id], onDelete: Cascade)
-  membershipPlan     MembershipPlan             @relation(fields: [membershipPlanId], references: [id])
-  tenant             Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  autoRenew          Boolean?                    @default(true)
+  nextBillingDate    DateTime?                   @db.Date
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  branch             Branch?                     @relation(fields: [branchId], references: [id])
+  member             User                        @relation("GymMemberSubscriptions", fields: [memberId], references: [id], onDelete: Cascade)
+  membershipPlan     MembershipPlan              @relation(fields: [membershipPlanId], references: [id])
+  tenant             Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([branchId])
-  @@index([customerId])
+  @@index([memberId])
   @@index([membershipPlanId])
   @@index([status])
   @@index([endDate])
@@ -302,26 +302,26 @@ model MemberAuditLog {
 }
 
 model SaasSubscription {
-  id                    String                 @id @default(uuid())
-  businessUnitId        String
-  planName              String                 @default("basic") // basic, premium, enterprise
-  status                SaasSubscriptionStatus @default(TRIAL)
-  startDate             DateTime               @db.Date
-  endDate               DateTime?              @db.Date
-  trialEndsAt           DateTime?              @db.Date
-  monthlyPrice          Decimal                @default(3999) @db.Decimal(8, 2) // PHP pricing
-  currency              String                 @default("PHP")
-  paymentMethod         String?                // gcash, paymongo, bank_transfer
-  paymentReference      String?                // Reference from payment gateway
-  lastPaymentDate       DateTime?
-  nextBillingDate       DateTime?              @db.Date
-  autoRenew             Boolean                @default(true)
-  cancelledAt           DateTime?
-  cancellationReason    String?
-  metadata              Json?                  // Additional subscription data
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  businessUnit          BusinessUnit           @relation(fields: [businessUnitId], references: [id], onDelete: Cascade)
+  id                 String                 @id @default(uuid())
+  businessUnitId     String
+  planName           String                 @default("basic") // basic, premium, enterprise
+  status             SaasSubscriptionStatus @default(TRIAL)
+  startDate          DateTime               @db.Date
+  endDate            DateTime?              @db.Date
+  trialEndsAt        DateTime?              @db.Date
+  monthlyPrice       Decimal                @default(3999) @db.Decimal(8, 2) // PHP pricing
+  currency           String                 @default("PHP")
+  paymentMethod      String? // gcash, paymongo, bank_transfer
+  paymentReference   String? // Reference from payment gateway
+  lastPaymentDate    DateTime?
+  nextBillingDate    DateTime?              @db.Date
+  autoRenew          Boolean                @default(true)
+  cancelledAt        DateTime?
+  cancellationReason String?
+  metadata           Json? // Additional subscription data
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  businessUnit       BusinessUnit           @relation(fields: [businessUnitId], references: [id], onDelete: Cascade)
 
   @@index([businessUnitId])
   @@index([status])
@@ -426,7 +426,7 @@ enum TransactionStatus {
   REFUNDED
 }
 
-enum CustomerSubscriptionStatus {
+enum GymMemberSubscriptionStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
@@ -459,17 +459,17 @@ enum MemberAuditAction {
 }
 
 enum BusinessUnitType {
-  LOCATION      // Physical locations (gyms, coffee shops)
-  CHANNEL       // Sales channels (ecommerce stores)
-  DEPARTMENT    // Departments within a business
-  FRANCHISE     // Franchise units
+  LOCATION // Physical locations (gyms, coffee shops)
+  CHANNEL // Sales channels (ecommerce stores)
+  DEPARTMENT // Departments within a business
+  FRANCHISE // Franchise units
 }
 
 enum SaasSubscriptionStatus {
-  TRIAL         // Free trial period
-  ACTIVE        // Paid and active
-  PAST_DUE      // Payment failed, grace period
-  SUSPENDED     // Temporarily suspended
-  CANCELLED     // User cancelled
-  EXPIRED       // Trial or subscription expired
+  TRIAL // Free trial period
+  ACTIVE // Paid and active
+  PAST_DUE // Payment failed, grace period
+  SUSPENDED // Temporarily suspended
+  CANCELLED // User cancelled
+  EXPIRED // Trial or subscription expired
 }

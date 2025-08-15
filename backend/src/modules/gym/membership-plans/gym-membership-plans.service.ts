@@ -177,12 +177,12 @@ export class GymMembershipPlansService {
     // Verify the plan exists and belongs to the gym tenant
     await this.findOne(id, tenantId);
 
-    // Check if any gym members are using this plan (from CustomerSubscription table)
-    const membersWithPlan = await this.prisma.customerSubscription.findFirst({
+    // Check if any gym members are using this plan (from GymMemberSubscription table)
+    const membersWithPlan = await this.prisma.gymMemberSubscription.findFirst({
       where: {
         membershipPlanId: id,
         tenantId,
-        customer: {
+        member: {
           role: 'GYM_MEMBER'
         }
       },
@@ -220,12 +220,12 @@ export class GymMembershipPlansService {
       this.prisma.membershipPlan.count({ where: { tenantId, isActive: false } }),
     ]);
 
-    // Get usage stats from CustomerSubscription table (modern approach)
-    const modernUsageCount = await this.prisma.customerSubscription.groupBy({
+    // Get usage stats from GymMemberSubscription table (modern approach)
+    const modernUsageCount = await this.prisma.gymMemberSubscription.groupBy({
       by: ['membershipPlanId'],
       where: {
         tenantId,
-        customer: {
+        member: {
           role: 'GYM_MEMBER'
         }
       },

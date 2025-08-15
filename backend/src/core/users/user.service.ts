@@ -480,18 +480,18 @@ export class UsersService {
         if (accessibleBranchIds.length > 0) {
           // For members (GYM_MEMBER), filter by customers who have subscriptions in accessible branches
           if (filters.role === 'GYM_MEMBER') {
-            const membersInAccessibleBranches = await this.prisma.customerSubscription.findMany({
+            const membersInAccessibleBranches = await this.prisma.gymMemberSubscription.findMany({
               where: {
                 tenantId,
                 branchId: { in: accessibleBranchIds },
                 // Include both ACTIVE and CANCELLED members so frontend can filter properly
                 status: { in: ['ACTIVE', 'CANCELLED'] }
               },
-              select: { customerId: true },
-              distinct: ['customerId']
+              select: { memberId: true },
+              distinct: ['memberId']
             });
             
-            const memberUserIds = membersInAccessibleBranches.map(cs => cs.customerId);
+            const memberUserIds = membersInAccessibleBranches.map(cs => cs.memberId);
             if (memberUserIds.length > 0) {
               whereClause.id = { in: memberUserIds };
             } else {
@@ -556,7 +556,7 @@ export class UsersService {
               },
             },
           },
-          customerSubscriptions: {
+          gymMemberSubscriptions: {
             include: {
               membershipPlan: {
                 select: {
@@ -865,7 +865,7 @@ export class UsersService {
           lte: targetDate  // Show subscriptions expiring within the window (including those that just expired)
         },
         // Exclude subscriptions for deleted users
-        customer: {
+        member: {
           deletedAt: null,
           isActive: true // Only active users
         }
@@ -908,10 +908,10 @@ export class UsersService {
       
       // Use the same logic as overview method - count unique customers with latest subscriptions
       // Get all customer IDs that match our criteria
-      const matchingSubscriptions = await this.prisma.customerSubscription.findMany({
+      const matchingSubscriptions = await this.prisma.gymMemberSubscription.findMany({
         where: whereClause,
         select: {
-          customerId: true,
+          memberId: true,
           endDate: true,
           createdAt: true
         },
@@ -921,9 +921,9 @@ export class UsersService {
       // Group by customer and get only the most recent subscription per customer
       const customerLatestSubscriptions = new Map();
       matchingSubscriptions.forEach(sub => {
-        const existing = customerLatestSubscriptions.get(sub.customerId);
+        const existing = customerLatestSubscriptions.get(sub.memberId);
         if (!existing || sub.createdAt > existing.createdAt) {
-          customerLatestSubscriptions.set(sub.customerId, sub);
+          customerLatestSubscriptions.set(sub.memberId, sub);
         }
       });
       
@@ -996,7 +996,7 @@ export class UsersService {
           lte: targetDate  // Show subscriptions expiring within the window (including those that just expired)
         },
         // Exclude subscriptions for deleted/inactive users
-        customer: {
+        member: {
           deletedAt: null,
           isActive: true
         }
@@ -1087,7 +1087,7 @@ export class UsersService {
       }
 
       // Add filter to exclude deleted and inactive users from the where clause
-      whereClause.customer = {
+      whereClause.member = {
         deletedAt: null,
         isActive: true // Only active users should appear in expiring list
       };
@@ -1098,10 +1098,10 @@ export class UsersService {
 
       // Get only the most recent subscription per customer to avoid duplicates
       // First, get all customer IDs that match our criteria
-      const matchingSubscriptions = await this.prisma.customerSubscription.findMany({
+      const matchingSubscriptions = await this.prisma.gymMemberSubscription.findMany({
         where: whereClause,
         select: {
-          customerId: true,
+          memberId: true,
           endDate: true,
           createdAt: true
         },
@@ -1111,15 +1111,15 @@ export class UsersService {
       // Group by customer and get only the most recent subscription per customer
       const customerLatestSubscriptions = new Map();
       matchingSubscriptions.forEach(sub => {
-        const existing = customerLatestSubscriptions.get(sub.customerId);
+        const existing = customerLatestSubscriptions.get(sub.memberId);
         if (!existing || sub.createdAt > existing.createdAt) {
-          customerLatestSubscriptions.set(sub.customerId, sub);
+          customerLatestSubscriptions.set(sub.memberId, sub);
         }
       });
       
       // Get the full subscription data for the latest subscriptions only
       const latestSubscriptionIds = Array.from(customerLatestSubscriptions.values()).map(sub => ({
-        customerId: sub.customerId,
+        memberId: sub.memberId,
         endDate: sub.endDate
       }));
       
@@ -1130,16 +1130,16 @@ export class UsersService {
       );
       
       const [subscriptions, totalCount] = await Promise.all([
-        this.prisma.customerSubscription.findMany({
+        this.prisma.gymMemberSubscription.findMany({
           where: {
             ...whereClause,
             OR: paginatedLatestSubs.map(sub => ({
-              customerId: sub.customerId,
+              memberId: sub.memberId,
               endDate: sub.endDate
             }))
           },
           include: {
-            customer: {
+            member: {
               select: {
                 id: true,
                 firstName: true,
@@ -1186,7 +1186,7 @@ export class UsersService {
         return {
           ...subscription,
           daysUntilExpiry,
-          memberName: `${subscription.customer.firstName} ${subscription.customer.lastName}`.trim(),
+          memberName: `${subscription.member.firstName} ${subscription.member.lastName}`.trim(),
           isExpired: daysUntilExpiry <= 0,
           urgency: daysUntilExpiry <= 1 ? 'critical' : daysUntilExpiry <= 3 ? 'high' : 'medium'
         };
@@ -1266,7 +1266,7 @@ export class UsersService {
     }
 
     // Check subscription status
-    const activeSubscription = member.customerSubscriptions?.[0];
+    const activeSubscription = member.gymMemberSubscriptions?.[0];
     if (!activeSubscription) {
       // No subscription - determine if inactive or cancelled based on isActive flag
       return !member.isActive ? 'INACTIVE' : 'CANCELLED';
@@ -1296,7 +1296,7 @@ export class UsersService {
     const member = await this.prisma.user.findUnique({
       where: { id: memberId },
       include: {
-        customerSubscriptions: {
+        gymMemberSubscriptions: {
           include: {
             membershipPlan: true
           },
@@ -1332,9 +1332,9 @@ export class UsersService {
     });
 
     // If there's a cancelled subscription, reactivate it
-    const cancelledSubscription = member.customerSubscriptions?.[0];
+    const cancelledSubscription = member.gymMemberSubscriptions?.[0];
     if (cancelledSubscription && cancelledSubscription.status === 'CANCELLED') {
-      await this.prisma.customerSubscription.update({
+      await this.prisma.gymMemberSubscription.update({
         where: { id: cancelledSubscription.id },
         data: { 
           status: 'ACTIVE',
@@ -1376,9 +1376,9 @@ export class UsersService {
     }
     
     // Cancel current subscription if exists
-    const activeSubscription = member.customerSubscriptions?.[0];
+    const activeSubscription = member.gymMemberSubscriptions?.[0];
     if (activeSubscription) {
-      await this.prisma.customerSubscription.update({
+      await this.prisma.gymMemberSubscription.update({
         where: { id: activeSubscription.id },
         data: { 
           status: 'CANCELLED',
@@ -1429,10 +1429,10 @@ export class UsersService {
     endDate.setDate(endDate.getDate() + membershipPlan.duration);
     
     // Create new subscription
-    const newSubscription = await this.prisma.customerSubscription.create({
+    const newSubscription = await this.prisma.gymMemberSubscription.create({
       data: {
         tenantId: member.tenantId!,
-        customerId: memberId,
+        memberId: memberId,
         membershipPlanId: planId,
         status: 'ACTIVE',
         startDate,
@@ -1482,7 +1482,7 @@ export class UsersService {
     const state = await this.getMemberState(member);
     
     // Get the active subscription if it exists
-    const subscription = member.customerSubscriptions?.[0] || null;
+    const subscription = member.gymMemberSubscriptions?.[0] || null;
     
     return {
       id: member.id,

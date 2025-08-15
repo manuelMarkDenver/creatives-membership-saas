@@ -14,7 +14,6 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { StatsModule } from './modules/stats/stats.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { MembershipPlansModule } from './modules/membership-plans/membership-plans.module';
-import { CustomerSubscriptionsModule } from './modules/customer-subscriptions/customer-subscriptions.module';
 import { GymModule } from './modules/gym/gym.module';
 import { BusinessUnitsModule } from './modules/business-units/business-units.module';
 
@@ -32,7 +31,6 @@ import { BusinessUnitsModule } from './modules/business-units/business-units.mod
     StatsModule,
     PlansModule,
     MembershipPlansModule,
-    CustomerSubscriptionsModule,
     GymModule,
     BusinessUnitsModule,
   ],

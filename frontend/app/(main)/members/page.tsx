@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useProfile, useUsersByTenant, userKeys } from '@/lib/hooks/use-users'
 import { useSystemMemberStats } from '@/lib/hooks/use-stats'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
+import { useGymMembersWithSubscriptions, gymMemberKeys } from '@/lib/hooks/use-gym-members'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -38,9 +39,9 @@ import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MemberCard } from '@/components/members/member-card'
 import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-member-actions'
 import { toast } from 'sonner'
-import { filterMembersByStatus, calculateMemberStats, getExpiringMembersCount, type MemberData } from '@/lib/utils/member-status'
+import { filterMembersByStatus, calculateMemberStats, type MemberData } from '@/lib/utils/member-status'
 import { useExpiringMembersCount } from '@/lib/hooks/use-expiring-members'
-import { useCustomerSubscriptionStats } from '@/lib/hooks/use-customer-subscriptions'
+import { useGymSubscriptionStats } from '@/lib/hooks/use-gym-subscriptions'
 
 export default function MembersPage() {
   const { data: profile } = useProfile()
@@ -65,7 +66,14 @@ export default function MembersPage() {
   // Fetch data based on user role
   const { data: membersData, isLoading: isLoadingTenantMembers, error: tenantMembersError, refetch: refetchTenantMembers } = useUsersByTenant(
     profile?.tenantId || '', 
-    { role: 'GYM_MEMBER' }
+    { role: 'GYM_MEMBER' },
+    { enabled: isSuperAdmin } // Only use this for super admin
+  )
+
+  // For tenant users, fetch gym members with their subscription data
+  const { data: gymMembersData, isLoading: isLoadingGymMembers, error: gymMembersError } = useGymMembersWithSubscriptions(
+    profile?.tenantId || '',
+    { enabled: !isSuperAdmin && !!profile?.tenantId }
   )
 
   const { data: systemMemberStats, isLoading: isLoadingSystemMembers, error: systemMembersError } = useSystemMemberStats({
@@ -75,13 +83,13 @@ export default function MembersPage() {
   // Fetch membership plans for the current tenant
   const { data: membershipPlans = [] } = useActiveMembershipPlans()
   
-  // Get backend subscription stats for current tenant (non-super admin only)
-  const { data: customerSubscriptionStats, error: subscriptionStatsError } = useCustomerSubscriptionStats({
+  // Get backend gym subscription stats for current tenant (non-super admin only)
+  const { data: gymSubscriptionStats, error: subscriptionStatsError } = useGymSubscriptionStats({
     enabled: !isSuperAdmin && !!profile?.tenantId
   })
   
   // Get backend expiring count - this is the authoritative count with proper branch filtering
-  const { data: expiringCountData, error: expiringCountError } = useExpiringMembersCount(
+  useExpiringMembersCount(
     profile?.tenantId || '', 
     7, // 7 days ahead
     { enabled: !!profile?.tenantId && !isSuperAdmin }
@@ -94,16 +102,23 @@ export default function MembersPage() {
   // Helper function to refresh all members data
   const refreshMembersData = async () => {
     try {
-      // Invalidate and refetch tenant members query
-      await queryClient.invalidateQueries({ 
-        queryKey: userKeys.byTenant(profile?.tenantId || '', { role: 'GYM_MEMBER' })
-      })
+      if (isSuperAdmin) {
+        // Invalidate and refetch tenant members query for super admin
+        await queryClient.invalidateQueries({ 
+          queryKey: userKeys.byTenant(profile?.tenantId || '', { role: 'GYM_MEMBER' })
+        })
+        await refetchTenantMembers()
+      } else {
+        // Invalidate gym members with subscriptions for tenant users
+        await queryClient.invalidateQueries({
+          queryKey: gymMemberKeys.withSubscriptions(profile?.tenantId || '')
+        })
+        // Also invalidate subscription-related queries
+        await queryClient.invalidateQueries({ queryKey: ['gym-subscriptions'] })
+      }
       
       // Also invalidate all user queries to ensure consistency  
       await queryClient.invalidateQueries({ queryKey: userKeys.lists() })
-      
-      // Force refetch
-      await refetchTenantMembers()
       
       console.log('Members data refreshed successfully')
     } catch (error) {
@@ -187,7 +202,7 @@ export default function MembersPage() {
 
   // Helper function to get member's branch ID from subscription
   const getMemberBranchId = (member: MemberData): string | null => {
-    return member.customerSubscriptions?.[0]?.branchId || null
+    return member.gymSubscriptions?.[0]?.branchId || null
   }
 
   // Helper function to check if current user can manage a member based on branch access
@@ -216,11 +231,11 @@ export default function MembersPage() {
   }
 
   // Determine data source based on user role
-  const isLoading = isSuperAdmin ? isLoadingSystemMembers : isLoadingTenantMembers
-  const error = isSuperAdmin ? systemMembersError : tenantMembersError
+  const isLoading = isSuperAdmin ? isLoadingSystemMembers : (isLoadingTenantMembers || isLoadingGymMembers)
+  const error = isSuperAdmin ? systemMembersError : (tenantMembersError || gymMembersError)
   const rawMembers = isSuperAdmin ? 
     (systemMemberStats?.members || []).filter(m => ['GYM_MEMBER', 'ECOM_CUSTOMER', 'COFFEE_CUSTOMER'].includes(m.role)) :
-    (membersData || [])
+    (gymMembersData || membersData || [])
   
   // Apply branch filtering to ensure consistency between stats and displayed members
   console.log('[DEBUG] Raw members count:', rawMembers.length)
@@ -260,8 +275,8 @@ export default function MembersPage() {
   // Calculate stats - use backend subscription stats for more accurate counts when available
   const frontendStats = calculateMemberStats(searchFilteredMembers as MemberData[])
   
-  // Debug logging for customer subscription stats
-  console.log('[DEBUG] Customer subscription stats:', customerSubscriptionStats)
+  // Debug logging for gym subscription stats
+  console.log('[DEBUG] Gym subscription stats:', gymSubscriptionStats)
   console.log('[DEBUG] Frontend calculated stats:', frontendStats)
   console.log('[DEBUG] Subscription stats error:', subscriptionStatsError)
   
@@ -269,12 +284,12 @@ export default function MembersPage() {
     ...frontendStats,
     byCategory: systemMemberStats?.summary?.byCategory || []
   } : {
-    // For tenant admins, use backend subscription stats when available for better accuracy
-    // This counts unique members by their current subscription status
-    total: customerSubscriptionStats?.total || frontendStats.total,
-    active: customerSubscriptionStats?.active || frontendStats.active,
-    expired: customerSubscriptionStats?.expired || frontendStats.expired,
-    cancelled: customerSubscriptionStats?.cancelled || frontendStats.cancelled,
+    // For tenant admins, use backend gym subscription stats when available for better accuracy
+    // This counts unique gym members by their current subscription status with proper filtering
+    total: gymSubscriptionStats?.total || frontendStats.total,
+    active: gymSubscriptionStats?.active || frontendStats.active,
+    expired: gymSubscriptionStats?.expired || frontendStats.expired,
+    cancelled: gymSubscriptionStats?.cancelled || frontendStats.cancelled,
     // Frontend calculation for other stats that backend doesn't provide
     expiring: frontendStats.expiring,
     deleted: frontendStats.deleted

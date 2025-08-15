@@ -31,7 +31,7 @@ export interface MemberData {
   email: string
   isActive: boolean
   deletedAt?: string | null
-  customerSubscriptions?: Array<{
+  gymSubscriptions?: Array<{
     id: string
     status: string
     startDate: string
@@ -59,7 +59,7 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
   
   if (isDebugMember) {
     console.log(`[DEBUG] Calculating status for ${member.email}:`, {
-      subscriptions: member.customerSubscriptions?.map(sub => ({
+      subscriptions: member.gymSubscriptions?.map(sub => ({
         id: sub.id,
         status: sub.status,
         endDate: sub.endDate,
@@ -85,7 +85,7 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
   // Get the most recent subscription matching backend logic
   // Backend uses the most recent subscription by creation date
   // Sort by creation date (most recent first), then by end date (latest first)
-  const subscriptions = [...(member.customerSubscriptions || [])]
+  const subscriptions = [...(member.gymSubscriptions || [])]
     .sort((a, b) => {
       // First sort by creation date if available (most recent first)
       const aCreated = new Date(a.createdAt || a.startDate).getTime()
@@ -127,7 +127,7 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
   const currentDate = new Date()
   currentDate.setHours(0, 0, 0, 0) // Normalize to start of day
 
-  // Check subscription status - prefer customerSubscriptions over businessData
+  // Check subscription status - prefer gymSubscriptions over businessData
   let subscriptionStatus: string
   let subscriptionEndDate: Date | null = null
   let subscriptionCancelledAt: string | null = null
@@ -376,7 +376,7 @@ export function isMemberConsideredExpiring(member: MemberData, daysBefore: numbe
   }
   
   // Must have active subscription that is not cancelled - use same logic as calculateMemberStatus
-  const subscriptions = [...(member.customerSubscriptions || [])]
+  const subscriptions = [...(member.gymSubscriptions || [])]
     .sort((a, b) => {
       // First sort by creation date if available (most recent first)
       const aCreated = new Date(a.createdAt || a.startDate).getTime()

@@ -249,8 +249,8 @@ export function useRenewMemberSubscription() {
       queryClient.invalidateQueries({ queryKey: [...memberManagementKeys.all, 'history', memberId] })
       // Invalidate members lists
       queryClient.invalidateQueries({ queryKey: ['users'] })
-      // Invalidate customer subscription data
-      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions'] })
+      // Invalidate gym subscription data
+      queryClient.invalidateQueries({ queryKey: ['gym-subscriptions'] })
     },
   })
 }

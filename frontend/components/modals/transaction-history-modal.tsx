@@ -20,7 +20,7 @@ import {
   Clock,
   RotateCcw
 } from 'lucide-react'
-import { useCustomerTransactions } from '@/lib/hooks/use-customer-subscriptions'
+import { useGymMemberTransactions } from '@/lib/hooks/use-gym-subscriptions'
 
 interface TransactionHistoryModalProps {
   isOpen: boolean
@@ -33,7 +33,7 @@ export function TransactionHistoryModal({
   onClose,
   member
 }: TransactionHistoryModalProps) {
-  const { data: transactions, isLoading, error } = useCustomerTransactions(member?.id)
+  const { data: transactions, isLoading, error } = useGymMemberTransactions(member?.id)
   
   if (!member) return null
 

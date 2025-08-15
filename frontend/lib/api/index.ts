@@ -7,8 +7,9 @@ export { usersApi } from './users'
 export { statsApi } from './stats'
 export { plansApi } from './plans'
 export { subscriptionsApi } from './subscriptions'
-export { customerSubscriptionsApi } from './customer-subscriptions'
 export { membersApi } from './members'
+export { gymSubscriptionsApi } from './gym-subscriptions'
+export { businessUnitsApi } from './business-units'
 
 // Export DTOs and types
 export type { CreateTenantDto, UpdateTenantDto, TenantQueryParams } from './tenants'
@@ -41,11 +42,6 @@ export type {
   ExpiringSoonResponse
 } from './subscriptions'
 export type {
-  CustomerSubscriptionRenewalData,
-  CustomerSubscriptionCancellationData,
-  CustomerSubscriptionResponse
-} from './customer-subscriptions'
-export type {
   MemberActionRequest,
   MemberRenewRequest,
   MemberHistoryQuery,
@@ -53,3 +49,16 @@ export type {
   MemberHistoryResponse,
   MemberActionResponse
 } from './members'
+export type {
+  GymMemberSubscriptionRenewalData,
+  GymMemberSubscriptionCancellationData,
+  GymSubscriptionResponse,
+  GymSubscriptionStats
+} from './gym-subscriptions'
+export type {
+  BusinessUnit,
+  CreateBusinessUnitData,
+  UpdateBusinessUnitData,
+  BusinessUnitStats,
+  PaidModeToggleData
+} from './business-units'

@@ -1,33 +1,26 @@
 services:
-  # Frontend Next.js App
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: production
-      args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5000}
-        - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
-        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-        - NEXT_PUBLIC_API_BYPASS_AUTH=${NEXT_PUBLIC_API_BYPASS_AUTH:-false}
-    container_name: creatives-saas-frontend
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: creatives-saas-postgres
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "5432:5432"
     environment:
-      NODE_ENV: "production"
-    env_file:
-      - .env
+      POSTGRES_DB: creatives_saas_prod
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_prod_password_123}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    depends_on:
-      - backend
+      test: ["CMD-SHELL", "pg_isready -U postgres -d creatives_saas_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Backend API (connects to Supabase)
+  # Backend API
   backend:
     build: 
       context: ./backend
@@ -38,11 +31,9 @@ services:
     ports:
       - "5000:5000"
     environment:
-      # Supabase Database & Auth
-      DATABASE_URL: "${DATABASE_URL}"
-      DIRECT_URL: "${DIRECT_URL}"
-      SUPABASE_URL: "${SUPABASE_URL}"
-      SUPABASE_ANON_KEY: "${SUPABASE_ANON_KEY}"
+      # PostgreSQL Database
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD:-secure_prod_password_123}@postgres:5432/creatives_saas_prod"
+      DIRECT_URL: "postgresql://postgres:${POSTGRES_PASSWORD:-secure_prod_password_123}@postgres:5432/creatives_saas_prod"
       
       # Frontend URL
       FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3000}"
@@ -52,7 +43,7 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/v1/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -60,6 +51,35 @@ services:
     volumes:
       # Optional: Mount for file uploads if needed
       - ./backend/uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Frontend Next.js App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5000/api/v1}
+        - NEXT_PUBLIC_API_BYPASS_AUTH=${NEXT_PUBLIC_API_BYPASS_AUTH:-false}
+    container_name: creatives-saas-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: "production"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - backend
 
   # Redis (Optional - for caching/sessions/rate limiting)
   redis:
@@ -92,6 +112,8 @@ services:
       - production  # Only run in production profile
 
 volumes:
+  postgres_prod_data:
+    driver: local
   redis_data:
     driver: local
 

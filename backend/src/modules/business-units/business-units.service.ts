@@ -304,7 +304,22 @@ export class BusinessUnitsService {
           }
         }
       }
-    });
+    }) as {
+      id: string;
+      name: string;
+      category: any;
+      paidModeEnabled: boolean;
+      freeUnitsLimit: number;
+      trialDurationDays: number;
+      businessUnits: {
+        id: string;
+        isActive: boolean;
+        isPaid: boolean;
+        saasSubscriptions: {
+          status: any;
+        }[];
+      }[];
+    } | null;
 
     if (!tenant) {
       throw new NotFoundException('Tenant not found');

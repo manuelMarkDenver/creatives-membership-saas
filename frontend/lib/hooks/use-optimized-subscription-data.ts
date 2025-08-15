@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react'
 import { useBusinessStore, useSubscriptionStore, useApiStore, CacheKeys } from '../stores'
 import { getMembersWithSubscriptions } from '../api/members'
-import { getCustomerSubscriptionStats } from '../api/customer-subscriptions'
+import { gymSubscriptionsApi } from '../api/gym-subscriptions'
 import { getExpiringMembersOverview } from '../api/expiring-members'
 
 /**
@@ -79,10 +79,7 @@ export const useOptimizedSubscriptionData = () => {
       subscriptionStore.setLoadingStats(true)
       subscriptionStore.setStatsError(null)
 
-      const response = await getCustomerSubscriptionStats({
-        tenantId: currentBusiness.tenantId,
-        branchId: currentBusiness.branchId,
-      })
+      const response = await gymSubscriptionsApi.getSubscriptionStats()
 
       // Cache the response
       apiStore.setCache(cacheKeys.stats, response, 2 * 60 * 1000) // 2 minutes for stats

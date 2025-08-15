@@ -133,7 +133,24 @@ export interface User {
   createdAt: string
   updatedAt: string
   userBranches?: UserBranch[]
-  customerSubscriptions?: CustomerSubscription[]
+  gymSubscriptions?: Array<{
+    id: string
+    status: string
+    startDate: string
+    endDate: string
+    cancelledAt?: string | null
+    branchId?: string
+    createdAt?: string
+    price?: number
+    currency?: string
+    membershipPlan?: {
+      id: string
+      name: string
+      price: number
+      duration: number
+      type: string
+    }
+  }> // Gym-specific subscriptions from gym-subscriptions API
 }
 
 export interface UserBranch {
