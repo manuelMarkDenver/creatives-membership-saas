@@ -115,7 +115,7 @@ export function ExpiringMembersModal({
     const searchLower = searchTerm.toLowerCase()
     return (
       member.memberName.toLowerCase().includes(searchLower) ||
-      member.email.toLowerCase().includes(searchLower) ||
+      member.customer?.email?.toLowerCase().includes(searchLower) ||
       member.membershipPlan.name.toLowerCase().includes(searchLower) ||
       member.tenant.name.toLowerCase().includes(searchLower) ||
       (member.branch?.name && member.branch.name.toLowerCase().includes(searchLower))
@@ -429,9 +429,9 @@ function MemberCard({ member, showTenant = false, compact = false }: MemberCardP
     }`}>
       <div className="flex items-center space-x-3 flex-1">
         {/* Member Avatar */}
-        {member.photoUrl ? (
+        {member.customer?.photoUrl ? (
           <img 
-            src={member.photoUrl} 
+            src={member.customer.photoUrl} 
             alt={member.memberName}
             className={`${compact ? 'w-8 h-8' : 'w-12 h-12'} rounded-full object-cover border-2 border-gray-200`}
           />
@@ -454,16 +454,16 @@ function MemberCard({ member, showTenant = false, compact = false }: MemberCardP
           
           {/* Contact Information */}
           <div className={`flex items-center gap-4 mb-2 ${compact ? 'text-xs' : 'text-sm'} text-gray-600 dark:text-gray-400`}>
-            {member.email && (
+            {member.customer?.email && (
               <div className="flex items-center gap-1 truncate">
                 <Mail className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate">{member.email}</span>
+                <span className="truncate">{member.customer.email}</span>
               </div>
             )}
-            {member.phoneNumber && (
+            {member.customer?.phoneNumber && (
               <div className="flex items-center gap-1">
                 <Phone className="h-3 w-3 flex-shrink-0" />
-                <span>{member.phoneNumber}</span>
+                <span>{member.customer.phoneNumber}</span>
               </div>
             )}
           </div>

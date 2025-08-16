@@ -59,6 +59,8 @@ export function AddMemberModal({
   
   const [step, setStep] = useState<'basic' | 'membership' | 'summary'>("basic")
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [showValidation, setShowValidation] = useState(false)
   
   // Basic Information
   const [formData, setFormData] = useState({
@@ -149,41 +151,83 @@ export function AddMemberModal({
     }
   }
 
-  const validateBasicInfo = () => {
+  // Validation logic that returns both success and errors
+  const getBasicInfoValidation = () => {
+    const errors: Record<string, string> = {}
+    
     if (!formData.firstName.trim()) {
-      toast.error('First name is required')
-      return false
+      errors.firstName = 'First name is required'
     }
     if (!formData.lastName.trim()) {
-      toast.error('Last name is required')
-      return false
+      errors.lastName = 'Last name is required'
     }
     if (!formData.email.trim()) {
-      toast.error('Email is required')
-      return false
+      errors.email = 'Email is required'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Please enter a valid email address'
     }
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      toast.error('Please enter a valid email address')
-      return false
+    
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
     }
-    return true
+  }
+
+  const getMembershipValidation = () => {
+    const errors: Record<string, string> = {}
+    
+    if (!formData.selectedPlanId) {
+      errors.selectedPlanId = 'Please select a membership plan'
+    }
+    if (!formData.membershipStartDate) {
+      errors.membershipStartDate = 'Please select a start date'
+    }
+    if (!formData.paymentAmount || parseFloat(formData.paymentAmount) < 0) {
+      errors.paymentAmount = 'Please enter a valid payment amount'
+    }
+    
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    }
+  }
+
+  // Legacy validation functions for toasts (fallback)
+  const validateBasicInfo = () => {
+    const validation = getBasicInfoValidation()
+    if (!validation.isValid) {
+      const firstError = Object.values(validation.errors)[0]
+      // Fallback: show alert if toast doesn't work
+      try {
+        toast.error(firstError)
+      } catch {
+        alert(firstError)
+      }
+    }
+    return validation.isValid
   }
 
   const validateMembership = () => {
-    if (!formData.selectedPlanId) {
-      toast.error('Please select a membership plan')
-      return false
+    const validation = getMembershipValidation()
+    if (!validation.isValid) {
+      const firstError = Object.values(validation.errors)[0]
+      // Fallback: show alert if toast doesn't work
+      try {
+        toast.error(firstError)
+      } catch {
+        alert(firstError)
+      }
     }
-    if (!formData.membershipStartDate) {
-      toast.error('Please select a start date')
-      return false
-    }
-    if (!formData.paymentAmount || parseFloat(formData.paymentAmount) < 0) {
-      toast.error('Please enter a valid payment amount')
-      return false
-    }
-    return true
+    return validation.isValid
   }
+  
+  // Determine if Next button should be disabled
+  const canProceedFromBasic = getBasicInfoValidation().isValid
+  const canProceedFromMembership = getMembershipValidation().isValid
+  
+  // Get current validation errors for display
+  const currentBasicErrors = getBasicInfoValidation().errors
+  const currentMembershipErrors = getMembershipValidation().errors
 
   const handleNext = () => {
     if (step === 'basic') {
@@ -206,7 +250,9 @@ export function AddMemberModal({
   }
 
   const handleSubmit = async () => {
-    if (!validateBasicInfo() || !validateMembership()) return
+    if (!validateBasicInfo() || !validateMembership()) {
+      return
+    }
 
     // Prepare business data
     const businessData = {
@@ -408,7 +454,11 @@ export function AddMemberModal({
                     value={formData.firstName}
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
                     placeholder="John"
+                    className={currentBasicErrors.firstName ? "border-red-500" : ""}
                   />
+                  {currentBasicErrors.firstName && (
+                    <p className="text-sm text-red-500 mt-1">{currentBasicErrors.firstName}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="lastName">Last Name *</Label>
@@ -417,7 +467,11 @@ export function AddMemberModal({
                     value={formData.lastName}
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     placeholder="Doe"
+                    className={currentBasicErrors.lastName ? "border-red-500" : ""}
                   />
+                  {currentBasicErrors.lastName && (
+                    <p className="text-sm text-red-500 mt-1">{currentBasicErrors.lastName}</p>
+                  )}
                 </div>
               </div>
 
@@ -432,9 +486,12 @@ export function AddMemberModal({
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       placeholder="john@example.com"
-                      className="pl-10"
+                      className={`pl-10 ${currentBasicErrors.email ? "border-red-500" : ""}`}
                     />
                   </div>
+                  {currentBasicErrors.email && (
+                    <p className="text-sm text-red-500 mt-1">{currentBasicErrors.email}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="phoneNumber">Phone Number</Label>
@@ -576,7 +633,7 @@ export function AddMemberModal({
               <div>
                 <Label htmlFor="membershipPlan">Membership Plan *</Label>
                 <Select value={formData.selectedPlanId} onValueChange={handlePlanChange}>
-                  <SelectTrigger>
+                  <SelectTrigger className={currentMembershipErrors.selectedPlanId ? "border-red-500" : ""}>
                     <SelectValue placeholder="Select a membership plan" />
                   </SelectTrigger>
                   <SelectContent>
@@ -599,6 +656,9 @@ export function AddMemberModal({
                     ))}
                   </SelectContent>
                 </Select>
+                {currentMembershipErrors.selectedPlanId && (
+                  <p className="text-sm text-red-500 mt-1">{currentMembershipErrors.selectedPlanId}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -611,9 +671,12 @@ export function AddMemberModal({
                       type="date"
                       value={formData.membershipStartDate}
                       onChange={(e) => handleInputChange('membershipStartDate', e.target.value)}
-                      className="pl-10"
+                      className={`pl-10 ${currentMembershipErrors.membershipStartDate ? "border-red-500" : ""}`}
                     />
                   </div>
+                  {currentMembershipErrors.membershipStartDate && (
+                    <p className="text-sm text-red-500 mt-1">{currentMembershipErrors.membershipStartDate}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="paymentAmount">Payment Amount (₱) *</Label>
@@ -625,7 +688,11 @@ export function AddMemberModal({
                     value={formData.paymentAmount}
                     onChange={(e) => handleInputChange('paymentAmount', e.target.value)}
                     placeholder="0.00"
+                    className={currentMembershipErrors.paymentAmount ? "border-red-500" : ""}
                   />
+                  {currentMembershipErrors.paymentAmount && (
+                    <p className="text-sm text-red-500 mt-1">{currentMembershipErrors.paymentAmount}</p>
+                  )}
                 </div>
               </div>
 
@@ -788,11 +855,17 @@ export function AddMemberModal({
                 Cancel
               </Button>
               {step !== 'summary' ? (
-                <Button onClick={handleNext}>
+                <Button 
+                  onClick={handleNext}
+                  disabled={(step === 'basic' && !canProceedFromBasic) || (step === 'membership' && !canProceedFromMembership)}
+                >
                   Next
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} disabled={createUserMutation.isPending}>
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={createUserMutation.isPending}
+                >
                   {createUserMutation.isPending ? 'Adding Member...' : 'Add Member'}
                 </Button>
               )}

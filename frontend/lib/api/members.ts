@@ -56,7 +56,7 @@ export interface MemberActionResponse {
 export const membersApi = {
   // Update member
   async updateMember(memberId: string, data: any): Promise<MemberActionResponse> {
-    const response = await apiClient.patch(`/members/${memberId}`, data)
+    const response = await apiClient.patch(`/users/${memberId}`, data)
     return response.data
   },
 

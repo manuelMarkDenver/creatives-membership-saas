@@ -29,8 +29,10 @@ export const getTenantContext = () => currentTenantId
 apiClient.interceptors.request.use(
   async (config) => {
     // Add bypass auth header for local development
+    console.log('[DEBUG] BYPASS_AUTH setting:', BYPASS_AUTH);
     if (BYPASS_AUTH) {
       config.headers['x-bypass-auth'] = 'true'
+      console.log('[DEBUG] Added x-bypass-auth header for request:', config.url);
     } else {
       // Only call getSession on client side
       if (typeof window !== 'undefined') {

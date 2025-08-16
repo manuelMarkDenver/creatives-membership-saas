@@ -424,7 +424,7 @@ export function MemberCard({
                   return (
                     <DropdownMenuItem 
                       className="text-blue-600"
-                      onClick={() => setShowRestoreModal(true)}
+                      onClick={() => openMemberActionModal('restore')}
                     >
                       <UserPlus className="mr-2 h-4 w-4" />
                       Restore Member

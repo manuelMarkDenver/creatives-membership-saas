@@ -68,7 +68,7 @@ export default function MembersPage() {
     profile?.tenantId || '', 
     { role: 'GYM_MEMBER' as Role }
   )
-
+  
   // For tenant users, fetch gym members with their subscription data
   const { data: gymMembersData, isLoading: isLoadingGymMembers, error: gymMembersError } = useGymMembersWithSubscriptions(
     profile?.tenantId || '',
@@ -101,25 +101,28 @@ export default function MembersPage() {
   // Helper function to refresh all members data
   const refreshMembersData = async () => {
     try {
+      // Invalidate all user-related queries first
+      await queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+      await queryClient.invalidateQueries({ 
+        queryKey: userKeys.byTenant(profile?.tenantId || '', { role: 'GYM_MEMBER' as Role })
+      })
+      
+      // Invalidate gym members with subscriptions queries
+      await queryClient.invalidateQueries({
+        queryKey: gymMemberKeys.withSubscriptions(profile?.tenantId || '')
+      })
+      
+      // Invalidate all gym member related queries
+      await queryClient.invalidateQueries({ queryKey: gymMemberKeys.all })
+      
+      // Invalidate subscription-related queries
+      await queryClient.invalidateQueries({ queryKey: ['gym-subscriptions'] })
+      
+      // Force refetch for immediate UI update
       if (isSuperAdmin) {
-        // Invalidate and refetch tenant members query for super admin
-        await queryClient.invalidateQueries({ 
-          queryKey: userKeys.byTenant(profile?.tenantId || '', { role: 'GYM_MEMBER' as Role })
-        })
         await refetchTenantMembers()
-      } else {
-        // Invalidate gym members with subscriptions for tenant users
-        await queryClient.invalidateQueries({
-          queryKey: gymMemberKeys.withSubscriptions(profile?.tenantId || '')
-        })
-        // Also invalidate subscription-related queries
-        await queryClient.invalidateQueries({ queryKey: ['gym-subscriptions'] })
       }
       
-      // Also invalidate all user queries to ensure consistency  
-      await queryClient.invalidateQueries({ queryKey: userKeys.lists() })
-      
-      console.log('Members data refreshed successfully')
     } catch (error) {
       console.error('Error refreshing members data:', error)
     }
@@ -144,10 +147,13 @@ export default function MembersPage() {
       memberId: selectedMemberForAction.id,
       data: { membershipPlanId: selectedPlanId }
     }, {
-      onSuccess: (result) => {
+      onSuccess: async (result) => {
         toast.success(`Membership renewed successfully for ${memberName}!`, {
           description: result.message
         })
+        
+        // Refresh members data to show updated status
+        await refreshMembersData()
         
         setShowRenewalModal(false)
         setSelectedMemberForAction(null)
@@ -177,10 +183,13 @@ export default function MembersPage() {
       memberId: selectedMemberForAction.id,
       data: { reason: cancellationReason || 'No reason specified', notes: cancellationNotes }
     }, {
-      onSuccess: (result) => {
+      onSuccess: async (result) => {
         toast.success(`Membership cancelled successfully for ${memberName}`, {
           description: result.message
         })
+        
+        // Refresh members data to show updated status
+        await refreshMembersData()
         
         setShowCancellationModal(false)
         setSelectedMemberForAction(null)
@@ -237,20 +246,9 @@ export default function MembersPage() {
     (gymMembersData || membersData || [])
   
   // Apply branch filtering to ensure consistency between stats and displayed members
-  console.log('[DEBUG] Raw members count:', rawMembers.length)
-  console.log('[DEBUG] Raw members:', rawMembers.map((m: MemberData) => ({ email: m.email, branchId: getMemberBranchId(m) })))
-  console.log('[DEBUG] User branches:', profile?.userBranches?.map((ub: { branchId: string }) => ub.branchId))
-  
   const allMembers = rawMembers.filter((member: MemberData) => {
-    const canManage = canManageMember(member)
-    const memberBranchId = getMemberBranchId(member)
-    
-    console.log(`[DEBUG] ${member.email}: branchId=${memberBranchId}, canManage=${canManage}`)
-    
-    return canManage
+    return canManageMember(member)
   })
-  
-  console.log('[DEBUG] Filtered members count:', allMembers.length)
 
 
   // Apply search term filtering first
@@ -273,11 +271,6 @@ export default function MembersPage() {
 
   // Calculate stats - use backend subscription stats for more accurate counts when available
   const frontendStats = calculateMemberStats(searchFilteredMembers as MemberData[])
-  
-  // Debug logging for gym subscription stats
-  console.log('[DEBUG] Gym subscription stats:', gymSubscriptionStats)
-  console.log('[DEBUG] Frontend calculated stats:', frontendStats)
-  console.log('[DEBUG] Subscription stats error:', subscriptionStatsError)
   
   const stats = isSuperAdmin ? {
     ...frontendStats,
@@ -310,7 +303,13 @@ export default function MembersPage() {
           </p>
         </div>
         {!isSuperAdmin && (
-          <Button onClick={() => setShowAddMemberModal(true)}>
+          <Button 
+            onClick={() => {
+              setShowAddMemberModal(true)
+            }}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            size="lg"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add Member
           </Button>

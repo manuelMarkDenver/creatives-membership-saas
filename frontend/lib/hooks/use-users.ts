@@ -131,11 +131,15 @@ export function useUpdateUser() {
       // Update cached user
       queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser)
       
-      // Invalidate lists
+      // Invalidate all relevant queries for immediate refresh
       queryClient.invalidateQueries({ queryKey: userKeys.lists() })
       queryClient.invalidateQueries({ 
         queryKey: [...userKeys.all, 'tenant', updatedUser.tenantId] 
       })
+      
+      // Also invalidate gym members queries for proper member list refresh
+      queryClient.invalidateQueries({ queryKey: ['gym-members'] })
+      queryClient.invalidateQueries({ queryKey: ['gym-subscriptions'] })
     },
   })
 }
@@ -191,12 +195,16 @@ export function useSoftDeleteUser() {
       // Update cached user
       queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser)
       
-      // Invalidate lists to filter out soft-deleted users
+      // Invalidate all relevant queries for immediate refresh
       queryClient.invalidateQueries({ queryKey: userKeys.lists() })
       queryClient.invalidateQueries({ 
         queryKey: [...userKeys.all, 'tenant', updatedUser.tenantId] 
       })
       queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'branch'] })
+      
+      // Also invalidate gym members queries for proper member list refresh
+      queryClient.invalidateQueries({ queryKey: ['gym-members'] })
+      queryClient.invalidateQueries({ queryKey: ['gym-subscriptions'] })
     },
   })
 }
@@ -336,8 +344,8 @@ export function useRestoreUser() {
     mutationFn: (id: string) => {
       const updateData = {
         isActive: true,
-        deletedAt: undefined,
-        deletedBy: undefined
+        deletedAt: null,
+        deletedBy: null
       }
       return usersApi.update(id, updateData)
     },
@@ -345,12 +353,16 @@ export function useRestoreUser() {
       // Update cached user
       queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser)
       
-      // Invalidate lists
+      // Invalidate all relevant queries for immediate refresh
       queryClient.invalidateQueries({ queryKey: userKeys.lists() })
       queryClient.invalidateQueries({ 
         queryKey: [...userKeys.all, 'tenant', updatedUser.tenantId] 
       })
       queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'branch'] })
+      
+      // Also invalidate gym members queries for proper member list refresh
+      queryClient.invalidateQueries({ queryKey: ['gym-members'] })
+      queryClient.invalidateQueries({ queryKey: ['gym-subscriptions'] })
     },
   })
 }
