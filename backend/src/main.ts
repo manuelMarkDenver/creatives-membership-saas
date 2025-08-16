@@ -10,8 +10,16 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS for frontend communication
+  const corsOrigins = process.env.NODE_ENV === 'production' 
+    ? [
+        process.env.FRONTEND_URL || 'https://creatives-saas-frontend.vercel.app',
+        'https://frontend-2q1gglz7b-manuelmarkdenvers-projects.vercel.app',
+        'https://creatives-membership-saas.vercel.app'
+      ]
+    : true; // Allow all origins in development
+
   app.enableCors({
-    origin: true, // Allow all origins in development
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-bypass-auth', 'x-tenant-id'],
     credentials: true,
