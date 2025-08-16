@@ -344,8 +344,8 @@ export function useRestoreUser() {
     mutationFn: (id: string) => {
       const updateData = {
         isActive: true,
-        deletedAt: null,
-        deletedBy: null
+        deletedAt: undefined,
+        deletedBy: undefined
       }
       return usersApi.update(id, updateData)
     },
