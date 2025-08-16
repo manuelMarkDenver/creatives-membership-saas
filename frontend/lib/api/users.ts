@@ -3,7 +3,8 @@ import { User, UserBranch, Role, AccessLevel } from '@/types'
 
 export interface CreateUserDto {
   email: string
-  name: string
+  firstName: string
+  lastName: string
   password?: string
   role: Role
   tenantId: string
@@ -98,7 +99,11 @@ export const usersApi = {
 
   // Create user
   create: async (data: CreateUserDto): Promise<User> => {
-    const response = await apiClient.post('/users', data)
+    const response = await apiClient.post('/users', data, {
+      headers: {
+        'x-tenant-id': data.tenantId
+      }
+    })
     return response.data
   },
 

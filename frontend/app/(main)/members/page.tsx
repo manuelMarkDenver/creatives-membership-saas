@@ -362,7 +362,7 @@ export default function MembersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">{stats.expired}</div>
-            <p className="text-xs text-muted-foreground">Subscription expired</p>
+            <p className="text-xs text-muted-foreground">Total expired subscriptions</p>
           </CardContent>
         </Card>
         <Card>

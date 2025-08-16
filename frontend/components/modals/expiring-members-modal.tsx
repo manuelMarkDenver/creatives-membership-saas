@@ -134,7 +134,9 @@ export function ExpiringMembersModal({
             Expiring Memberships
           </DialogTitle>
           <DialogDescription>
-            Review and manage members with expiring subscriptions within the next {filters.daysBefore} days
+            Review and manage members with subscriptions expiring or recently expired within {filters.daysBefore} days.
+            <br/>
+            <span className="text-xs text-muted-foreground mt-1 inline-block">Note: This shows only recent/urgent expiries. Total expired members are shown in the dashboard statistics.</span>
           </DialogDescription>
         </DialogHeader>
 

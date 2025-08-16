@@ -71,7 +71,8 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     href: '/staff',
     icon: UserPlus,
     roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role],
-    description: 'Manage staff members'
+    description: 'Manage staff members',
+    isFutureFeature: true
   },
 
   // Subscriptions & Billing
@@ -80,14 +81,16 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     href: '/subscription',
     icon: CreditCard,
     roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role],
-    description: 'Billing and subscription status'
+    description: 'Billing and subscription status',
+    isFutureFeature: true
   },
   {
     name: 'Member Subscriptions',
     href: '/member-subscriptions',
     icon: Calendar,
     roles: ['OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role],
-    description: 'Manage gym membership plans'
+    description: 'Manage gym membership plans',
+    isFutureFeature: true
   },
 
   // Member-specific

@@ -249,7 +249,8 @@ export function AddMemberModal({
     // Create the member using the mutation hook
     createUserMutation.mutate({
       email: formData.email.trim(),
-      name: `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim(),
+      firstName: formData.firstName.trim(),
+      lastName: formData.lastName.trim(),
       role: 'GYM_MEMBER' as Role,
       tenantId: profile?.tenantId!,
     }, {
