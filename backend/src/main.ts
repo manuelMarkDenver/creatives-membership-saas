@@ -14,6 +14,7 @@ async function bootstrap() {
     ? [
         process.env.FRONTEND_URL || 'https://creatives-saas-frontend.vercel.app',
         'https://frontend-2q1gglz7b-manuelmarkdenvers-projects.vercel.app',
+        'https://frontend-cgi3tqjk7-manuelmarkdenvers-projects.vercel.app',
         'https://creatives-membership-saas.vercel.app'
       ]
     : true; // Allow all origins in development
