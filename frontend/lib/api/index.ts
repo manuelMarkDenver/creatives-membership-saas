@@ -3,6 +3,7 @@ export { apiClient, setTenantContext, getTenantContext } from './client'
 export { apiClient as api } from './client' // Also export as 'api' for consistency
 export { tenantsApi } from './tenants'
 export { branchesApi } from './branches'
+export { locationsApi } from './locations'
 export { usersApi } from './users'
 export { statsApi } from './stats'
 export { plansApi } from './plans'
@@ -14,6 +15,7 @@ export { businessUnitsApi } from './business-units'
 // Export DTOs and types
 export type { CreateTenantDto, UpdateTenantDto, TenantQueryParams } from './tenants'
 export type { CreateBranchDto, UpdateBranchDto, BranchQueryParams } from './branches'
+export type { CreateLocationDto, UpdateLocationDto, LocationQueryParams } from './locations'
 export type { CreateUserDto, UpdateUserDto, UserQueryParams, AssignBranchDto } from './users'
 export type {
   SystemOverviewStats,

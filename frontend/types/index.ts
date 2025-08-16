@@ -116,6 +116,9 @@ export interface Branch {
   }
 }
 
+// Location type alias for gym-specific branches
+export type Location = Branch
+
 export interface User {
   id: string
   tenantId: string
@@ -126,6 +129,7 @@ export interface User {
   phoneNumber?: string
   role: Role
   isActive: boolean
+  photoUrl?: string // Member photo URL
   notes?: string
   businessData?: any // JSON field for business-specific data
   deletedAt?: string
@@ -281,6 +285,7 @@ export interface CreateUserDto {
   phoneNumber?: string
   role: Role
   isActive?: boolean
+  photoUrl?: string
   notes?: string
   businessData?: any
 }

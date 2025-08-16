@@ -173,27 +173,19 @@ export function MembershipPlanModal({
       }
 
       if (mode === 'create') {
-        const result = await createMutation.mutateAsync({
+        await createMutation.mutateAsync({
           ...submitData,
           // Note: tenantId will be set by backend based on authenticated user
         })
-        if (result.success) {
-          toast.success('Membership plan created successfully')
-          onSaved()
-        } else {
-          toast.error(result.error || 'Failed to create membership plan')
-        }
+        toast.success('Membership plan created successfully')
+        onSaved()
       } else {
-        const result = await updateMutation.mutateAsync({
+        await updateMutation.mutateAsync({
           id: plan.id,
           data: submitData
         })
-        if (result.success) {
-          toast.success('Membership plan updated successfully')
-          onSaved()
-        } else {
-          toast.error(result.error || 'Failed to update membership plan')
-        }
+        toast.success('Membership plan updated successfully')
+        onSaved()
       }
     } catch (error: any) {
       console.error('Error saving membership plan:', error)

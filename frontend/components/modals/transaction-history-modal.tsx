@@ -37,7 +37,7 @@ export function TransactionHistoryModal({
   
   if (!member) return null
 
-  const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
+  const memberName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email || 'Unknown'
   
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -83,14 +83,14 @@ export function TransactionHistoryModal({
   }
 
   const getTotalAmount = () => {
-    if (!transactions) return 0
+    if (!transactions || !Array.isArray(transactions)) return 0
     return transactions
-      .filter(t => t.status === 'COMPLETED' && t.transactionType === 'PAYMENT')
+      .filter(t => t.status === 'COMPLETED' && t.type === 'PAYMENT')
       .reduce((sum, t) => sum + (typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount), 0)
   }
 
   const getTransactionCount = () => {
-    if (!transactions) return 0
+    if (!transactions || !Array.isArray(transactions)) return 0
     return transactions.filter(t => t.status === 'COMPLETED').length
   }
 
@@ -157,7 +157,7 @@ export function TransactionHistoryModal({
             <div className="text-center py-8 text-red-600">
               Failed to load transaction history. Please try again.
             </div>
-          ) : !transactions || transactions.length === 0 ? (
+          ) : !transactions || !Array.isArray(transactions) || transactions.length === 0 ? (
             <div className="text-center py-8">
               <Receipt className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No transactions found</h3>
@@ -166,16 +166,16 @@ export function TransactionHistoryModal({
               </p>
             </div>
           ) : (
-            transactions.map((transaction) => (
+            Array.isArray(transactions) && transactions.map((transaction) => (
               <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 dark:border-gray-700">
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center justify-center w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full">
-                    {getTransactionTypeIcon(transaction.transactionType)}
+                    {getTransactionTypeIcon(transaction.type)}
                   </div>
                   
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium">{transaction.description}</p>
+                      <p className="font-medium">Payment Transaction</p>
                       <Badge variant={getStatusVariant(transaction.status)} className="text-xs">
                         {transaction.status}
                       </Badge>
@@ -194,7 +194,7 @@ export function TransactionHistoryModal({
                       
                       <div className="flex items-center gap-1">
                         {getStatusIcon(transaction.status)}
-                        {transaction.transactionType}
+                        {transaction.type}
                       </div>
                     </div>
                   </div>
@@ -202,13 +202,13 @@ export function TransactionHistoryModal({
                 
                 <div className="text-right">
                   <p className={`font-semibold ${
-                    transaction.transactionType === 'REFUND' 
+                    transaction.type === 'REFUND' 
                       ? 'text-red-600' 
                       : 'text-green-600'
                   }`}>
-                    {transaction.transactionType === 'REFUND' ? '-' : ''}₱{(typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount).toLocaleString()}
+                    {transaction.type === 'REFUND' ? '-' : ''}₱{(typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount).toLocaleString()}
                   </p>
-                  <p className="text-xs text-muted-foreground">{transaction.currency}</p>
+                  <p className="text-xs text-muted-foreground">PHP</p>
                 </div>
               </div>
             ))

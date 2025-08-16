@@ -52,10 +52,7 @@ export function MemberRenewalModal({
   
   const renewMemberMutation = useRenewMemberSubscription()
 
-  const { data: membershipPlans, isLoading: plansLoading } = useMembershipPlans(
-    profile?.tenantId || '',
-    { enabled: !!profile?.tenantId }
-  )
+  const { data: membershipPlans, isLoading: plansLoading } = useMembershipPlans()
 
   useEffect(() => {
     if (isOpen) {
@@ -170,7 +167,7 @@ export function MemberRenewalModal({
                         <span>{plan.name}</span>
                         <div className="flex items-center gap-2 ml-4">
                           <span className="text-green-600 font-medium">
-                            {formatPHP(parseFloat(plan.price))}
+                            {formatPHP(plan.price)}
                           </span>
                           <Badge variant="outline" className="text-xs">
                             {plan.duration} days
@@ -223,7 +220,7 @@ export function MemberRenewalModal({
                   <div className="flex justify-between pt-2 border-t border-blue-300">
                     <span className="font-medium text-blue-800">Total Amount:</span>
                     <span className="font-bold text-green-600">
-                      {formatPHP(parseFloat(selectedPlan.price))}
+                      {formatPHP(selectedPlan.price)}
                     </span>
                   </div>
                 </div>
@@ -233,17 +230,27 @@ export function MemberRenewalModal({
                   <div className="mt-4">
                     <h5 className="font-medium text-blue-900 text-xs mb-2">Plan Benefits:</h5>
                     <div className="grid grid-cols-1 gap-1">
-                      {JSON.parse(selectedPlan.benefits).slice(0, 3).map((benefit: string, index: number) => (
-                        <div key={index} className="flex items-center gap-2 text-xs text-blue-700">
-                          <Check className="h-3 w-3 text-green-500" />
-                          <span>{benefit}</span>
-                        </div>
-                      ))}
-                      {JSON.parse(selectedPlan.benefits).length > 3 && (
-                        <div className="text-xs text-blue-600 ml-5">
-                          +{JSON.parse(selectedPlan.benefits).length - 3} more benefits
-                        </div>
-                      )}
+                      {(() => {
+                        const benefits = typeof selectedPlan.benefits === 'string' 
+                          ? JSON.parse(selectedPlan.benefits) 
+                          : selectedPlan.benefits;
+                        return benefits.slice(0, 3).map((benefit: string, index: number) => (
+                          <div key={index} className="flex items-center gap-2 text-xs text-blue-700">
+                            <Check className="h-3 w-3 text-green-500" />
+                            <span>{benefit}</span>
+                          </div>
+                        ));
+                      })()}
+                      {(() => {
+                        const benefits = typeof selectedPlan.benefits === 'string' 
+                          ? JSON.parse(selectedPlan.benefits) 
+                          : selectedPlan.benefits;
+                        return benefits.length > 3 && (
+                          <div className="text-xs text-blue-600 ml-5">
+                            +{benefits.length - 3} more benefits
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}

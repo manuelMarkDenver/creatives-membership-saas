@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import { User, UserBranch, Role, AccessLevel } from '@/lib/types'
+import { User, UserBranch, Role, AccessLevel } from '@/types'
 
 export interface CreateUserDto {
   email: string

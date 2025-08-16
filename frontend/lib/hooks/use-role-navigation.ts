@@ -28,14 +28,14 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     name: 'All Tenants',
     href: '/tenants',
     icon: Crown,
-    roles: ['SUPER_ADMIN'],
+    roles: ['SUPER_ADMIN' as Role],
     description: 'Manage all gym tenants'
   },
   {
     name: 'System Settings',
     href: '/admin/settings',
     icon: Shield,
-    roles: ['SUPER_ADMIN'],
+    roles: ['SUPER_ADMIN' as Role],
     description: 'System-wide configuration',
     isFutureFeature: true
   },
@@ -45,16 +45,16 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     name: 'Dashboard',
     href: '/dashboard',
     icon: BarChart3,
-    roles: ['SUPER_ADMIN', 'OWNER', 'MANAGER', 'STAFF', 'GYM_MEMBER'],
+    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role, 'GYM_MEMBER' as Role],
     description: 'Overview and analytics'
   },
 
-  // Branch Management
+  // Location Management
   {
-    name: 'Branches',
-    href: '/branches',
+    name: 'Locations',
+    href: '/locations',
     icon: MapPin,
-    roles: ['SUPER_ADMIN', 'OWNER', 'MANAGER'],
+    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role],
     description: 'Manage gym locations'
   },
 
@@ -63,14 +63,14 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     name: 'Members',
     href: '/members',
     icon: Users,
-    roles: ['SUPER_ADMIN', 'OWNER', 'MANAGER', 'STAFF'],
+    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role],
     description: 'Manage gym members'
   },
   {
     name: 'Staff',
     href: '/staff',
     icon: UserPlus,
-    roles: ['SUPER_ADMIN', 'OWNER', 'MANAGER'],
+    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role],
     description: 'Manage staff members'
   },
 
@@ -79,14 +79,14 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     name: 'Subscription',
     href: '/subscription',
     icon: CreditCard,
-    roles: ['SUPER_ADMIN', 'OWNER'],
+    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role],
     description: 'Billing and subscription status'
   },
   {
     name: 'Member Subscriptions',
     href: '/member-subscriptions',
     icon: Calendar,
-    roles: ['OWNER', 'MANAGER', 'STAFF'],
+    roles: ['OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role],
     description: 'Manage gym membership plans'
   },
 
@@ -95,7 +95,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     name: 'My Membership',
     href: '/my-membership',
     icon: Calendar,
-    roles: ['GYM_MEMBER'],
+    roles: ['GYM_MEMBER' as Role],
     description: 'Your membership details'
   },
 
@@ -104,7 +104,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     name: 'Settings',
     href: '/settings',
     icon: Settings,
-    roles: ['SUPER_ADMIN', 'OWNER', 'MANAGER', 'STAFF', 'GYM_MEMBER'],
+    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role, 'GYM_MEMBER' as Role],
     description: 'Account and preferences',
     isFutureFeature: true
   },
@@ -126,7 +126,7 @@ export function useRoleNavigation(userRole?: Role) {
       case 'OWNER':
         return '/dashboard'
       case 'MANAGER':
-        return '/branches'
+        return '/locations'
       case 'STAFF':
         return '/members'
       case 'GYM_MEMBER':

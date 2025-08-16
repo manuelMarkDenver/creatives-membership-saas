@@ -16,7 +16,7 @@ import { useTenants } from '@/lib/hooks/use-tenants'
 import { useTenantContext } from '@/lib/providers/tenant-context'
 import { useProfile } from '@/lib/hooks/use-users'
 import { cn } from '@/lib/utils'
-import { Tenant } from '@/lib/types'
+import { Tenant } from '@/types'
 
 export default function TenantSwitcher() {
   const [open, setOpen] = useState(false)
@@ -70,7 +70,7 @@ export default function TenantSwitcher() {
           Tenants
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {tenants.map((tenant) => (
+        {tenants.map((tenant: Tenant) => (
           <DropdownMenuItem
             key={tenant.id}
             onSelect={() => handleSelectTenant(tenant)}
@@ -84,7 +84,7 @@ export default function TenantSwitcher() {
             <div className="flex flex-col">
               <span className="text-sm">{tenant.name}</span>
               <span className="text-xs text-muted-foreground">
-                {tenant.businessCategory}
+                {tenant.category}
               </span>
             </div>
             <Check

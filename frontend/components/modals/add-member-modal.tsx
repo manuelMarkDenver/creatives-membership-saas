@@ -37,6 +37,7 @@ import {
   X
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Role } from '@/types'
 import { formatPHP } from '@/lib/utils/currency'
 import { usersApi } from '@/lib/api'
 import { gymSubscriptionsApi } from '@/lib/api/gym-subscriptions'
@@ -96,10 +97,7 @@ export function AddMemberModal({
     createAccountForMember: false
   })
 
-  const { data: membershipPlans, isLoading: plansLoading } = useMembershipPlans(
-    profile?.tenantId || '',
-    { enabled: !!profile?.tenantId }
-  )
+  const { data: membershipPlans, isLoading: plansLoading } = useMembershipPlans()
 
   const selectedPlan = membershipPlans?.find((plan: any) => plan.id === formData.selectedPlanId)
 
@@ -251,14 +249,9 @@ export function AddMemberModal({
     // Create the member using the mutation hook
     createUserMutation.mutate({
       email: formData.email.trim(),
-      firstName: formData.firstName.trim(),
-      lastName: formData.lastName.trim(),
-      phoneNumber: formData.phoneNumber.trim() || undefined,
-      role: 'GYM_MEMBER' as const,
+      name: `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim(),
+      role: 'GYM_MEMBER' as Role,
       tenantId: profile?.tenantId!,
-      isActive: true,
-      notes: formData.notes.trim() || undefined,
-      businessData
     }, {
       onSuccess: async (createdUser) => {
         try {

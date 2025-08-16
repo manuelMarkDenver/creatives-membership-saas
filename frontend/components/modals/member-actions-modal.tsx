@@ -125,7 +125,7 @@ export function MemberActionsModal({
 
   // Get relevant reasons for the current action
   const relevantReasons = Array.from(new Set(
-    (actionReasons?.find(category => {
+    (actionReasons?.find((category: any) => {
       switch (actionType) {
         case 'activate':
           return category.category === 'ACCOUNT'
@@ -138,7 +138,7 @@ export function MemberActionsModal({
         default:
           return false
       }
-    })?.reasons || []).filter(reason => reason && reason.trim() !== '')
+    })?.reasons || []).filter((reason: any) => reason && reason.trim() !== '')
   ))
 
   // Reset form when modal opens
@@ -239,11 +239,12 @@ export function MemberActionsModal({
 
   
   // Safe status icon selection
-  const StatusIcon = (memberData.currentState && statusIcons[memberData.currentState]) 
-    ? statusIcons[memberData.currentState].icon 
+  const currentState = memberData.currentState as keyof typeof statusIcons
+  const StatusIcon = (currentState && statusIcons[currentState]) 
+    ? statusIcons[currentState].icon 
     : Info
-  const statusColor = (memberData.currentState && statusIcons[memberData.currentState]) 
-    ? statusIcons[memberData.currentState].color 
+  const statusColor = (currentState && statusIcons[currentState]) 
+    ? statusIcons[currentState].color 
     : 'text-gray-400'
 
   return (
@@ -366,8 +367,8 @@ export function MemberActionsModal({
                   </SelectItem>
                 ) : (
                   relevantReasons.map((reasonOption) => (
-                    <SelectItem key={reasonOption} value={reasonOption}>
-                      {formatReasonOption(reasonOption)}
+                    <SelectItem key={String(reasonOption)} value={String(reasonOption)}>
+                      {formatReasonOption(String(reasonOption))}
                     </SelectItem>
                   ))
                 )}

@@ -1,3 +1,10 @@
+// Import stores for internal use
+import { useBusinessStore, BusinessContext } from './business-store'
+import { useSubscriptionStore } from './subscription-store'
+import { useApiStore } from './api-store'
+import { useGymSubscriptionsStore } from './gym-subscriptions-store'
+import { useBusinessUnitsStore } from './business-units-store'
+
 // Export all stores
 export { useBusinessStore } from './business-store'
 export { useSubscriptionStore } from './subscription-store'
@@ -25,7 +32,7 @@ export type {
   BusinessUnitStats, 
   CreateBusinessUnitData, 
   UpdateBusinessUnitData 
-} from './business-units-store'
+} from '../api/business-units'
 
 // Store cleanup utilities
 export const resetAllStores = () => {

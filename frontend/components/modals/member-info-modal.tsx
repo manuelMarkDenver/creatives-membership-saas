@@ -167,9 +167,9 @@ export function MemberInfoModal({
       }
 
       // Remove null/empty values
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key] === null || updateData[key] === '') {
-          delete updateData[key]
+      Object.keys(updateData).forEach((key) => {
+        if (updateData[key as keyof typeof updateData] === null || updateData[key as keyof typeof updateData] === '') {
+          delete updateData[key as keyof typeof updateData]
         }
       })
 

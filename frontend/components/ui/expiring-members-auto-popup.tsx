@@ -28,7 +28,9 @@ export function ExpiringMembersAutoPopup({
   )
 
   useEffect(() => {
-    if (!enabled || userRole === 'SUPER_ADMIN' || !criticalCount?.count) {
+    const count = typeof criticalCount === 'number' ? criticalCount : (criticalCount as any)?.count || 0
+    
+    if (!enabled || userRole === 'SUPER_ADMIN' || !count) {
       return
     }
 
@@ -42,7 +44,7 @@ export function ExpiringMembersAutoPopup({
     }
 
     // Show popup if there are members expiring today
-    if (criticalCount.count > 0) {
+    if (count > 0) {
       // Add a small delay to avoid showing immediately on page load
       const timer = setTimeout(() => {
         setIsPopupOpen(true)

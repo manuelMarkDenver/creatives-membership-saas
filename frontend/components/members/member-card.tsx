@@ -80,7 +80,7 @@ export function MemberCard({
   const [showMemberActionsModal, setShowMemberActionsModal] = useState(false)
   const [currentAction, setCurrentAction] = useState<MemberActionType>('activate')
   const [showMemberHistoryModal, setShowMemberHistoryModal] = useState(false)
-  const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
+  const memberName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email || 'Unknown'
   
   // Get current user profile for branch permissions
   const { data: profile } = useProfile()
@@ -148,9 +148,10 @@ export function MemberCard({
         return 'restore' // Deleted members can be restored
       case 'ACTIVE':
         return 'cancel' // Active members can be cancelled
-      case 'INACTIVE':
+      case 'NO_SUBSCRIPTION':
+      case 'SUSPENDED':
       default:
-        return 'activate' // Default to activate for inactive members
+        return 'activate' // Default to activate for members without subscription or suspended
     }
   }
   
@@ -227,11 +228,11 @@ export function MemberCard({
             <div className="mt-2 space-y-1">
               <div className="flex items-center gap-2 text-xs">
                 <span className="font-medium text-purple-600">
-                  {subscription.membershipPlan.name}
+                  {subscription.membershipPlan?.name || 'Unknown Plan'}
                 </span>
                 <span className="text-muted-foreground">•</span>
                 <span className="font-medium text-green-600">
-                  ₱{subscription.price.toLocaleString()}
+                  ₱{subscription.price?.toLocaleString() || '0'}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -240,7 +241,7 @@ export function MemberCard({
                   {new Date(subscription.startDate).toLocaleDateString()} - {' '}
                   {new Date(subscription.endDate).toLocaleDateString()}
                 </span>
-                {!isExpired && daysRemaining > 0 && (
+                {!isExpired && daysRemaining !== null && daysRemaining > 0 && (
                   <>
                     <span>•</span>
                     <span className="text-blue-600">{daysRemaining} days left</span>
@@ -354,7 +355,8 @@ export function MemberCard({
                 </Button>
               )
               
-            case 'INACTIVE':
+            case 'NO_SUBSCRIPTION':
+            case 'SUSPENDED':
             default:
               return (
                 <Button
@@ -364,7 +366,7 @@ export function MemberCard({
                   onClick={() => canManage ? openMemberActionModal('activate') : toast.info('You can only manage members from your assigned branches')}
                   disabled={!canManage}
                 >
-                  {canManage ? 'Inactive' : 'Inactive (View Only)'}
+                  {canManage ? (currentState === 'NO_SUBSCRIPTION' ? 'No Subscription' : currentState === 'SUSPENDED' ? 'Suspended' : 'Inactive') : `${currentState} (View Only)`}
                 </Button>
               )
           }
@@ -473,7 +475,8 @@ export function MemberCard({
                     </DropdownMenuItem>
                   )
                 
-                case 'INACTIVE':
+                case 'NO_SUBSCRIPTION':
+                case 'SUSPENDED':
                 default:
                   return (
                     <DropdownMenuItem 

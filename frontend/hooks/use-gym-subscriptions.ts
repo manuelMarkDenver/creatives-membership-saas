@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react'
 import { useGymSubscriptionsStore } from '../lib/stores/gym-subscriptions-store'
-import { GymSubscription, GymTransaction, GymSubscriptionResponse } from '../lib/api/gym-subscriptions'
+import { GymTransaction, GymSubscriptionResponse } from '../lib/api/gym-subscriptions'
 
 interface UseGymSubscriptionsOptions {
   autoLoadStats?: boolean

@@ -53,8 +53,7 @@ export default function StaffPage() {
 
   // Conditionally fetch staff data based on user role
   const { data: tenantStaffData, isLoading: isTenantLoading, error: tenantError } = useUsersByTenant(
-    profile?.tenantId || '', 
-    { enabled: !isSuperAdmin && !!profile?.tenantId }
+    !isSuperAdmin && profile?.tenantId ? profile.tenantId : ''
   )
 
   const { data: systemStaffData, isLoading: isSystemLoading, error: systemError } = useSystemStaffStats()

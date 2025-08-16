@@ -112,12 +112,12 @@ export function MemberHistoryModal({
   const [query, setQuery] = useState<MemberHistoryQuery>({
     page: 1,
     limit: 10,
-    category: '',
+    category: undefined,
     startDate: '',
     endDate: '',
   })
 
-  const { data: historyData, isLoading, error } = useMemberHistory(memberId, query, { enabled: isOpen })
+  const { data: historyData, isLoading, error } = useMemberHistory(memberId, query)
 
   const updateQuery = (updates: Partial<MemberHistoryQuery>) => {
     setQuery(prev => ({ ...prev, ...updates, page: 1 })) // Reset to page 1 when filtering
@@ -149,7 +149,7 @@ export function MemberHistoryModal({
           <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
             <div className="flex-1">
               <Label className="text-xs font-medium text-gray-600">Category</Label>
-              <Select value={query.category || 'all'} onValueChange={(value) => updateQuery({ category: value === 'all' ? '' : value })}>
+              <Select value={query.category || 'all'} onValueChange={(value) => updateQuery({ category: value === 'all' ? undefined : value as any })}>
                 <SelectTrigger className="h-8">
                   <SelectValue placeholder="All categories" />
                 </SelectTrigger>
@@ -187,7 +187,7 @@ export function MemberHistoryModal({
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => setQuery({ page: 1, limit: 10, category: '', startDate: '', endDate: '' })}
+                onClick={() => setQuery({ page: 1, limit: 10, category: undefined, startDate: '', endDate: '' })}
                 className="h-8"
               >
                 Clear

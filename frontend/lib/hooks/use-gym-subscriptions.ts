@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { gymSubscriptionsApi } from '@/lib/api'
+import { GymTransaction as ApiGymTransaction } from '@/lib/api/gym-subscriptions'
 
 export interface GymSubscriptionStats {
   total: number
@@ -77,7 +78,11 @@ export function useGymMemberSubscription(memberId?: string) {
     queryKey: gymSubscriptionKeys.subscription(memberId || ''),
     queryFn: async () => {
       const result = await gymSubscriptionsApi.getCurrentSubscription(memberId!)
-      return result
+      // Extract the subscription from the response or return null
+      return result.subscription ? {
+        ...result.subscription,
+        autoRenew: false, // Default value since it's not in the API response
+      } as GymSubscription : null
     },
     enabled: !!memberId,
     staleTime: 1 * 60 * 1000, // 1 minute
@@ -94,7 +99,14 @@ export function useGymMemberSubscription(memberId?: string) {
 export function useGymMemberSubscriptionHistory(memberId?: string) {
   return useQuery<GymSubscription[]>({
     queryKey: gymSubscriptionKeys.history(memberId || ''),
-    queryFn: () => gymSubscriptionsApi.getSubscriptionHistory(memberId!),
+    queryFn: async () => {
+      const results = await gymSubscriptionsApi.getSubscriptionHistory(memberId!)
+      // Transform each response item to extract subscription data
+      return results.map(result => ({
+        ...result.subscription,
+        autoRenew: false, // Default value since it's not in the API response
+      })).filter(Boolean) as GymSubscription[]
+    },
     enabled: !!memberId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
@@ -102,7 +114,7 @@ export function useGymMemberSubscriptionHistory(memberId?: string) {
 
 // Get gym member transactions
 export function useGymMemberTransactions(memberId?: string) {
-  return useQuery<GymTransaction[]>({
+  return useQuery<ApiGymTransaction[]>({
     queryKey: gymSubscriptionKeys.transactions(memberId || ''),
     queryFn: () => gymSubscriptionsApi.getMemberTransactions(memberId!),
     enabled: !!memberId,

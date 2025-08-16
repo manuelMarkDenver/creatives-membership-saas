@@ -23,7 +23,7 @@ export interface MemberData {
   lastName: string
   phoneNumber?: string
   isActive: boolean
-  customerSubscriptions?: CustomerSubscription[]
+  gymSubscriptions?: CustomerSubscription[]
 }
 
 export interface SubscriptionStats {
@@ -104,12 +104,12 @@ const initialState = {
 
 // Helper function to calculate member status (moved here to prevent re-computation)
 function calculateMemberStatus(member: MemberData): MemberStatus {
-  if (!member.customerSubscriptions || member.customerSubscriptions.length === 0) {
+  if (!member.gymSubscriptions || member.gymSubscriptions.length === 0) {
     return 'EXPIRED'
   }
 
   // Sort subscriptions by creation date (most recent first), then by end date (latest first)
-  const subscriptions = [...member.customerSubscriptions]
+  const subscriptions = [...member.gymSubscriptions]
     .sort((a, b) => {
       const aCreated = new Date(a.createdAt || a.startDate).getTime()
       const bCreated = new Date(b.createdAt || b.startDate).getTime()

@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import { Branch } from '@/lib/types'
+import { Branch } from '@/types'
 
 export interface CreateBranchDto {
   tenantId: string

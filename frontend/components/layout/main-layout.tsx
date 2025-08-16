@@ -166,7 +166,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 <div className="text-sm text-gray-600 dark:text-gray-300">
                   <span className="font-medium">{currentTenant.name}</span>
                   <span className="ml-2 text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 dark:text-gray-200">
-                    {currentTenant.businessCategory}
+                    {currentTenant.category}
                   </span>
                 </div>
               )}

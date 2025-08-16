@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { GymMembersService } from './gym-members.service';
 import { AuthGuard } from '../../../core/auth/auth.guard';
 import { RBACGuard, RequiredRoles } from '../../../core/guard/rbac.guard';
@@ -159,5 +160,51 @@ export class GymMembersController {
       throw new Error('Tenant ID is required');
     }
     return this.gymMembersService.toggleMemberStatus(memberId, tenantId, false);
+  }
+
+  @Post(':memberId/photo')
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  @UseInterceptors(FileInterceptor('photo', {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+      files: 1
+    },
+    fileFilter: (req, file, callback) => {
+      // Check if file is an image
+      if (!file.mimetype.startsWith('image/')) {
+        return callback(new Error('Only image files are allowed'), false);
+      }
+      callback(null, true);
+    }
+  }))
+  async uploadMemberPhoto(
+    @Param('memberId') memberId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: RequestWithUser
+  ) {
+    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    if (!tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+    
+    if (!file) {
+      throw new Error('Photo file is required');
+    }
+
+    return this.gymMembersService.uploadMemberPhoto(memberId, tenantId, file);
+  }
+
+  @Delete(':memberId/photo')
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  async deleteMemberPhoto(
+    @Param('memberId') memberId: string,
+    @Req() req: RequestWithUser
+  ) {
+    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    if (!tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+    
+    return this.gymMembersService.deleteMemberPhoto(memberId, tenantId);
   }
 }

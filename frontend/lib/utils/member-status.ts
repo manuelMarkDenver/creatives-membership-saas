@@ -134,14 +134,14 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
 
   if (subscription) {
     subscriptionStatus = subscription.status
-    subscriptionCancelledAt = subscription.cancelledAt
+    subscriptionCancelledAt = subscription.cancelledAt || null
     if (subscription.endDate) {
       subscriptionEndDate = new Date(subscription.endDate)
       subscriptionEndDate.setHours(0, 0, 0, 0)
     }
   } else if (businessMembership) {
     subscriptionStatus = businessMembership.status?.toUpperCase() || 'UNKNOWN'
-    subscriptionCancelledAt = businessMembership.cancelledAt
+    subscriptionCancelledAt = businessMembership.cancelledAt || null
     if (businessMembership.endDate) {
       subscriptionEndDate = new Date(businessMembership.endDate)
       subscriptionEndDate.setHours(0, 0, 0, 0)
@@ -244,10 +244,10 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
     
     const result = {
       canAccessFacilities: true,
-      displayStatus: 'ACTIVE',
+      displayStatus: 'ACTIVE' as const,
       primaryIssue: daysRemaining <= 7 ? `Expires in ${daysRemaining} days` : undefined,
-      statusColor: 'green',
-      statusIcon: 'check'
+      statusColor: 'green' as const,
+      statusIcon: 'check' as const
     }
     
     if (isDebugMember) {

@@ -123,10 +123,34 @@ export const useGymSubscriptionsStore = create<GymSubscriptionsStore>()(
       loadCurrentSubscription: async (memberId: string) => {
         set({ isLoadingSubscription: true, subscriptionError: null })
         try {
-          const subscription = await gymSubscriptionsApi.getCurrentSubscription(memberId)
+          const response = await gymSubscriptionsApi.getCurrentSubscription(memberId)
           const { currentSubscriptions } = get()
           const newSubscriptions = new Map(currentSubscriptions)
-          newSubscriptions.set(memberId, subscription)
+          
+          // Transform response.subscription to match GymSubscription interface
+          if (response.subscription) {
+            const transformedSubscription: GymSubscription = {
+              id: response.subscription.id,
+              customerId: response.subscription.customerId,
+              membershipPlanId: response.subscription.membershipPlanId,
+              status: response.subscription.status as 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING',
+              startDate: response.subscription.startDate,
+              endDate: response.subscription.endDate,
+              price: response.subscription.price,
+              currency: response.subscription.currency,
+              membershipPlan: response.subscription.membershipPlan,
+              customer: {
+                id: response.subscription.customer.id,
+                firstName: response.subscription.customer.firstName,
+                lastName: response.subscription.customer.lastName,
+                name: response.subscription.customer.name,
+                email: response.subscription.customer.email,
+                isActive: true // Default since API doesn't provide this
+              }
+            }
+            newSubscriptions.set(memberId, transformedSubscription)
+          }
+          
           set({ 
             currentSubscriptions: newSubscriptions,
             isLoadingSubscription: false 
@@ -163,10 +187,38 @@ export const useGymSubscriptionsStore = create<GymSubscriptionsStore>()(
       loadSubscriptionHistory: async (memberId: string) => {
         set({ isLoadingHistory: true, historyError: null })
         try {
-          const history = await gymSubscriptionsApi.getSubscriptionHistory(memberId)
+          const historyResponse = await gymSubscriptionsApi.getSubscriptionHistory(memberId)
           const { subscriptionHistory } = get()
           const newHistory = new Map(subscriptionHistory)
-          newHistory.set(memberId, history)
+          
+          // Transform each response item to match GymSubscription interface
+          const transformedHistory: GymSubscription[] = historyResponse.map(response => ({
+            id: response.subscription?.id || '',
+            customerId: response.subscription?.customerId || '',
+            membershipPlanId: response.subscription?.membershipPlanId || '',
+            status: (response.subscription?.status as 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING') || 'PENDING',
+            startDate: response.subscription?.startDate || '',
+            endDate: response.subscription?.endDate || '',
+            price: response.subscription?.price || 0,
+            currency: response.subscription?.currency || '',
+            membershipPlan: response.subscription?.membershipPlan || {
+              id: '',
+              name: '',
+              price: 0,
+              duration: 0,
+              type: ''
+            },
+            customer: {
+              id: response.subscription?.customer?.id || '',
+              firstName: response.subscription?.customer?.firstName || '',
+              lastName: response.subscription?.customer?.lastName || '',
+              name: response.subscription?.customer?.name || '',
+              email: response.subscription?.customer?.email || '',
+              isActive: true
+            }
+          })).filter(item => item.id) // Filter out items without ID
+          
+          newHistory.set(memberId, transformedHistory)
           set({ 
             subscriptionHistory: newHistory,
             isLoadingHistory: false 

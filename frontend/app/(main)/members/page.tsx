@@ -33,7 +33,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
-import { User } from '@/types'
+import { User, Role } from '@/types'
 import { MemberInfoModal } from '@/components/modals/member-info-modal'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MemberCard } from '@/components/members/member-card'
@@ -49,25 +49,24 @@ export default function MembersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'deleted'>('all')
   const [showDeleted, setShowDeleted] = useState(false)
-  const [selectedMember, setSelectedMember] = useState(null)
+  const [selectedMember, setSelectedMember] = useState<User | null>(null)
   const [showMemberInfoModal, setShowMemberInfoModal] = useState(false)
   const [showAddMemberModal, setShowAddMemberModal] = useState(false)
   const [showRenewalModal, setShowRenewalModal] = useState(false)
   const [showCancellationModal, setShowCancellationModal] = useState(false)
-  const [selectedMemberForAction, setSelectedMemberForAction] = useState(null)
+  const [selectedMemberForAction, setSelectedMemberForAction] = useState<User | null>(null)
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [cancellationReason, setCancellationReason] = useState('')
   const [cancellationNotes, setCancellationNotes] = useState('')
   const [showTransactionModal, setShowTransactionModal] = useState(false)
-  const [selectedMemberForTransactions, setSelectedMemberForTransactions] = useState(null)
+  const [selectedMemberForTransactions, setSelectedMemberForTransactions] = useState<User | null>(null)
 
   const isSuperAdmin = profile?.role === 'SUPER_ADMIN'
 
   // Fetch data based on user role
   const { data: membersData, isLoading: isLoadingTenantMembers, error: tenantMembersError, refetch: refetchTenantMembers } = useUsersByTenant(
     profile?.tenantId || '', 
-    { role: 'GYM_MEMBER' },
-    { enabled: isSuperAdmin } // Only use this for super admin
+    { role: 'GYM_MEMBER' as Role }
   )
 
   // For tenant users, fetch gym members with their subscription data
@@ -105,7 +104,7 @@ export default function MembersPage() {
       if (isSuperAdmin) {
         // Invalidate and refetch tenant members query for super admin
         await queryClient.invalidateQueries({ 
-          queryKey: userKeys.byTenant(profile?.tenantId || '', { role: 'GYM_MEMBER' })
+          queryKey: userKeys.byTenant(profile?.tenantId || '', { role: 'GYM_MEMBER' as Role })
         })
         await refetchTenantMembers()
       } else {
@@ -139,7 +138,7 @@ export default function MembersPage() {
       return
     }
 
-    const memberName = selectedMemberForAction.name || `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`
+    const memberName = `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`
     
     renewMembershipMutation.mutate({
       memberId: selectedMemberForAction.id,
@@ -172,7 +171,7 @@ export default function MembersPage() {
       return
     }
 
-    const memberName = selectedMemberForAction.name || `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`
+    const memberName = `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`
     
     cancelMembershipMutation.mutate({
       memberId: selectedMemberForAction.id,
@@ -239,10 +238,10 @@ export default function MembersPage() {
   
   // Apply branch filtering to ensure consistency between stats and displayed members
   console.log('[DEBUG] Raw members count:', rawMembers.length)
-  console.log('[DEBUG] Raw members:', rawMembers.map(m => ({ email: m.email, branchId: getMemberBranchId(m) })))
-  console.log('[DEBUG] User branches:', profile?.userBranches?.map(ub => ub.branchId))
+  console.log('[DEBUG] Raw members:', rawMembers.map((m: MemberData) => ({ email: m.email, branchId: getMemberBranchId(m) })))
+  console.log('[DEBUG] User branches:', profile?.userBranches?.map((ub: { branchId: string }) => ub.branchId))
   
-  const allMembers = rawMembers.filter(member => {
+  const allMembers = rawMembers.filter((member: MemberData) => {
     const canManage = canManageMember(member)
     const memberBranchId = getMemberBranchId(member)
     
@@ -382,7 +381,7 @@ export default function MembersPage() {
             <Building className="h-4 w-4 text-amber-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">{isSuperAdmin ? stats.byCategory.length : stats.deleted}</div>
+            <div className="text-2xl font-bold text-amber-600">{isSuperAdmin ? (stats as any).byCategory?.length || 0 : stats.deleted}</div>
             <p className="text-xs text-muted-foreground">{isSuperAdmin ? 'Business types' : 'Soft deleted'}</p>
           </CardContent>
         </Card>
@@ -411,7 +410,7 @@ export default function MembersPage() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <Select value={memberStatusFilter} onValueChange={setMemberStatusFilter}>
+                <Select value={memberStatusFilter} onValueChange={(value) => setMemberStatusFilter(value as 'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'deleted')}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
@@ -428,7 +427,7 @@ export default function MembersPage() {
                   <Checkbox
                     id="showDeleted"
                     checked={showDeleted}
-                    onCheckedChange={setShowDeleted}
+                    onCheckedChange={(checked) => setShowDeleted(checked as boolean)}
                   />
                   <Label htmlFor="showDeleted" className="text-sm font-medium whitespace-nowrap">
                     Show deleted
@@ -480,10 +479,10 @@ export default function MembersPage() {
                 </p>
               </div>
             ) : (
-              filteredMembers.map((member: User) => (
+              filteredMembers.map((member: MemberData) => (
                 <MemberCard
                   key={member.id}
-                  member={member}
+                  member={member as User}
                   isSuperAdmin={isSuperAdmin}
                   onViewMemberInfo={(member) => {
                     setSelectedMember(member)
@@ -548,7 +547,7 @@ export default function MembersPage() {
               Renew Membership
             </DialogTitle>
             <DialogDescription>
-              Renew the expired membership for {selectedMemberForAction?.name || `${selectedMemberForAction?.firstName} ${selectedMemberForAction?.lastName}`}
+              Renew the expired membership for {`${selectedMemberForAction?.firstName} ${selectedMemberForAction?.lastName}`}
             </DialogDescription>
           </DialogHeader>
           
@@ -630,7 +629,7 @@ export default function MembersPage() {
               Cancel Membership
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel the active membership for {selectedMemberForAction?.name || `${selectedMemberForAction?.firstName} ${selectedMemberForAction?.lastName}`}?
+              Are you sure you want to cancel the active membership for {`${selectedMemberForAction?.firstName} ${selectedMemberForAction?.lastName}`}?
             </DialogDescription>
           </DialogHeader>
           
@@ -713,7 +712,7 @@ export default function MembersPage() {
               Transaction History
             </DialogTitle>
             <DialogDescription>
-              Payment and transaction history for {selectedMemberForTransactions?.name || `${selectedMemberForTransactions?.firstName} ${selectedMemberForTransactions?.lastName}`}
+              Payment and transaction history for {`${selectedMemberForTransactions?.firstName} ${selectedMemberForTransactions?.lastName}`}
             </DialogDescription>
           </DialogHeader>
           
@@ -722,11 +721,11 @@ export default function MembersPage() {
             {selectedMemberForTransactions && (
               <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                  {(selectedMemberForTransactions.name || selectedMemberForTransactions.firstName || selectedMemberForTransactions.email).charAt(0).toUpperCase()}
+                  {(selectedMemberForTransactions?.firstName || selectedMemberForTransactions?.email || 'U').charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h4 className="font-semibold">{selectedMemberForTransactions.name || `${selectedMemberForTransactions.firstName} ${selectedMemberForTransactions.lastName}`}</h4>
-                  <p className="text-sm text-muted-foreground">{selectedMemberForTransactions.email}</p>
+                  <h4 className="font-semibold">{`${selectedMemberForTransactions?.firstName || ''} ${selectedMemberForTransactions?.lastName || ''}`}</h4>
+                  <p className="text-sm text-muted-foreground">{selectedMemberForTransactions?.email}</p>
                   {selectedMemberForTransactions.businessData?.membership && (
                     <p className="text-xs text-purple-600 font-medium">
                       Current Plan: {selectedMemberForTransactions.businessData.membership.planName} - ₱{selectedMemberForTransactions.businessData.membership.price}
@@ -753,8 +752,8 @@ export default function MembersPage() {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {selectedMemberForTransactions.businessData.paymentHistory
-                        .sort((a, b) => new Date(b.date) - new Date(a.date))
-                        .map((transaction, index) => (
+                        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .map((transaction: any, index: number) => (
                         <tr key={index} className="hover:bg-gray-50">
                           <td className="p-3 text-sm">
                             {new Date(transaction.date).toLocaleDateString('en-US', {
@@ -810,7 +809,7 @@ export default function MembersPage() {
                   <div className="text-sm text-green-800 font-medium">Total Paid</div>
                   <div className="text-2xl font-bold text-green-600">
                     ₱{selectedMemberForTransactions.businessData.paymentHistory
-                      .reduce((sum, transaction) => sum + parseFloat(transaction.amount), 0)
+                      .reduce((sum: number, transaction: any) => sum + parseFloat(transaction.amount), 0)
                       .toFixed(2)}
                   </div>
                 </div>
@@ -825,7 +824,7 @@ export default function MembersPage() {
                   <div className="text-lg font-bold text-purple-600">
                     {new Date(
                       selectedMemberForTransactions.businessData.paymentHistory
-                        .sort((a, b) => new Date(b.date) - new Date(a.date))[0].date
+                        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date
                     ).toLocaleDateString()}
                   </div>
                 </div>

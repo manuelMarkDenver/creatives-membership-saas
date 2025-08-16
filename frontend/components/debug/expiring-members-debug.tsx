@@ -2,6 +2,7 @@
 
 import { useExpiringMembersCount, useExpiringMembersOverview, useExpiringMembers } from '@/lib/hooks/use-expiring-members'
 import { useProfile, useUsersByTenant } from '@/lib/hooks/use-users'
+import { Role } from '@/types'
 import { getExpiringMembersCount, isMemberConsideredExpiring, type MemberData } from '@/lib/utils/member-status'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,7 +30,7 @@ export function ExpiringMembersDebug({ className = '' }: ExpiringMembersDebugPro
   
   const { data: membersData } = useUsersByTenant(
     profile?.tenantId || '', 
-    { role: 'GYM_MEMBER' }
+    { role: 'GYM_MEMBER' as Role }
   )
   
   if (!profile?.tenantId) {
@@ -52,7 +53,7 @@ export function ExpiringMembersDebug({ className = '' }: ExpiringMembersDebugPro
   // Get detailed breakdown
   const memberBreakdown = membersData ? (membersData as MemberData[]).map(member => {
     const isExpiring = isMemberConsideredExpiring(member, 7)
-    const subscription = member.customerSubscriptions?.[0]
+    const subscription = member.gymSubscriptions?.[0]
     
     return {
       name: member.name || `${member.firstName} ${member.lastName}`.trim() || member.email,
@@ -85,7 +86,7 @@ export function ExpiringMembersDebug({ className = '' }: ExpiringMembersDebugPro
                 <div className="text-xs text-muted-foreground">From API</div>
               </div>
               <Badge variant="destructive" className="text-lg font-bold px-3 py-1">
-                {badgeCountData?.count || '?'}
+                {typeof badgeCountData === 'number' ? badgeCountData : '?'}
               </Badge>
             </div>
             

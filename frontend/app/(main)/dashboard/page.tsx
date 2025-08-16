@@ -134,7 +134,7 @@ function SuperAdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {tenants.slice(0, 5).map((tenant) => (
+            {tenants.slice(0, 5).map((tenant: any) => (
               <div key={tenant.id} className="flex items-center justify-between p-6 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold">
@@ -162,7 +162,7 @@ function SuperAdminDashboard() {
                   
                   {/* Enhanced SaaS Subscription Information */}
                   <div className="space-y-1">
-                    {tenant.branches?.map((branch, index) => {
+                    {tenant.branches?.map((branch: any, index: number) => {
                       // Get the latest subscription for this branch
                       const latestSubscription = branch.subscriptions?.[0]; // Already ordered by createdAt desc
                       const isExpired = latestSubscription && new Date(latestSubscription.endDate) <= new Date();
@@ -291,7 +291,7 @@ function OwnerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {branches.map((branch) => (
+              {branches.map((branch: any) => (
                 <div key={branch.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <h4 className="font-semibold">{branch.name}</h4>

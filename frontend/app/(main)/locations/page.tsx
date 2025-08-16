@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useProfile } from '@/lib/hooks/use-users'
-import { useBranchesByTenant, useBranchesSystemWide, useCreateBranch, useDeleteBranch } from '@/lib/hooks/use-branches'
+import { useLocationsByTenant, useCreateLocation, useDeleteLocation } from '@/lib/hooks/use-locations'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -34,15 +34,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Branch } from '@/types'
+import { Location } from '@/types'
 import { toast } from 'sonner'
 
-export default function BranchesPage() {
+export default function LocationsPage() {
   const { data: profile } = useProfile()
   const [searchTerm, setSearchTerm] = useState('')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null)
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -50,76 +50,67 @@ export default function BranchesPage() {
     email: ''
   })
 
-  // Fetch branches based on user role
-  const isSuperAdmin = profile?.role === 'SUPER_ADMIN'
-  
-  const { data: tenantBranchesData, isLoading: tenantLoading, error: tenantError } = useBranchesByTenant(
-    profile?.tenantId || '', 
-    { enabled: !isSuperAdmin && !!profile?.tenantId }
+  // Fetch locations using gym locations API
+  const { data: tenantLocationsData, isLoading, error } = useLocationsByTenant(
+    profile?.tenantId || ''
   )
   
-  const { data: systemBranchesData, isLoading: systemLoading, error: systemError } = useBranchesSystemWide(
-    isSuperAdmin
-  )
-  
-  const createBranch = useCreateBranch()
-  const deleteBranch = useDeleteBranch()
+  const createLocation = useCreateLocation()
+  const deleteLocation = useDeleteLocation()
 
-  const branches = isSuperAdmin ? (systemBranchesData || []) : (tenantBranchesData || [])
-  const isLoading = isSuperAdmin ? systemLoading : tenantLoading
-  const error = isSuperAdmin ? systemError : tenantError
+  const locations = tenantLocationsData || []
 
-  const filteredBranches = branches.filter((branch: Branch) =>
-    branch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (branch.address?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+  const filteredLocations = locations.filter((location: Location) =>
+    location.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (location.address?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   )
 
   const stats = {
-    total: branches.length,
-    active: branches.filter(b => b.isActive !== false).length,
-    totalMembers: branches.reduce((sum, branch) => sum + (branch._count?.userBranches || 0), 0),
-    totalStaff: branches.reduce((sum, branch) => sum + (branch._count?.staff || 0), 0)
+    total: locations.length,
+    active: locations.filter((l: Location) => l.isActive !== false).length,
+    totalMembers: locations.reduce((sum: number, location: Location) => sum + (location._count?.userBranches || 0), 0),
+    totalStaff: locations.reduce((sum: number, location: Location) => sum + (location._count?.staff || 0), 0)
   }
 
-  const handleCreateBranch = async () => {
+  const handleCreateLocation = async () => {
     if (!profile?.tenantId || !formData.name || !formData.address) {
       toast.error('Please fill in all required fields')
       return
     }
 
     try {
-      await createBranch.mutateAsync({
+      await createLocation.mutateAsync({
         tenantId: profile.tenantId,
         name: formData.name,
         address: formData.address,
         phone: formData.phone || undefined,
         email: formData.email || undefined
       })
-      toast.success('Branch created successfully!')
+      toast.success('Location created successfully!')
       setCreateDialogOpen(false)
       setFormData({ name: '', address: '', phone: '', email: '' })
     } catch (error) {
-      toast.error('Failed to create branch. Please try again.')
-      console.error('Failed to create branch:', error)
+      toast.error('Failed to create location. Please try again.')
+      console.error('Failed to create location:', error)
     }
   }
 
-  const handleDeleteBranch = async () => {
-    if (!selectedBranch) return
+  const handleDeleteLocation = async () => {
+    if (!selectedLocation) return
 
     try {
-      await deleteBranch.mutateAsync(selectedBranch.id)
-      toast.success('Branch deleted successfully!')
+      await deleteLocation.mutateAsync(selectedLocation.id)
+      toast.success('Location deleted successfully!')
       setDeleteDialogOpen(false)
-      setSelectedBranch(null)
+      setSelectedLocation(null)
     } catch (error) {
-      toast.error('Failed to delete branch. Please try again.')
-      console.error('Failed to delete branch:', error)
+      toast.error('Failed to delete location. Please try again.')
+      console.error('Failed to delete location:', error)
     }
   }
 
-  const openDeleteDialog = (branch: Branch) => {
-    setSelectedBranch(branch)
+  const openDeleteDialog = (location: Location) => {
+    setSelectedLocation(location)
     setDeleteDialogOpen(true)
   }
 
@@ -130,35 +121,28 @@ export default function BranchesPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <MapPin className="h-8 w-8 text-blue-500" />
-            {isSuperAdmin ? 'All System Branches' : 'Your Branches'}
+            Gym Locations
           </h1>
           <p className="text-muted-foreground">
-            {isSuperAdmin 
-              ? 'View and manage all branches across all tenants in the system' 
-              : 'Manage your gym locations and branch information'
-            }
+            Manage your gym locations and their details
           </p>
         </div>
-        {!isSuperAdmin && (
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Branch
-          </Button>
-        )}
+        <Button onClick={() => setCreateDialogOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Location
+        </Button>
       </div>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Branches</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Locations</CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              {isSuperAdmin ? 'System-wide' : 'Your locations'}
-            </p>
+            <p className="text-xs text-muted-foreground">Your gym locations</p>
           </CardContent>
         </Card>
         <Card>
@@ -179,7 +163,7 @@ export default function BranchesPage() {
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{stats.totalMembers}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.totalMembers === 0 ? 'No members assigned yet' : isSuperAdmin ? 'System-wide total' : 'Across all branches'}
+              {stats.totalMembers === 0 ? 'No members assigned yet' : 'Across all locations'}
             </p>
           </CardContent>
         </Card>
@@ -198,12 +182,9 @@ export default function BranchesPage() {
       {/* Search and List */}
       <Card>
         <CardHeader>
-          <CardTitle>{isSuperAdmin ? 'System Branch Directory' : 'Branch Directory'}</CardTitle>
+          <CardTitle>Location Directory</CardTitle>
           <CardDescription>
-            {isSuperAdmin 
-              ? 'All branches across tenants in the system'
-              : 'Manage your gym locations and their details'
-            }
+            Manage your gym locations and their details
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -212,7 +193,7 @@ export default function BranchesPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search branches..."
+                  placeholder="Search locations..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -221,61 +202,50 @@ export default function BranchesPage() {
             </div>
           </div>
 
-          {/* Branches List */}
+          {/* Locations List */}
           <div className="space-y-4">
             {isLoading ? (
               <div className="text-center py-8">
-                <div className="animate-pulse">Loading branches...</div>
+                <div className="animate-pulse">Loading locations...</div>
               </div>
             ) : error ? (
               <div className="text-center py-8 text-red-600">
-                Failed to load branches. Please try again.
+                Failed to load locations. Please try again.
               </div>
-            ) : filteredBranches.length === 0 ? (
+            ) : filteredLocations.length === 0 ? (
               <div className="text-center py-8">
                 <Building2 className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No branches found</h3>
+                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No locations found</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  {searchTerm ? 'Try adjusting your search.' : 'Get started by adding your first branch.'}
+                  {searchTerm ? 'Try adjusting your search.' : 'Get started by adding your first gym location.'}
                 </p>
               </div>
             ) : (
-              filteredBranches.map((branch: Branch) => (
-                <div key={branch.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700">
+              filteredLocations.map((location: Location) => (
+                <div key={location.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold">
-                      {branch.name.charAt(0).toUpperCase()}
+                      {location.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <div className="flex items-center gap-3">
-                        <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{branch.name}</h4>
-                        {isSuperAdmin && branch.tenant && (
-                          <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200">
-                            {branch.tenant.name}
-                          </Badge>
-                        )}
+                        <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{location.name}</h4>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300 mt-1">
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
-                          {branch.address}
+                          {location.address}
                         </div>
-                        {branch.phone && (
+                        {location.phoneNumber && (
                           <div className="flex items-center gap-1">
                             <Phone className="h-3 w-3" />
-                            {branch.phone}
+                            {location.phoneNumber}
                           </div>
                         )}
-                        {branch.email && (
+                        {location.email && (
                           <div className="flex items-center gap-1">
                             <Mail className="h-3 w-3" />
-                            {branch.email}
-                          </div>
-                        )}
-                        {isSuperAdmin && branch.tenant && (
-                          <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full">
-                            <Building2 className="h-3 w-3" />
-                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{branch.tenant.category?.replace('_', ' ')}</span>
+                            {location.email}
                           </div>
                         )}
                       </div>
@@ -285,44 +255,25 @@ export default function BranchesPage() {
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
                       <div className="flex flex-col items-end gap-2">
-                        <Badge variant={branch.isActive ? "default" : "secondary"} className="mb-1">
-                          {branch.isActive ? 'ACTIVE' : 'INACTIVE'}
+                        <Badge variant={location.isActive ? "default" : "secondary"} className="mb-1">
+                          {location.isActive ? 'ACTIVE' : 'INACTIVE'}
                         </Badge>
                         
-                        {/* Enhanced member/staff info */}
+                        {/* Member/staff info */}
                         <div className="flex flex-col items-end gap-1">
                           <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
                             <Users className="h-3 w-3 mr-1" />
-                            {branch._count?.userBranches || 0} members
+                            {location._count?.userBranches || 0} members
                           </Badge>
-                          {(branch._count?.activeMembers || branch._count?.inactiveMembers) && (
-                            <div className="flex gap-1">
-                              {branch._count?.activeMembers && (
-                                <Badge variant="outline" className="text-xs bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
-                                  {branch._count.activeMembers} active
-                                </Badge>
-                              )}
-                              {branch._count?.inactiveMembers && (
-                                <Badge variant="outline" className="text-xs bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300">
-                                  {branch._count.inactiveMembers} inactive
-                                </Badge>
-                              )}
-                            </div>
-                          )}
                           <Badge variant="outline" className="text-xs bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
                             <Users className="h-3 w-3 mr-1" />
-                            {branch._count?.staff || 0} staff
+                            {location._count?.staff || 0} staff
                           </Badge>
                         </div>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Created: {new Date(branch.createdAt).toLocaleDateString()}
+                        Created: {new Date(location.createdAt).toLocaleDateString()}
                       </p>
-                      {isSuperAdmin && branch.tenant && (
-                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                          {branch.tenant.name}
-                        </p>
-                      )}
                     </div>
                     
                     <DropdownMenu>
@@ -334,14 +285,14 @@ export default function BranchesPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem>
                           <Edit className="mr-2 h-4 w-4" />
-                          Edit Branch
+                          Edit Location
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className="text-red-600"
-                          onClick={() => openDeleteDialog(branch)}
+                          onClick={() => openDeleteDialog(location)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Delete Branch
+                          Delete Location
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -353,13 +304,13 @@ export default function BranchesPage() {
         </CardContent>
       </Card>
 
-      {/* Create Branch Dialog */}
+      {/* Create Location Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5 text-blue-500" />
-              Add New Branch
+              Add New Location
             </DialogTitle>
             <DialogDescription>
               Create a new gym location for your business.
@@ -368,7 +319,7 @@ export default function BranchesPage() {
           
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Branch Name *</Label>
+              <Label htmlFor="name">Location Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -404,7 +355,7 @@ export default function BranchesPage() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                placeholder="branch@gym.com"
+                placeholder="location@gym.com"
               />
             </div>
           </div>
@@ -416,15 +367,15 @@ export default function BranchesPage() {
                 setCreateDialogOpen(false)
                 setFormData({ name: '', address: '', phone: '', email: '' })
               }}
-              disabled={createBranch.isPending}
+              disabled={createLocation.isPending}
             >
               Cancel
             </Button>
             <Button 
-              onClick={handleCreateBranch}
-              disabled={createBranch.isPending || !formData.name || !formData.address}
+              onClick={handleCreateLocation}
+              disabled={createLocation.isPending || !formData.name || !formData.address}
             >
-              {createBranch.isPending ? (
+              {createLocation.isPending ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                   Creating...
@@ -432,7 +383,7 @@ export default function BranchesPage() {
               ) : (
                 <>
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Branch
+                  Create Location
                 </>
               )}
             </Button>
@@ -446,10 +397,10 @@ export default function BranchesPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <Trash2 className="h-5 w-5" />
-              Delete Branch
+              Delete Location
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{selectedBranch?.name}&quot;? This action cannot be undone.
+              Are you sure you want to delete &quot;{selectedLocation?.name}&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 
@@ -458,18 +409,18 @@ export default function BranchesPage() {
               variant="outline" 
               onClick={() => {
                 setDeleteDialogOpen(false)
-                setSelectedBranch(null)
+                setSelectedLocation(null)
               }}
-              disabled={deleteBranch.isPending}
+              disabled={deleteLocation.isPending}
             >
               Cancel
             </Button>
             <Button 
               variant="destructive"
-              onClick={handleDeleteBranch}
-              disabled={deleteBranch.isPending}
+              onClick={handleDeleteLocation}
+              disabled={deleteLocation.isPending}
             >
-              {deleteBranch.isPending ? (
+              {deleteLocation.isPending ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                   Deleting...
@@ -477,7 +428,7 @@ export default function BranchesPage() {
               ) : (
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Branch
+                  Delete Location
                 </>
               )}
             </Button>

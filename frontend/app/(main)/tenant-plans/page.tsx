@@ -122,7 +122,7 @@ export default function TenantPlansPage() {
   const filteredPlans = allPlans.filter(plan => {
     const matchesSearch = plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          plan.tenantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         plan.description.toLowerCase().includes(searchTerm.toLowerCase())
+                         plan.description?.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesTenant = selectedTenant === 'all' || plan.tenantId === selectedTenant
     const matchesStatus = selectedStatus === 'all' || 
@@ -136,7 +136,7 @@ export default function TenantPlansPage() {
   const stats = {
     totalPlans: allPlans.length,
     activePlans: allPlans.filter(p => p.isActive).length,
-    totalMembers: allPlans.reduce((sum, plan) => sum + plan.memberCount, 0),
+    totalMembers: allPlans.reduce((sum, plan) => sum + (plan.memberCount || 0), 0),
     avgPrice: allPlans.reduce((sum, plan) => sum + plan.price, 0) / allPlans.length
   }
 
@@ -313,7 +313,7 @@ export default function TenantPlansPage() {
                     </p>
                     <div className="flex items-center gap-1 justify-end">
                       <Users className="h-3 w-3 text-blue-500" />
-                      <span className="text-xs text-muted-foreground">{plan.memberCount} members</span>
+                      <span className="text-xs text-muted-foreground">{plan.memberCount || 0} members</span>
                     </div>
                     <div className="flex items-center gap-1 justify-end">
                       <Calendar className="h-3 w-3 text-gray-400" />

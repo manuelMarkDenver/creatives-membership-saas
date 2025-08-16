@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useUsersByTenant } from '@/lib/hooks/use-users'
 import { gymSubscriptionsApi } from '@/lib/api'
-import { User } from '@/types'
+import { User, Role } from '@/types'
 
 export interface GymMemberWithSubscriptions extends User {
   gymSubscriptions?: Array<{
@@ -37,8 +37,7 @@ export const gymMemberKeys = {
 export function useGymMembersWithSubscriptions(tenantId: string, options?: { enabled?: boolean }) {
   const { data: members, isLoading: isLoadingMembers, error: membersError } = useUsersByTenant(
     tenantId, 
-    { role: 'GYM_MEMBER' },
-    { enabled: options?.enabled ?? true }
+    { role: 'GYM_MEMBER' as Role }
   )
 
   return useQuery<GymMemberWithSubscriptions[]>({
@@ -50,7 +49,7 @@ export function useGymMembersWithSubscriptions(tenantId: string, options?: { ena
 
       // Fetch subscription data for each member
       const membersWithSubscriptions = await Promise.all(
-        members.map(async (member) => {
+        members.map(async (member: User) => {
           try {
             // Get subscription history for this member (most recent first)
             const subscriptionHistory = await gymSubscriptionsApi.getSubscriptionHistory(member.id)

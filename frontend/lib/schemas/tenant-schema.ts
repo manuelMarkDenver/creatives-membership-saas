@@ -1,7 +1,8 @@
 import { z } from 'zod'
+import { BusinessCategory } from '@/types'
 
 // Define business categories enum
-export const BusinessCategoryEnum = z.enum(['GYM', 'COFFEE_SHOP', 'ECOMMERCE', 'OTHER'])
+export const BusinessCategoryEnum = z.nativeEnum(BusinessCategory)
 
 // Comprehensive tenant creation schema
 export const createTenantSchema = z.object({
@@ -34,7 +35,7 @@ export type CreateTenantFormData = z.infer<typeof createTenantSchema>
 // Default form values
 export const defaultTenantValues: CreateTenantFormData = {
   name: '',
-  category: 'GYM',
+  category: BusinessCategory.GYM,
   description: '',
   ownerFirstName: '',
   ownerLastName: '',

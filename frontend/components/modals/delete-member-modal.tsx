@@ -49,7 +49,7 @@ export function DeleteMemberModal({
 
   const softDeleteMutation = useSoftDeleteUser()
   
-  const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
+  const memberName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email || 'Unknown'
   const subscription = member.gymSubscriptions?.[0]
 
   const handleSubmit = async (e: React.FormEvent) => {

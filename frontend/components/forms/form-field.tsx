@@ -128,14 +128,14 @@ export function SelectField<T extends FieldValues>({
         {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
       <Select
-        onValueChange={(value) => form.setValue(name, value, { shouldValidate: true })}
+        onValueChange={(value) => form.setValue(name, value as any, { shouldValidate: true })}
         value={form.watch(name) || ''}
       >
         <SelectTrigger className={error ? 'border-red-500' : ''}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {options.map((option) => (
+          {options?.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>

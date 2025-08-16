@@ -68,13 +68,13 @@ export function useProfile() {
       const userData = await usersApi.getProfile()
       return {
         ...userData,
-        name: userData.name || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.email, // Add computed name field
+        name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.email, // Add computed name field
       }
     },
     staleTime: 1 * 60 * 1000, // 1 minute - shorter cache for more accurate role detection
     retry: (failureCount, error) => {
       // Don't retry 401 errors (authentication issues)
-      if (error?.response?.status === 401) {
+      if ((error as any)?.response?.status === 401) {
         return false
       }
       return failureCount < 3
@@ -284,8 +284,8 @@ export function useActivateUser() {
     mutationFn: (id: string) => {
       const updateData = {
         isActive: true,
-        deletedAt: null,
-        deletedBy: null
+        deletedAt: undefined,
+        deletedBy: undefined
       }
       return usersApi.update(id, updateData)
     },
@@ -336,8 +336,8 @@ export function useRestoreUser() {
     mutationFn: (id: string) => {
       const updateData = {
         isActive: true,
-        deletedAt: null,
-        deletedBy: null
+        deletedAt: undefined,
+        deletedBy: undefined
       }
       return usersApi.update(id, updateData)
     },

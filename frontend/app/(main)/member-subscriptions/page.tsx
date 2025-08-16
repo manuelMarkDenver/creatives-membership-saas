@@ -37,10 +37,7 @@ export default function MemberSubscriptionsPage() {
   const [selectedPlan, setSelectedPlan] = useState(null)
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
 
-  const { data: membershipPlans, isLoading, error, refetch } = useMembershipPlans(
-    profile?.tenantId || '',
-    { enabled: !!profile?.tenantId }
-  )
+  const { data: membershipPlans, isLoading, error, refetch } = useMembershipPlans()
 
   const filteredPlans = membershipPlans?.filter((plan: any) => 
     plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -71,7 +68,7 @@ export default function MemberSubscriptionsPage() {
   }
 
   // Check if user can manage plans
-  const canManage = ['OWNER', 'MANAGER'].includes(profile?.role)
+  const canManage = profile?.role && ['OWNER', 'MANAGER'].includes(profile.role)
   const canViewOnly = profile?.role === 'STAFF'
 
   if (!canManage && !canViewOnly) {
@@ -139,7 +136,7 @@ export default function MemberSubscriptionsPage() {
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
               {membershipPlans && membershipPlans.length > 0 
-                ? formatPHP(Math.min(...membershipPlans.map(p => parseFloat(p.price))))
+                ? formatPHP(Math.min(...membershipPlans.map((p: any) => Number(p.price))))
                 : '₱0'
               }
             </div>
@@ -154,7 +151,7 @@ export default function MemberSubscriptionsPage() {
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">
               {membershipPlans && membershipPlans.length > 0 
-                ? formatPHP(Math.max(...membershipPlans.map(p => parseFloat(p.price))))
+                ? formatPHP(Math.max(...membershipPlans.map((p: any) => Number(p.price))))
                 : '₱0'
               }
             </div>

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { setTenantContext } from '@/lib/api'
-import { Tenant } from '@/lib/types'
+import { Tenant } from '@/types'
 
 interface TenantContextType {
   currentTenant: Tenant | null

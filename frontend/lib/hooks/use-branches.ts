@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { branchesApi, CreateBranchDto, UpdateBranchDto, BranchQueryParams } from '@/lib/api'
-import { Branch } from '@/lib/types'
+import { Branch } from '@/types'
 
 // Query keys
 export const branchKeys = {

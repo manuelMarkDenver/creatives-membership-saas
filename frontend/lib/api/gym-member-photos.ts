@@ -1,0 +1,158 @@
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
+
+export interface PhotoUploadResponse {
+  success: boolean;
+  message: string;
+  member: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    photoUrl: string | null;
+  };
+  photo?: {
+    url: string;
+    path: string;
+  };
+}
+
+export interface PhotoDeleteResponse {
+  success: boolean;
+  message: string;
+  member: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    photoUrl: string | null;
+  };
+}
+
+class GymMemberPhotosApi {
+  private async getAuthHeaders(): Promise<HeadersInit> {
+    const token = localStorage.getItem('authToken');
+    return {
+      'Authorization': token ? `Bearer ${token}` : '',
+      'x-tenant-id': localStorage.getItem('selectedTenantId') || '',
+    };
+  }
+
+  /**
+   * Upload a member photo
+   */
+  async uploadPhoto(memberId: string, file: File): Promise<PhotoUploadResponse> {
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    const response = await fetch(`${API_BASE_URL}/gym/members/${memberId}/photo`, {
+      method: 'POST',
+      headers: await this.getAuthHeaders(),
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Delete a member photo
+   */
+  async deletePhoto(memberId: string): Promise<PhotoDeleteResponse> {
+    const response = await fetch(`${API_BASE_URL}/gym/members/${memberId}/photo`, {
+      method: 'DELETE',
+      headers: await this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Delete failed' }));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Validate image file before upload
+   */
+  validateImageFile(file: File): { isValid: boolean; error?: string } {
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      return {
+        isValid: false,
+        error: 'Please select an image file (JPG, PNG, GIF, etc.)'
+      };
+    }
+
+    // Check file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      return {
+        isValid: false,
+        error: 'Image must be smaller than 5MB'
+      };
+    }
+
+    // Check supported formats
+    const supportedTypes = [
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/gif',
+      'image/webp'
+    ];
+    
+    if (!supportedTypes.includes(file.type)) {
+      return {
+        isValid: false,
+        error: 'Supported formats: JPG, PNG, GIF, WebP'
+      };
+    }
+
+    return { isValid: true };
+  }
+
+  /**
+   * Create a preview URL for local file
+   */
+  createPreviewUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        resolve(e.target?.result as string);
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to create preview'));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * Check if URL is a valid image
+   */
+  async validateImageUrl(url: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+      
+      // Timeout after 5 seconds
+      setTimeout(() => resolve(false), 5000);
+    });
+  }
+
+  /**
+   * Generate initials from name for avatar fallback
+   */
+  generateInitials(firstName?: string, lastName?: string): string {
+    if (!firstName && !lastName) return '';
+    const first = firstName?.charAt(0)?.toUpperCase() || '';
+    const last = lastName?.charAt(0)?.toUpperCase() || '';
+    return `${first}${last}`.substring(0, 2);
+  }
+}
+
+export const gymMemberPhotosApi = new GymMemberPhotosApi();

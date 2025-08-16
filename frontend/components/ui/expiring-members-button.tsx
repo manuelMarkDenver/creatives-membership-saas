@@ -30,7 +30,7 @@ export function ExpiringMembersButton({
   )
 
   // For Super Admin, we'll show a generic button since they need the overview modal to see counts
-  const count = userRole === 'SUPER_ADMIN' ? '?' : countData?.count || 0
+  const count = userRole === 'SUPER_ADMIN' ? '?' : (typeof countData === 'number' ? countData : (countData as any)?.count || 0)
   const shouldShowBadge = userRole === 'SUPER_ADMIN' || (count && count > 0)
 
   const handleClick = () => {
@@ -92,7 +92,9 @@ export function useExpiringMembersAutoPopup(
 
   // Check if we should show the popup
   const checkShouldShowPopup = () => {
-    if (userRole === 'SUPER_ADMIN' || !countData?.count || countData.count === 0) {
+    const count = typeof countData === 'number' ? countData : (countData as any)?.count || 0
+    
+    if (userRole === 'SUPER_ADMIN' || !count || count === 0) {
       return false
     }
 
@@ -106,7 +108,7 @@ export function useExpiringMembersAutoPopup(
     }
 
     // Show popup if there are critical expiring members
-    return countData.count > 0
+    return count > 0
   }
 
   const showPopup = () => {
@@ -121,6 +123,6 @@ export function useExpiringMembersAutoPopup(
     shouldShowPopup: shouldShowPopup && checkShouldShowPopup(),
     showPopup,
     hidePopup,
-    criticalCount: countData?.count || 0
+    criticalCount: typeof countData === 'number' ? countData : (countData as any)?.count || 0
   }
 }
