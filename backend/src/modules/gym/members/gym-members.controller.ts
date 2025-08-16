@@ -4,8 +4,19 @@ import { GymMembersService } from './gym-members.service';
 import { AuthGuard } from '../../../core/auth/auth.guard';
 import { RBACGuard, RequiredRoles } from '../../../core/guard/rbac.guard';
 import { Role } from '@prisma/client';
-import type { RequestWithUser } from '../../../types/express';
-import '../../../types/express';
+import { Request } from 'express';
+
+interface RequestWithUser extends Request {
+  user?: {
+    id: string;
+    tenantId?: string;
+    role: Role;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+  };
+  headers: Request['headers'];
+}
 
 interface CreateGymMemberDto {
   firstName?: string;
