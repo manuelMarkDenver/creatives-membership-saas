@@ -1,7 +1,5 @@
 {
   "security": {
-    "previewProtection": {
-      "enabled": false
-    }
+    "previewProtection": false
   }
 }
