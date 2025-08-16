@@ -4,17 +4,8 @@ import type { CreateBusinessUnitDto, UpdateBusinessUnitDto } from './business-un
 import { AuthGuard } from '../../core/auth/auth.guard';
 import { RBACGuard, RequiredRoles } from '../../core/guard/rbac.guard';
 import { Role } from '@prisma/client';
-import { Request } from 'express';
-
-interface RequestWithUser extends Request {
-  user?: {
-    id: string;
-    tenantId?: string;
-    role: Role;
-    email: string;
-  };
-  tenantId?: string;
-}
+import { RequestWithUser } from '../../types/express';
+import '../../types/express';
 
 interface TogglePaidModeDto {
   enabled: boolean;

@@ -1,10 +1,17 @@
-import { User } from '@prisma/client';
+import { User, Role } from '@prisma/client';
 import { Request } from 'express';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: User;
+      user?: {
+        id: string;
+        tenantId?: string;
+        role: Role;
+        email: string;
+        firstName?: string;
+        lastName?: string;
+      };
       tenantId?: string;
       tenantSlug?: string;
     }
@@ -26,6 +33,13 @@ declare global {
 }
 
 export interface RequestWithUser extends Request {
-  user?: User;
+  user?: {
+    id: string;
+    tenantId?: string;
+    role: Role;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+  };
   headers: Request['headers'];
 }
