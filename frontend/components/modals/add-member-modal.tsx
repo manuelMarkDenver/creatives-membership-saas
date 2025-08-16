@@ -310,6 +310,22 @@ export function AddMemberModal({
 
           await gymSubscriptionsApi.renewMembership(createdUser.id, subscriptionData)
           
+          // Upload photo if provided
+          if (formData.photoFile) {
+            try {
+              const photoFormData = new FormData()
+              photoFormData.append('photo', formData.photoFile)
+              
+              await fetch(`/api/v1/gym/members/${createdUser.id}/photo`, {
+                method: 'POST',
+                body: photoFormData
+              })
+            } catch (photoError) {
+              console.warn('Photo upload failed, but member was created:', photoError)
+              // Don't fail the entire process if photo upload fails
+            }
+          }
+          
           toast.success(`Member ${formData.firstName} ${formData.lastName} added successfully with active subscription!`)
           onMemberAdded?.()
           handleClose()

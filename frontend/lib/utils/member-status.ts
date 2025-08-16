@@ -53,22 +53,6 @@ export interface MemberData {
  * Calculate a member's effective status from both user account and subscription data
  */
 export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus {
-  // Debug logging for specific members
-  const debugEmails = ['stephanie20b1@muscle-mania.com', 'daniel15b1@muscle-mania.com', 'lisa8b1@muscle-mania.com', 'anthony23b1@muscle-mania.com']
-  const isDebugMember = debugEmails.includes(member.email)
-  
-  if (isDebugMember) {
-    console.log(`[DEBUG] Calculating status for ${member.email}:`, {
-      subscriptions: member.gymSubscriptions?.map(sub => ({
-        id: sub.id,
-        status: sub.status,
-        endDate: sub.endDate,
-        cancelledAt: sub.cancelledAt
-      })),
-      isActive: member.isActive,
-      deletedAt: member.deletedAt
-    })
-  }
 
   // Check if user account is deleted (soft delete)
   const isDeleted = Boolean(member.deletedAt)
@@ -101,17 +85,6 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
   const subscription = subscriptions[0]
   const businessMembership = member.businessData?.membership
   
-  if (isDebugMember) {
-    console.log(`[DEBUG] Selected subscription for ${member.email}:`, {
-      subscription: subscription ? {
-        id: subscription.id,
-        status: subscription.status,
-        endDate: subscription.endDate,
-        cancelledAt: subscription.cancelledAt
-      } : null,
-      businessMembership: businessMembership
-    })
-  }
   
   // If no subscription data available, member has no subscription
   if (!subscription && !businessMembership) {
@@ -172,14 +145,6 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
       statusIcon: 'x' as const
     }
     
-    if (isDebugMember) {
-      console.log(`[DEBUG] Final status for ${member.email}: CANCELLED`, {
-        subscriptionEndDate: subscriptionEndDate?.toISOString(),
-        currentDate: currentDate.toISOString(),
-        subscriptionStatus,
-        cancelledAt: subscriptionCancelledAt
-      })
-    }
     
     return result
   }
@@ -201,14 +166,6 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
       statusIcon: 'clock' as const
     }
     
-    if (isDebugMember) {
-      console.log(`[DEBUG] Final status for ${member.email}: EXPIRED`, {
-        subscriptionEndDate: subscriptionEndDate?.toISOString(),
-        currentDate: currentDate.toISOString(),
-        daysOverdue,
-        subscriptionStatus
-      })
-    }
     
     return result
   }
@@ -227,14 +184,6 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
       statusIcon: 'alert' as const
     }
     
-    if (isDebugMember) {
-      console.log(`[DEBUG] Final status for ${member.email}: EXPIRING`, {
-        subscriptionEndDate: subscriptionEndDate?.toISOString(),
-        currentDate: currentDate.toISOString(),
-        daysRemaining,
-        subscriptionStatus
-      })
-    }
     
     return result
   }
@@ -250,14 +199,6 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
       statusIcon: 'check' as const
     }
     
-    if (isDebugMember) {
-      console.log(`[DEBUG] Final status for ${member.email}: ACTIVE`, {
-        subscriptionEndDate: subscriptionEndDate?.toISOString(),
-        currentDate: currentDate.toISOString(),
-        daysRemaining,
-        subscriptionStatus
-      })
-    }
     
     return result
   }
@@ -271,13 +212,6 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
     statusIcon: 'info' as const
   }
   
-  if (isDebugMember) {
-    console.log(`[DEBUG] Final status for ${member.email}: NO_SUBSCRIPTION (default)`, {
-      subscriptionStatus,
-      subscriptionEndDate: subscriptionEndDate?.toISOString(),
-      currentDate: currentDate.toISOString()
-    })
-  }
   
   return defaultResult
 }

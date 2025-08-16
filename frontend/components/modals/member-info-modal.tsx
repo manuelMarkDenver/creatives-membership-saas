@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -85,6 +85,9 @@ export function MemberInfoModal({
     pushNotifications: true,
   })
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+
   useEffect(() => {
     if (member && isOpen) {
       const businessData = member.businessData || {}
@@ -125,6 +128,84 @@ export function MemberInfoModal({
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !member?.id) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB')
+      return
+    }
+
+    setIsUploadingPhoto(true)
+
+    try {
+      const photoFormData = new FormData()
+      photoFormData.append('photo', file)
+
+      const response = await fetch(`/api/v1/gym/members/${member.id}/photo`, {
+        method: 'POST',
+        body: photoFormData
+      })
+
+      if (!response.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const result = await response.json()
+      if (result.success) {
+        // Update form data with new photo URL
+        handleInputChange('photoUrl', result.photo.url)
+        toast.success('Photo updated successfully')
+        onMemberUpdated?.()
+      } else {
+        throw new Error(result.message || 'Upload failed')
+      }
+    } catch (error) {
+      console.error('Photo upload error:', error)
+      toast.error('Failed to upload photo')
+    } finally {
+      setIsUploadingPhoto(false)
+    }
+  }
+
+  const handleRemovePhoto = async () => {
+    if (!member?.id) return
+
+    setIsUploadingPhoto(true)
+
+    try {
+      const response = await fetch(`/api/v1/gym/members/${member.id}/photo`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        throw new Error('Delete failed')
+      }
+
+      const result = await response.json()
+      if (result.success) {
+        handleInputChange('photoUrl', '')
+        toast.success('Photo removed successfully')
+        onMemberUpdated?.()
+      } else {
+        throw new Error(result.message || 'Delete failed')
+      }
+    } catch (error) {
+      console.error('Photo delete error:', error)
+      toast.error('Failed to remove photo')
+    } finally {
+      setIsUploadingPhoto(false)
+    }
   }
 
   const handleSave = async () => {
@@ -233,9 +314,9 @@ export function MemberInfoModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <div className="relative">
-              {member.photoUrl ? (
+              {formData.photoUrl ? (
                 <img 
-                  src={member.photoUrl} 
+                  src={formData.photoUrl} 
                   alt={memberName}
                   className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
                 />
@@ -245,9 +326,38 @@ export function MemberInfoModal({
                 </div>
               )}
               {isEditing && (
-                <button className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 border shadow-sm hover:bg-gray-50">
-                  <Camera className="h-3 w-3 text-gray-600" />
-                </button>
+                <div className="absolute -bottom-1 -right-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingPhoto}
+                    className="bg-white rounded-full p-1 border shadow-sm hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <Camera className="h-3 w-3 text-gray-600" />
+                  </button>
+                  {formData.photoUrl && (
+                    <button 
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      disabled={isUploadingPhoto}
+                      className="ml-1 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 disabled:opacity-50"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              )}
+              {isUploadingPhoto && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
               )}
             </div>
             <div>
