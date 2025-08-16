@@ -3,7 +3,7 @@ import { GymSubscriptionsService } from './gym-subscriptions.service';
 import { AuthGuard } from '../../../core/auth/auth.guard';
 import { RBACGuard, RequiredRoles } from '../../../core/guard/rbac.guard';
 import { Role } from '@prisma/client';
-import { RequestWithUser } from '../../../types/express';
+import type { RequestWithUser } from '../../../types/express';
 import '../../../types/express';
 
 @Controller('gym/subscriptions')
