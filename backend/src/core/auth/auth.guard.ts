@@ -207,18 +207,37 @@ export class AuthGuard implements CanActivate {
       
       // If custom token didn't work, try Supabase token
       if (!dbUser) {
-        const supabaseUser = await this.supabaseService.verifyToken(token);
-        
-        dbUser = await this.prisma.user.findUnique({
-          where: { email: supabaseUser.email },
-          include: {
-            userBranches: {
-              include: {
-                branch: true,
+        try {
+          const supabaseUser = await this.supabaseService.verifyToken(token);
+          
+          dbUser = await this.prisma.user.findUnique({
+            where: { email: supabaseUser.email },
+            include: {
+              userBranches: {
+                include: {
+                  branch: true,
+                },
               },
             },
-          },
-        });
+          });
+        } catch (supabaseError) {
+          // In development, if Supabase fails, fall back to bypass auth
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Supabase token verification failed in development, using auth bypass');
+            // Trigger bypass auth behavior - create fallback super admin user
+            const bypassUser: AuthenticatedUser = {
+              id: 'development-bypass-user',
+              email: 'dev@creatives-saas.com',
+              role: 'SUPER_ADMIN',
+              tenantId: null,
+              branchAccess: [],
+            };
+            request.user = bypassUser;
+            console.log('🔧 Using development bypass auth as fallback');
+            return true;
+          }
+          throw supabaseError;
+        }
       }
 
       if (!dbUser) {

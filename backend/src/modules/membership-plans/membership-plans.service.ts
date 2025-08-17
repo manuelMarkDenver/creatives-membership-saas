@@ -32,7 +32,7 @@ export class MembershipPlansService {
         throw new NotFoundException('Tenant not found');
       }
 
-      return await this.prisma.membershipPlan.create({
+      const createdPlan = await this.prisma.membershipPlan.create({
         data: {
           ...createDto,
           benefits: createDto.benefits ? JSON.stringify(createDto.benefits) : undefined,
@@ -46,6 +46,11 @@ export class MembershipPlansService {
           },
         },
       });
+      
+      return {
+        ...createdPlan,
+        benefits: createdPlan.benefits ? JSON.parse(createdPlan.benefits as string) : [],
+      };
     } catch (error) {
       if (error instanceof ConflictException || error instanceof NotFoundException) {
         throw error;
@@ -55,7 +60,7 @@ export class MembershipPlansService {
   }
 
   async findAllByTenant(tenantId: string) {
-    return this.prisma.membershipPlan.findMany({
+    const plans = await this.prisma.membershipPlan.findMany({
       where: { tenantId },
       orderBy: [
         { isActive: 'desc' },
@@ -70,10 +75,15 @@ export class MembershipPlansService {
         },
       },
     });
+    
+    return plans.map(plan => ({
+      ...plan,
+      benefits: plan.benefits ? JSON.parse(plan.benefits as string) : [],
+    }));
   }
 
   async findAllActive(tenantId: string) {
-    return this.prisma.membershipPlan.findMany({
+    const plans = await this.prisma.membershipPlan.findMany({
       where: { 
         tenantId,
         isActive: true 
@@ -88,6 +98,11 @@ export class MembershipPlansService {
         },
       },
     });
+    
+    return plans.map(plan => ({
+      ...plan,
+      benefits: plan.benefits ? JSON.parse(plan.benefits as string) : [],
+    }));
   }
 
   async findOne(id: string, tenantId: string) {
@@ -110,7 +125,10 @@ export class MembershipPlansService {
       throw new NotFoundException('Membership plan not found');
     }
 
-    return plan;
+    return {
+      ...plan,
+      benefits: plan.benefits ? JSON.parse(plan.benefits as string) : [],
+    };
   }
 
   async update(id: string, tenantId: string, updateDto: UpdateMembershipPlanDto) {
@@ -133,7 +151,7 @@ export class MembershipPlansService {
       }
     }
 
-    return this.prisma.membershipPlan.update({
+    const updatedPlan = await this.prisma.membershipPlan.update({
       where: { id },
       data: {
         ...updateDto,
@@ -148,12 +166,17 @@ export class MembershipPlansService {
         },
       },
     });
+    
+    return {
+      ...updatedPlan,
+      benefits: updatedPlan.benefits ? JSON.parse(updatedPlan.benefits as string) : [],
+    };
   }
 
   async toggleStatus(id: string, tenantId: string) {
     const plan = await this.findOne(id, tenantId);
     
-    return this.prisma.membershipPlan.update({
+    const updatedPlan = await this.prisma.membershipPlan.update({
       where: { id },
       data: { isActive: !plan.isActive },
       include: {
@@ -165,6 +188,11 @@ export class MembershipPlansService {
         },
       },
     });
+    
+    return {
+      ...updatedPlan,
+      benefits: updatedPlan.benefits ? JSON.parse(updatedPlan.benefits as string) : [],
+    };
   }
 
   async remove(id: string, tenantId: string) {
