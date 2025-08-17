@@ -19,7 +19,14 @@ import { BusinessUnitsModule } from './modules/business-units/business-units.mod
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ 
+      isGlobal: true,
+      envFilePath: process.env.NODE_ENV === 'production' 
+        ? ['../.env.prod', '../.env']
+        : process.env.NODE_ENV === 'test'
+        ? ['../.env.test', '../.env.local', '../.env']
+        : ['../.env.local', '../.env']
+    }),
     PrismaModule,
     SupabaseModule,
     AuthModule,

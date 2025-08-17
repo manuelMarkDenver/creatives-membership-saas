@@ -41,6 +41,7 @@ import { Role } from '@/types'
 import { formatPHP } from '@/lib/utils/currency'
 import { usersApi } from '@/lib/api'
 import { gymSubscriptionsApi } from '@/lib/api/gym-subscriptions'
+import PhotoUpload from '@/components/members/photo-upload'
 
 interface AddMemberModalProps {
   isOpen: boolean
@@ -55,9 +56,7 @@ export function AddMemberModal({
 }: AddMemberModalProps) {
   const { data: profile } = useProfile()
   const createUserMutation = useCreateUser()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  
-  const [step, setStep] = useState<'basic' | 'membership' | 'summary'>("basic")
+  const [step, setStep] = useState<'basic' | 'membership' | 'summary'>('basic')
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [showValidation, setShowValidation] = useState(false)
@@ -69,6 +68,7 @@ export function AddMemberModal({
     email: '',
     phoneNumber: '',
     photoFile: null as File | null,
+    photoPreviewUrl: null as string | null,
     notes: '',
     
     // Personal details
@@ -116,40 +116,16 @@ export function AddMemberModal({
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
-
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file')
-        return
-      }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image must be less than 5MB')
-        return
-      }
-      
-      setFormData(prev => ({ ...prev, photoFile: file }))
-      
-      // Create preview
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setPhotoPreview(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
+  
+  const handlePhotoChange = (file: File | null, previewUrl: string | null) => {
+    setFormData(prev => ({
+      ...prev,
+      photoFile: file,
+      photoPreviewUrl: previewUrl
+    }))
+    setPhotoPreview(previewUrl)
   }
 
-  const removePhoto = () => {
-    setFormData(prev => ({ ...prev, photoFile: null }))
-    setPhotoPreview(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }
 
   // Validation logic that returns both success and errors
   const getBasicInfoValidation = () => {
@@ -316,8 +292,43 @@ export function AddMemberModal({
               const photoFormData = new FormData()
               photoFormData.append('photo', formData.photoFile)
               
-              await fetch(`/api/v1/gym/members/${createdUser.id}/photo`, {
+              // Get authentication headers
+              const token = localStorage.getItem('auth_token')
+              
+              // Get tenant ID from multiple possible locations
+              let tenantId = localStorage.getItem('selectedTenantId')
+              
+              if (!tenantId) {
+                const currentTenant = localStorage.getItem('currentTenant')
+                if (currentTenant) {
+                  try {
+                    const tenant = JSON.parse(currentTenant)
+                    tenantId = tenant.id
+                  } catch (e) {
+                    // Ignore parse errors
+                  }
+                }
+              }
+              
+              if (!tenantId) {
+                const userData = localStorage.getItem('user_data')
+                if (userData) {
+                  try {
+                    const user = JSON.parse(userData)
+                    tenantId = user.tenantId
+                  } catch (e) {
+                    // Ignore parse errors
+                  }
+                }
+              }
+              
+              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
+              await fetch(`${apiUrl}/gym/members/${createdUser.id}/photo`, {
                 method: 'POST',
+                headers: {
+                  'Authorization': token ? `Bearer ${token}` : '',
+                  'x-tenant-id': tenantId || '',
+                },
                 body: photoFormData
               })
             } catch (photoError) {
@@ -353,6 +364,7 @@ export function AddMemberModal({
       email: '',
       phoneNumber: '',
       photoFile: null,
+      photoPreviewUrl: null,
       notes: '',
       dateOfBirth: '',
       gender: '',
@@ -415,50 +427,13 @@ export function AddMemberModal({
           {step === 'basic' && (
             <div className="space-y-4">
               {/* Photo Upload */}
-              <div className="flex flex-col items-center space-y-4">
-                <div className="relative">
-                  {photoPreview ? (
-                    <div className="relative">
-                      <img 
-                        src={photoPreview} 
-                        alt="Member photo" 
-                        className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={removePhoto}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center border-4 border-gray-200">
-                      <Camera className="h-8 w-8 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                <div className="text-center">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Photo
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Optional - Max 5MB, JPG/PNG
-                  </p>
-                </div>
+              <div className="flex justify-center">
+                <PhotoUpload
+                  temporaryMode={true}
+                  currentPhotoUrl={formData.photoPreviewUrl}
+                  onFileChange={handlePhotoChange}
+                  className="w-full max-w-sm"
+                />
               </div>
 
               {/* Basic Info */}
@@ -785,9 +760,9 @@ export function AddMemberModal({
                 <h4 className="font-medium text-gray-900 mb-4">New Member Summary</h4>
                 
                 <div className="flex items-start gap-4">
-                  {photoPreview && (
+                  {formData.photoPreviewUrl && (
                     <img 
-                      src={photoPreview} 
+                      src={formData.photoPreviewUrl} 
                       alt="Member" 
                       className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
                     />

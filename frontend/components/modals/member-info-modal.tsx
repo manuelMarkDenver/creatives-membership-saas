@@ -149,13 +149,62 @@ export function MemberInfoModal({
     setIsUploadingPhoto(true)
 
     try {
+      console.log('🔍 Photo upload debug:', {
+        memberId: member.id,
+        memberName: `${member.firstName} ${member.lastName}`,
+        memberEmail: member.email
+      })
+      
       const photoFormData = new FormData()
       photoFormData.append('photo', file)
-
-      const response = await fetch(`/api/v1/gym/members/${member.id}/photo`, {
+      
+      // Get authentication headers
+      const token = localStorage.getItem('auth_token')
+      
+      // Get tenant ID from multiple possible locations
+      let tenantId = localStorage.getItem('selectedTenantId')
+      
+      if (!tenantId) {
+        const currentTenant = localStorage.getItem('currentTenant')
+        if (currentTenant) {
+          try {
+            const tenant = JSON.parse(currentTenant)
+            tenantId = tenant.id
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+      
+      if (!tenantId) {
+        const userData = localStorage.getItem('user_data')
+        if (userData) {
+          try {
+            const user = JSON.parse(userData)
+            tenantId = user.tenantId
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
+      
+      // Add timeout to prevent infinite hanging
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+      
+      const response = await fetch(`${apiUrl}/gym/members/${member.id}/photo`, {
         method: 'POST',
-        body: photoFormData
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'x-tenant-id': tenantId || '',
+        },
+        body: photoFormData,
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         throw new Error('Upload failed')
@@ -166,7 +215,8 @@ export function MemberInfoModal({
         // Update form data with new photo URL
         handleInputChange('photoUrl', result.photo.url)
         toast.success('Photo updated successfully')
-        onMemberUpdated?.()
+        // Don't trigger onMemberUpdated to avoid unnecessary API calls
+        // onMemberUpdated?.()
       } else {
         throw new Error(result.message || 'Upload failed')
       }
@@ -184,8 +234,43 @@ export function MemberInfoModal({
     setIsUploadingPhoto(true)
 
     try {
-      const response = await fetch(`/api/v1/gym/members/${member.id}/photo`, {
-        method: 'DELETE'
+      // Get authentication headers
+      const token = localStorage.getItem('auth_token')
+      
+      // Get tenant ID from multiple possible locations
+      let tenantId = localStorage.getItem('selectedTenantId')
+      
+      if (!tenantId) {
+        const currentTenant = localStorage.getItem('currentTenant')
+        if (currentTenant) {
+          try {
+            const tenant = JSON.parse(currentTenant)
+            tenantId = tenant.id
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+      
+      if (!tenantId) {
+        const userData = localStorage.getItem('user_data')
+        if (userData) {
+          try {
+            const user = JSON.parse(userData)
+            tenantId = user.tenantId
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
+      const response = await fetch(`${apiUrl}/gym/members/${member.id}/photo`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'x-tenant-id': tenantId || '',
+        }
       })
 
       if (!response.ok) {

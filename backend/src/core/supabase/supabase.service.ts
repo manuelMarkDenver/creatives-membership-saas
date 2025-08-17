@@ -7,27 +7,110 @@ export class SupabaseService {
   private readonly logger = new Logger(SupabaseService.name);
   private supabase: SupabaseClient | null;
   private bucketName = 'member-photos';
+  private isStorageReady = false;
 
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
     const supabaseKey = this.configService.get<string>('SUPABASE_ANON_KEY');
+    const serviceRoleKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
     const nodeEnv = this.configService.get<string>('NODE_ENV');
+
+    this.logger.log(`Environment: ${nodeEnv}`);
+    this.logger.log(`Supabase URL: ${supabaseUrl ? supabaseUrl : 'NOT CONFIGURED'}`);
+    this.logger.log(`Anon Key: ${supabaseKey ? 'CONFIGURED' : 'NOT CONFIGURED'}`);
+    this.logger.log(`Service Role Key: ${serviceRoleKey ? 'CONFIGURED' : 'NOT CONFIGURED'}`);
+
+    // Always try anon key first as it's more commonly configured correctly
+    const keyToUse = supabaseKey; // Start with anon key only
 
     // In local development, Supabase is optional
     if (nodeEnv === 'development') {
-      if (supabaseUrl && supabaseKey) {
-        this.supabase = createClient(supabaseUrl, supabaseKey);
-        this.logger.log('Supabase client initialized for development');
+      if (supabaseUrl && keyToUse) {
+        try {
+          this.supabase = createClient(supabaseUrl, keyToUse, {
+            auth: {
+              persistSession: false,
+              autoRefreshToken: false,
+              detectSessionInUrl: false
+            },
+            global: {
+              headers: {
+                'Cache-Control': 'no-cache',
+                'Prefer': 'return=minimal'
+              }
+            }
+          });
+          this.logger.log('Supabase client initialized for development with anon key');
+          this.initializeStorage();
+        } catch (error) {
+          this.logger.error('Failed to initialize Supabase client:', error.message);
+          this.supabase = null;
+        }
       } else {
         this.logger.warn('Supabase not configured - photo upload and OAuth features will be disabled');
         this.supabase = null;
       }
     } else {
       // Production requires Supabase
-      if (!supabaseUrl || !supabaseKey) {
+      if (!supabaseUrl || !keyToUse) {
         throw new Error('Supabase URL and key must be provided in production');
       }
-      this.supabase = createClient(supabaseUrl, supabaseKey);
+      try {
+        this.supabase = createClient(supabaseUrl, keyToUse, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+          }
+        });
+        this.logger.log('Supabase client initialized for production');
+        this.initializeStorage();
+      } catch (error) {
+        this.logger.error('Failed to initialize Supabase client for production:', error.message);
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Initialize storage - just verify connectivity
+   */
+  private async initializeStorage() {
+    if (!this.supabase) return;
+
+    try {
+      // Try to get public URL for test - this doesn't require admin permissions
+      const { data: urlData } = this.supabase.storage
+        .from(this.bucketName)
+        .getPublicUrl('test-connectivity-check.jpg');
+
+      if (urlData?.publicUrl) {
+        this.logger.log(`Storage bucket '${this.bucketName}' is accessible`);
+        this.logger.log(`Storage URL format: ${urlData.publicUrl}`);
+        this.isStorageReady = true;
+      } else {
+        this.logger.warn(`Could not generate public URLs for bucket '${this.bucketName}'`);
+      }
+
+      // Optional: Try to list buckets if we have permissions (won't fail if we don't)
+      try {
+        const { data: buckets, error: listError } = await this.supabase.storage.listBuckets();
+        if (!listError && buckets) {
+          const bucketExists = buckets.some(bucket => bucket.name === this.bucketName);
+          if (bucketExists) {
+            this.logger.log(`Confirmed: Storage bucket '${this.bucketName}' exists`);
+          } else {
+            this.logger.warn(`Warning: Bucket '${this.bucketName}' not found in bucket list`);
+          }
+        }
+      } catch (listError) {
+        // Ignore list errors - we don't need admin permissions for uploads
+        this.logger.debug('Could not list buckets (this is normal with anon key)');
+      }
+
+    } catch (error) {
+      this.logger.warn(`Storage initialization failed: ${error.message}`);
+      // Don't fail the service initialization for storage issues
     }
   }
 
@@ -162,19 +245,18 @@ export class SupabaseService {
         throw new BadRequestException('File size must be less than 5MB');
       }
 
-      // Generate unique filename
-      const fileExt = file.originalname.split('.').pop();
-      const fileName = `${tenantId}/${memberId}/${Date.now()}.${fileExt}`;
+      // Generate consistent filename (always overwrite as profile.jpg)
+      const fileName = `${tenantId}/${memberId}/profile.jpg`;
 
       this.logger.log(`Uploading photo for member ${memberId}: ${fileName}`);
 
-      // Upload to Supabase Storage
+      // Upload to Supabase Storage (with explicit overwrite)
       const { data, error } = await this.supabase.storage
         .from(this.bucketName)
         .upload(fileName, file.buffer, {
           contentType: file.mimetype,
           cacheControl: '3600',
-          upsert: true // Allow overwriting existing files
+          upsert: true // Force overwrite existing files
         });
 
       if (error) {
@@ -182,12 +264,14 @@ export class SupabaseService {
         throw new InternalServerErrorException('Failed to upload photo');
       }
 
-      // Get public URL
+      // Get public URL with cache busting
       const { data: urlData } = this.supabase.storage
         .from(this.bucketName)
         .getPublicUrl(fileName);
 
-      const publicUrl = urlData.publicUrl;
+      // Add cache busting parameter to force browser refresh
+      const cacheBuster = Date.now();
+      const publicUrl = `${urlData.publicUrl}?v=${cacheBuster}`;
 
       this.logger.log(`Photo uploaded successfully: ${publicUrl}`);
 

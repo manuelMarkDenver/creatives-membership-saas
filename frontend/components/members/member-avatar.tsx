@@ -49,16 +49,18 @@ const MemberAvatar: React.FC<MemberAvatarProps> = ({
   if (photoUrl) {
     return (
       <div className={cn(
-        'relative rounded-full overflow-hidden bg-gray-100 border border-gray-200',
+        'relative rounded-full overflow-hidden bg-white border border-gray-200',
         sizeClass,
         className
       )}>
         <Image
+          key={photoUrl} // Force re-render when URL changes
           src={photoUrl}
           alt={`${firstName || ''} ${lastName || ''}`.trim() || 'Member photo'}
           fill
-          className="object-cover"
+          className="object-cover object-center"
           sizes={size === 'xl' ? '64px' : size === 'lg' ? '48px' : size === 'md' ? '40px' : size === 'sm' ? '32px' : '24px'}
+          unoptimized={true}
           onError={(e) => {
             // Hide image if it fails to load, will show fallback
             e.currentTarget.style.display = 'none';
