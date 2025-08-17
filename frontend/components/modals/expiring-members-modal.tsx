@@ -127,7 +127,7 @@ export function ExpiringMembersModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-[900px] max-h-[90vh] overflow-hidden">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -140,7 +140,7 @@ export function ExpiringMembersModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto flex-1">
           {/* Controls */}
           <div className="flex flex-col gap-4 sm:gap-2">
             <div className="flex items-center gap-2 w-full">
@@ -247,7 +247,7 @@ export function ExpiringMembersModal({
             </TabsList>
 
             <TabsContent value="critical" className="space-y-4">
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto">
                 {criticalMembers.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Clock className="mx-auto h-12 w-12 text-gray-400" />
@@ -262,7 +262,7 @@ export function ExpiringMembersModal({
             </TabsContent>
 
             <TabsContent value="all" className="space-y-4">
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto">
                 {isLoading ? (
                   <div className="text-center py-8">
                     <RefreshCw className="mx-auto h-8 w-8 animate-spin text-gray-400" />
@@ -312,7 +312,7 @@ export function ExpiringMembersModal({
 
             {userRole === 'SUPER_ADMIN' && (
               <TabsContent value="by-gym" className="space-y-4">
-                <div className="space-y-4 max-h-96 overflow-y-auto">
+                <div className="space-y-4 max-h-[50vh] overflow-y-auto">
                   {expiringData?.groupedByTenant ? (
                     Object.entries(expiringData.groupedByTenant).map(([tenantName, group]) => (
                       <div key={group.tenant.id} className="border rounded-lg p-4 space-y-3">
