@@ -21,7 +21,43 @@ export class AuthGuard implements CanActivate {
     // Check if auth was bypassed (for local testing)
     if (request.headers['x-bypass-auth'] || request.headers['X-Bypass-Auth']) {
       console.warn('⚠️  Auth guard bypassed for local testing');
-      // Create a fake super admin user for bypassed requests
+      // Use a real super admin user from the database for bypassed requests
+      try {
+        const realSuperAdmin = await this.prisma.user.findFirst({
+          where: { 
+            role: 'SUPER_ADMIN',
+            email: 'admin@creatives-saas.com'
+          },
+          include: {
+            userBranches: {
+              include: {
+                branch: true,
+              },
+            },
+          },
+        });
+
+        if (realSuperAdmin) {
+          const bypassUser: AuthenticatedUser = {
+            id: realSuperAdmin.id,
+            email: realSuperAdmin.email || 'admin@creatives-saas.com',
+            role: realSuperAdmin.role,
+            tenantId: realSuperAdmin.tenantId || '',
+            branchAccess: realSuperAdmin.userBranches.map(ub => ({
+              branchId: ub.branchId,
+              accessLevel: ub.accessLevel,
+              permissions: ub.permissions as Record<string, boolean> || {},
+              isPrimary: ub.isPrimary,
+            })),
+          };
+          request.user = bypassUser;
+          return true;
+        }
+      } catch (error) {
+        console.error('Failed to find real super admin for bypass:', error);
+      }
+      
+      // Fallback to fake user if real user not found (shouldn't happen in normal cases)
       const bypassUser: AuthenticatedUser = {
         id: 'bypass-user',
         email: 'admin@creatives-saas.com',

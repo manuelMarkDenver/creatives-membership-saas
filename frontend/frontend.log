@@ -19,10 +19,11 @@
  GET /auth/login 200 in 68ms
  GET /auth/login 200 in 90ms
  GET /auth/login 200 in 76ms
- ○ Compiling /dashboard ...
- ✓ Compiled /dashboard in 1980ms (1327 modules)
- GET /dashboard 200 in 2168ms
- GET /auth/login 200 in 1379ms
+ ○ Com   Reload env: .env.local
+ ✓ Compiled in 108ms (398 modules)
+   Reload env: .env.local
+ ✓ Compiled in 147ms (398 modules)
+1379ms
  GET /auth/login 200 in 73ms
  GET /auth/login 200 in 98ms
  GET /auth/login 200 in 75ms
@@ -41,3 +42,22 @@
  ✓ Compiled /members in 1843ms (1511 modules)
  GET /members 200 in 2076ms
  GET /members 200 in 37ms
+ GET /members 200 in 308ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 832ms (1516 modules)
+ GET /installHook.js.map 404 in 1077ms
+ GET /members 200 in 242ms
+ GET /members 200 in 52ms
+ GET /installHook.js.map 404 in 237ms
+   Reload env: .env.local
+ ✓ Compiled in 661ms (1516 modules)
+ GET /members 200 in 124ms
+   Reload env: .env.local
+ ✓ Compiled in 504ms (1511 modules)
+ GET /members 200 in 88ms
+ GET /members 200 in 340ms
+ GET /auth/login 200 in 32ms
+ GET /dashboard 200 in 36ms
+ GET /members 200 in 33ms
+ GET /members 200 in 106ms
+ GET /members 200 in 91ms
