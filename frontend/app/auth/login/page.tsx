@@ -48,11 +48,28 @@ export default function LoginPage() {
         localStorage.setItem('auth_token', data.data.token)
         localStorage.setItem('user_data', JSON.stringify(data.data.user))
         
-        // Set tenant context for non-super-admin users
-        if (data.data.user.role !== 'SUPER_ADMIN' && data.data.user.tenant) {
+        // Set tenant context for users with tenant data
+        if (data.data.user.tenant) {
           console.log('Setting tenant context:', data.data.user.tenant.name)
           setCurrentTenant(data.data.user.tenant)
+        } else if (data.data.user.tenantId) {
+          // If we have a tenantId but no tenant object, create a basic tenant object
+          const basicTenant = {
+            id: data.data.user.tenantId,
+            name: 'Unknown Tenant', // This should be resolved by the backend
+            category: 'GYM', // Default category
+          }
+          console.log('Setting basic tenant context for tenantId:', data.data.user.tenantId)
+          setCurrentTenant(basicTenant)
         }
+        
+        // Log user info for debugging
+        console.log('Logged in user:', {
+          email: data.data.user.email,
+          role: data.data.user.role,
+          tenantId: data.data.user.tenantId,
+          tenant: data.data.user.tenant?.name || 'None'
+        })
         
         // Clear and refresh profile cache to ensure fresh role data
         queryClient.removeQueries({ queryKey: userKeys.profile() })
