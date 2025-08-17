@@ -177,30 +177,30 @@ export default function MainLayout({ children }: MainLayoutProps) {
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-2 sm:gap-x-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 shadow-sm sm:px-6 lg:px-8 min-w-0">
           <Button
             variant="ghost"
             size="sm"
-            className="lg:hidden"
+            className="lg:hidden flex-shrink-0"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="h-6 w-6" />
           </Button>
 
-          <div className="h-6 w-px bg-gray-200 dark:bg-gray-600 lg:hidden" />
+          <div className="h-6 w-px bg-gray-200 dark:bg-gray-600 lg:hidden flex-shrink-0" />
 
-          <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            <div className="flex flex-1 items-center">
+          <div className="flex flex-1 gap-x-2 sm:gap-x-4 lg:gap-x-6 self-stretch min-w-0">
+            <div className="flex flex-1 items-center min-w-0">
               {currentTenant && (
-                <div className="text-sm text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">{currentTenant.name}</span>
-                  <span className="ml-2 text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 dark:text-gray-200">
+                <div className="text-sm text-gray-600 dark:text-gray-300 truncate">
+                  <span className="font-medium truncate">{currentTenant.name}</span>
+                  <span className="ml-2 text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 dark:text-gray-200 flex-shrink-0">
                     {currentTenant.category}
                   </span>
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-x-4 lg:gap-x-6">
+            <div className="flex items-center gap-x-2 sm:gap-x-4 lg:gap-x-6 flex-shrink-0">
               {/* Expiring Members Button - only for gym staff with tenant */}
               {profile?.role && ['OWNER', 'MANAGER', 'STAFF'].includes(profile.role) && currentTenant?.id && (
                 <ExpiringMembersButton
@@ -272,7 +272,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
         {/* Page content */}
         <main className="py-8">
-          <div className="px-4 sm:px-6 lg:px-8">
+          <div className="px-4 sm:px-6 lg:px-8 max-w-full overflow-x-hidden">
             {children}
           </div>
         </main>

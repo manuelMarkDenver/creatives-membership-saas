@@ -199,10 +199,10 @@ export function MemberCard({
   }
   
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700">
-      <div className="flex items-center space-x-4">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700 min-w-0">
+      <div className="flex items-center space-x-4 min-w-0 flex-1">
         {/* Member Photo */}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           {member.photoUrl ? (
             <img 
               src={member.photoUrl} 
@@ -216,11 +216,11 @@ export function MemberCard({
           )}
         </div>
         
-        <div className="flex-1">
-          <h4 className="font-semibold">{memberName}</h4>
-          <p className="text-sm text-muted-foreground">{member.email}</p>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold truncate">{memberName}</h4>
+          <p className="text-sm text-muted-foreground truncate">{member.email}</p>
           {member.phoneNumber && (
-            <p className="text-xs text-muted-foreground">{member.phoneNumber}</p>
+            <p className="text-xs text-muted-foreground truncate">{member.phoneNumber}</p>
           )}
           
           {/* Subscription Information */}
