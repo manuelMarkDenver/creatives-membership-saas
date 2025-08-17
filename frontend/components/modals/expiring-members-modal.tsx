@@ -127,7 +127,7 @@ export function ExpiringMembersModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-[900px] max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -142,24 +142,24 @@ export function ExpiringMembersModal({
 
         <div className="space-y-4">
           {/* Controls */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex items-center gap-2 flex-1">
-              <Search className="h-4 w-4 text-gray-400" />
+          <div className="flex flex-col gap-4 sm:gap-2">
+            <div className="flex items-center gap-2 w-full">
+              <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
               <Input
-                placeholder="Search members, plans, or gyms..."
+                placeholder="Search members..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1"
+                className="flex-1 min-w-0"
               />
             </div>
             
-            <div className="flex items-center gap-2">
-              <Label className="text-sm whitespace-nowrap">Days ahead:</Label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Label className="text-sm whitespace-nowrap">Days:</Label>
               <Select 
                 value={filters.daysBefore?.toString()} 
                 onValueChange={(value) => updateFilters({ daysBefore: parseInt(value) })}
               >
-                <SelectTrigger className="w-20">
+                <SelectTrigger className="w-16 sm:w-20">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -172,8 +172,8 @@ export function ExpiringMembersModal({
 
               {userRole === 'SUPER_ADMIN' && (
                 <Select value={filters.tenantId || 'all'} onValueChange={(value) => updateFilters({ tenantId: value === 'all' ? undefined : value })}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="All Gyms" />
+                  <SelectTrigger className="w-32 sm:w-40">
+                    <SelectValue placeholder="All" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Gyms</SelectItem>
@@ -188,8 +188,8 @@ export function ExpiringMembersModal({
                   value={filters.branchId || 'all'} 
                   onValueChange={(value) => updateFilters({ branchId: value === 'all' ? undefined : value })}
                 >
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="All Branches" />
+                  <SelectTrigger className="w-36 sm:w-48">
+                    <SelectValue placeholder="All" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Branches</SelectItem>
@@ -420,14 +420,14 @@ function MemberCard({ member, showTenant = false, compact = false }: MemberCardP
   const urgencyInfo = getUrgencyInfo(member.urgency, member.daysUntilExpiry)
 
   return (
-    <div className={`flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors ${
+    <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors gap-3 sm:gap-0 ${
       urgencyInfo.cardBorder
     } ${
       urgencyInfo.cardBg
     } ${
       compact ? 'text-sm p-3' : ''
     }`}>
-      <div className="flex items-center space-x-3 flex-1">
+      <div className="flex items-start space-x-3 flex-1 min-w-0">
         {/* Member Avatar */}
         {member.customer?.photoUrl ? (
           <img 
@@ -453,9 +453,9 @@ function MemberCard({ member, showTenant = false, compact = false }: MemberCardP
           </div>
           
           {/* Contact Information */}
-          <div className={`flex items-center gap-4 mb-2 ${compact ? 'text-xs' : 'text-sm'} text-gray-600 dark:text-gray-400`}>
+          <div className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2 ${compact ? 'text-xs' : 'text-sm'} text-gray-600 dark:text-gray-400`}>
             {member.customer?.email && (
-              <div className="flex items-center gap-1 truncate">
+              <div className="flex items-center gap-1 truncate min-w-0">
                 <Mail className="h-3 w-3 flex-shrink-0" />
                 <span className="truncate">{member.customer.email}</span>
               </div>
@@ -469,7 +469,7 @@ function MemberCard({ member, showTenant = false, compact = false }: MemberCardP
           </div>
           
           {/* Plan, Price, Branch, and Tenant Info */}
-          <div className={`flex items-center gap-4 ${compact ? 'text-xs' : 'text-sm'} text-gray-600 dark:text-gray-400 flex-wrap`}>
+          <div className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 ${compact ? 'text-xs' : 'text-sm'} text-gray-600 dark:text-gray-400`}>
             <span className="font-medium text-purple-600 dark:text-purple-400">
               {member.membershipPlan.name}
             </span>
@@ -497,7 +497,7 @@ function MemberCard({ member, showTenant = false, compact = false }: MemberCardP
       </div>
       
       {/* Right Section: Expiry Date and Action Button */}
-      <div className={`text-right flex flex-col items-end gap-2 ${compact ? 'text-xs' : 'text-sm'} ml-4`}>
+      <div className={`text-right sm:text-right flex flex-row sm:flex-col justify-between sm:justify-end sm:items-end gap-2 ${compact ? 'text-xs' : 'text-sm'} sm:ml-4`}>
         <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
           <Calendar className="h-3 w-3" />
           <span>{new Date(member.endDate).toLocaleDateString()}</span>
