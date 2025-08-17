@@ -134,7 +134,7 @@ function SuperAdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {tenants.slice(0, 5).map((tenant: any) => (
+            {(tenants || []).slice(0, 5).map((tenant: any) => (
               <div key={tenant.id} className="flex items-center justify-between p-6 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold">

@@ -234,7 +234,7 @@ export function MemberRenewalModal({
                         const benefits = typeof selectedPlan.benefits === 'string' 
                           ? JSON.parse(selectedPlan.benefits) 
                           : selectedPlan.benefits;
-                        return benefits.slice(0, 3).map((benefit: string, index: number) => (
+                        return (benefits || []).slice(0, 3).map((benefit: string, index: number) => (
                           <div key={index} className="flex items-center gap-2 text-xs text-blue-700">
                             <Check className="h-3 w-3 text-green-500" />
                             <span>{benefit}</span>
@@ -245,7 +245,7 @@ export function MemberRenewalModal({
                         const benefits = typeof selectedPlan.benefits === 'string' 
                           ? JSON.parse(selectedPlan.benefits) 
                           : selectedPlan.benefits;
-                        return benefits.length > 3 && (
+                        return (benefits || []).length > 3 && (
                           <div className="text-xs text-blue-600 ml-5">
                             +{benefits.length - 3} more benefits
                           </div>

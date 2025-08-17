@@ -154,7 +154,7 @@ export default function MembershipPlansPage() {
     total: membershipPlans.length,
     active: membershipPlans.filter(p => p.isActive).length,
     inactive: membershipPlans.filter(p => !p.isActive).length,
-    totalMembers: membershipPlans.reduce((sum, plan) => sum + (plan._count?.gymSubscriptions || 0), 0),
+    totalMembers: membershipPlans.reduce((sum, plan) => sum + ((plan as any)._count?.gymSubscriptions || 0), 0),
     avgPrice: membershipPlans.length > 0 ? membershipPlans.reduce((sum, plan) => sum + plan.price, 0) / membershipPlans.length : 0
   }
 
@@ -360,7 +360,7 @@ export default function MembershipPlansPage() {
                       </p>
                       <div className="flex items-center gap-1 mt-2">
                         <Users className="h-3 w-3 text-blue-500" />
-                        <span className="text-xs text-muted-foreground">{plan._count?.gymSubscriptions || 0} members</span>
+                        <span className="text-xs text-muted-foreground">{((plan as any)._count?.gymSubscriptions) || 0} members</span>
                       </div>
                     </div>
                     

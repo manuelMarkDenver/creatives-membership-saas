@@ -292,14 +292,14 @@ export default function TenantPlansPage() {
                       
                       {/* Benefits */}
                       <div className="flex flex-wrap gap-1">
-                        {plan.benefits.slice(0, 3).map((benefit, index) => (
+                        {(plan.benefits || []).slice(0, 3).map((benefit, index) => (
                           <Badge key={index} variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
                             {benefit}
                           </Badge>
                         ))}
-                        {plan.benefits.length > 3 && (
+                        {(plan.benefits || []).length > 3 && (
                           <Badge variant="outline" className="text-xs">
-                            +{plan.benefits.length - 3} more
+                            +{(plan.benefits || []).length - 3} more
                           </Badge>
                         )}
                       </div>
