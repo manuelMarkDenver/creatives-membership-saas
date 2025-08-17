@@ -20,51 +20,157 @@ export class AuthGuard implements CanActivate {
 
     // Check if auth was bypassed (for local testing)
     if (request.headers['x-bypass-auth'] || request.headers['X-Bypass-Auth']) {
-      console.warn('⚠️  Auth guard bypassed for local testing');
-      // Use a real super admin user from the database for bypassed requests
-      try {
-        const realSuperAdmin = await this.prisma.user.findFirst({
-          where: { 
-            role: 'SUPER_ADMIN',
-            email: 'admin@creatives-saas.com'
-          },
-          include: {
-            userBranches: {
-              include: {
-                branch: true,
-              },
-            },
-          },
-        });
-
-        if (realSuperAdmin) {
-          const bypassUser: AuthenticatedUser = {
-            id: realSuperAdmin.id,
-            email: realSuperAdmin.email || 'admin@creatives-saas.com',
-            role: realSuperAdmin.role,
-            tenantId: realSuperAdmin.tenantId || '',
-            branchAccess: realSuperAdmin.userBranches.map(ub => ({
-              branchId: ub.branchId,
-              accessLevel: ub.accessLevel,
-              permissions: ub.permissions as Record<string, boolean> || {},
-              isPrimary: ub.isPrimary,
-            })),
-          };
-          request.user = bypassUser;
-          return true;
-        }
-      } catch (error) {
-        console.error('Failed to find real super admin for bypass:', error);
+      
+      // SECURITY: NEVER allow bypass auth in production
+      if (process.env.NODE_ENV === 'production') {
+        console.error('🚨 SECURITY ALERT: Bypass auth attempt in PRODUCTION environment - BLOCKED!');
+        throw new UnauthorizedException('Bypass authentication is not allowed in production');
       }
       
-      // Fallback to fake user if real user not found (shouldn't happen in normal cases)
-      const bypassUser: AuthenticatedUser = {
-        id: 'bypass-user',
-        email: 'admin@creatives-saas.com',
-        role: 'SUPER_ADMIN',
-        tenantId: '',
-        branchAccess: [],
-      };
+      // Additional safety: Check for explicit bypass enable flag
+      const bypassEnabled = process.env.ENABLE_AUTH_BYPASS === 'true' || process.env.NODE_ENV === 'development';
+      if (!bypassEnabled) {
+        console.error('🚨 SECURITY ALERT: Bypass auth not explicitly enabled - BLOCKED!');
+        throw new UnauthorizedException('Bypass authentication is not enabled');
+      }
+      
+      console.warn('⚠️  Auth guard bypassed for local testing/scripting');
+      
+      // Check for specific user email in bypass header for dynamic user selection
+      const bypassUserEmail = request.headers['x-bypass-user'] || request.headers['X-Bypass-User'];
+      
+      let bypassUser: AuthenticatedUser;
+      
+      if (bypassUserEmail) {
+        // Dynamic bypass: authenticate as the specified user
+        try {
+          const targetUser = await this.prisma.user.findFirst({
+            where: { 
+              email: bypassUserEmail,
+              isActive: true
+            },
+            include: {
+              userBranches: {
+                include: {
+                  branch: true,
+                },
+              },
+              tenant: true,
+            },
+          });
+
+          if (targetUser) {
+            bypassUser = {
+              id: targetUser.id,
+              email: targetUser.email || bypassUserEmail,
+              role: targetUser.role,
+              tenantId: targetUser.tenantId,
+              branchAccess: targetUser.userBranches.map(ub => ({
+                branchId: ub.branchId,
+                accessLevel: ub.accessLevel,
+                permissions: ub.permissions as Record<string, boolean> || {},
+                isPrimary: ub.isPrimary,
+              })),
+            };
+            console.log(`🔧 Bypassing auth as: ${targetUser.email} (${targetUser.role}) - Tenant: ${targetUser.tenant?.name || 'None'}`);
+          } else {
+            console.warn(`⚠️  Bypass user not found: ${bypassUserEmail}, falling back to Super Admin`);
+            throw new Error('User not found');
+          }
+        } catch (error) {
+          console.error(`Failed to find bypass user ${bypassUserEmail}:`, error);
+          // Fallback to super admin
+          const realSuperAdmin = await this.prisma.user.findFirst({
+            where: { 
+              role: 'SUPER_ADMIN',
+              email: 'admin@creatives-saas.com'
+            },
+            include: {
+              userBranches: {
+                include: {
+                  branch: true,
+                },
+              },
+            },
+          });
+
+          if (realSuperAdmin) {
+            bypassUser = {
+              id: realSuperAdmin.id,
+              email: realSuperAdmin.email || 'admin@creatives-saas.com',
+              role: realSuperAdmin.role,
+              tenantId: realSuperAdmin.tenantId || null,
+              branchAccess: realSuperAdmin.userBranches.map(ub => ({
+                branchId: ub.branchId,
+                accessLevel: ub.accessLevel,
+                permissions: ub.permissions as Record<string, boolean> || {},
+                isPrimary: ub.isPrimary,
+              })),
+            };
+          } else {
+            // Final fallback
+            bypassUser = {
+              id: 'bypass-user-fallback',
+              email: 'admin@creatives-saas.com',
+              role: 'SUPER_ADMIN',
+              tenantId: null,
+              branchAccess: [],
+            };
+          }
+        }
+      } else {
+        // Default bypass: use super admin
+        try {
+          const realSuperAdmin = await this.prisma.user.findFirst({
+            where: { 
+              role: 'SUPER_ADMIN',
+              email: 'admin@creatives-saas.com'
+            },
+            include: {
+              userBranches: {
+                include: {
+                  branch: true,
+                },
+              },
+            },
+          });
+
+          if (realSuperAdmin) {
+            bypassUser = {
+              id: realSuperAdmin.id,
+              email: realSuperAdmin.email || 'admin@creatives-saas.com',
+              role: realSuperAdmin.role,
+              tenantId: realSuperAdmin.tenantId || null,
+              branchAccess: realSuperAdmin.userBranches.map(ub => ({
+                branchId: ub.branchId,
+                accessLevel: ub.accessLevel,
+                permissions: ub.permissions as Record<string, boolean> || {},
+                isPrimary: ub.isPrimary,
+              })),
+            };
+            console.log('🔧 Bypassing auth as Super Admin');
+          } else {
+            // Fallback to fake user if real user not found
+            bypassUser = {
+              id: 'bypass-user-fallback',
+              email: 'admin@creatives-saas.com',
+              role: 'SUPER_ADMIN',
+              tenantId: null,
+              branchAccess: [],
+            };
+          }
+        } catch (error) {
+          console.error('Failed to find real super admin for bypass:', error);
+          bypassUser = {
+            id: 'bypass-user-fallback',
+            email: 'admin@creatives-saas.com',
+            role: 'SUPER_ADMIN',
+            tenantId: null,
+            branchAccess: [],
+          };
+        }
+      }
+      
       request.user = bypassUser;
       return true;
     }
