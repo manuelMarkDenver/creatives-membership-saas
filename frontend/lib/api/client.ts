@@ -46,11 +46,9 @@ apiClient.interceptors.request.use(
         if (BYPASS_AUTH && !storedToken) {
           useBypass = true;
           config.headers['x-bypass-auth'] = 'true';
-          console.log('[DEBUG] Using bypass auth (no stored token)');
         } else if (storedToken) {
           // Use real authentication token
           config.headers.Authorization = `Bearer ${storedToken}`;
-          console.log('[DEBUG] Using real auth token');
         } else {
           // Try Supabase session as fallback
           try {
@@ -62,14 +60,12 @@ apiClient.interceptors.request.use(
               // Final fallback to bypass if no session and bypass is enabled
               useBypass = true;
               config.headers['x-bypass-auth'] = 'true';
-              console.log('[DEBUG] Using bypass auth (no session)');
             }
           } catch (error) {
             console.warn('Failed to get Supabase session:', error);
             if (BYPASS_AUTH) {
               useBypass = true;
               config.headers['x-bypass-auth'] = 'true';
-              console.log('[DEBUG] Using bypass auth (session error)');
             }
           }
         }
@@ -78,14 +74,12 @@ apiClient.interceptors.request.use(
         if (BYPASS_AUTH) {
           useBypass = true;
           config.headers['x-bypass-auth'] = 'true';
-          console.log('[DEBUG] Using bypass auth (processing error)');
         }
       }
     } else if (BYPASS_AUTH) {
       // Server-side and bypass enabled
       useBypass = true;
       config.headers['x-bypass-auth'] = 'true';
-      console.log('[DEBUG] Using bypass auth (server-side)');
     }
 
     // Add tenant context from multiple sources
@@ -94,21 +88,16 @@ apiClient.interceptors.request.use(
     // If no tenant context is set but we have stored user data, try to get tenant from there
     if (!tenantId && storedUser?.tenantId) {
       tenantId = storedUser.tenantId;
-      console.log('[DEBUG] Using tenant ID from stored user data:', tenantId);
     }
     
     // Add tenant header if available
     if (tenantId) {
       config.headers['x-tenant-id'] = tenantId;
-      console.log(`[API Client] Adding tenant context: ${tenantId} for ${config.method?.toUpperCase()} ${config.url}`);
-    } else {
-      console.warn(`[API Client] No tenant context for ${config.method?.toUpperCase()} ${config.url}`);
     }
 
     // For bypass auth with specific user (if we have stored user email)
     if (useBypass && storedUser?.email) {
       config.headers['x-bypass-user'] = storedUser.email;
-      console.log('[DEBUG] Added x-bypass-user header:', storedUser.email);
     }
 
     return config

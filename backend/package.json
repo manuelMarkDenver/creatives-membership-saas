@@ -89,6 +89,9 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   },
+  "overrides": {
+    "punycode": "2.3.1"
+  },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
   }

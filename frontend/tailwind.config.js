@@ -5,6 +5,24 @@ module.exports = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  safelist: [
+    // Member status button colors - light mode (maximum contrast - very dark backgrounds with white text)
+    'bg-green-800', 'bg-green-900', 'border-green-800', 'border-green-900', 'hover:bg-green-900', 'hover:border-green-900',
+    'bg-red-700', 'bg-red-800', 'border-red-700', 'border-red-800', 'hover:bg-red-800', 'hover:border-red-800',
+    'bg-yellow-700', 'bg-yellow-800', 'border-yellow-700', 'border-yellow-800', 'hover:bg-yellow-800', 'hover:border-yellow-800',
+    'bg-orange-700', 'bg-orange-800', 'border-orange-700', 'border-orange-800', 'hover:bg-orange-800', 'hover:border-orange-800',
+    'bg-amber-700', 'bg-amber-800', 'border-amber-700', 'border-amber-800', 'hover:bg-amber-800', 'hover:border-amber-800',
+    'bg-slate-700', 'bg-slate-800', 'border-slate-700', 'border-slate-800', 'hover:bg-slate-800', 'hover:border-slate-800',
+    'bg-gray-100', 'bg-gray-700', 'border-gray-300', 'border-gray-600', 'text-gray-600', 'text-gray-300', 'text-white', 'text-black',
+    // Member status button colors - dark mode (black text on lighter backgrounds)
+    'dark:bg-green-400', 'dark:bg-green-500', 'dark:border-green-400', 'dark:border-green-500', 'dark:hover:bg-green-500', 'dark:hover:border-green-500',
+    'dark:bg-red-400', 'dark:bg-red-500', 'dark:border-red-400', 'dark:border-red-500', 'dark:hover:bg-red-500', 'dark:hover:border-red-500',
+    'dark:bg-yellow-400', 'dark:bg-yellow-500', 'dark:border-yellow-400', 'dark:border-yellow-500', 'dark:hover:bg-yellow-500', 'dark:hover:border-yellow-500',
+    'dark:bg-orange-400', 'dark:bg-orange-500', 'dark:border-orange-400', 'dark:border-orange-500', 'dark:hover:bg-orange-500', 'dark:hover:border-orange-500',
+    'dark:bg-amber-400', 'dark:bg-amber-500', 'dark:border-amber-400', 'dark:border-amber-500', 'dark:hover:bg-amber-500', 'dark:hover:border-amber-500',
+    'dark:bg-slate-400', 'dark:bg-slate-500', 'dark:border-slate-400', 'dark:border-slate-500', 'dark:hover:bg-slate-500', 'dark:hover:border-slate-500',
+    'dark:text-black', 'dark:text-gray-300', 'dark:hover:bg-gray-700'
+  ],
   darkMode: ["class"],
   theme: {
     extend: {

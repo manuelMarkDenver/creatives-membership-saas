@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2 } from 'lucide-react'
 import { userKeys } from '@/lib/hooks/use-users'
 import { useTenantContext } from '@/lib/providers/tenant-context'
+import { type BusinessCategory } from '@/types'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -50,33 +51,25 @@ export default function LoginPage() {
         
         // Set tenant context for users with tenant data
         if (data.data.user.tenant) {
-          console.log('Setting tenant context:', data.data.user.tenant.name)
           setCurrentTenant(data.data.user.tenant)
         } else if (data.data.user.tenantId) {
           // If we have a tenantId but no tenant object, create a basic tenant object
           const basicTenant = {
             id: data.data.user.tenantId,
             name: 'Unknown Tenant', // This should be resolved by the backend
-            category: 'GYM', // Default category
+            category: 'GYM' as BusinessCategory, // Default category
+            slug: 'unknown-tenant',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
           }
-          console.log('Setting basic tenant context for tenantId:', data.data.user.tenantId)
           setCurrentTenant(basicTenant)
         }
         
-        // Log user info for debugging
-        console.log('Logged in user:', {
-          email: data.data.user.email,
-          role: data.data.user.role,
-          tenantId: data.data.user.tenantId,
-          tenant: data.data.user.tenant?.name || 'None'
-        })
         
         // Clear and refresh profile cache to ensure fresh role data
         queryClient.removeQueries({ queryKey: userKeys.profile() })
         queryClient.invalidateQueries({ queryKey: userKeys.profile() })
         
-        // Log the role for debugging
-        console.log('Logged in user role:', data.data.user.role)
         
         // Redirect to dashboard
         router.push('/dashboard')
