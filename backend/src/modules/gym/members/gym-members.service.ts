@@ -13,6 +13,18 @@ export class GymMembersService {
     private s3UploadService: S3UploadService
   ) {}
 
+  // ========================================
+  // NOTE: For basic user CRUD (create, read, update, delete)
+  // use the Users service - it handles ALL user types (GYM_MEMBER, ECOM_CUSTOMER, etc.)
+  // 
+  // This service focuses ONLY on gym-specific business logic:
+  // - Subscription management
+  // - Gym analytics and stats
+  // - Workout tracking
+  // - Equipment usage
+  // - Gym-specific reporting
+  // ========================================
+
   // Placeholder methods - will be implemented as part of the overhaul
   async getAllMembers(tenantId: string, options: any) {
     // TODO: Implement comprehensive gym member listing with filtering
