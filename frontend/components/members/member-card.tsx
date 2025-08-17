@@ -53,6 +53,7 @@ import { DeleteMemberModal } from '@/components/modals/delete-member-modal'
 import { RestoreMemberModal } from '@/components/modals/restore-member-modal'
 import { toast } from 'sonner'
 import { calculateMemberStatus, getAvailableMemberActions, type MemberData } from '@/lib/utils/member-status'
+import { getMemberStatusDisplay, getAvailableActions, getStatusColorClasses } from '@/lib/utils/member-status-display'
 
 interface MemberCardProps {
   member: User
@@ -127,8 +128,10 @@ export function MemberCard({
     setShowMemberActionsModal(true)
   }
 
-  // Use our new status calculation utility
+  // Use our new status calculation and display utilities
   const memberStatus = calculateMemberStatus(member as MemberData)
+  const memberDisplayInfo = getMemberStatusDisplay(memberStatus.displayStatus)
+  
   const getMemberStatus = () => {
     return memberStatus.displayStatus
   }
@@ -199,7 +202,7 @@ export function MemberCard({
   }
   
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700 min-w-0">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all min-w-0">
       <div className="flex items-center space-x-4 min-w-0 flex-1">
         {/* Member Photo */}
         <div className="relative flex-shrink-0">
@@ -262,114 +265,71 @@ export function MemberCard({
       </div>
       
       <div className="flex items-center space-x-3">
-        {/* Status Button - considers both subscription expiry AND member state */}
+        {/* Status Button - using UX-friendly labels and correct color classes */}
         {(() => {
-          const currentState = getMemberStatus();
           const canManage = canManageMember();
+          const displayLabel = memberDisplayInfo.label;
           
-          // No subscription case
-          if (!subscription || typeof subscription !== 'object' || !subscription.id) {
-            return (
-              <Button
-                variant="outline"
-                size="sm"
-                className="hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700"
-                onClick={() => canManage ? onRenewSubscription(member) : toast.info('You can only manage members from your assigned branches')}
-                disabled={!canManage}
-              >
-                {canManage ? 'Start Subscription' : 'View Only'}
-              </Button>
-            )
+          // Get appropriate click handler based on member status
+          const getClickHandler = () => {
+            if (!canManage) {
+              return () => toast.info('You can only manage members from your assigned branches')
+            }
+            
+            switch (memberStatus.displayStatus) {
+              case 'DELETED':
+                return () => openMemberActionModal('restore')
+              case 'CANCELLED':
+                return () => openMemberActionModal('activate')
+              case 'EXPIRED':
+                return () => onRenewSubscription(member)
+              case 'EXPIRING':
+                return () => onCancelSubscription(member)
+              case 'ACTIVE':
+                return () => onCancelSubscription(member)
+              case 'NO_SUBSCRIPTION':
+              case 'SUSPENDED':
+              default:
+                return () => openMemberActionModal('activate')
+            }
           }
           
-          // Handle different member states
-          switch (currentState) {
-            case 'CANCELLED':
-              return (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={canManage ? "bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600 hover:border-yellow-600 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-500 dark:hover:text-black dark:border-yellow-400 dark:hover:border-yellow-500" : "bg-yellow-200 text-yellow-800 border-yellow-300"}
-                  onClick={() => canManage ? openMemberActionModal('activate') : toast.info('You can only manage members from your assigned branches')}
-                  disabled={!canManage}
-                >
-                  {canManage ? 'Cancelled' : 'Cancelled (View Only)'}
-                </Button>
-              )
-              
-            case 'EXPIRED':
-              return (
-                <Button
-                  variant={canManage ? "destructive" : "outline"}
-                  size="sm"
-                  className={canManage ? "hover:bg-red-600" : "bg-red-100 text-red-800 border-red-300"}
-                  onClick={() => canManage ? onRenewSubscription(member) : toast.info('You can only manage members from your assigned branches')}
-                  disabled={!canManage}
-                >
-                  {canManage ? 'Expired' : 'Expired (View Only)'}
-                </Button>
-              )
-              
-            case 'EXPIRING':
-              return (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={canManage ? "bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600 hover:border-yellow-600 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-500 dark:hover:text-black dark:border-yellow-400 dark:hover:border-yellow-500" : "bg-yellow-100 text-yellow-800 border-yellow-300"}
-                  onClick={() => canManage ? onCancelSubscription(member) : toast.info('You can only manage members from your assigned branches')}
-                  disabled={!canManage}
-                >
-                  {canManage ? 'Expiring Soon' : 'Expiring Soon (View Only)'}
-                </Button>
-              )
-              
-            case 'ACTIVE':
-              return (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={canManage ? "bg-green-500 text-white border-green-500 hover:bg-green-600 hover:border-green-600 dark:bg-green-400 dark:text-black dark:hover:bg-green-500 dark:hover:text-black dark:border-green-400 dark:hover:border-green-500" : "bg-green-100 text-green-800 border-green-300"}
-                  onClick={() => canManage ? onCancelSubscription(member) : toast.info('You can only manage members from your assigned branches')}
-                  disabled={!canManage}
-                >
-                  {canManage ? 'Active' : 'Active (View Only)'}
-                </Button>
-              )
-              
-            case 'DELETED':
-              return (
-                <Button
-                  variant={canManage ? "destructive" : "outline"}
-                  size="sm"
-                  className={canManage ? "bg-red-500 text-white hover:bg-red-600" : "bg-red-100 text-red-800 border-red-300"}
-                  onClick={() => {
-                    if (!canManage) {
-                      toast.info('You can only manage members from your assigned branches')
-                      return
-                    }
-                    setShowRestoreModal(true)
-                  }}
-                  disabled={!canManage}
-                >
-                  {canManage ? 'Deleted' : 'Deleted (View Only)'}
-                </Button>
-              )
-              
-            case 'NO_SUBSCRIPTION':
-            case 'SUSPENDED':
-            default:
-              return (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={canManage ? "hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700" : "bg-gray-100 text-gray-600 border-gray-300"}
-                  onClick={() => canManage ? openMemberActionModal('activate') : toast.info('You can only manage members from your assigned branches')}
-                  disabled={!canManage}
-                >
-                  {canManage ? (currentState === 'NO_SUBSCRIPTION' ? 'No Subscription' : currentState === 'SUSPENDED' ? 'Suspended' : 'Inactive') : `${currentState} (View Only)`}
-                </Button>
-              )
+          // Get button styling based on status and management permissions
+          const getButtonClasses = () => {
+            const baseClasses = 'border font-medium transition-colors'
+            
+            if (!canManage) {
+              return `${baseClasses} bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-not-allowed opacity-60`
+            }
+            
+            switch (memberStatus.displayStatus) {
+              case 'ACTIVE':
+                return `${baseClasses} bg-green-800 dark:bg-green-400 text-white dark:text-black border-green-800 dark:border-green-400 hover:bg-green-900 dark:hover:bg-green-500 hover:border-green-900 dark:hover:border-green-500`
+              case 'CANCELLED':
+                return `${baseClasses} bg-orange-700 dark:bg-orange-400 text-white dark:text-black border-orange-700 dark:border-orange-400 hover:bg-orange-800 dark:hover:bg-orange-500 hover:border-orange-800 dark:hover:border-orange-500`
+              case 'DELETED':
+                return `${baseClasses} bg-red-700 dark:bg-red-400 text-white dark:text-black border-red-700 dark:border-red-400 hover:bg-red-800 dark:hover:bg-red-500 hover:border-red-800 dark:hover:border-red-500`
+              case 'EXPIRED':
+                return `${baseClasses} bg-yellow-700 dark:bg-yellow-400 text-black dark:text-black border-yellow-700 dark:border-yellow-400 hover:bg-yellow-800 dark:hover:bg-yellow-500 hover:border-yellow-800 dark:hover:border-yellow-500`
+              case 'EXPIRING':
+                return `${baseClasses} bg-amber-700 dark:bg-amber-400 text-white dark:text-black border-amber-700 dark:border-amber-400 hover:bg-amber-800 dark:hover:bg-amber-500 hover:border-amber-800 dark:hover:border-amber-500`
+              case 'NO_SUBSCRIPTION':
+              case 'SUSPENDED':
+              default:
+                return `${baseClasses} bg-slate-700 dark:bg-slate-400 text-white dark:text-black border-slate-700 dark:border-slate-400 hover:bg-slate-800 dark:hover:bg-slate-500 hover:border-slate-800 dark:hover:border-slate-500`
+            }
           }
+          
+          return (
+            <button
+              type="button"
+              className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors duration-200 ${getButtonClasses()}`}
+              onClick={getClickHandler()}
+              disabled={!canManage}
+            >
+              {canManage ? displayLabel : `${displayLabel} (View Only)`}
+            </button>
+          )
         })()}
         
         

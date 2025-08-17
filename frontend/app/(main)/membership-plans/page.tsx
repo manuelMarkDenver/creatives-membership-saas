@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useProfile } from '@/lib/hooks/use-users'
+import { useActiveMembershipPlans, useCreateMembershipPlan, useUpdateMembershipPlan, useDeleteMembershipPlan } from '@/lib/hooks/use-membership-plans'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -36,6 +37,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 
 // Mock data for now - will be replaced with API calls
 const mockMembershipPlans = [
@@ -111,6 +113,11 @@ const membershipTypes = [
 
 export default function MembershipPlansPage() {
   const { data: profile } = useProfile()
+  const { data: membershipPlans = [], isLoading, error } = useActiveMembershipPlans()
+  const createMembershipPlanMutation = useCreateMembershipPlan()
+  const updateMembershipPlanMutation = useUpdateMembershipPlan()
+  const deleteMembershipPlanMutation = useDeleteMembershipPlan()
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -125,19 +132,30 @@ export default function MembershipPlansPage() {
     isActive: true
   })
 
+  // Only allow owners and managers to access this page
+  if (profile && !['OWNER', 'MANAGER'].includes(profile.role)) {
+    return (
+      <div className="text-center py-16">
+        <div className="text-6xl mb-4">🚫</div>
+        <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
+        <p className="text-muted-foreground">You don't have permission to manage membership plans.</p>
+      </div>
+    )
+  }
+
   // Filter plans based on search term
-  const filteredPlans = mockMembershipPlans.filter((plan) =>
+  const filteredPlans = membershipPlans.filter((plan) =>
     plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    plan.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    plan.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     plan.type.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const stats = {
-    total: mockMembershipPlans.length,
-    active: mockMembershipPlans.filter(p => p.isActive).length,
-    inactive: mockMembershipPlans.filter(p => !p.isActive).length,
-    totalMembers: mockMembershipPlans.reduce((sum, plan) => sum + plan.memberCount, 0),
-    avgPrice: mockMembershipPlans.reduce((sum, plan) => sum + plan.price, 0) / mockMembershipPlans.length
+    total: membershipPlans.length,
+    active: membershipPlans.filter(p => p.isActive).length,
+    inactive: membershipPlans.filter(p => !p.isActive).length,
+    totalMembers: membershipPlans.reduce((sum, plan) => sum + (plan._count?.gymSubscriptions || 0), 0),
+    avgPrice: membershipPlans.length > 0 ? membershipPlans.reduce((sum, plan) => sum + plan.price, 0) / membershipPlans.length : 0
   }
 
   const handleCreatePlan = async () => {
@@ -285,7 +303,15 @@ export default function MembershipPlansPage() {
 
           {/* Plans List */}
           <div className="space-y-4">
-            {filteredPlans.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-pulse">Loading membership plans...</div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8 text-red-600">
+                Failed to load membership plans. Please try again.
+              </div>
+            ) : filteredPlans.length === 0 ? (
               <div className="text-center py-8">
                 <CreditCard className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
                 <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No plans found</h3>
@@ -312,14 +338,14 @@ export default function MembershipPlansPage() {
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">{plan.description}</p>
                       <div className="flex flex-wrap gap-1">
-                        {plan.benefits.slice(0, 3).map((benefit, index) => (
+                        {(plan.benefits || []).slice(0, 3).map((benefit, index) => (
                           <Badge key={index} variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
                             {benefit}
                           </Badge>
                         ))}
-                        {plan.benefits.length > 3 && (
+                        {(plan.benefits || []).length > 3 && (
                           <Badge variant="outline" className="text-xs">
-                            +{plan.benefits.length - 3} more
+                            +{(plan.benefits || []).length - 3} more
                           </Badge>
                         )}
                       </div>
@@ -334,7 +360,7 @@ export default function MembershipPlansPage() {
                       </p>
                       <div className="flex items-center gap-1 mt-2">
                         <Users className="h-3 w-3 text-blue-500" />
-                        <span className="text-xs text-muted-foreground">{plan.memberCount} members</span>
+                        <span className="text-xs text-muted-foreground">{plan._count?.gymSubscriptions || 0} members</span>
                       </div>
                     </div>
                     

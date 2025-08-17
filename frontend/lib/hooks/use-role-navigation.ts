@@ -31,14 +31,6 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     roles: ['SUPER_ADMIN' as Role],
     description: 'Manage all gym tenants'
   },
-  {
-    name: 'System Settings',
-    href: '/admin/settings',
-    icon: Shield,
-    roles: ['SUPER_ADMIN' as Role],
-    description: 'System-wide configuration',
-    isFutureFeature: true
-  },
 
   // Dashboard - Available to all authenticated users
   {
@@ -49,16 +41,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     description: 'Overview and analytics'
   },
 
-  // Location Management
-  {
-    name: 'Locations',
-    href: '/locations',
-    icon: MapPin,
-    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role],
-    description: 'Manage gym locations'
-  },
-
-  // User Management
+  // Member Management - Active Features
   {
     name: 'Members',
     href: '/members',
@@ -67,30 +50,11 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     description: 'Manage gym members'
   },
   {
-    name: 'Staff',
-    href: '/staff',
-    icon: UserPlus,
-    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role],
-    description: 'Manage staff members',
-    isFutureFeature: true
-  },
-
-  // Subscriptions & Billing
-  {
-    name: 'Subscription',
-    href: '/subscription',
-    icon: CreditCard,
-    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role],
-    description: 'Billing and subscription status',
-    isFutureFeature: true
-  },
-  {
-    name: 'Member Subscriptions',
-    href: '/member-subscriptions',
+    name: 'Membership Plans',
+    href: '/membership-plans',
     icon: Calendar,
-    roles: ['OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role],
-    description: 'Manage gym membership plans',
-    isFutureFeature: true
+    roles: ['OWNER' as Role, 'MANAGER' as Role],
+    description: 'Manage tenant membership plans'
   },
 
   // Member-specific
@@ -102,7 +66,47 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     description: 'Your membership details'
   },
 
-  // Settings - Role-specific access
+  // Future Features - Disabled/Coming Soon
+  {
+    name: 'Locations',
+    href: '/locations',
+    icon: MapPin,
+    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role],
+    description: 'Manage gym locations',
+    isFutureFeature: true
+  },
+  {
+    name: 'Staff',
+    href: '/staff',
+    icon: UserPlus,
+    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role],
+    description: 'Manage staff members',
+    isFutureFeature: true
+  },
+  {
+    name: 'Member Subscriptions',
+    href: '/member-subscriptions',
+    icon: Calendar,
+    roles: ['OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role],
+    description: 'Manage gym membership plans',
+    isFutureFeature: true
+  },
+  {
+    name: 'Subscription',
+    href: '/subscription',
+    icon: CreditCard,
+    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role],
+    description: 'Billing and subscription status',
+    isFutureFeature: true
+  },
+  {
+    name: 'System Settings',
+    href: '/admin/settings',
+    icon: Shield,
+    roles: ['SUPER_ADMIN' as Role],
+    description: 'System-wide configuration',
+    isFutureFeature: true
+  },
   {
     name: 'Settings',
     href: '/settings',
@@ -129,7 +133,7 @@ export function useRoleNavigation(userRole?: Role) {
       case 'OWNER':
         return '/dashboard'
       case 'MANAGER':
-        return '/locations'
+        return '/members'
       case 'STAFF':
         return '/members'
       case 'GYM_MEMBER':

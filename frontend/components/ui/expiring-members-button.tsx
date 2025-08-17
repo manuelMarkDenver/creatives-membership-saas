@@ -33,7 +33,7 @@ export function ExpiringMembersButton({
 
   // For Super Admin, we'll show a generic button since they need the overview modal to see counts
   const count = userRole === 'SUPER_ADMIN' ? '?' : (gymStats?.expiring || 0)
-  const shouldShowBadge = userRole === 'SUPER_ADMIN' || (count && count > 0)
+  const shouldShowBadge = userRole === 'SUPER_ADMIN' || (count && typeof count === 'number' && count > 0)
 
   const handleClick = () => {
     setIsModalOpen(true)

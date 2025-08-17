@@ -21,7 +21,7 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   role: Role;
-  tenantId: string;
+  tenantId: string | null;
   branchAccess?: {
     branchId: string;
     accessLevel: AccessLevel;
@@ -130,7 +130,7 @@ export class RBACGuard implements CanActivate {
     }
 
     user.role = dbUser.role;
-    user.tenantId = dbUser.tenantId || '';
+    user.tenantId = dbUser.tenantId;
     user.branchAccess = dbUser.userBranches.map(ub => ({
       branchId: ub.branchId,
       accessLevel: ub.accessLevel,

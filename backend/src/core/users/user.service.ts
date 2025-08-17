@@ -354,29 +354,17 @@ export class UsersService {
         throw new BadRequestException('Invalid user ID format');
       }
 
-      // Check if user exists and is deleted
+      // Get user with subscription information to determine restore type
       const existingUser = await this.prisma.user.findUnique({
         where: { id },
-      });
-
-      if (!existingUser) {
-        throw new NotFoundException(`User with ID '${id}' not found`);
-      }
-
-      if (!existingUser.deletedAt) {
-        throw new BadRequestException('User is not deleted');
-      }
-
-      // Restore the user
-      const restoredUser = await this.prisma.user.update({
-        where: { id },
-        data: {
-          isActive: true,
-          deletedAt: null,
-          deletedBy: null,
-          updatedAt: new Date(),
-        },
         include: {
+          gymMemberSubscriptions: {
+            include: {
+              membershipPlan: true
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          },
           tenant: {
             select: {
               id: true,
@@ -387,23 +375,147 @@ export class UsersService {
         },
       });
 
-      this.logger.log(`Restored user: ${restoredUser.firstName} ${restoredUser.lastName} (${id})`);
+      if (!existingUser) {
+        throw new NotFoundException(`User with ID '${id}' not found`);
+      }
+
+      // Determine what type of restoration is needed
+      const isDeleted = !!existingUser.deletedAt;
+      const latestSubscription = existingUser.gymMemberSubscriptions?.[0];
+      const isCancelled = latestSubscription?.status === 'CANCELLED';
       
-      // Create audit log for the restoration
-      await this.createAuditLog({
-        memberId: id,
-        action: 'ACCOUNT_RESTORED',
-        reason: actionData?.reason || 'Administrative action',
-        notes: actionData?.notes || 'Member account restored from deleted state',
-        previousState: 'DELETED',
-        newState: 'ACTIVE',
-        performedBy: performedBy,
-        metadata: {
-          restoredAt: new Date().toISOString()
+      // Check if user needs restoration
+      if (!isDeleted && !isCancelled) {
+        // Check if user is simply inactive
+        if (!existingUser.isActive) {
+          // User is just inactive - activate them
+          const restoredUser = await this.prisma.user.update({
+            where: { id },
+            data: {
+              isActive: true,
+              updatedAt: new Date(),
+            },
+            include: {
+              tenant: {
+                select: {
+                  id: true,
+                  name: true,
+                  category: true,
+                },
+              },
+            },
+          });
+          
+          await this.createAuditLog({
+            memberId: id,
+            action: 'ACCOUNT_ACTIVATED',
+            reason: actionData?.reason || 'Account reactivation',
+            notes: actionData?.notes || 'Member account activated from inactive state',
+            previousState: 'INACTIVE',
+            newState: 'ACTIVE',
+            performedBy: performedBy,
+            metadata: { restoredAt: new Date().toISOString() }
+          });
+          
+          this.logger.log(`Activated inactive user: ${restoredUser.firstName} ${restoredUser.lastName} (${id})`);
+          return restoredUser;
         }
-      });
+        
+        throw new BadRequestException('User does not require restoration - already active and not deleted or cancelled');
+      }
+
+      // Handle soft-deleted users (priority: deletion trumps cancellation)
+      if (isDeleted) {
+        const restoredUser = await this.prisma.user.update({
+          where: { id },
+          data: {
+            isActive: true,
+            deletedAt: null,
+            deletedBy: null,
+            updatedAt: new Date(),
+          },
+          include: {
+            tenant: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+              },
+            },
+          },
+        });
+
+        await this.createAuditLog({
+          memberId: id,
+          action: 'ACCOUNT_RESTORED',
+          reason: actionData?.reason || 'Account restoration',
+          notes: actionData?.notes || 'Member account restored from deleted state',
+          previousState: 'DELETED',
+          newState: 'ACTIVE',
+          performedBy: performedBy,
+          metadata: { restoredAt: new Date().toISOString() }
+        });
+        
+        this.logger.log(`Restored deleted user: ${restoredUser.firstName} ${restoredUser.lastName} (${id})`);
+        return restoredUser;
+      }
       
-      return restoredUser;
+      // Handle cancelled subscriptions
+      if (isCancelled) {
+        // Activate the user account
+        const restoredUser = await this.prisma.user.update({
+          where: { id },
+          data: {
+            isActive: true,
+            updatedAt: new Date(),
+          },
+          include: {
+            tenant: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+              },
+            },
+          },
+        });
+
+        // Reactivate the cancelled subscription
+        if (latestSubscription) {
+          await this.prisma.gymMemberSubscription.update({
+            where: { id: latestSubscription.id },
+            data: {
+              status: 'ACTIVE',
+              cancelledAt: null,
+              cancellationReason: null,
+              cancellationNotes: null,
+              updatedAt: new Date(),
+            }
+          });
+        }
+
+        await this.createAuditLog({
+          memberId: id,
+          action: 'SUBSCRIPTION_RESTORED',
+          reason: actionData?.reason || 'Subscription restoration',
+          notes: actionData?.notes || 'Member subscription restored from cancelled state',
+          previousState: 'CANCELLED',
+          newState: 'ACTIVE',
+          performedBy: performedBy,
+          metadata: {
+            restoredAt: new Date().toISOString(),
+            subscriptionId: latestSubscription?.id,
+            subscriptionPlan: latestSubscription?.membershipPlan?.name
+          }
+        });
+        
+        this.logger.log(`Restored cancelled user: ${restoredUser.firstName} ${restoredUser.lastName} (${id})`);
+        return restoredUser;
+      }
+      
+      // Should never reach here, but just in case
+      throw new BadRequestException('Unable to determine restoration type');
+      
     } catch (error) {
       if (
         error instanceof BadRequestException ||
