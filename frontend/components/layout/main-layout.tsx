@@ -36,6 +36,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const { data: profile, error: profileError, isLoading: profileLoading } = useProfile()
   const { currentTenant } = useTenantContext()
   
+  // Get role-based navigation (must be called before any early returns to maintain hooks order)
+  const { navigation } = useRoleNavigation(profile?.role)
+  
+  // Get subscription status for owners only (must be called before early returns)
+  const { data: subscriptionStatus } = useSubscriptionStatus(
+    currentTenant?.id,
+    { enabled: profile?.role === 'OWNER' && !!currentTenant?.id }
+  )
+  
   // Authentication guard
   useEffect(() => {
     const token = localStorage.getItem('auth_token')
@@ -64,15 +73,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </div>
     )
   }
-  
-  // Get role-based navigation
-  const { navigation } = useRoleNavigation(profile?.role)
-  
-  // Get subscription status for owners only
-  const { data: subscriptionStatus } = useSubscriptionStatus(
-    currentTenant?.id,
-    { enabled: profile?.role === 'OWNER' && !!currentTenant?.id }
-  )
   
   // Show trial warning for owners
   const showTrialWarning = profile?.role === 'OWNER' && 

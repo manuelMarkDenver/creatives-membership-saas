@@ -1,22 +1,31 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+// Only initialize Supabase if environment variables are available
+let supabaseClient: ReturnType<typeof createClient> | null = null
+
+if (supabaseUrl && supabaseAnonKey) {
+  supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  })
+} else {
+  console.warn('Supabase environment variables not found - OAuth login will not be available')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    detectSessionInUrl: true
-  }
-})
+export { supabaseClient as supabase }
 
 // Auth helper functions
 export const signInWithProvider = async (provider: 'google' | 'github') => {
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  if (!supabaseClient) {
+    return { data: null, error: new Error('Supabase not initialized - missing environment variables') }
+  }
+  
+  const { data, error } = await supabaseClient.auth.signInWithOAuth({
     provider,
     options: {
       redirectTo: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/dashboard`
@@ -76,13 +85,21 @@ export const signOut = async () => {
   localStorage.removeItem('auth_token');
   localStorage.removeItem('user_data');
   
-  // Also attempt Supabase signout for OAuth users
-  const { error } = await supabase.auth.signOut()
-  return { error }
+  // Also attempt Supabase signout for OAuth users (if available)
+  if (supabaseClient) {
+    const { error } = await supabaseClient.auth.signOut()
+    return { error }
+  }
+  
+  return { error: null }
 }
 
 export const getSession = async () => {
-  const { data: { session }, error } = await supabase.auth.getSession()
+  if (!supabaseClient) {
+    return { session: null, error: new Error('Supabase not initialized') }
+  }
+  
+  const { data: { session }, error } = await supabaseClient.auth.getSession()
   return { session, error }
 }
 
@@ -100,7 +117,11 @@ export const getUser = async () => {
     }
   }
   
-  // Fall back to Supabase for OAuth users
-  const { data: { user }, error } = await supabase.auth.getUser()
-  return { user, error }
+  // Fall back to Supabase for OAuth users (if available)
+  if (supabaseClient) {
+    const { data: { user }, error } = await supabaseClient.auth.getUser()
+    return { user, error }
+  }
+  
+  return { user: null, error: new Error('No authentication method available') }
 }
