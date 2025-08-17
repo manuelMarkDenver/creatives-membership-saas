@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -16,7 +17,6 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useProfile } from '@/lib/hooks/use-users'
 import { useTenantContext } from '@/lib/providers/tenant-context'
 import { useRoleNavigation } from '@/lib/hooks/use-role-navigation'
@@ -33,8 +33,37 @@ interface MainLayoutProps {
 export default function MainLayout({ children }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const router = useRouter()
-  const { data: profile } = useProfile()
+  const { data: profile, error: profileError, isLoading: profileLoading } = useProfile()
   const { currentTenant } = useTenantContext()
+  
+  // Authentication guard
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token')
+    const userData = localStorage.getItem('user_data')
+    
+    if (!token || !userData) {
+      // No authentication data, redirect to login
+      router.push('/auth/login')
+      return
+    }
+    
+    // If profile fetch failed with 401 (unauthorized), clear auth and redirect
+    if (profileError && (profileError as any)?.response?.status === 401) {
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user_data')
+      router.push('/auth/login')
+      return
+    }
+  }, [router, profileError])
+  
+  // Show loading while checking authentication
+  if (profileLoading || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
   
   // Get role-based navigation
   const { navigation } = useRoleNavigation(profile?.role)
