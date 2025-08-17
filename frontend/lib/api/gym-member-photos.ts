@@ -5,26 +5,27 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
 export interface PhotoUploadResponse {
   success: boolean;
   message: string;
-  member: {
+  photoUrl: string;
+  user: {
     id: string;
     firstName: string;
     lastName: string;
+    email: string;
     photoUrl: string | null;
-  };
-  photo?: {
-    url: string;
-    path: string;
+    updatedAt: string;
   };
 }
 
 export interface PhotoDeleteResponse {
   success: boolean;
   message: string;
-  member: {
+  user: {
     id: string;
     firstName: string;
     lastName: string;
+    email: string;
     photoUrl: string | null;
+    updatedAt: string;
   };
 }
 
@@ -81,7 +82,7 @@ class GymMemberPhotosApi {
     const formData = new FormData();
     formData.append('photo', file);
 
-    const response = await fetch(`${API_BASE_URL}/gym/members/${memberId}/photo`, {
+    const response = await fetch(`${API_BASE_URL}/users/${memberId}/photo`, {
       method: 'POST',
       headers: await this.getAuthHeaders(),
       body: formData,
@@ -99,7 +100,7 @@ class GymMemberPhotosApi {
    * Delete a member photo
    */
   async deletePhoto(memberId: string): Promise<PhotoDeleteResponse> {
-    const response = await fetch(`${API_BASE_URL}/gym/members/${memberId}/photo`, {
+    const response = await fetch(`${API_BASE_URL}/users/${memberId}/photo`, {
       method: 'DELETE',
       headers: await this.getAuthHeaders(),
     });

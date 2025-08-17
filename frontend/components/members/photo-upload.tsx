@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { gymMemberPhotosApi } from '@/lib/api/gym-member-photos';
 
 interface PhotoUploadProps {
   memberId?: string;
@@ -91,55 +92,14 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append('photo', file);
-      
-      // Get auth headers
-      const token = localStorage.getItem('auth_token');
-      const headers: HeadersInit = {};
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      // Add tenant context
-      let tenantId = localStorage.getItem('selectedTenantId');
-      if (!tenantId) {
-        const currentTenant = localStorage.getItem('currentTenant');
-        if (currentTenant) {
-          try {
-            const tenant = JSON.parse(currentTenant);
-            tenantId = tenant.id;
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-      
-      if (tenantId) {
-        headers['x-tenant-id'] = tenantId;
-      }
-      
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
-      const response = await fetch(`${apiUrl}/gym/members/${memberId}/photo`, {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Upload failed');
-      }
-
-      const result = await response.json();
+      const result = await gymMemberPhotosApi.uploadPhoto(memberId!, file);
       
       if (result.success) {
         // Force refresh by clearing first, then setting new URL
         setPreviewUrl(null);
         setTimeout(() => {
-          setPreviewUrl(result.photo.url);
-          onUploadComplete?.(result.photo.url);
+          setPreviewUrl(result.photoUrl);
+          onUploadComplete?.(result.photoUrl);
         }, 100);
       } else {
         throw new Error(result.message || 'Upload failed');
@@ -207,44 +167,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
     setError(null);
 
     try {
-      // Get auth headers
-      const token = localStorage.getItem('auth_token');
-      const headers: HeadersInit = {};
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      // Add tenant context
-      let tenantId = localStorage.getItem('selectedTenantId');
-      if (!tenantId) {
-        const currentTenant = localStorage.getItem('currentTenant');
-        if (currentTenant) {
-          try {
-            const tenant = JSON.parse(currentTenant);
-            tenantId = tenant.id;
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-      
-      if (tenantId) {
-        headers['x-tenant-id'] = tenantId;
-      }
-      
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
-      const response = await fetch(`${apiUrl}/gym/members/${memberId}/photo`, {
-        method: 'DELETE',
-        headers,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Delete failed');
-      }
-
-      const result = await response.json();
+      const result = await gymMemberPhotosApi.deletePhoto(memberId!);
       
       if (result.success) {
         setPreviewUrl(null);

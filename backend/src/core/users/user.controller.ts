@@ -10,7 +10,10 @@ import {
   UseGuards,
   Req,
   BadRequestException,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   BusinessTypeGuard,
   AllowedBusinessTypes,
@@ -347,5 +350,46 @@ export class UsersController {
     };
 
     return this.usersService.getMemberHistory(id, parsedQuery);
+  }
+
+  // Photo upload endpoints (business agnostic - works for all user types)
+  @Post(':id/photo')
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  @UseInterceptors(FileInterceptor('photo', {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+      files: 1
+    },
+    fileFilter: (req, file, callback) => {
+      // Check if file is an image
+      if (!file.mimetype.startsWith('image/')) {
+        return callback(new Error('Only image files are allowed'), false);
+      }
+      callback(null, true);
+    }
+  }))
+  async uploadUserPhoto(
+    @Param('id') userId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: any
+  ) {
+    if (!file) {
+      throw new BadRequestException('Photo file is required');
+    }
+
+    return this.usersService.uploadUserPhoto(userId, file);
+  }
+
+  @Delete(':id/photo')
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
+  @AllowedBusinessTypes(BusinessCategory.GYM)
+  async deleteUserPhoto(
+    @Param('id') userId: string,
+    @Req() req: any
+  ) {
+    return this.usersService.deleteUserPhoto(userId);
   }
 }

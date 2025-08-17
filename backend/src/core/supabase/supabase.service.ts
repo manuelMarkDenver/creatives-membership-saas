@@ -20,8 +20,9 @@ export class SupabaseService {
     this.logger.log(`Anon Key: ${supabaseKey ? 'CONFIGURED' : 'NOT CONFIGURED'}`);
     this.logger.log(`Service Role Key: ${serviceRoleKey ? 'CONFIGURED' : 'NOT CONFIGURED'}`);
 
-    // Always try anon key first as it's more commonly configured correctly
-    const keyToUse = supabaseKey; // Start with anon key only
+    // Use anon key for storage operations with proper RLS policies
+    // Service role key bypasses RLS which might cause signature verification issues
+    const keyToUse = supabaseKey;
 
     // In local development, Supabase is optional
     if (nodeEnv === 'development') {
@@ -234,6 +235,18 @@ export class SupabaseService {
       throw new InternalServerErrorException('Photo upload not available - Supabase not configured');
     }
     
+    // For storage operations, create a separate client with service role key to bypass RLS
+    const serviceRoleKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
+    
+    const storageClient = serviceRoleKey ? createClient(supabaseUrl!, serviceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    }) : this.supabase;
+    
     try {
       // Validate file type
       if (!file.mimetype.startsWith('image/')) {
@@ -251,7 +264,7 @@ export class SupabaseService {
       this.logger.log(`Uploading photo for member ${memberId}: ${fileName}`);
 
       // Upload to Supabase Storage (with explicit overwrite)
-      const { data, error } = await this.supabase.storage
+      const { data, error } = await storageClient.storage
         .from(this.bucketName)
         .upload(fileName, file.buffer, {
           contentType: file.mimetype,
@@ -260,12 +273,19 @@ export class SupabaseService {
         });
 
       if (error) {
-        this.logger.error(`Failed to upload photo: ${error.message}`);
-        throw new InternalServerErrorException('Failed to upload photo');
+        this.logger.error(`Supabase upload error:`, {
+          message: error.message,
+          details: error,
+          fileName,
+          bucketName: this.bucketName,
+          fileSize: file.size,
+          mimeType: file.mimetype
+        });
+        throw new InternalServerErrorException(`Failed to upload photo: ${error.message}`);
       }
 
       // Get public URL with cache busting
-      const { data: urlData } = this.supabase.storage
+      const { data: urlData } = storageClient.storage
         .from(this.bucketName)
         .getPublicUrl(fileName);
 

@@ -38,6 +38,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { membersApi } from '@/lib/api/members'
+import { gymMemberPhotosApi } from '@/lib/api/gym-member-photos'
 
 interface MemberInfoModalProps {
   isOpen: boolean
@@ -155,65 +156,11 @@ export function MemberInfoModal({
         memberEmail: member.email
       })
       
-      const photoFormData = new FormData()
-      photoFormData.append('photo', file)
+      const result = await gymMemberPhotosApi.uploadPhoto(member.id, file)
       
-      // Get authentication headers
-      const token = localStorage.getItem('auth_token')
-      
-      // Get tenant ID from multiple possible locations
-      let tenantId = localStorage.getItem('selectedTenantId')
-      
-      if (!tenantId) {
-        const currentTenant = localStorage.getItem('currentTenant')
-        if (currentTenant) {
-          try {
-            const tenant = JSON.parse(currentTenant)
-            tenantId = tenant.id
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-      
-      if (!tenantId) {
-        const userData = localStorage.getItem('user_data')
-        if (userData) {
-          try {
-            const user = JSON.parse(userData)
-            tenantId = user.tenantId
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-      
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
-      
-      // Add timeout to prevent infinite hanging
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
-      
-      const response = await fetch(`${apiUrl}/gym/members/${member.id}/photo`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
-          'x-tenant-id': tenantId || '',
-        },
-        body: photoFormData,
-        signal: controller.signal
-      })
-      
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        throw new Error('Upload failed')
-      }
-
-      const result = await response.json()
       if (result.success) {
         // Update form data with new photo URL
-        handleInputChange('photoUrl', result.photo.url)
+        handleInputChange('photoUrl', result.photoUrl)
         toast.success('Photo updated successfully')
         // Don't trigger onMemberUpdated to avoid unnecessary API calls
         // onMemberUpdated?.()
@@ -234,50 +181,8 @@ export function MemberInfoModal({
     setIsUploadingPhoto(true)
 
     try {
-      // Get authentication headers
-      const token = localStorage.getItem('auth_token')
+      const result = await gymMemberPhotosApi.deletePhoto(member.id)
       
-      // Get tenant ID from multiple possible locations
-      let tenantId = localStorage.getItem('selectedTenantId')
-      
-      if (!tenantId) {
-        const currentTenant = localStorage.getItem('currentTenant')
-        if (currentTenant) {
-          try {
-            const tenant = JSON.parse(currentTenant)
-            tenantId = tenant.id
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-      
-      if (!tenantId) {
-        const userData = localStorage.getItem('user_data')
-        if (userData) {
-          try {
-            const user = JSON.parse(userData)
-            tenantId = user.tenantId
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-      
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
-      const response = await fetch(`${apiUrl}/gym/members/${member.id}/photo`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
-          'x-tenant-id': tenantId || '',
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Delete failed')
-      }
-
-      const result = await response.json()
       if (result.success) {
         handleInputChange('photoUrl', '')
         toast.success('Photo removed successfully')
