@@ -2,11 +2,41 @@
 > frontend@0.1.0 dev
 > next dev
 
- ⚠ Port 3000 is in use by process 1382671, using available port 3001 instead.
    ▲ Next.js 15.4.5
-   - Local:        http://localhost:3001
-   - Network:      http://192.168.1.8:3001
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.8:3000
    - Environments: .env.local
 
  ✓ Starting...
- ✓ Ready in 1496ms
+ ✓ Ready in 1274ms
+ ○ Compiling / ...
+ ✓ Compiled / in 3.3s (958 modules)
+ GET / 200 in 3587ms
+ ✓ Compiled in 180ms (412 modules)
+ ○ Compiling /members ...
+ ✓ Compiled /members in 1870ms (1529 modules)
+ GET /members 200 in 2143ms
+ ✓ Compiled /_not-found in 212ms (1534 modules)
+ GET /installHook.js.map 404 in 349ms
+ GET /members 200 in 95ms
+ GET /installHook.js.map 404 in 30ms
+ GET /members 200 in 11ms
+ ✓ Compiled /membership-plans in 281ms (1545 modules)
+ GET /membership-plans 200 in 342ms
+ GET /members 200 in 28ms
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1225ms (1873 modules)
+ GET /members 404 in 1747ms
+ GET /membership-plans 200 in 203ms
+ GET /members 200 in 70ms
+ GET /_next/static/chunks/main-app.js?v=1755442090305 404 in 108ms
+ GET /_next/static/css/app/layout.css?v=1755442090305 404 in 110ms
+ GET /_next/static/chunks/app/layout.js 404 in 108ms
+ GET /_next/static/chunks/app/(main)/layout.js 404 in 107ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 108ms
+ GET /_next/static/chunks/app/(main)/members/page.js 404 in 24ms
+ GET /members 200 in 34ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 559ms (1881 modules)
+ GET /dashboard 200 in 741ms
+[?25h

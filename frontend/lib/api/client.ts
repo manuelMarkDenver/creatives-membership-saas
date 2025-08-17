@@ -1,7 +1,10 @@
 import axios from 'axios'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_API_BYPASS_AUTH === 'true'
+// SECURITY: Bypass auth should NEVER be enabled in production
+const BYPASS_AUTH = process.env.NODE_ENV === 'production' 
+  ? false 
+  : process.env.NEXT_PUBLIC_API_BYPASS_AUTH === 'true'
 
 if (!API_URL) {
   throw new Error('NEXT_PUBLIC_API_URL is not defined')

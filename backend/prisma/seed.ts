@@ -153,6 +153,18 @@ async function main() {
     console.log(`🏋️ Creating membership plans for ${tenant.name}...`);
     const membershipPlans = [
       {
+        name: 'Day Pass',
+        description: 'Single day gym access',
+        price: 150,
+        duration: 1,
+        type: MembershipType.DAY_PASS,
+        benefits: JSON.stringify([
+          'Full gym access for 1 day',
+          'Use of all equipment',
+          'Locker access'
+        ])
+      },
+      {
         name: 'Basic Monthly',
         description: 'Standard monthly membership',
         price: 1200,
@@ -176,7 +188,35 @@ async function main() {
           'Group classes included',
           '2 Personal Training sessions',
           'Nutrition consultation',
-          'Towel service'
+          'Towel service',
+          'Guest passes (2 per month)'
+        ])
+      },
+      {
+        name: 'Annual Basic',
+        description: 'Basic annual membership - save 2 months!',
+        price: 12000,
+        duration: 365,
+        type: MembershipType.ANNUAL,
+        benefits: JSON.stringify([
+          'Unlimited gym access',
+          'Group classes included',
+          'Locker access',
+          'Quarterly fitness assessment',
+          '2 months free!'
+        ])
+      },
+      {
+        name: 'Student Monthly',
+        description: 'Discounted membership for students',
+        price: 800,
+        duration: 30,
+        type: MembershipType.STUDENT,
+        benefits: JSON.stringify([
+          'Unlimited gym access',
+          'Group classes included',
+          'Student discount',
+          'Study area access'
         ])
       }
     ];
@@ -299,7 +339,7 @@ async function main() {
         lastName: 'Expiring',
         email: 'mike.expiring@muscle-mania.com',
         password: 'Expiring123!',
-        status: 'EXPIRING_SOON',
+        status: 'EXPIRING',
         description: '1 expiring soon member'
       },
       {
@@ -379,7 +419,8 @@ async function main() {
       let subscriptionStatus: GymMemberSubscriptionStatus;
       let startDate = new Date();
       let endDate = new Date();
-      let membershipPlan = createdPlans[0]; // Use Basic Monthly
+      // Use different plans for variety - Basic Monthly is at index 1
+      let membershipPlan = createdPlans[1 + (i % 2)]; // Alternate between Basic Monthly and Premium Monthly
       
       switch (memberInfo.status) {
         case 'ACTIVE':
@@ -392,7 +433,7 @@ async function main() {
           startDate.setMonth(startDate.getMonth() - 2); // Started 2 months ago
           endDate.setMonth(endDate.getMonth() - 1); // Ended 1 month ago
           break;
-        case 'EXPIRING_SOON':
+        case 'EXPIRING':
           subscriptionStatus = GymMemberSubscriptionStatus.ACTIVE;
           startDate.setMonth(startDate.getMonth() - 1); // Started 1 month ago
           endDate.setDate(endDate.getDate() + 3); // Expires in 3 days

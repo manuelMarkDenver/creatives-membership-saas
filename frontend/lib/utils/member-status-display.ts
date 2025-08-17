@@ -59,6 +59,7 @@ export const getMemberStatusDisplay = (status: string): StatusDisplay => {
       }
     
     case 'EXPIRING':
+    case 'EXPIRING_SOON':
       return {
         label: 'Expiring Soon',
         color: 'yellow',
@@ -67,14 +68,6 @@ export const getMemberStatusDisplay = (status: string): StatusDisplay => {
         buttonVariant: 'outline'
       }
       
-    case 'NO_SUBSCRIPTION':
-      return {
-        label: 'No Membership',
-        color: 'gray',
-        description: 'Never had an active membership',
-        icon: '📝',
-        buttonVariant: 'secondary'
-      }
       
     case 'SUSPENDED':
     case 'INACTIVE':
@@ -87,12 +80,13 @@ export const getMemberStatusDisplay = (status: string): StatusDisplay => {
       }
     
     default:
+      // For any unknown status, treat as inactive
       return {
-        label: 'Unknown Status',
+        label: 'Inactive',
         color: 'gray',
-        description: 'Status could not be determined',
-        icon: '❓',
-        buttonVariant: 'outline'
+        description: 'Account needs attention',
+        icon: '💤',
+        buttonVariant: 'secondary'
       }
   }
 }
@@ -195,6 +189,7 @@ export const getAvailableActions = (
       break
 
     case 'EXPIRING':
+    case 'EXPIRING_SOON':
       actions.push({
         label: 'Renew Now',
         action: 'renew',
@@ -213,7 +208,6 @@ export const getAvailableActions = (
       })
       break
 
-    case 'NO_SUBSCRIPTION':
     case 'INACTIVE':
       actions.push({
         label: 'Start Membership',
@@ -227,10 +221,10 @@ export const getAvailableActions = (
 
     default:
       actions.push({
-        label: 'Reactivate',
+        label: 'Activate',
         action: 'restore',
         permission: 'STAFF+',
-        description: 'Attempt to restore member access',
+        description: 'Activate member access',
         variant: 'default',
         icon: '▶️'
       })
