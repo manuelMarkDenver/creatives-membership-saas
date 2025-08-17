@@ -100,7 +100,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           <div className="fixed inset-0 bg-gray-900/80" onClick={() => setSidebarOpen(false)} />
           <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 px-6 py-6">
             <div className="flex h-16 shrink-0 items-center">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Creative SaaS</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">CreativeCore</h1>
             </div>
             <nav className="mt-8">
               <ul className="space-y-1">
@@ -136,7 +136,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white dark:bg-gray-800 px-6 pb-2">
           <div className="flex h-16 shrink-0 items-center">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Creative SaaS</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">CreativeCore</h1>
           </div>
           
           {/* Tenant Switcher */}

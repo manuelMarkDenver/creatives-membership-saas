@@ -7,8 +7,7 @@ services:
       target: development
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5000}
-        - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
-        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+        # Local development does not use Supabase
         - NEXT_PUBLIC_API_BYPASS_AUTH=${NEXT_PUBLIC_API_BYPASS_AUTH:-true}
     container_name: creatives-saas-frontend
     restart: unless-stopped
@@ -44,7 +43,7 @@ services:
       - ./backend/tsconfig.json:/app/tsconfig.json:ro
       - ./backend/nest-cli.json:/app/nest-cli.json:ro
       - ./backend/prisma:/app/prisma:ro
-    command: ["npm", "run", "start:dev"]
+    command: ["npx", "nest", "start", "--watch"]
     ports:
       - "5000:5000"
       - "9229:9229"  # Debug port
@@ -54,10 +53,10 @@ services:
   # Local PostgreSQL Database for Development
   postgres:
     image: postgres:15-alpine
-    container_name: creatives-saas-postgres
+    container_name: creatives-saas-postgres-dev
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "5432:5432"  # Standard PostgreSQL port
     environment:
       POSTGRES_DB: creatives_saas_dev
       POSTGRES_USER: postgres

@@ -2,28 +2,42 @@
 > frontend@0.1.0 dev
 > next dev
 
- ⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
    ▲ Next.js 15.4.5
-   - Local:        http://localhost:3001
-   - Network:      http://192.168.1.8:3001
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.8:3000
    - Environments: .env.local
 
  ✓ Starting...
- ✓ Ready in 1417ms
-   Reload env: .env.local
-node:events:502
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: EACCES: permission denied, open '/home/mhackeedev/_apps/creatives-saas/frontend/.next/trace'
-Emitted 'error' event on WriteStream instance at:
-    at emitErrorNT (node:internal/streams/destroy:170:8)
-    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  errno: -13,
-  code: 'EACCES',
-  syscall: 'open',
-  path: '/home/mhackeedev/_apps/creatives-saas/frontend/.next/trace'
-}
-
-Node.js v22.13.1
+ ✓ Ready in 2s
+ ○ Compiling / ...
+ ✓ Compiled / in 5.9s (958 modules)
+ GET / 200 in 6444ms
+ ✓ Compiled in 1083ms (412 modules)
+ ○ Compiling /auth/login ...
+ ✓ Compiled /auth/login in 2.5s (977 modules)
+ GET /auth/login 200 in 2811ms
+ GET /auth/login 200 in 68ms
+ GET /auth/login 200 in 90ms
+ GET /auth/login 200 in 76ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1980ms (1327 modules)
+ GET /dashboard 200 in 2168ms
+ GET /auth/login 200 in 1379ms
+ GET /auth/login 200 in 73ms
+ GET /auth/login 200 in 98ms
+ GET /auth/login 200 in 75ms
+ ✓ Compiled /favicon.ico in 403ms (769 modules)
+ GET /favicon.ico 200 in 571ms
+ GET /dashboard 200 in 76ms
+ GET /auth/login 200 in 648ms
+ GET / 200 in 61ms
+ GET /auth/login 200 in 29ms
+ GET /auth/login 200 in 77ms
+ GET /auth/login 200 in 107ms
+ GET /dashboard 200 in 23ms
+ GET /auth/login 200 in 27ms
+ GET /dashboard 200 in 21ms
+ ○ Compiling /members ...
+ ✓ Compiled /members in 1843ms (1511 modules)
+ GET /members 200 in 2076ms
+ GET /members 200 in 37ms

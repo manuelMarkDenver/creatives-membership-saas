@@ -101,25 +101,25 @@ export interface ExpiringMembersFilters {
 }
 
 export const expiringMembersApi = {
-  // Get count of expiring members for a tenant
+  // Get count of expiring members for a tenant (via gym subscriptions count endpoint)
   async getExpiringCount(tenantId: string, daysBefore: number = 7) {
-    const response = await apiClient.get(`/users/expiring-count/${tenantId}`, {
+    const response = await apiClient.get('/gym/subscriptions/expiring/count', {
       params: { daysBefore }
     })
     return response.data
   },
 
-  // Get expiring members overview (role-based filtering)
+  // Get expiring members overview (using gym subscriptions endpoint)
   async getExpiringOverview(filters: ExpiringMembersFilters = {}): Promise<ExpiringMembersOverview> {
-    const response = await apiClient.get('/users/expiring-overview', {
+    const response = await apiClient.get('/gym/subscriptions/expiring', {
       params: filters
     })
     return response.data
   },
 
-  // Get expiring members for specific tenant
+  // Get expiring members for specific tenant (using gym subscriptions endpoint)
   async getExpiringMembers(tenantId: string, daysBefore: number = 7) {
-    const response = await apiClient.get(`/users/expiring/${tenantId}`, {
+    const response = await apiClient.get('/gym/subscriptions/expiring', {
       params: { daysBefore }
     })
     return response.data
@@ -127,7 +127,9 @@ export const expiringMembersApi = {
 
   // Get expiring members with notifications (for future email/SMS features)
   async getExpiringMembersWithNotifications(tenantId: string, daysBefore: number = 7) {
-    const response = await apiClient.get(`/users/expiring/${tenantId}/notifications`, {
+    // For now, this returns the same as expiring members
+    // In the future, this could include notification-specific data
+    const response = await apiClient.get('/gym/subscriptions/expiring', {
       params: { daysBefore }
     })
     return response.data
