@@ -16,6 +16,7 @@ import { PlansModule } from './modules/plans/plans.module';
 import { MembershipPlansModule } from './modules/membership-plans/membership-plans.module';
 import { GymModule } from './modules/gym/gym.module';
 import { BusinessUnitsModule } from './modules/business-units/business-units.module';
+import { SeedModule } from './seed/seed.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { BusinessUnitsModule } from './modules/business-units/business-units.mod
     MembershipPlansModule,
     GymModule,
     BusinessUnitsModule,
+    SeedModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -202,8 +202,8 @@ export function MemberCard({
   }
   
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all min-w-0">
-      <div className="flex items-center space-x-4 min-w-0 flex-1">
+    <div className="flex flex-col p-4 border-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all min-w-0 space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start space-x-4 min-w-0 flex-1">
         {/* Member Photo */}
         <div className="relative flex-shrink-0">
           {member.photoUrl ? (
@@ -264,7 +264,7 @@ export function MemberCard({
         </div>
       </div>
       
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center justify-between space-x-3 w-full sm:w-auto sm:justify-end">
         {/* Status Button - using UX-friendly labels and correct color classes */}
         {(() => {
           const canManage = canManageMember();
