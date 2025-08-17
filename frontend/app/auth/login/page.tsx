@@ -205,36 +205,12 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Chakara */}
-                <div>
-                  <div className="font-medium text-green-800 border-b pb-1 mb-2 text-xs sm:text-sm">🧘 Chakara</div>
-                  <div className="pl-2 text-gray-700 space-y-1">
-                    <div className="bg-green-50 p-2 rounded text-xs leading-relaxed">
-                      <div><strong>Owner:</strong> owner@chakara.com</div>
-                      <div><strong>Password:</strong> ChakaraOwner123!</div>
-                    </div>
-                    <div className="bg-blue-50 p-2 rounded text-xs leading-relaxed">
-                      <div><strong>Managers:</strong></div>
-                      <div>• manager1@chakara.com / Manager123!</div>
-                      <div>• manager2@chakara.com / Manager223!</div>
-                      <div>• manager3@chakara.com / Manager323!</div>
-                    </div>
-                    <div className="bg-gray-50 p-2 rounded text-xs leading-relaxed">
-                      <div><strong>Staff:</strong></div>
-                      <div>• staff11@chakara.com / Staff1123!</div>
-                      <div>• staff21@chakara.com / Staff2123!</div>
-                      <div>• staff31@chakara.com / Staff3123!</div>
-                      <div className="text-gray-500">... and more (see seeder output)</div>
-                    </div>
-                  </div>
-                </div>
 
                 {/* Sample Members */}
                 <div>
                   <div className="font-medium text-indigo-800 border-b pb-1 mb-2 text-xs sm:text-sm">👥 Sample Members</div>
                   <div className="pl-2 text-gray-700 bg-indigo-50 p-2 rounded text-xs leading-relaxed">
                     <div><strong>Muscle Mania:</strong> john1b1@muscle-mania.com / Member123!</div>
-                    <div><strong>Chakara:</strong> john1b1@chakara.com / Member123!</div>
                     <div className="text-gray-500 mt-1"><em>(Many more available - check seeder output)</em></div>
                   </div>
                 </div>
