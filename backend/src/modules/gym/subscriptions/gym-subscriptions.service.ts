@@ -318,7 +318,7 @@ export class GymSubscriptionsService {
     const memberStatuses = await Promise.all(
       subscriptionsByMember.map(async (group) => {
         if (!group._max.createdAt) {
-          return null; // Skip if no createdAt found
+          return { status: null, endDate: null }; // Skip if no createdAt found
         }
         
         const mostRecent = await this.prisma.gymMemberSubscription.findFirst({
@@ -331,15 +331,28 @@ export class GymSubscriptionsService {
             }
           },
           select: {
-            status: true
+            status: true,
+            endDate: true
           }
         });
-        return mostRecent?.status || null;
+        return {
+          status: mostRecent?.status || null,
+          endDate: mostRecent?.endDate || null
+        };
       })
     );
 
+    // Count expiring subscriptions (active subscriptions ending within 7 days)
+    const now = new Date();
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(now.getDate() + 7);
+
+    const expiringCount = memberStatuses.filter(({ status, endDate }) => {
+      return status === 'ACTIVE' && endDate && endDate <= sevenDaysFromNow && endDate >= now;
+    }).length;
+
     // Count gym members by their current status
-    const stats = memberStatuses.reduce((acc, status) => {
+    const stats = memberStatuses.reduce((acc, { status }) => {
       if (status) {
         acc[status.toLowerCase()] = (acc[status.toLowerCase()] || 0) + 1;
         acc.total += 1;
@@ -349,9 +362,182 @@ export class GymSubscriptionsService {
       total: 0,
       active: 0,
       expired: 0,
-      cancelled: 0
+      cancelled: 0,
+      expiring: expiringCount
     });
 
     return stats;
+  }
+
+  /**
+   * Get count of expiring subscriptions
+   */
+  async getExpiringCount(tenantId: string, daysBefore: number = 7) {
+    const now = new Date();
+    const targetDate = new Date();
+    targetDate.setDate(now.getDate() + daysBefore);
+
+    const count = await this.prisma.gymMemberSubscription.count({
+      where: {
+        tenantId,
+        status: 'ACTIVE',
+        endDate: {
+          gte: now,
+          lte: targetDate
+        },
+        member: {
+          role: 'GYM_MEMBER',
+          isActive: true,
+          deletedAt: null
+        }
+      }
+    });
+
+    return { count };
+  }
+
+  /**
+   * Get detailed list of expiring subscriptions
+   */
+  async getExpiringSubscriptions(tenantId: string, daysBefore: number = 7, page: number = 1, limit: number = 50) {
+    const now = new Date();
+    const targetDate = new Date();
+    targetDate.setDate(now.getDate() + daysBefore);
+
+    const skip = (page - 1) * limit;
+
+    // Get expiring subscriptions with member and plan details
+    const [subscriptions, totalCount] = await Promise.all([
+      this.prisma.gymMemberSubscription.findMany({
+        where: {
+          tenantId,
+          status: 'ACTIVE',
+          endDate: {
+            gte: now,
+            lte: targetDate
+          },
+          member: {
+            role: 'GYM_MEMBER',
+            isActive: true,
+            deletedAt: null
+          }
+        },
+        include: {
+          member: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              name: true,
+              email: true,
+              phoneNumber: true,
+              photoUrl: true
+            }
+          },
+          membershipPlan: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              price: true
+            }
+          },
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              category: true
+            }
+          }
+        },
+        orderBy: {
+          endDate: 'asc' // Most urgent first
+        },
+        skip,
+        take: limit
+      }),
+      this.prisma.gymMemberSubscription.count({
+        where: {
+          tenantId,
+          status: 'ACTIVE',
+          endDate: {
+            gte: now,
+            lte: targetDate
+          },
+          member: {
+            role: 'GYM_MEMBER',
+            isActive: true,
+            deletedAt: null
+          }
+        }
+      })
+    ]);
+
+    // Calculate urgency and days until expiry for each subscription
+    const enrichedSubscriptions = subscriptions.map((subscription) => {
+      const daysUntilExpiry = Math.ceil((subscription.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      let urgency: 'critical' | 'high' | 'medium';
+      if (daysUntilExpiry <= 1) {
+        urgency = 'critical';
+      } else if (daysUntilExpiry <= 3) {
+        urgency = 'high';
+      } else {
+        urgency = 'medium';
+      }
+
+      return {
+        id: subscription.id,
+        customerId: subscription.memberId,
+        membershipPlanId: subscription.membershipPlanId,
+        tenantId: subscription.tenantId,
+        status: subscription.status,
+        startDate: subscription.startDate.toISOString(),
+        endDate: subscription.endDate.toISOString(),
+        price: subscription.price,
+        daysUntilExpiry,
+        memberName: subscription.member.name || `${subscription.member.firstName} ${subscription.member.lastName}`.trim(),
+        isExpired: daysUntilExpiry <= 0,
+        urgency,
+        customer: {
+          id: subscription.member.id,
+          firstName: subscription.member.firstName,
+          lastName: subscription.member.lastName,
+          email: subscription.member.email,
+          phoneNumber: subscription.member.phoneNumber,
+          photoUrl: subscription.member.photoUrl
+        },
+        membershipPlan: subscription.membershipPlan,
+        tenant: subscription.tenant
+      };
+    });
+
+    // Calculate summary statistics
+    const critical = enrichedSubscriptions.filter(s => s.urgency === 'critical').length;
+    const high = enrichedSubscriptions.filter(s => s.urgency === 'high').length;
+    const medium = enrichedSubscriptions.filter(s => s.urgency === 'medium').length;
+
+    const pages = Math.ceil(totalCount / limit);
+    const hasNext = page < pages;
+    const hasPrev = page > 1;
+
+    return {
+      subscriptions: enrichedSubscriptions,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        pages,
+        hasNext,
+        hasPrev
+      },
+      summary: {
+        totalExpiring: totalCount,
+        daysBefore,
+        critical,
+        high,
+        medium
+      }
+    };
   }
 }

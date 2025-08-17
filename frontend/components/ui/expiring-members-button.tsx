@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
-import { useExpiringMembersCount } from '@/lib/hooks/use-expiring-members'
+import { useQuery } from '@tanstack/react-query'
+import { statsApi } from '@/lib/api/stats'
+import { expiringMembersApi } from '@/lib/api/expiring-members'
 import { ExpiringMembersModal } from '@/components/modals/expiring-members-modal'
 
 interface ExpiringMembersButtonProps {
@@ -20,17 +22,17 @@ export function ExpiringMembersButton({
 }: ExpiringMembersButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   
-  // For Super Admin, we'll get a general count. For others, use their tenant
-  const tenantId = userRole === 'SUPER_ADMIN' ? '' : userTenantId || ''
-  
-  const { data: countData, isLoading, error } = useExpiringMembersCount(
-    tenantId, 
-    7, // 7 days ahead
-    { enabled: userRole !== 'SUPER_ADMIN' && !!tenantId }
-  )
+  // Get gym subscription stats to show expiring count
+  const { data: gymStats, isLoading, error } = useQuery({
+    queryKey: ['gym-subscription-stats'],
+    queryFn: () => statsApi.getGymSubscriptionStats(),
+    enabled: userRole !== 'SUPER_ADMIN' && !!userTenantId,
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes
+  })
 
   // For Super Admin, we'll show a generic button since they need the overview modal to see counts
-  const count = userRole === 'SUPER_ADMIN' ? '?' : (typeof countData === 'number' ? countData : (countData as any)?.count || 0)
+  const count = userRole === 'SUPER_ADMIN' ? '?' : (gymStats?.expiring || 0)
   const shouldShowBadge = userRole === 'SUPER_ADMIN' || (count && count > 0)
 
   const handleClick = () => {
@@ -84,15 +86,18 @@ export function useExpiringMembersAutoPopup(
 ) {
   const [shouldShowPopup, setShouldShowPopup] = useState(false)
   
-  const { data: countData } = useExpiringMembersCount(
-    userTenantId || '', 
-    1, // Check for expiring within 1 day (critical)
-    { enabled: !!userTenantId && userRole !== 'SUPER_ADMIN' }
-  )
+  // Get critical expiring count (1 day)
+  const { data: criticalData } = useQuery({
+    queryKey: ['expiring-members-count-critical', userTenantId],
+    queryFn: () => expiringMembersApi.getExpiringCount(userTenantId || '', 1),
+    enabled: !!userTenantId && userRole !== 'SUPER_ADMIN',
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes
+  })
 
   // Check if we should show the popup
   const checkShouldShowPopup = () => {
-    const count = typeof countData === 'number' ? countData : (countData as any)?.count || 0
+    const count = criticalData?.count || 0
     
     if (userRole === 'SUPER_ADMIN' || !count || count === 0) {
       return false
@@ -123,6 +128,6 @@ export function useExpiringMembersAutoPopup(
     shouldShowPopup: shouldShowPopup && checkShouldShowPopup(),
     showPopup,
     hidePopup,
-    criticalCount: typeof countData === 'number' ? countData : (countData as any)?.count || 0
+    criticalCount: criticalData?.count || 0
   }
 }

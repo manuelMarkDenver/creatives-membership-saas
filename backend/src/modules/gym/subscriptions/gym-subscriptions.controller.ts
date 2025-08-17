@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { GymSubscriptionsService } from './gym-subscriptions.service';
 import { AuthGuard } from '../../../core/auth/auth.guard';
 import { RBACGuard, RequiredRoles } from '../../../core/guard/rbac.guard';
@@ -28,9 +28,41 @@ export class GymSubscriptionsController {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
     // For Super Admin or users without tenantId, return empty stats
     if (!tenantId) {
-      return { total: 0, active: 0, expired: 0, cancelled: 0 };
+      return { total: 0, active: 0, expired: 0, cancelled: 0, expiring: 0 };
     }
     return this.gymSubscriptionsService.getSubscriptionStats(tenantId);
+  }
+
+  @Get('expiring')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  getExpiringSubscriptions(
+    @Req() req: RequestWithUser,
+    @Query('daysBefore') daysBefore?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string
+  ) {
+    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    if (!tenantId) {
+      return { subscriptions: [], pagination: { page: 1, limit: 10, total: 0, pages: 0, hasNext: false, hasPrev: false }, summary: { totalExpiring: 0, critical: 0, high: 0, medium: 0 } };
+    }
+    const days = parseInt(daysBefore || '7', 10);
+    const pageNum = parseInt(page || '1', 10);
+    const limitNum = parseInt(limit || '50', 10);
+    return this.gymSubscriptionsService.getExpiringSubscriptions(tenantId, days, pageNum, limitNum);
+  }
+
+  @Get('expiring/count')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  getExpiringCount(
+    @Req() req: RequestWithUser,
+    @Query('daysBefore') daysBefore?: string
+  ) {
+    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    if (!tenantId) {
+      return { count: 0 };
+    }
+    const days = parseInt(daysBefore || '7', 10);
+    return this.gymSubscriptionsService.getExpiringCount(tenantId, days);
   }
 
   @Get(':memberId')

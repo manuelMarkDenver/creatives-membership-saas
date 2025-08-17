@@ -5,21 +5,33 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 @Injectable()
 export class SupabaseService {
   private readonly logger = new Logger(SupabaseService.name);
-  private supabase: SupabaseClient;
+  private supabase: SupabaseClient | null;
   private bucketName = 'member-photos';
 
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
     const supabaseKey = this.configService.get<string>('SUPABASE_ANON_KEY');
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
 
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase URL and key must be provided');
+    // In local development, Supabase is optional
+    if (nodeEnv === 'development') {
+      if (supabaseUrl && supabaseKey) {
+        this.supabase = createClient(supabaseUrl, supabaseKey);
+        this.logger.log('Supabase client initialized for development');
+      } else {
+        this.logger.warn('Supabase not configured - photo upload and OAuth features will be disabled');
+        this.supabase = null;
+      }
+    } else {
+      // Production requires Supabase
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase URL and key must be provided in production');
+      }
+      this.supabase = createClient(supabaseUrl, supabaseKey);
     }
-
-    this.supabase = createClient(supabaseUrl, supabaseKey);
   }
 
-  get client(): SupabaseClient {
+  get client(): SupabaseClient | null {
     return this.supabase;
   }
 
@@ -27,6 +39,10 @@ export class SupabaseService {
    * Verify JWT token from Supabase Auth
    */
   async verifyToken(token: string) {
+    if (!this.supabase) {
+      throw new Error('Supabase not configured - token verification not available');
+    }
+    
     try {
       const { data, error } = await this.supabase.auth.getUser(token);
       
@@ -44,6 +60,9 @@ export class SupabaseService {
    * Get OAuth URL for provider
    */
   async getOAuthUrl(provider: 'google' | 'facebook' | 'twitter', redirectTo?: string) {
+    if (!this.supabase) {
+      throw new Error('Supabase not configured - OAuth not available');
+    }
     const { data, error } = await this.supabase.auth.signInWithOAuth({
       provider,
       options: {
@@ -66,6 +85,9 @@ export class SupabaseService {
    * Exchange code for session (used in callback)
    */
   async exchangeCodeForSession(code: string) {
+    if (!this.supabase) {
+      throw new Error('Supabase not configured - code exchange not available');
+    }
     const { data, error } = await this.supabase.auth.exchangeCodeForSession(code);
     
     if (error) {
@@ -79,6 +101,9 @@ export class SupabaseService {
    * Refresh session
    */
   async refreshSession(refreshToken: string) {
+    if (!this.supabase) {
+      throw new Error('Supabase not configured - session refresh not available');
+    }
     const { data, error } = await this.supabase.auth.refreshSession({
       refresh_token: refreshToken,
     });
@@ -94,6 +119,9 @@ export class SupabaseService {
    * Sign out user
    */
   async signOut(token: string) {
+    if (!this.supabase) {
+      throw new Error('Supabase not configured - sign out not available');
+    }
     // Set the session first
     await this.supabase.auth.setSession({
       access_token: token,
@@ -119,6 +147,10 @@ export class SupabaseService {
     tenantId: string,
     file: Express.Multer.File
   ): Promise<{ url: string; path: string }> {
+    if (!this.supabase) {
+      throw new InternalServerErrorException('Photo upload not available - Supabase not configured');
+    }
+    
     try {
       // Validate file type
       if (!file.mimetype.startsWith('image/')) {
@@ -178,6 +210,11 @@ export class SupabaseService {
    * Delete member photo from Supabase Storage
    */
   async deleteMemberPhoto(photoPath: string): Promise<boolean> {
+    if (!this.supabase) {
+      this.logger.warn('Photo deletion not available - Supabase not configured');
+      return true; // Don't fail if Supabase not configured
+    }
+    
     try {
       if (!photoPath) {
         return true; // Nothing to delete

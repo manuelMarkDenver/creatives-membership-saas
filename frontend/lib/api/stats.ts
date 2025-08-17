@@ -195,6 +195,14 @@ export interface TenantDashboard {
     activeSubscriptions: number
     totalMembers: number
   }
+  // Gym subscription stats (for gym businesses)
+  gymSubscriptionStats?: {
+    total: number
+    active: number
+    expired: number
+    cancelled: number
+    expiring: number
+  }
   branches: Array<{
     id: string
     name: string
@@ -213,6 +221,14 @@ export interface TenantDashboard {
       status: string
     }
   }>
+}
+
+export interface GymSubscriptionStats {
+  total: number
+  active: number
+  expired: number
+  cancelled: number
+  expiring: number
 }
 
 export const statsApi = {
@@ -235,4 +251,8 @@ export const statsApi = {
   // Tenant-specific dashboard
   getTenantDashboard: (): Promise<TenantDashboard> =>
     apiClient.get('/stats/tenant/dashboard').then(res => res.data),
+
+  // Gym subscription stats (for gym businesses)
+  getGymSubscriptionStats: (): Promise<GymSubscriptionStats> =>
+    apiClient.get('/gym/subscriptions/stats').then(res => res.data),
 }
