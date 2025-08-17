@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, X, User, Camera, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -12,8 +12,10 @@ interface PhotoUploadProps {
   currentPhotoUrl?: string | null;
   onUploadComplete?: (photoUrl: string | null) => void;
   onUploadError?: (error: string) => void;
+  onFileChange?: (file: File | null, previewUrl: string | null) => void;
   disabled?: boolean;
   className?: string;
+  temporaryMode?: boolean; // If true, files are stored locally instead of uploaded immediately
 }
 
 const PhotoUpload: React.FC<PhotoUploadProps> = ({
@@ -21,14 +23,22 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   currentPhotoUrl,
   onUploadComplete,
   onUploadError,
+  onFileChange,
   disabled = false,
-  className
+  className,
+  temporaryMode = false
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentPhotoUrl || null);
   const [error, setError] = useState<string | null>(null);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync previewUrl with currentPhotoUrl prop changes
+  useEffect(() => {
+    setPreviewUrl(currentPhotoUrl || null);
+  }, [currentPhotoUrl]);
 
   const handleFiles = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -51,18 +61,30 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
       return;
     }
 
+    // Clear any previous errors
+    setError(null);
+    
     // Create preview
     const reader = new FileReader();
     reader.onload = (e) => {
-      setPreviewUrl(e.target?.result as string);
+      const previewUrl = e.target?.result as string;
+      setPreviewUrl(previewUrl);
+      
+      // Store file and preview for temporary mode
+      setCurrentFile(file);
+      
+      // Call file change callback for temporary mode
+      if (temporaryMode && onFileChange) {
+        onFileChange(file, previewUrl);
+      }
     };
     reader.readAsDataURL(file);
 
-    // Upload if memberId is provided
-    if (memberId) {
+    // Upload immediately only if not in temporary mode and memberId is provided
+    if (!temporaryMode && memberId) {
       await uploadPhoto(file);
     }
-  }, [memberId, onUploadComplete, onUploadError]);
+  }, [memberId, temporaryMode, onFileChange, onUploadComplete, onUploadError]);
 
   const uploadPhoto = async (file: File) => {
     setIsUploading(true);
@@ -71,9 +93,37 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
     try {
       const formData = new FormData();
       formData.append('photo', file);
-
-      const response = await fetch(`/api/v1/gym/members/${memberId}/photo`, {
+      
+      // Get auth headers
+      const token = localStorage.getItem('auth_token');
+      const headers: HeadersInit = {};
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      // Add tenant context
+      let tenantId = localStorage.getItem('selectedTenantId');
+      if (!tenantId) {
+        const currentTenant = localStorage.getItem('currentTenant');
+        if (currentTenant) {
+          try {
+            const tenant = JSON.parse(currentTenant);
+            tenantId = tenant.id;
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+      
+      if (tenantId) {
+        headers['x-tenant-id'] = tenantId;
+      }
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+      const response = await fetch(`${apiUrl}/gym/members/${memberId}/photo`, {
         method: 'POST',
+        headers,
         body: formData,
       });
 
@@ -85,8 +135,12 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
       const result = await response.json();
       
       if (result.success) {
-        setPreviewUrl(result.photo.url);
-        onUploadComplete?.(result.photo.url);
+        // Force refresh by clearing first, then setting new URL
+        setPreviewUrl(null);
+        setTimeout(() => {
+          setPreviewUrl(result.photo.url);
+          onUploadComplete?.(result.photo.url);
+        }, 100);
       } else {
         throw new Error(result.message || 'Upload failed');
       }
@@ -133,14 +187,56 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
   };
 
   const removePhoto = async () => {
-    if (!memberId || isUploading) return;
+    if (isUploading) return;
+    
+    // For temporary mode, just clear local state
+    if (temporaryMode) {
+      setPreviewUrl(null);
+      setCurrentFile(null);
+      setError(null);
+      if (onFileChange) {
+        onFileChange(null, null);
+      }
+      return;
+    }
+    
+    // For permanent mode, delete from server
+    if (!memberId) return;
 
     setIsUploading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/v1/gym/members/${memberId}/photo`, {
+      // Get auth headers
+      const token = localStorage.getItem('auth_token');
+      const headers: HeadersInit = {};
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      // Add tenant context
+      let tenantId = localStorage.getItem('selectedTenantId');
+      if (!tenantId) {
+        const currentTenant = localStorage.getItem('currentTenant');
+        if (currentTenant) {
+          try {
+            const tenant = JSON.parse(currentTenant);
+            tenantId = tenant.id;
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+      
+      if (tenantId) {
+        headers['x-tenant-id'] = tenantId;
+      }
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+      const response = await fetch(`${apiUrl}/gym/members/${memberId}/photo`, {
         method: 'DELETE',
+        headers,
       });
 
       if (!response.ok) {
@@ -152,6 +248,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
       
       if (result.success) {
         setPreviewUrl(null);
+        setCurrentFile(null);
         onUploadComplete?.(null);
       } else {
         throw new Error(result.message || 'Delete failed');
@@ -196,18 +293,20 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
         {/* Photo Preview */}
         {previewUrl ? (
           <div className="relative inline-block">
-            <div className="relative w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-2 border-gray-200">
+            <div className="relative w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-2 border-gray-200 bg-white">
               <Image
+                key={previewUrl} // Force re-render when URL changes
                 src={previewUrl}
                 alt="Member photo"
                 fill
-                className="object-cover"
+                className="object-cover object-center"
                 sizes="128px"
+                unoptimized={true}
               />
             </div>
             
-            {/* Remove Button */}
-            {memberId && !isUploading && (
+            {/* Remove Button - Show for temporary mode or when memberId exists */}
+            {(temporaryMode || memberId) && !isUploading && (
               <Button
                 type="button"
                 variant="destructive"
@@ -241,11 +340,11 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
                 <div className="w-32 h-32 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
                   <User className="w-16 h-16 text-gray-400" />
                 </div>
-                <div className="flex items-center justify-center mb-2">
+                <div className="flex flex-col items-center justify-center mb-2">
                   {dragActive ? (
-                    <Camera className="w-6 h-6 text-primary mr-2" />
+                    <Camera className="w-8 h-8 text-primary mb-2" />
                   ) : (
-                    <Upload className="w-6 h-6 text-gray-400 mr-2" />
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   )}
                   <span className="text-sm font-medium text-gray-900">
                     {dragActive ? 'Drop photo here' : 'Upload member photo'}
@@ -281,7 +380,9 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
 
       {/* Help Text */}
       <div className="text-xs text-gray-500 text-center">
-        {memberId ? (
+        {temporaryMode ? (
+          'Photo will be saved when you save the member'
+        ) : memberId ? (
           'Photo will be saved immediately after upload'
         ) : (
           'Add member details first to save photo'

@@ -23,6 +23,7 @@
     "postman:validate": "newman run postman/Creatives-SaaS-API.postman_collection.json -e postman/Creatives-SaaS-Environment.postman_environment.json --bail"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.864.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",

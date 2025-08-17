@@ -54,10 +54,18 @@ export interface MemberActionResponse {
 }
 
 export const membersApi = {
-  // Update member
+  // Update member - use gym members endpoint for gym members
   async updateMember(memberId: string, data: any): Promise<MemberActionResponse> {
-    const response = await apiClient.patch(`/users/${memberId}`, data)
-    return response.data
+    // Try gym members endpoint first for gym member updates
+    try {
+      const response = await apiClient.put(`/gym/members/${memberId}`, data)
+      return response.data
+    } catch (error: any) {
+      // Fallback to users endpoint if gym members endpoint doesn't exist or fails
+      console.log('Gym members endpoint failed, falling back to users endpoint')
+      const response = await apiClient.patch(`/users/${memberId}`, data)
+      return response.data
+    }
   },
 
   // Activate member

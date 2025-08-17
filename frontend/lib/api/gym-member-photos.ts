@@ -1,3 +1,5 @@
+import { apiClient } from './client';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 export interface PhotoUploadResponse {
@@ -28,11 +30,48 @@ export interface PhotoDeleteResponse {
 
 class GymMemberPhotosApi {
   private async getAuthHeaders(): Promise<HeadersInit> {
-    const token = localStorage.getItem('authToken');
-    return {
-      'Authorization': token ? `Bearer ${token}` : '',
-      'x-tenant-id': localStorage.getItem('selectedTenantId') || '',
-    };
+    // Simple approach: use the same auth as other API calls
+    const token = localStorage.getItem('auth_token');
+    const headers: HeadersInit = {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Add tenant context - check multiple possible locations
+    let tenantId = localStorage.getItem('selectedTenantId');
+    
+    // If not found, try to get from currentTenant object
+    if (!tenantId) {
+      const currentTenant = localStorage.getItem('currentTenant');
+      if (currentTenant) {
+        try {
+          const tenant = JSON.parse(currentTenant);
+          tenantId = tenant.id;
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    }
+    
+    // If still not found, try to get from user data
+    if (!tenantId) {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          tenantId = user.tenantId;
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    }
+    
+    if (tenantId) {
+      headers['x-tenant-id'] = tenantId;
+    }
+    
+    return headers;
   }
 
   /**
