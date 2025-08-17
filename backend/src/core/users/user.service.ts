@@ -1,4 +1,5 @@
 import { NotificationsService } from '../notifications/notifications.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import {
   Injectable,
   NotFoundException,
@@ -19,6 +20,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private supabaseService: SupabaseService,
   ) {}
 
   async createUser(data: CreateUserDto) {
@@ -1710,6 +1712,138 @@ export class UsersService {
     } catch (error) {
       this.logger.error('Failed to create audit log:', error);
       throw error;
+    }
+  }
+
+  // Photo Upload Methods (Business Agnostic - works for all user types)
+  async uploadUserPhoto(userId: string, file: Express.Multer.File) {
+    try {
+      // Validate user ID format
+      if (!this.isValidUUID(userId)) {
+        throw new BadRequestException('Invalid user ID format');
+      }
+
+      // Verify user exists
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId, deletedAt: null }
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (!file) {
+        throw new BadRequestException('No file provided');
+      }
+
+      this.logger.log(`Processing photo upload for user ${userId}`, {
+        originalName: file.originalname,
+        size: file.size,
+        mimeType: file.mimetype
+      });
+
+      // Upload to Supabase Storage
+      const uploadResult = await this.supabaseService.uploadMemberPhoto(
+        userId,
+        user.tenantId!, // Use user's tenantId for organizing files
+        file
+      );
+      
+      // Update user record with new photo URL
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          photoUrl: uploadResult.url,
+          updatedAt: new Date()
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          photoUrl: true,
+          updatedAt: true
+        }
+      });
+
+      this.logger.log(`Successfully uploaded photo for user ${userId} to ${uploadResult.url}`);
+      
+      return {
+        success: true,
+        message: 'Photo uploaded successfully',
+        photoUrl: uploadResult.url,
+        user: updatedUser
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Failed to upload photo for user ${userId}:`, error);
+      throw new InternalServerErrorException(`Failed to upload user photo: ${error.message}`);
+    }
+  }
+
+  async deleteUserPhoto(userId: string) {
+    try {
+      // Validate user ID format
+      if (!this.isValidUUID(userId)) {
+        throw new BadRequestException('Invalid user ID format');
+      }
+
+      // Verify user exists
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId, deletedAt: null }
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (!user.photoUrl) {
+        return {
+          success: true,
+          message: 'No photo to delete'
+        };
+      }
+
+      // Delete from Supabase Storage
+      try {
+        // Extract the path from the photoUrl or construct it
+        const photoPath = this.supabaseService.extractPhotoPath(user.photoUrl);
+        if (photoPath) {
+          await this.supabaseService.deleteMemberPhoto(photoPath);
+        } else {
+          // If we can't extract the path, try the standard path format
+          const standardPath = `${user.tenantId}/${userId}/profile.jpg`;
+          await this.supabaseService.deleteMemberPhoto(standardPath);
+        }
+      } catch (storageError) {
+        this.logger.warn(`Failed to delete photo from storage for user ${userId}:`, storageError);
+        // Continue with database update even if storage deletion fails
+      }
+
+      // Remove photo URL from user record
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          photoUrl: null,
+          updatedAt: new Date()
+        }
+      });
+
+      this.logger.log(`Deleted photo for user ${userId}`);
+      
+      return {
+        success: true,
+        message: 'Photo deleted successfully',
+        user: updatedUser
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Failed to delete photo for user ${userId}:`, error);
+      throw new Error(`Failed to delete user photo: ${error.message}`);
     }
   }
 
