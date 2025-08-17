@@ -43,6 +43,10 @@ export class CreateUserDto {
   notes?: string;
 
   @IsOptional()
+  @IsString()
+  photoUrl?: string;
+
+  @IsOptional()
   @IsObject()
   businessData?: any; // JSON field for business-specific data
 }
