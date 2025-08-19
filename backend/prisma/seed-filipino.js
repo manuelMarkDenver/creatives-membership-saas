@@ -174,7 +174,7 @@ async function main() {
 
     const createdPlans = [];
     for (const planData of membershipPlans) {
-      const membershipPlan = await prisma.gymMembershipPlan.create({
+      const membershipPlan = await prisma.membershipPlan.create({
         data: {
           tenantId: tenant.id,
           name: planData.name,
@@ -191,12 +191,11 @@ async function main() {
 
     // Create branch
     console.log('🏢 Creating branch: Manggahan...');
-    const branch = await prisma.businessUnit.create({
+    const branch = await prisma.branch.create({
       data: {
         tenantId: tenant.id,
         name: 'Manggahan',
         address: '123 Manggahan Street, Pasig City',
-        businessType: 'gym',
         isActive: true
       }
     });
