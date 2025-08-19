@@ -8,15 +8,32 @@ export class SeedService {
 
   async seedDatabase() {
     try {
-      // Run the seed script
-      const result = execSync('node prisma/seed.js', { 
+      // Clear existing data first to ensure clean seeding
+      console.log('🧹 Clearing existing data...');
+      
+      // Delete in correct order to avoid foreign key constraints
+      await this.prisma.customerTransaction.deleteMany({});
+      await this.prisma.payment.deleteMany({});
+      await this.prisma.gymMemberSubscription.deleteMany({});
+      await this.prisma.userBranch.deleteMany({});
+      await this.prisma.subscription.deleteMany({});
+      await this.prisma.gymMembershipPlan.deleteMany({});
+      await this.prisma.businessUnit.deleteMany({});
+      await this.prisma.user.deleteMany({ where: { role: { not: 'SUPER_ADMIN' } } });
+      await this.prisma.tenant.deleteMany({});
+      await this.prisma.plan.deleteMany({});
+      
+      console.log('✅ Existing data cleared successfully');
+      
+      // Run the comprehensive Filipino seed script
+      const result = execSync('node prisma/seed-filipino.js', { 
         cwd: process.cwd(),
         encoding: 'utf8'
       })
       
       return {
         success: true,
-        message: 'Database seeding completed successfully',
+        message: 'Database seeding completed successfully with realistic Filipino members',
         output: result
       }
     } catch (error) {
