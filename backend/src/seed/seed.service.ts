@@ -9,7 +9,7 @@ export class SeedService {
   async seedDatabase() {
     try {
       // Run the seed script
-      const result = execSync('npx ts-node prisma/seed.ts', { 
+      const result = execSync('node prisma/seed.js', { 
         cwd: process.cwd(),
         encoding: 'utf8'
       })
