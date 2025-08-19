@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { PrismaService } from '../prisma/prisma.service'
+import { PrismaService } from '../core/prisma/prisma.service'
 import { execSync } from 'child_process'
 
 @Injectable()
@@ -41,7 +41,7 @@ export class SeedService {
         this.prisma.tenant.count(),
         this.prisma.user.count({ where: { role: 'GYM_MEMBER' } }),
         this.prisma.plan.count(),
-        this.prisma.gymMembershipPlan.count(),
+        this.prisma.membershipPlan.count(),
         this.prisma.user.count({ where: { email: 'admin@creatives-saas.com' } })
       ])
 
