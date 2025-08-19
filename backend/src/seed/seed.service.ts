@@ -12,12 +12,16 @@ export class SeedService {
       console.log('🧹 Clearing existing data...');
       
       // Delete in correct order to avoid foreign key constraints
+      await this.prisma.memberAuditLog.deleteMany({});
+      await this.prisma.platformRevenue.deleteMany({});
       await this.prisma.customerTransaction.deleteMany({});
+      await this.prisma.saasSubscription.deleteMany({});
       await this.prisma.payment.deleteMany({});
       await this.prisma.gymMemberSubscription.deleteMany({});
       await this.prisma.userBranch.deleteMany({});
       await this.prisma.subscription.deleteMany({});
-      await this.prisma.gymMembershipPlan.deleteMany({});
+      await this.prisma.membershipPlan.deleteMany({});
+      await this.prisma.branch.deleteMany({});
       await this.prisma.businessUnit.deleteMany({});
       await this.prisma.user.deleteMany({ where: { role: { not: 'SUPER_ADMIN' } } });
       await this.prisma.tenant.deleteMany({});
