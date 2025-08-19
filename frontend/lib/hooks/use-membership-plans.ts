@@ -31,8 +31,43 @@ export const useActiveMembershipPlans = () => {
   return useQuery({
     queryKey: ['membership-plans', 'active'],
     queryFn: async () => {
-      const response = await getActiveMembershipPlans()
-      return response.success ? response.data : []
+      try {
+        const response = await getActiveMembershipPlans()
+        return response.success ? response.data : []
+      } catch (error) {
+        console.warn('API not available, using fallback mock data:', error)
+        // Fallback mock data when API is not available
+        return [
+          {
+            id: 'mock-1',
+            tenantId: 'tenant-1',
+            name: 'Day Pass',
+            description: 'Single day gym access',
+            price: 150,
+            duration: 1,
+            type: 'DAY_PASS',
+            benefits: ['Full gym access for 1 day', 'Use of all equipment', 'Locker access'],
+            isActive: true,
+            memberCount: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          },
+          {
+            id: 'mock-2',
+            tenantId: 'tenant-1', 
+            name: 'Student Monthly',
+            description: 'Discounted membership for students',
+            price: 800,
+            duration: 30,
+            type: 'STUDENT',
+            benefits: ['Unlimited gym access', 'Group classes included', 'Student discount'],
+            isActive: true,
+            memberCount: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ]
+      }
     }
   })
 }

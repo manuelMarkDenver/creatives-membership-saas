@@ -40,64 +40,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 
-// Mock data for now - will be replaced with API calls
-const mockMembershipPlans = [
-  {
-    id: '1',
-    name: 'Day Pass',
-    description: 'Single day gym access',
-    price: 150,
-    duration: 1,
-    type: 'DAY_PASS',
-    isActive: true,
-    benefits: ['Full gym access for 1 day', 'Use of all equipment', 'Locker access'],
-    memberCount: 25
-  },
-  {
-    id: '2',
-    name: 'Basic Monthly',
-    description: 'Standard monthly membership',
-    price: 1200,
-    duration: 30,
-    type: 'MONTHLY',
-    isActive: true,
-    benefits: ['Unlimited gym access', 'Group classes included', 'Locker access', 'Fitness assessment'],
-    memberCount: 89
-  },
-  {
-    id: '3',
-    name: 'Premium Monthly',
-    description: 'Premium monthly membership with PT sessions',
-    price: 2500,
-    duration: 30,
-    type: 'MONTHLY',
-    isActive: true,
-    benefits: ['Unlimited gym access', 'Group classes included', '2 Personal Training sessions', 'Nutrition consultation', 'Towel service', 'Guest passes (2 per month)'],
-    memberCount: 42
-  },
-  {
-    id: '4',
-    name: 'Annual Basic',
-    description: 'Basic annual membership - save 2 months!',
-    price: 12000,
-    duration: 365,
-    type: 'ANNUAL',
-    isActive: true,
-    benefits: ['Unlimited gym access', 'Group classes included', 'Locker access', 'Quarterly fitness assessment', '2 months free!'],
-    memberCount: 156
-  },
-  {
-    id: '5',
-    name: 'Student Monthly',
-    description: 'Discounted membership for students',
-    price: 800,
-    duration: 30,
-    type: 'STUDENT',
-    isActive: false,
-    benefits: ['Unlimited gym access', 'Group classes included', 'Student discount', 'Study area access'],
-    memberCount: 12
-  }
-]
 
 const membershipTypes = [
   { value: 'DAY_PASS', label: 'Day Pass' },
@@ -118,6 +60,7 @@ export default function MembershipPlansPage() {
   const createMembershipPlanMutation = useCreateMembershipPlan()
   const updateMembershipPlanMutation = useUpdateMembershipPlan()
   const deleteMembershipPlanMutation = useDeleteMembershipPlan()
+  
   
   const [searchTerm, setSearchTerm] = useState('')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -155,7 +98,7 @@ export default function MembershipPlansPage() {
     total: membershipPlans.length,
     active: membershipPlans.filter(p => p.isActive).length,
     inactive: membershipPlans.filter(p => !p.isActive).length,
-    totalMembers: membershipPlans.reduce((sum, plan) => sum + ((plan as any)._count?.gymSubscriptions || 0), 0),
+    totalMembers: membershipPlans.reduce((sum, plan) => sum + (plan.memberCount || 0), 0),
     avgPrice: membershipPlans.length > 0 ? membershipPlans.reduce((sum, plan) => sum + plan.price, 0) / membershipPlans.length : 0
   }
 
@@ -307,17 +250,17 @@ export default function MembershipPlansPage() {
           </div>
 
           {/* Plans List */}
-          <div className="space-y-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {isLoading ? (
-              <div className="text-center py-8">
+              <div className="col-span-full text-center py-8">
                 <div className="animate-pulse">Loading membership plans...</div>
               </div>
             ) : error ? (
-              <div className="text-center py-8 text-red-600">
+              <div className="col-span-full text-center py-8 text-red-600">
                 Failed to load membership plans. Please try again.
               </div>
             ) : filteredPlans.length === 0 ? (
-              <div className="text-center py-8">
+              <div className="col-span-full text-center py-8">
                 <CreditCard className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
                 <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No plans found</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -326,84 +269,124 @@ export default function MembershipPlansPage() {
               </div>
             ) : (
               filteredPlans.map((plan) => (
-                <div key={plan.id} className="flex items-center justify-between p-6 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-semibold">
-                      {plan.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{plan.name}</h4>
-                        <Badge variant={plan.isActive ? "default" : "secondary"}>
-                          {plan.isActive ? 'ACTIVE' : 'INACTIVE'}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {plan.type.replace('_', ' ')}
-                        </Badge>
+                <Card key={plan.id} className="relative overflow-hidden hover:shadow-lg transition-shadow">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-semibold text-lg">
+                          {plan.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant={plan.isActive ? "default" : "secondary"} className="text-xs">
+                              {plan.isActive ? 'ACTIVE' : 'INACTIVE'}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {plan.type.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-2">{plan.description}</p>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Plan
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => togglePlanStatus(plan.id)}>
+                            {plan.isActive ? (
+                              <>
+                                <EyeOff className="mr-2 h-4 w-4" />
+                                Deactivate
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Activate
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-red-600"
+                            onClick={() => openDeleteDialog(plan)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Plan
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="mb-4">
+                      {plan.description}
+                    </CardDescription>
+                    
+                    {/* Benefits */}
+                    <div className="mb-4">
                       <div className="flex flex-wrap gap-1">
-                        {(plan.benefits || []).slice(0, 3).map((benefit, index) => (
-                          <Badge key={index} variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
-                            {benefit}
-                          </Badge>
-                        ))}
-                        {(plan.benefits || []).length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{(plan.benefits || []).length - 3} more
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-green-600">₱{plan.price}</div>
-                      <p className="text-xs text-muted-foreground">
-                        {plan.duration === 1 ? 'per day' : `per ${plan.duration} days`}
-                      </p>
-                      <div className="flex items-center gap-1 mt-2">
-                        <Users className="h-3 w-3 text-blue-500" />
-                        <span className="text-xs text-muted-foreground">{((plan as any)._count?.gymSubscriptions) || 0} members</span>
+                        {(() => {
+                          // Safe handling for benefits - it might come as string or array
+                          let benefits: string[] = []
+                          if (typeof plan.benefits === 'string') {
+                            try {
+                              benefits = JSON.parse(plan.benefits)
+                            } catch {
+                              benefits = [plan.benefits]
+                            }
+                          } else if (Array.isArray(plan.benefits)) {
+                            benefits = plan.benefits
+                          }
+                          return benefits.slice(0, 4).map((benefit, index) => (
+                            <Badge key={index} variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
+                              {benefit}
+                            </Badge>
+                          ))
+                        })()}
+                        {(() => {
+                          let benefits: string[] = []
+                          if (typeof plan.benefits === 'string') {
+                            try {
+                              benefits = JSON.parse(plan.benefits)
+                            } catch {
+                              benefits = [plan.benefits]
+                            }
+                          } else if (Array.isArray(plan.benefits)) {
+                            benefits = plan.benefits
+                          }
+                          return benefits.length > 4 ? (
+                            <Badge variant="outline" className="text-xs">
+                              +{benefits.length - 4} more
+                            </Badge>
+                          ) : null
+                        })()}
                       </div>
                     </div>
                     
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit Plan
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => togglePlanStatus(plan.id)}>
-                          {plan.isActive ? (
-                            <>
-                              <EyeOff className="mr-2 h-4 w-4" />
-                              Deactivate
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="mr-2 h-4 w-4" />
-                              Activate
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-red-600"
-                          onClick={() => openDeleteDialog(plan)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete Plan
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
+                    {/* Price and Stats */}
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <div className="text-3xl font-bold text-green-600">₱{plan.price}</div>
+                        <p className="text-sm text-muted-foreground">
+                          {plan.duration === 1 ? 'per day' : `per ${plan.duration} days`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 text-blue-600">
+                          <Users className="h-4 w-4" />
+                          <span className="text-sm font-medium">{plan.memberCount || 0}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">members</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))
             )}
           </div>
