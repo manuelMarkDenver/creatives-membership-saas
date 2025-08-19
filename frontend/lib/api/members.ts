@@ -110,8 +110,27 @@ export const membersApi = {
 
   // Get member history
   async getMemberHistory(memberId: string, params?: MemberHistoryQuery): Promise<MemberHistoryResponse> {
-    const response = await apiClient.get(`/users/${memberId}/history`, { params })
-    return response.data
+    try {
+      const response = await apiClient.get(`/users/${memberId}/history`, { params })
+      return response.data
+    } catch (error: any) {
+      // If the endpoint doesn't exist (404), return empty history
+      if (error.response?.status === 404) {
+        return {
+          logs: [],
+          pagination: {
+            page: 1,
+            limit: 10,
+            total: 0,
+            pages: 0,
+            hasNext: false,
+            hasPrev: false
+          }
+        }
+      }
+      
+      throw error
+    }
   },
 
   // Get action reasons
