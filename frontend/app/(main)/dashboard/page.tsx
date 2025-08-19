@@ -227,14 +227,14 @@ function OwnerDashboard() {
   }
 
   // Calculate real stats from branches data
-  const totalMembers = branches.reduce((sum, branch) => {
+  const totalMembers = branches.reduce((sum: number, branch) => {
     return sum + (branch._count?.userBranches || 0)
   }, 0)
 
-  const totalRevenue = branches.reduce((sum, branch) => {
+  const totalRevenue = branches.reduce((sum: number, branch) => {
     // Calculate revenue from active subscriptions
     const activeSubscriptions = branch.subscriptions?.filter(sub => sub.status === 'ACTIVE') || []
-    return sum + activeSubscriptions.reduce((subSum, sub) => subSum + (sub.plan?.price || 0), 0)
+    return sum + activeSubscriptions.reduce((subSum: number, sub) => subSum + (sub.plan?.price || 0), 0)
   }, 0)
 
   const activeBranches = branches.filter(branch => branch.isActive).length
