@@ -1,5 +1,5 @@
 #!/usr/bin/env npx ts-node
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, BillingCycle } from '@prisma/client'
 import { execSync } from 'child_process'
 import * as bcrypt from 'bcrypt'
 
@@ -25,8 +25,7 @@ async function main() {
           email: 'admin@creatives-saas.com',
           password: hashedPassword,
           role: 'SUPER_ADMIN',
-          isActive: true,
-          isEmailVerified: true
+          isActive: true
         }
       })
       console.log('✅ Super Admin created')
@@ -37,9 +36,9 @@ async function main() {
     // Create subscription plans
     console.log('📦 Creating subscription plans...')
     const plans = [
-      { name: 'Free Trial', price: 0, duration: 30, description: 'Free trial for 30 days', maxBranches: 1, maxStaff: 2 },
-      { name: 'Monthly Pro', price: 2999, duration: 30, description: 'Monthly subscription', maxBranches: 5, maxStaff: 20 },
-      { name: 'Annual Pro', price: 29999, duration: 365, description: 'Annual subscription with discount', maxBranches: 10, maxStaff: 50 },
+      { name: 'Free Trial', price: 0, billingCycle: BillingCycle.TRIAL, description: 'Free trial for 30 days' },
+      { name: 'Monthly Pro', price: 2999, billingCycle: BillingCycle.MONTHLY, description: 'Monthly subscription' },
+      { name: 'Annual Pro', price: 29999, billingCycle: BillingCycle.YEARLY, description: 'Annual subscription with discount' },
     ]
 
     for (const plan of plans) {
@@ -67,15 +66,26 @@ async function main() {
           category: 'GYM',
           slug: 'muscle-mania',
           address: 'Manggahan, Pasig City',
-          contactEmail: 'info@muscle-mania.com',
-          contactPhone: '+63 912 345 6789'
+          email: 'info@muscle-mania.com',
+          phoneNumber: '+63 912 345 6789'
         }
       })
 
-      // Create subscription for Muscle Mania
-      await prisma.subscription.create({
+      // Create branch first, then subscription
+      const branch = await prisma.branch.create({
         data: {
           tenantId: tenant.id,
+          name: 'Manggahan',
+          address: 'Manggahan, Pasig City',
+          phoneNumber: '+63 912 345 6789',
+          isActive: true
+        }
+      })
+      
+      // Create subscription for the branch
+      await prisma.subscription.create({
+        data: {
+          branchId: branch.id,
           planId: muscleManiaProPlan.id,
           status: 'ACTIVE',
           startDate: new Date(),
@@ -83,16 +93,6 @@ async function main() {
         }
       })
 
-      // Create main branch for Muscle Mania
-      const branch = await prisma.branch.create({
-        data: {
-          tenantId: tenant.id,
-          name: 'Manggahan',
-          address: 'Manggahan, Pasig City',
-          contactPhone: '+63 912 345 6789',
-          isActive: true
-        }
-      })
 
       // Create owner account
       const ownerPassword = await bcrypt.hash('MuscleManiaOwner123!', 10)
@@ -104,8 +104,7 @@ async function main() {
           password: ownerPassword,
           role: 'OWNER',
           tenantId: tenant.id,
-          isActive: true,
-          isEmailVerified: true
+          isActive: true
         }
       })
 
@@ -114,7 +113,7 @@ async function main() {
         data: {
           userId: owner.id,
           branchId: branch.id,
-          role: 'OWNER'
+          accessLevel: 'FULL_ACCESS'
         }
       })
 
