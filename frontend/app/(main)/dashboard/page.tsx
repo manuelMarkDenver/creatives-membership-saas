@@ -227,17 +227,17 @@ function OwnerDashboard() {
   }
 
   // Calculate real stats from branches data
-  const totalMembers = branches.reduce((sum: number, branch) => {
+  const totalMembers = branches.reduce((sum: number, branch: any) => {
     return sum + (branch._count?.userBranches || 0)
   }, 0)
 
-  const totalRevenue = branches.reduce((sum: number, branch) => {
+  const totalRevenue = branches.reduce((sum: number, branch: any) => {
     // Calculate revenue from active subscriptions
-    const activeSubscriptions = branch.subscriptions?.filter(sub => sub.status === 'ACTIVE') || []
-    return sum + activeSubscriptions.reduce((subSum: number, sub) => subSum + (sub.plan?.price || 0), 0)
+    const activeSubscriptions = branch.subscriptions?.filter((sub: any) => sub.status === 'ACTIVE') || []
+    return sum + activeSubscriptions.reduce((subSum: number, sub: any) => subSum + (sub.plan?.price || 0), 0)
   }, 0)
 
-  const activeBranches = branches.filter(branch => branch.isActive).length
+  const activeBranches = branches.filter((branch: any) => branch.isActive).length
 
   // Prepare owner dashboard stats
   const ownerStats: StatItem[] = [
