@@ -34,7 +34,9 @@ import {
   CreditCard,
   Settings,
   AlertCircle,
-  Clock
+  Clock,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import { useMemberHistory } from '@/lib/hooks/use-member-actions'
 import type { MemberHistoryQuery } from '@/lib/api/members'
@@ -71,26 +73,50 @@ const actionIcons = {
 }
 
 const actionColors = {
-  ACCOUNT_CREATED: 'text-green-600 bg-green-50 border-green-200',
-  ACCOUNT_ACTIVATED: 'text-green-600 bg-green-50 border-green-200',
-  ACCOUNT_DEACTIVATED: 'text-red-600 bg-red-50 border-red-200',
-  ACCOUNT_DELETED: 'text-gray-600 bg-gray-50 border-gray-200',
-  ACCOUNT_RESTORED: 'text-blue-600 bg-blue-50 border-blue-200',
-  SUBSCRIPTION_STARTED: 'text-purple-600 bg-purple-50 border-purple-200',
-  SUBSCRIPTION_RENEWED: 'text-green-600 bg-green-50 border-green-200',
-  SUBSCRIPTION_CANCELLED: 'text-red-600 bg-red-50 border-red-200',
-  SUBSCRIPTION_EXPIRED: 'text-orange-600 bg-orange-50 border-orange-200',
-  SUBSCRIPTION_SUSPENDED: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-  SUBSCRIPTION_RESUMED: 'text-green-600 bg-green-50 border-green-200',
-  PAYMENT_RECEIVED: 'text-green-600 bg-green-50 border-green-200',
-  PAYMENT_FAILED: 'text-red-600 bg-red-50 border-red-200',
-  PAYMENT_REFUNDED: 'text-orange-600 bg-orange-50 border-orange-200',
-  PROFILE_UPDATED: 'text-blue-600 bg-blue-50 border-blue-200',
-  PROFILE_PHOTO_UPDATED: 'text-blue-600 bg-blue-50 border-blue-200',
-  FACILITY_ACCESS_GRANTED: 'text-green-600 bg-green-50 border-green-200',
-  FACILITY_ACCESS_REVOKED: 'text-red-600 bg-red-50 border-red-200',
-  LOGIN_SUCCESSFUL: 'text-green-600 bg-green-50 border-green-200',
-  LOGIN_FAILED: 'text-red-600 bg-red-50 border-red-200',
+  ACCOUNT_CREATED: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
+  ACCOUNT_ACTIVATED: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
+  ACCOUNT_DEACTIVATED: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800',
+  ACCOUNT_DELETED: 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
+  ACCOUNT_RESTORED: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800',
+  SUBSCRIPTION_STARTED: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800',
+  SUBSCRIPTION_RENEWED: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
+  SUBSCRIPTION_CANCELLED: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800',
+  SUBSCRIPTION_EXPIRED: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800',
+  SUBSCRIPTION_SUSPENDED: 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800',
+  SUBSCRIPTION_RESUMED: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
+  PAYMENT_RECEIVED: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
+  PAYMENT_FAILED: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800',
+  PAYMENT_REFUNDED: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800',
+  PROFILE_UPDATED: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800',
+  PROFILE_PHOTO_UPDATED: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800',
+  FACILITY_ACCESS_GRANTED: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
+  FACILITY_ACCESS_REVOKED: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800',
+  LOGIN_SUCCESSFUL: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
+  LOGIN_FAILED: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800',
+}
+
+// Text colors for better dark mode visibility
+const actionTextColors = {
+  ACCOUNT_CREATED: 'text-green-700 dark:text-green-300',
+  ACCOUNT_ACTIVATED: 'text-green-700 dark:text-green-300',
+  ACCOUNT_DEACTIVATED: 'text-red-700 dark:text-red-300',
+  ACCOUNT_DELETED: 'text-gray-700 dark:text-gray-300',
+  ACCOUNT_RESTORED: 'text-blue-700 dark:text-blue-300',
+  SUBSCRIPTION_STARTED: 'text-purple-700 dark:text-purple-300',
+  SUBSCRIPTION_RENEWED: 'text-green-700 dark:text-green-300',
+  SUBSCRIPTION_CANCELLED: 'text-red-700 dark:text-red-300',
+  SUBSCRIPTION_EXPIRED: 'text-orange-700 dark:text-orange-300',
+  SUBSCRIPTION_SUSPENDED: 'text-yellow-700 dark:text-yellow-300',
+  SUBSCRIPTION_RESUMED: 'text-green-700 dark:text-green-300',
+  PAYMENT_RECEIVED: 'text-green-700 dark:text-green-300',
+  PAYMENT_FAILED: 'text-red-700 dark:text-red-300',
+  PAYMENT_REFUNDED: 'text-orange-700 dark:text-orange-300',
+  PROFILE_UPDATED: 'text-blue-700 dark:text-blue-300',
+  PROFILE_PHOTO_UPDATED: 'text-blue-700 dark:text-blue-300',
+  FACILITY_ACCESS_GRANTED: 'text-green-700 dark:text-green-300',
+  FACILITY_ACCESS_REVOKED: 'text-red-700 dark:text-red-300',
+  LOGIN_SUCCESSFUL: 'text-green-700 dark:text-green-300',
+  LOGIN_FAILED: 'text-red-700 dark:text-red-300',
 }
 
 const categoryOptions = [
@@ -116,6 +142,8 @@ export function MemberHistoryModal({
     startDate: '',
     endDate: '',
   })
+  
+  const [showFilters, setShowFilters] = useState(false)
 
   const { data: historyData, isLoading, error } = useMemberHistory(memberId, query)
 
@@ -145,8 +173,31 @@ export function MemberHistoryModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+          {/* Collapsible Filters */}
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setShowFilters(!showFilters)}
+              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span className="font-medium">Search & Filters</span>
+                {(query.category || query.startDate || query.endDate) && (
+                  <Badge variant="secondary" className="text-xs">
+                    {[query.category, query.startDate, query.endDate].filter(Boolean).length} applied
+                  </Badge>
+                )}
+              </div>
+              {showFilters ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
+            
+            {showFilters && (
+              <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg mt-2">
             <div className="flex-1">
               <Label className="text-xs font-medium text-gray-600">Category</Label>
               <Select value={query.category || 'all'} onValueChange={(value) => updateQuery({ category: value === 'all' ? undefined : value as any })}>
@@ -193,6 +244,8 @@ export function MemberHistoryModal({
                 Clear
               </Button>
             </div>
+              </div>
+            )}
           </div>
 
           {/* History List */}
@@ -241,10 +294,10 @@ export function MemberHistoryModal({
                             {/* Content */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-1">
-                                <h4 className="text-sm font-medium text-gray-900">
+                                <h4 className={`text-sm font-medium ${actionTextColors[entry.action as keyof typeof actionTextColors] || 'text-gray-900 dark:text-gray-100'}`}>
                                   {formatActionName(entry.action)}
                                 </h4>
-                                <time className="text-xs text-gray-500">
+                                <time className="text-xs text-gray-500 dark:text-gray-400">
                                   {format(new Date(entry.performedAt), 'MMM dd, yyyy HH:mm')}
                                 </time>
                               </div>
@@ -252,13 +305,13 @@ export function MemberHistoryModal({
                               {/* Details */}
                               <div className="space-y-1">
                                 {entry.reason && (
-                                  <p className="text-sm text-gray-600">
+                                  <p className="text-sm text-gray-600 dark:text-gray-300">
                                     <span className="font-medium">Reason:</span> {entry.reason}
                                   </p>
                                 )}
                                 
                                 {entry.notes && (
-                                  <p className="text-sm text-gray-600">
+                                  <p className="text-sm text-gray-600 dark:text-gray-300">
                                     <span className="font-medium">Notes:</span> {entry.notes}
                                   </p>
                                 )}
@@ -266,15 +319,15 @@ export function MemberHistoryModal({
                                 {(entry.previousState || entry.newState) && (
                                   <div className="flex items-center gap-2 text-xs">
                                     {entry.previousState && (
-                                      <Badge variant="outline" className="text-gray-600">
+                                      <Badge variant="outline" className="text-gray-600 dark:text-gray-300">
                                         From: {entry.previousState}
                                       </Badge>
                                     )}
                                     {entry.previousState && entry.newState && (
-                                      <span className="text-gray-400">→</span>
+                                      <span className="text-gray-400 dark:text-gray-500">→</span>
                                     )}
                                     {entry.newState && (
-                                      <Badge variant="outline" className="text-blue-600">
+                                      <Badge variant="outline" className="text-blue-600 dark:text-blue-400">
                                         To: {entry.newState}
                                       </Badge>
                                     )}
@@ -283,7 +336,7 @@ export function MemberHistoryModal({
                                 
                                 {/* Performer info */}
                                 {entry.performer && (
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
                                     <User className="inline h-3 w-3 mr-1" />
                                     Performed by: {entry.performer.firstName} {entry.performer.lastName} ({entry.performer.email})
                                   </p>
