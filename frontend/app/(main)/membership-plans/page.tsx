@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { CollapsibleStatsOverview, type StatItem } from '@/components/ui/collapsible-stats-overview'
 import { 
   CreditCard, 
   Search, 
@@ -158,6 +159,57 @@ export default function MembershipPlansPage() {
     avgPrice: membershipPlans.length > 0 ? membershipPlans.reduce((sum, plan) => sum + plan.price, 0) / membershipPlans.length : 0
   }
 
+  // Prepare stats for mobile-first layout
+  const planStats: StatItem[] = [
+    {
+      key: 'total',
+      label: 'Total',
+      value: stats.total,
+      icon: CreditCard,
+      color: 'text-gray-700 dark:text-gray-300',
+      description: 'All membership plans'
+    },
+    {
+      key: 'active',
+      label: 'Active',
+      value: stats.active,
+      icon: Eye,
+      color: 'text-green-700 dark:text-green-400',
+      description: 'Currently available'
+    },
+    {
+      key: 'inactive',
+      label: 'Inactive',
+      value: stats.inactive,
+      icon: EyeOff,
+      color: 'text-gray-700 dark:text-gray-400',
+      description: 'Disabled plans'
+    },
+    {
+      key: 'totalMembers',
+      label: 'Members',
+      value: stats.totalMembers,
+      icon: Users,
+      color: 'text-blue-700 dark:text-blue-400',
+      description: 'Total subscribers'
+    },
+    {
+      key: 'avgPrice',
+      label: 'Avg Price',
+      value: `₱${Math.round(stats.avgPrice)}`,
+      icon: DollarSign,
+      color: 'text-purple-700 dark:text-purple-400',
+      description: 'Average plan price'
+    }
+  ]
+
+  // Compact summary for mobile (first 3 most important stats)
+  const compactSummary = [
+    planStats[0], // Total
+    planStats[1], // Active
+    planStats[3], // Members
+  ]
+
   const handleCreatePlan = async () => {
     // TODO: Implement API call to create membership plan
     console.log('Creating plan:', formData)
@@ -224,59 +276,12 @@ export default function MembershipPlansPage() {
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Plans</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">All membership plans</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
-            <Eye className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">Currently available</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactive</CardTitle>
-            <EyeOff className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-600">{stats.inactive}</div>
-            <p className="text-xs text-muted-foreground">Not available</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.totalMembers}</div>
-            <p className="text-xs text-muted-foreground">Across all plans</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Price</CardTitle>
-            <DollarSign className="h-4 w-4 text-amber-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600">₱{Math.round(stats.avgPrice)}</div>
-            <p className="text-xs text-muted-foreground">Average plan price</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Mobile-First Stats Overview */}
+      <CollapsibleStatsOverview 
+        title="Membership Plans Overview"
+        stats={planStats}
+        compactSummary={compactSummary}
+      />
 
       {/* Search and Plans List */}
       <Card>

@@ -37,6 +37,7 @@ import { User, Role } from '@/types'
 import { MemberInfoModal } from '@/components/modals/member-info-modal'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MemberCard } from '@/components/members/member-card'
+import { StatsOverview } from '@/components/members/stats-overview'
 import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-member-actions'
 import { toast } from 'sonner'
 import { filterMembersByStatus, calculateMemberStats, type MemberData } from '@/lib/utils/member-status'
@@ -288,15 +289,15 @@ export default function MembersPage() {
 
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      {/* Header - Mobile Optimized */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            {isSuperAdmin ? <Globe className="h-8 w-8 text-blue-500" /> : <Users className="h-8 w-8 text-blue-500" />}
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            {isSuperAdmin ? <Globe className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" /> : <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />}
             {isSuperAdmin ? 'All Members' : 'Members'}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             {isSuperAdmin ? 'View all members across all tenants' : 'Manage gym members and their memberships'}
           </p>
         </div>
@@ -305,7 +306,7 @@ export default function MembersPage() {
             onClick={() => {
               setShowAddMemberModal(true)
             }}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 w-full sm:w-auto"
             size="lg"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -314,79 +315,10 @@ export default function MembersPage() {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-        <Card className="border-2 shadow-md hover:shadow-lg transition-shadow bg-white dark:bg-gray-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-bold text-gray-900 dark:text-gray-100">Total Members</CardTitle>
-            <Users className="h-4 w-4 text-gray-700 dark:text-gray-300" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.total}</div>
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">All registered members</p>
-          </CardContent>
-        </Card>
-        <Card className="border-2 shadow-md hover:shadow-lg transition-shadow bg-white dark:bg-gray-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-bold text-gray-900 dark:text-gray-100">Active</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-700 dark:text-green-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-700 dark:text-green-400">{stats.active}</div>
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Currently active</p>
-          </CardContent>
-        </Card>
-        {!isSuperAdmin && (
-          <Card className="border-2 shadow-md hover:shadow-lg transition-shadow bg-white dark:bg-gray-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-bold text-gray-900 dark:text-gray-100">Expiring Soon</CardTitle>
-              <Calendar className="h-4 w-4 text-yellow-700 dark:text-yellow-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">
-                {stats.expiring ?? 0}
-              </div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                Expiring within 7 days
-              </p>
-            </CardContent>
-          </Card>
-        )}
-        <Card className="border-2 shadow-md hover:shadow-lg transition-shadow bg-white dark:bg-gray-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-bold text-gray-900 dark:text-gray-100">Expired</CardTitle>
-            <Calendar className="h-4 w-4 text-orange-700 dark:text-orange-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">{stats.expired}</div>
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Total expired subscriptions</p>
-          </CardContent>
-        </Card>
-        <Card className="border-2 shadow-md hover:shadow-lg transition-shadow bg-white dark:bg-gray-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-bold text-gray-900 dark:text-gray-100">Cancelled</CardTitle>
-            <UserX className="h-4 w-4 text-red-700 dark:text-red-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-700 dark:text-red-400">{stats.cancelled}</div>
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Subscription cancelled</p>
-          </CardContent>
-        </Card>
-        <Card className="border-2 shadow-md hover:shadow-lg transition-shadow bg-white dark:bg-gray-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-bold text-gray-900 dark:text-gray-100">{isSuperAdmin ? 'Categories' : 'Deleted'}</CardTitle>
-            <Building className="h-4 w-4 text-amber-700 dark:text-amber-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-700 dark:text-amber-400">{isSuperAdmin ? (stats as any).byCategory?.length || 0 : stats.deleted}</div>
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">{isSuperAdmin ? 'Business types' : 'Soft deleted'}</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Mobile-First Stats Overview */}
+      <StatsOverview stats={stats} isSuperAdmin={isSuperAdmin} />
 
-      {/* Debug component removed - expiring members count issue resolved */}
-
-      {/* Search and Filters */}
+      {/* Search and Filters - Priority Position for Mobile */}
       <Card className="border-2 shadow-md bg-white dark:bg-gray-800">
         <CardHeader>
           <CardTitle className="text-gray-900 dark:text-gray-100">Member Directory</CardTitle>

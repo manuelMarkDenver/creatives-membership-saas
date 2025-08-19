@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { CollapsibleStatsOverview, type StatItem } from '@/components/ui/collapsible-stats-overview'
 import { 
   UserPlus, 
   Search, 
@@ -98,6 +99,57 @@ export default function StaffPage() {
     }
   }
 
+  // Prepare stats for mobile-first layout
+  const staffStats: StatItem[] = [
+    {
+      key: 'total',
+      label: 'Total',
+      value: stats.total,
+      icon: UserPlus,
+      color: 'text-gray-700 dark:text-gray-300',
+      description: 'All team members'
+    },
+    {
+      key: 'active',
+      label: 'Active',
+      value: stats.active,
+      icon: Shield,
+      color: 'text-green-700 dark:text-green-400',
+      description: 'Currently active'
+    },
+    {
+      key: 'owners',
+      label: 'Owners',
+      value: stats.owners,
+      icon: Crown,
+      color: 'text-amber-700 dark:text-amber-400',
+      description: 'Full access'
+    },
+    {
+      key: 'managers',
+      label: 'Managers',
+      value: stats.managers,
+      icon: ShieldCheck,
+      color: 'text-blue-700 dark:text-blue-400',
+      description: 'Branch management'
+    },
+    {
+      key: 'staff',
+      label: 'Staff',
+      value: stats.staff,
+      icon: User,
+      color: 'text-gray-700 dark:text-gray-400',
+      description: 'General staff'
+    }
+  ]
+
+  // Compact summary for mobile (first 3 most important stats)
+  const compactSummary = [
+    staffStats[0], // Total
+    staffStats[1], // Active
+    staffStats[2], // Owners
+  ]
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -117,59 +169,12 @@ export default function StaffPage() {
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Staff</CardTitle>
-            <UserPlus className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">All team members</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
-            <Shield className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">Currently active</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Owners</CardTitle>
-            <Crown className="h-4 w-4 text-amber-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600">{stats.owners}</div>
-            <p className="text-xs text-muted-foreground">Full access</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Managers</CardTitle>
-            <ShieldCheck className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.managers}</div>
-            <p className="text-xs text-muted-foreground">Branch management</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Staff</CardTitle>
-            <User className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-600">{stats.staff}</div>
-            <p className="text-xs text-muted-foreground">General staff</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Mobile-First Stats Overview */}
+      <CollapsibleStatsOverview 
+        title="Staff Overview"
+        stats={staffStats}
+        compactSummary={compactSummary}
+      />
 
       {/* Search and Filters */}
       <Card>
