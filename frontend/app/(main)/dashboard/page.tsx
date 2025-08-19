@@ -226,28 +226,41 @@ function OwnerDashboard() {
     return <div className="animate-pulse">Loading Owner Dashboard...</div>
   }
 
+  // Calculate real stats from branches data
+  const totalMembers = branches.reduce((sum, branch) => {
+    return sum + (branch._count?.userBranches || 0)
+  }, 0)
+
+  const totalRevenue = branches.reduce((sum, branch) => {
+    // Calculate revenue from active subscriptions
+    const activeSubscriptions = branch.subscriptions?.filter(sub => sub.status === 'ACTIVE') || []
+    return sum + activeSubscriptions.reduce((subSum, sub) => subSum + (sub.plan?.price || 0), 0)
+  }, 0)
+
+  const activeBranches = branches.filter(branch => branch.isActive).length
+
   // Prepare owner dashboard stats
   const ownerStats: StatItem[] = [
     {
       key: 'branches',
       label: 'Branches',
-      value: branches.length,
+      value: activeBranches,
       icon: MapPin,
       color: 'text-blue-700 dark:text-blue-400',
-      description: 'Active locations'
+      description: `${activeBranches} of ${branches.length} active`
     },
     {
       key: 'revenue',
       label: 'Revenue',
-      value: '₱45,231',
+      value: totalRevenue > 0 ? `₱${(totalRevenue / 100).toLocaleString()}` : '₱0',
       icon: TrendingUp,
       color: 'text-green-700 dark:text-green-400',
-      description: 'This month'
+      description: 'Monthly subscriptions'
     },
     {
       key: 'activeMembers',
       label: 'Members',
-      value: '1,234',
+      value: totalMembers.toLocaleString(),
       icon: Users,
       color: 'text-purple-700 dark:text-purple-400',
       description: 'Across all branches'

@@ -314,49 +314,110 @@ async function main() {
       }
     });
     
-    // Create exactly 5 gym members with specific statuses
-    console.log('👥 Creating 5 specific gym members...');
+  // Create exactly 12 gym members with realistic mix of statuses
+    console.log('👥 Creating 12 realistic gym members...');
     
     const specificMembers = [
+      // Active Members (6)
+      {
+        firstName: 'Maria',
+        lastName: 'Santos',
+        email: 'maria.santos@muscle-mania.com',
+        password: 'Maria123!',
+        status: 'ACTIVE',
+        description: 'Active premium member'
+      },
       {
         firstName: 'John',
-        lastName: 'Active',
-        email: 'john.active@muscle-mania.com',
-        password: 'Active123!',
+        lastName: 'Dela Cruz',
+        email: 'john.delacruz@muscle-mania.com',
+        password: 'John123!',
         status: 'ACTIVE',
-        description: '1 active member'
+        description: 'Active basic member'
       },
       {
-        firstName: 'Jane',
-        lastName: 'Cancelled',
-        email: 'jane.cancelled@muscle-mania.com',
-        password: 'Cancelled123!',
-        status: 'CANCELLED',
-        description: '1 cancelled member'
+        firstName: 'Andrea',
+        lastName: 'Reyes',
+        email: 'andrea.reyes@muscle-mania.com',
+        password: 'Andrea123!',
+        status: 'ACTIVE',
+        description: 'Active premium member'
       },
       {
-        firstName: 'Mike',
-        lastName: 'Expiring',
-        email: 'mike.expiring@muscle-mania.com',
-        password: 'Expiring123!',
+        firstName: 'Carlos',
+        lastName: 'Garcia',
+        email: 'carlos.garcia@muscle-mania.com',
+        password: 'Carlos123!',
+        status: 'ACTIVE',
+        description: 'Active basic member'
+      },
+      {
+        firstName: 'Jenny',
+        lastName: 'Lim',
+        email: 'jenny.lim@muscle-mania.com',
+        password: 'Jenny123!',
+        status: 'ACTIVE',
+        description: 'Active student member'
+      },
+      {
+        firstName: 'Michael',
+        lastName: 'Torres',
+        email: 'michael.torres@muscle-mania.com',
+        password: 'Michael123!',
+        status: 'ACTIVE',
+        description: 'Active annual member'
+      },
+      // Expiring Soon (2)
+      {
+        firstName: 'Sofia',
+        lastName: 'Ramos',
+        email: 'sofia.ramos@muscle-mania.com',
+        password: 'Sofia123!',
         status: 'EXPIRING',
-        description: '1 expiring soon member'
+        description: 'Expiring premium member'
       },
       {
-        firstName: 'Sarah',
-        lastName: 'Expired',
-        email: 'sarah.expired@muscle-mania.com',
-        password: 'Expired123!',
+        firstName: 'Robert',
+        lastName: 'Flores',
+        email: 'robert.flores@muscle-mania.com',
+        password: 'Robert123!',
+        status: 'EXPIRING',
+        description: 'Expiring basic member'
+      },
+      // Expired (2)
+      {
+        firstName: 'Patricia',
+        lastName: 'Mendoza',
+        email: 'patricia.mendoza@muscle-mania.com',
+        password: 'Patricia123!',
         status: 'EXPIRED',
-        description: '1 expired member'
+        description: 'Expired member'
       },
       {
-        firstName: 'Tom',
-        lastName: 'Deleted',
-        email: 'tom.deleted@muscle-mania.com',
-        password: 'Deleted123!',
+        firstName: 'David',
+        lastName: 'Villanueva',
+        email: 'david.villanueva@muscle-mania.com',
+        password: 'David123!',
+        status: 'EXPIRED',
+        description: 'Expired member'
+      },
+      // Cancelled (1)
+      {
+        firstName: 'Lisa',
+        lastName: 'Aquino',
+        email: 'lisa.aquino@muscle-mania.com',
+        password: 'Lisa123!',
+        status: 'CANCELLED',
+        description: 'Cancelled member'
+      },
+      // Deleted (1)
+      {
+        firstName: 'Mark',
+        lastName: 'Fernandez',
+        email: 'mark.fernandez@muscle-mania.com',
+        password: 'Mark123!',
         status: 'DELETED',
-        description: '1 deleted member'
+        description: 'Deleted member'
       }
     ];
     
@@ -536,7 +597,7 @@ async function main() {
   console.log(`📊 Summary:`);
   console.log(`   • 1 Tenant: Muscle Mania`);
   console.log(`   • 1 Branch: Manggahan`);
-  console.log(`   • 5 Members: 1 active, 1 cancelled, 1 expiring soon, 1 expired, 1 deleted`);
+  console.log(`   • 12 Members: 6 active, 2 expiring, 2 expired, 1 cancelled, 1 deleted`);
   console.log(`   • Total users: ${loginCredentials.length}`);
   console.log('🚀 You can now login with any of these credentials!\n');
 }
