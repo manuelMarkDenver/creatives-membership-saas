@@ -319,12 +319,12 @@ export default function MembersPage() {
       <StatsOverview stats={stats} isSuperAdmin={isSuperAdmin} />
 
       {/* Search and Filters - Priority Position for Mobile */}
-      <Card className="border-2 shadow-md bg-white dark:bg-gray-800">
-        <CardHeader>
+      <Card className="border-2 shadow-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <CardTitle className="text-gray-900 dark:text-gray-100">Member Directory</CardTitle>
           <CardDescription className="text-gray-600 dark:text-gray-300">Search and filter gym members</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
@@ -390,7 +390,7 @@ export default function MembersPage() {
           </div>
 
           {/* Members List */}
-          <div className="space-y-4">
+          <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
             {isLoading ? (
               <div className="text-center py-8">
                 <div className="animate-pulse">Loading members...</div>
