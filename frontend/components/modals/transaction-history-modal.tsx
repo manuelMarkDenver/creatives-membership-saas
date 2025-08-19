@@ -18,9 +18,14 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  RotateCcw
+  RotateCcw,
+  ChevronDown,
+  ChevronUp,
+  BarChart3
 } from 'lucide-react'
 import { useGymMemberTransactions } from '@/lib/hooks/use-gym-subscriptions'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 interface TransactionHistoryModalProps {
   isOpen: boolean
@@ -34,6 +39,7 @@ export function TransactionHistoryModal({
   member
 }: TransactionHistoryModalProps) {
   const { data: transactions, isLoading, error } = useGymMemberTransactions(member?.id)
+  const [showStats, setShowStats] = useState(false)
   
   if (!member) return null
 
@@ -96,59 +102,80 @@ export function TransactionHistoryModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white">
-              <Receipt className="h-5 w-5" />
+      <DialogContent className="sm:max-w-[600px] max-h-[95vh] w-[95vw] sm:w-full overflow-y-auto overflow-x-hidden">
+        <DialogHeader className="space-y-4 pb-6">
+          <div className="flex flex-col items-center text-center space-y-4">
+            {/* Large Icon */}
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white shadow-lg">
+              <Receipt className="h-8 w-8" />
             </div>
-            <div>
-              <h3 className="text-lg font-semibold">Transaction History</h3>
-              <p className="text-sm text-muted-foreground">{memberName}</p>
+            
+            {/* Member Info */}
+            <div className="space-y-1">
+              <DialogTitle className="text-xl font-bold">Transaction History</DialogTitle>
+              <p className="text-base text-muted-foreground">{memberName}</p>
             </div>
-          </DialogTitle>
-          <DialogDescription>
-            View all payment transactions and subscription history for this member.
-          </DialogDescription>
+          </div>
         </DialogHeader>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{getTransactionCount()}</div>
-              <p className="text-xs text-muted-foreground">Completed payments</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">₱{getTotalAmount().toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">All time payments</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Average Payment</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                ₱{getTransactionCount() > 0 ? Math.round(getTotalAmount() / getTransactionCount()).toLocaleString() : 0}
+        <div className="space-y-6 px-1">
+          {/* Summary Cards - Collapsible */}
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setShowStats(!showStats)}
+              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span className="font-medium">Transaction Statistics</span>
               </div>
-              <p className="text-xs text-muted-foreground">Per transaction</p>
-            </CardContent>
-          </Card>
-        </div>
+              {showStats ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
+            
+            {showStats && (
+              <div className="grid grid-cols-1 gap-3 mt-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{getTransactionCount()}</div>
+                    <p className="text-xs text-muted-foreground">Completed payments</p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-600">₱{getTotalAmount().toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground">All time payments</p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Average Payment</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600">
+                      ₱{getTransactionCount() > 0 ? Math.round(getTotalAmount() / getTransactionCount()).toLocaleString() : 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Per transaction</p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
 
-        {/* Transaction List */}
-        <div className="space-y-4">
+          {/* Transaction List */}
+          <div className="space-y-4">
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-pulse">Loading transactions...</div>
@@ -162,57 +189,69 @@ export function TransactionHistoryModal({
               <Receipt className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No transactions found</h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                This member hasn't made any payments yet.
+                This member hasn&apos;t made any payments yet.
               </p>
             </div>
           ) : (
             Array.isArray(transactions) && transactions.map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 dark:border-gray-700">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center justify-center w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full">
-                    {getTransactionTypeIcon(transaction.type)}
+              <div key={transaction.id} className="p-4 border rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700 space-y-3 overflow-hidden">
+                {/* Top Row - Transaction Title and Status */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex-shrink-0">
+                      {getTransactionTypeIcon(transaction.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">Payment Transaction</p>
+                      <p className="text-sm text-muted-foreground">{transaction.type}</p>
+                    </div>
+                    <Badge variant={getStatusVariant(transaction.status)} className="text-xs font-medium">
+                      {transaction.status}
+                    </Badge>
                   </div>
                   
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">Payment Transaction</p>
-                      <Badge variant={getStatusVariant(transaction.status)} className="text-xs">
-                        {transaction.status}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(transaction.createdAt).toLocaleDateString()}
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        <CreditCard className="h-3 w-3" />
-                        {transaction.paymentMethod}
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        {getStatusIcon(transaction.status)}
-                        {transaction.type}
-                      </div>
+                  <div className="flex justify-end">
+                    <div className="text-right">
+                      <p className={`font-bold text-2xl ${
+                        transaction.type === 'REFUND' 
+                          ? 'text-red-600' 
+                          : 'text-green-600'
+                      }`}>
+                        {transaction.type === 'REFUND' ? '-' : ''}₱{(typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">PHP</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="text-right">
-                  <p className={`font-semibold ${
-                    transaction.type === 'REFUND' 
-                      ? 'text-red-600' 
-                      : 'text-green-600'
-                  }`}>
-                    {transaction.type === 'REFUND' ? '-' : ''}₱{(typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount).toLocaleString()}
-                  </p>
-                  <p className="text-xs text-muted-foreground">PHP</p>
+                {/* Bottom Row - Transaction Details */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>{new Date(transaction.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <CreditCard className="h-4 w-4" />
+                    <span>{transaction.paymentMethod}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    {getStatusIcon(transaction.status)}
+                    <span>Transaction ID: {transaction.id.slice(-8)}</span>
+                  </div>
                 </div>
               </div>
             ))
           )}
+          </div>
+        </div>
+        
+        {/* Footer */}
+        <div className="flex justify-center pt-6 border-t border-gray-200 dark:border-gray-700">
+          <Button onClick={onClose} className="min-w-[120px]">
+            Close
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
