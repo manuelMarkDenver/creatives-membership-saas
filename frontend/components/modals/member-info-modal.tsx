@@ -34,7 +34,9 @@ import {
   Camera,
   Edit,
   Save,
-  X
+  X,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { membersApi } from '@/lib/api/members'
@@ -88,6 +90,22 @@ export function MemberInfoModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState({
+    personalDetails: false,
+    emergencyContact: false,
+    preferences: false,
+    membership: true, // Keep membership expanded by default
+    activity: true // Keep activity expanded by default
+  })
+  
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
 
   useEffect(() => {
     if (member && isOpen) {
@@ -300,18 +318,19 @@ export function MemberInfoModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
+      <DialogContent className="sm:max-w-[700px] max-h-[95vh] w-[95vw] sm:w-full overflow-y-auto">
+        <DialogHeader className="space-y-4 pb-6">
+          <div className="flex flex-col items-center text-center space-y-4">
+            {/* Large Avatar */}
             <div className="relative">
               {formData.photoUrl ? (
                 <img 
                   src={formData.photoUrl} 
                   alt={memberName}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                  className="w-24 h-24 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-gray-200 dark:border-gray-600 shadow-lg"
                 />
               ) : (
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                <div className="w-24 h-24 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-2xl sm:text-xl shadow-lg">
                   {memberName.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -328,39 +347,40 @@ export function MemberInfoModal({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploadingPhoto}
-                    className="bg-white rounded-full p-1 border shadow-sm hover:bg-gray-50 disabled:opacity-50"
+                    className="bg-white rounded-full p-2 border-2 shadow-md hover:bg-gray-50 disabled:opacity-50"
                   >
-                    <Camera className="h-3 w-3 text-gray-600" />
+                    <Camera className="h-4 w-4 text-gray-600" />
                   </button>
                   {formData.photoUrl && (
                     <button 
                       type="button"
                       onClick={handleRemovePhoto}
                       disabled={isUploadingPhoto}
-                      className="ml-1 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 disabled:opacity-50"
+                      className="ml-1 bg-red-500 text-white rounded-full p-2 shadow-md hover:bg-red-600 disabled:opacity-50"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-4 w-4" />
                     </button>
                   )}
                 </div>
               )}
               {isUploadingPhoto && (
                 <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 </div>
               )}
             </div>
-            <div>
-              <h3 className="text-lg font-semibold">{memberName}</h3>
-              <p className="text-sm text-muted-foreground">{member.email}</p>
+            
+            {/* Member Info */}
+            <div className="space-y-1">
+              <DialogTitle className="text-xl font-bold">{memberName}</DialogTitle>
+              <DialogDescription className="text-base">
+                {isEditing ? 'Edit member information and preferences' : 'View member details and gym activity'}
+              </DialogDescription>
             </div>
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing ? 'Edit member information and preferences' : 'View member details and gym activity'}
-          </DialogDescription>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-8 px-1">
           {/* Basic Information */}
           <div className="grid gap-4">
             <h4 className="font-medium flex items-center gap-2">
@@ -431,170 +451,215 @@ export function MemberInfoModal({
             </div>
           </div>
 
-          {/* Personal Information */}
-          <div className="grid gap-4">
-            <h4 className="font-medium flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Personal Details
-            </h4>
+          {/* Personal Information - Collapsible */}
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => toggleSection('personalDetails')}
+              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span className="font-medium">Personal Details</span>
+              </div>
+              {expandedSections.personalDetails ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
             
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                <Input
-                  id="dateOfBirth"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div>
-                <Label htmlFor="gender">Gender</Label>
-                <Select 
-                  value={formData.gender} 
-                  onValueChange={(value) => handleInputChange('gender', value)}
-                  disabled={!isEditing}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MALE">Male</SelectItem>
-                    <SelectItem value="FEMALE">Female</SelectItem>
-                    <SelectItem value="OTHER">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="fitnessLevel">Fitness Level</Label>
-                <Select 
-                  value={formData.fitnessLevel} 
-                  onValueChange={(value) => handleInputChange('fitnessLevel', value)}
-                  disabled={!isEditing}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Beginner">Beginner</SelectItem>
-                    <SelectItem value="Intermediate">Intermediate</SelectItem>
-                    <SelectItem value="Advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            {expandedSections.personalDetails && (
+              <div className="space-y-4 pl-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select 
+                      value={formData.gender} 
+                      onValueChange={(value) => handleInputChange('gender', value)}
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MALE">Male</SelectItem>
+                        <SelectItem value="FEMALE">Female</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="fitnessLevel">Fitness Level</Label>
+                    <Select 
+                      value={formData.fitnessLevel} 
+                      onValueChange={(value) => handleInputChange('fitnessLevel', value)}
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Beginner">Beginner</SelectItem>
+                        <SelectItem value="Intermediate">Intermediate</SelectItem>
+                        <SelectItem value="Advanced">Advanced</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="height">Height (cm)</Label>
-                <Input
-                  id="height"
-                  type="number"
-                  value={formData.height}
-                  onChange={(e) => handleInputChange('height', e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div>
-                <Label htmlFor="weight">Weight (kg)</Label>
-                <Input
-                  id="weight"
-                  type="number"
-                  value={formData.weight}
-                  onChange={(e) => handleInputChange('weight', e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
-            </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="height">Height (cm)</Label>
+                    <Input
+                      id="height"
+                      type="number"
+                      value={formData.height}
+                      onChange={(e) => handleInputChange('height', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="weight">Weight (kg)</Label>
+                    <Input
+                      id="weight"
+                      type="number"
+                      value={formData.weight}
+                      onChange={(e) => handleInputChange('weight', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <Label htmlFor="fitnessGoals">Fitness Goals</Label>
-              <Input
-                id="fitnessGoals"
-                value={formData.fitnessGoals}
-                onChange={(e) => handleInputChange('fitnessGoals', e.target.value)}
-                disabled={!isEditing}
-                placeholder="e.g., Weight Loss, Muscle Gain, General Fitness"
-              />
-            </div>
+                <div>
+                  <Label htmlFor="fitnessGoals">Fitness Goals</Label>
+                  <Input
+                    id="fitnessGoals"
+                    value={formData.fitnessGoals}
+                    onChange={(e) => handleInputChange('fitnessGoals', e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="e.g., Weight Loss, Muscle Gain, General Fitness"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Emergency Contact */}
-          <div className="grid gap-4">
-            <h4 className="font-medium flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              Emergency Contact
-            </h4>
+          {/* Emergency Contact - Collapsible */}
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => toggleSection('emergencyContact')}
+              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Heart className="h-4 w-4" />
+                <span className="font-medium">Emergency Contact</span>
+              </div>
+              {expandedSections.emergencyContact ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
             
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="emergencyContactName">Name</Label>
-                <Input
-                  id="emergencyContactName"
-                  value={formData.emergencyContactName}
-                  onChange={(e) => handleInputChange('emergencyContactName', e.target.value)}
-                  disabled={!isEditing}
-                />
+            {expandedSections.emergencyContact && (
+              <div className="space-y-4 pl-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="emergencyContactName">Name</Label>
+                    <Input
+                      id="emergencyContactName"
+                      value={formData.emergencyContactName}
+                      onChange={(e) => handleInputChange('emergencyContactName', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="emergencyContactPhone">Phone</Label>
+                    <Input
+                      id="emergencyContactPhone"
+                      value={formData.emergencyContactPhone}
+                      onChange={(e) => handleInputChange('emergencyContactPhone', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="emergencyContactRelationship">Relationship</Label>
+                    <Input
+                      id="emergencyContactRelationship"
+                      value={formData.emergencyContactRelationship}
+                      onChange={(e) => handleInputChange('emergencyContactRelationship', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="e.g., Spouse, Parent, Friend"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="emergencyContactPhone">Phone</Label>
-                <Input
-                  id="emergencyContactPhone"
-                  value={formData.emergencyContactPhone}
-                  onChange={(e) => handleInputChange('emergencyContactPhone', e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div>
-                <Label htmlFor="emergencyContactRelationship">Relationship</Label>
-                <Input
-                  id="emergencyContactRelationship"
-                  value={formData.emergencyContactRelationship}
-                  onChange={(e) => handleInputChange('emergencyContactRelationship', e.target.value)}
-                  disabled={!isEditing}
-                  placeholder="e.g., Spouse, Parent, Friend"
-                />
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* Workout Preferences */}
-          <div className="grid gap-4">
-            <h4 className="font-medium flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Preferences
-            </h4>
+          {/* Workout Preferences - Collapsible */}
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => toggleSection('preferences')}
+              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                <span className="font-medium">Preferences</span>
+              </div>
+              {expandedSections.preferences ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="preferredWorkoutTime">Preferred Workout Time</Label>
-                <Select 
-                  value={formData.preferredWorkoutTime} 
-                  onValueChange={(value) => handleInputChange('preferredWorkoutTime', value)}
-                  disabled={!isEditing}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Morning">Morning</SelectItem>
-                    <SelectItem value="Afternoon">Afternoon</SelectItem>
-                    <SelectItem value="Evening">Evening</SelectItem>
-                  </SelectContent>
-                </Select>
+            {expandedSections.preferences && (
+              <div className="space-y-4 pl-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="preferredWorkoutTime">Preferred Workout Time</Label>
+                    <Select 
+                      value={formData.preferredWorkoutTime} 
+                      onValueChange={(value) => handleInputChange('preferredWorkoutTime', value)}
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Morning">Morning</SelectItem>
+                        <SelectItem value="Afternoon">Afternoon</SelectItem>
+                        <SelectItem value="Evening">Evening</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="favoriteEquipment">Favorite Equipment</Label>
+                    <Input
+                      id="favoriteEquipment"
+                      value={formData.favoriteEquipment}
+                      onChange={(e) => handleInputChange('favoriteEquipment', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="e.g., Cardio, Weights, Functional Training"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="favoriteEquipment">Favorite Equipment</Label>
-                <Input
-                  id="favoriteEquipment"
-                  value={formData.favoriteEquipment}
-                  onChange={(e) => handleInputChange('favoriteEquipment', e.target.value)}
-                  disabled={!isEditing}
-                  placeholder="e.g., Cardio, Weights, Functional Training"
-                />
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Membership Information */}
@@ -674,29 +739,29 @@ export function MemberInfoModal({
           )}
         </div>
 
-        <DialogFooter className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Member since: {new Date(member.createdAt).toLocaleDateString()}</span>
+        <DialogFooter className="flex-col space-y-4 pt-6 border-t">
+          <div className="text-center text-xs text-muted-foreground">
+            Member since: {new Date(member.createdAt).toLocaleDateString()}
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-3 w-full">
             {!isEditing ? (
               <>
-                <Button variant="outline" onClick={onClose}>
+                <Button variant="outline" onClick={onClose} className="flex-1 h-12">
                   Close
                 </Button>
-                <Button onClick={() => setIsEditing(true)}>
+                <Button onClick={() => setIsEditing(true)} className="flex-1 h-12">
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="outline" onClick={handleCancel}>
+                <Button variant="outline" onClick={handleCancel} className="flex-1 h-12">
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
-                <Button onClick={handleSave}>
+                <Button onClick={handleSave} className="flex-1 h-12">
                   <Save className="h-4 w-4 mr-2" />
                   Save Changes
                 </Button>
