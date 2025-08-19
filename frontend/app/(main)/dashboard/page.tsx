@@ -6,7 +6,8 @@ import { useBranchesByTenant } from '@/lib/hooks/use-branches'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Building2, Users, MapPin, Crown, TrendingUp, Activity, Plus } from 'lucide-react'
+import { CollapsibleStatsOverview, type StatItem } from '@/components/ui/collapsible-stats-overview'
+import { Building2, Users, MapPin, Crown, TrendingUp, Activity, Plus, Globe } from 'lucide-react'
 import Link from 'next/link'
 
 function SuperAdminDashboard() {
@@ -28,106 +29,100 @@ function SuperAdminDashboard() {
     totalRevenue: 0
   }
 
+  // Prepare stats for mobile-first layout
+  const dashboardStats: StatItem[] = [
+    {
+      key: 'totalTenants',
+      label: 'Tenants',
+      value: stats.totalTenants,
+      icon: Building2,
+      color: 'text-blue-700 dark:text-blue-400',
+      description: `${stats.activeTenants} active`
+    },
+    {
+      key: 'totalUsers',
+      label: 'Users',
+      value: stats.totalUsers,
+      icon: Users,
+      color: 'text-green-700 dark:text-green-400',
+      description: 'All roles included'
+    },
+    {
+      key: 'totalBranches',
+      label: 'Branches',
+      value: stats.totalBranches,
+      icon: MapPin,
+      color: 'text-purple-700 dark:text-purple-400',
+      description: 'Across all tenants'
+    },
+    {
+      key: 'activeSubscriptions',
+      label: 'Active Subs',
+      value: stats.totalActiveSubscriptions,
+      icon: TrendingUp,
+      color: 'text-emerald-700 dark:text-emerald-400',
+      description: `of ${stats.totalSubscriptions} total`
+    },
+    {
+      key: 'revenue',
+      label: 'Revenue',
+      value: `₱${(stats.totalRevenue / 100).toFixed(0)}`,
+      icon: TrendingUp,
+      color: 'text-indigo-700 dark:text-indigo-400',
+      description: 'All time earnings'
+    },
+    {
+      key: 'systemHealth',
+      label: 'Health',
+      value: 'Healthy',
+      icon: Activity,
+      color: 'text-green-700 dark:text-green-400',
+      description: 'All systems operational'
+    }
+  ]
+
+  // Compact summary for mobile (first 3 most important stats)
+  const compactSummary = [
+    dashboardStats[0], // Tenants
+    dashboardStats[1], // Users  
+    dashboardStats[3], // Active Subscriptions
+  ]
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      {/* Header - Mobile Optimized */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Crown className="h-8 w-8 text-amber-500" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Crown className="h-6 w-6 sm:h-8 sm:w-8 text-amber-500" />
             Super Admin Dashboard
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             System-wide overview and management
           </p>
         </div>
         <Link href="/tenants">
-          <Button className="bg-amber-600 hover:bg-amber-700">
+          <Button className="bg-amber-600 hover:bg-amber-700 w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Create Tenant
           </Button>
         </Link>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tenants</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalTenants}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.activeTenants} active
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Branches</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalBranches}</div>
-            <p className="text-xs text-muted-foreground">
-              Across all tenants
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUsers}</div>
-            <p className="text-xs text-muted-foreground">
-              All roles included
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.totalActiveSubscriptions}</div>
-            <p className="text-xs text-muted-foreground">
-              of {stats.totalSubscriptions} total
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">₱{(stats.totalRevenue / 100).toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              All time earnings
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">System Health</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">Healthy</div>
-            <p className="text-xs text-muted-foreground">
-              All systems operational
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Mobile-First Stats Overview */}
+      <CollapsibleStatsOverview 
+        title="System Statistics"
+        stats={dashboardStats}
+        compactSummary={compactSummary}
+      />
 
-      {/* Recent Tenants */}
-      <Card>
+      {/* Recent Tenants - Priority Position for Mobile */}
+      <Card className="border-2 shadow-md bg-white dark:bg-gray-800">
         <CardHeader>
-          <CardTitle>Recent Tenants</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5 text-blue-500" />
+            Recent Tenants
+          </CardTitle>
           <CardDescription>
             Latest gym tenants added to the system
           </CardDescription>
@@ -231,60 +226,61 @@ function OwnerDashboard() {
     return <div className="animate-pulse">Loading Owner Dashboard...</div>
   }
 
+  // Prepare owner dashboard stats
+  const ownerStats: StatItem[] = [
+    {
+      key: 'branches',
+      label: 'Branches',
+      value: branches.length,
+      icon: MapPin,
+      color: 'text-blue-700 dark:text-blue-400',
+      description: 'Active locations'
+    },
+    {
+      key: 'revenue',
+      label: 'Revenue',
+      value: '₱45,231',
+      icon: TrendingUp,
+      color: 'text-green-700 dark:text-green-400',
+      description: 'This month'
+    },
+    {
+      key: 'activeMembers',
+      label: 'Members',
+      value: '1,234',
+      icon: Users,
+      color: 'text-purple-700 dark:text-purple-400',
+      description: 'Across all branches'
+    }
+  ]
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
+      {/* Header - Mobile Optimized */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Owner Dashboard</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+          <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
+          Owner Dashboard
+        </h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Welcome back, {profile?.name || profile?.firstName}! Here&apos;s your business overview.
         </p>
       </div>
 
-      {/* Owner Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">My Branches</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{branches.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Active locations
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₱45,231</div>
-            <p className="text-xs text-muted-foreground">
-              This month
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Members</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
-            <p className="text-xs text-muted-foreground">
-              Across all branches
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Mobile-First Stats Overview */}
+      <CollapsibleStatsOverview 
+        title="Business Overview"
+        stats={ownerStats}
+      />
 
-      {/* Branch Overview */}
+      {/* Branch Overview - Priority Position for Mobile */}
       {branches.length > 0 && (
-        <Card>
+        <Card className="border-2 shadow-md bg-white dark:bg-gray-800">
           <CardHeader>
-            <CardTitle>Branch Overview</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-blue-500" />
+              Branch Overview
+            </CardTitle>
             <CardDescription>
               Performance summary for all your locations
             </CardDescription>

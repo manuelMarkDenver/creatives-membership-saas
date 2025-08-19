@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { CollapsibleStatsOverview, type StatItem } from '@/components/ui/collapsible-stats-overview'
 import { 
   MapPin, 
   Search, 
@@ -114,75 +115,85 @@ export default function LocationsPage() {
     setDeleteDialogOpen(true)
   }
 
+  // Prepare stats for mobile-first layout
+  const locationStats: StatItem[] = [
+    {
+      key: 'total',
+      label: 'Total',
+      value: stats.total,
+      icon: Building2,
+      color: 'text-gray-700 dark:text-gray-300',
+      description: 'Your gym locations'
+    },
+    {
+      key: 'active',
+      label: 'Active',
+      value: stats.active,
+      icon: MapPin,
+      color: 'text-green-700 dark:text-green-400',
+      description: 'Currently operating'
+    },
+    {
+      key: 'totalMembers',
+      label: 'Members',
+      value: stats.totalMembers,
+      icon: Users,
+      color: 'text-blue-700 dark:text-blue-400',
+      description: stats.totalMembers === 0 ? 'No members yet' : 'Across all locations'
+    },
+    {
+      key: 'totalStaff',
+      label: 'Staff',
+      value: stats.totalStaff,
+      icon: Users,
+      color: 'text-purple-700 dark:text-purple-400',
+      description: 'All team members'
+    }
+  ]
+
+  // Compact summary for mobile (first 3 most important stats)
+  const compactSummary = [
+    locationStats[0], // Total
+    locationStats[1], // Active
+    locationStats[2], // Members
+  ]
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      {/* Header - Mobile Optimized */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <MapPin className="h-8 w-8 text-blue-500" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <MapPin className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
             Gym Locations
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Manage your gym locations and their details
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
+        <Button 
+          onClick={() => setCreateDialogOpen(true)}
+          className="w-full sm:w-auto"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Add Location
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Locations</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">Your gym locations</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
-            <MapPin className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">Currently operating</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.totalMembers}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.totalMembers === 0 ? 'No members assigned yet' : 'Across all locations'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Staff</CardTitle>
-            <Users className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{stats.totalStaff}</div>
-            <p className="text-xs text-muted-foreground">All team members</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Mobile-First Stats Overview */}
+      <CollapsibleStatsOverview 
+        title="Location Statistics"
+        stats={locationStats}
+        compactSummary={compactSummary}
+      />
 
-      {/* Search and List */}
-      <Card>
+      {/* Location Directory - Priority Position for Mobile */}
+      <Card className="border-2 shadow-md bg-white dark:bg-gray-800">
         <CardHeader>
-          <CardTitle>Location Directory</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-blue-500" />
+            Location Directory
+          </CardTitle>
           <CardDescription>
             Manage your gym locations and their details
           </CardDescription>
