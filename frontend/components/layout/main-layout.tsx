@@ -201,11 +201,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
               )}
             </div>
             <div className="flex items-center gap-x-2 sm:gap-x-4 lg:gap-x-6 flex-shrink-0">
-              {/* Expiring Members Button - only for gym staff with tenant */}
-              {profile?.role && ['OWNER', 'MANAGER', 'STAFF'].includes(profile.role) && currentTenant?.id && (
+              {/* Expiring Members Button - temporarily hidden */}
+              {false && profile?.role && ['SUPER_ADMIN', 'OWNER', 'MANAGER', 'STAFF'].includes(profile.role) && (
                 <ExpiringMembersButton
-                  userRole={profile.role as 'OWNER' | 'MANAGER' | 'STAFF'}
-                  userTenantId={currentTenant.id}
+                  userRole={profile.role as 'SUPER_ADMIN' | 'OWNER' | 'MANAGER' | 'STAFF'}
+                  userTenantId={currentTenant?.id}
                 />
               )}
               
