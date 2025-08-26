@@ -26,7 +26,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs'
-import { 
+import {
   AlertTriangle,
   Clock,
   Users,
@@ -42,11 +42,14 @@ import {
   Building2,
   MapPin,
   CreditCard,
-  RotateCcw
+  RotateCcw,
+  UserCheck
 } from 'lucide-react'
 import { useExpiringMembersOverview, useRefreshExpiringMembers } from '@/lib/hooks/use-expiring-members'
 import type { ExpiringMembersFilters, ExpiringMember } from '@/lib/api/expiring-members'
 import { toast } from 'sonner'
+import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
+import { useRenewMemberSubscription } from '@/lib/hooks/use-member-management'
 
 interface ExpiringMembersModalProps {
   isOpen: boolean
@@ -70,9 +73,22 @@ export function ExpiringMembersModal({
     limit: 10
   })
   const [searchTerm, setSearchTerm] = useState('')
+  
+  // State for renewal modal
+  const [showRenewalModal, setShowRenewalModal] = useState(false)
+  const [selectedMemberForRenewal, setSelectedMemberForRenewal] = useState<ExpiringMember | null>(null)
+  const [selectedPlanId, setSelectedPlanId] = useState('')
 
   const { data: expiringData, isLoading, error, refetch } = useExpiringMembersOverview(filters)
   const refreshMutation = useRefreshExpiringMembers()
+  
+  // Get membership plans for renewal
+  const { data: membershipPlans = [], isLoading: plansLoading } = useActiveMembershipPlans(
+    selectedMemberForRenewal?.tenant.id
+  )
+  
+  // Renewal mutation
+  const renewMembershipMutation = useRenewMemberSubscription()
 
   // Handle "Remind me later" localStorage logic
   const handleRemindLater = () => {
@@ -93,6 +109,60 @@ export function ExpiringMembersModal({
 
   const changePage = (page: number) => {
     setFilters(prev => ({ ...prev, page }))
+  }
+  
+  // Handle opening renewal modal
+  const handleOpenRenewalModal = (member: ExpiringMember) => {
+    setSelectedMemberForRenewal(member)
+    setSelectedPlanId('')
+    setShowRenewalModal(true)
+  }
+  
+  // Handle closing renewal modal
+  const handleCloseRenewalModal = () => {
+    setShowRenewalModal(false)
+    setSelectedMemberForRenewal(null)
+    setSelectedPlanId('')
+  }
+  
+  // Handle renewal submission
+  const handleRenewal = () => {
+    if (!selectedMemberForRenewal || !selectedPlanId) {
+      toast.error('Please select a member and plan')
+      return
+    }
+
+    const selectedPlan = membershipPlans.find(plan => plan.id === selectedPlanId)
+    if (!selectedPlan) {
+      toast.error('Selected plan not found')
+      return
+    }
+
+    const memberName = selectedMemberForRenewal.memberName
+    
+    renewMembershipMutation.mutate({
+      memberId: selectedMemberForRenewal.customerId,
+      membershipPlanId: selectedPlanId
+    }, {
+      onSuccess: async (result) => {
+        toast.success(`Membership renewed successfully for ${memberName}!`, {
+          description: result.message
+        })
+        
+        // Refresh expiring members data to show updated status
+        refetch()
+        
+        handleCloseRenewalModal()
+      },
+      onError: (error: unknown) => {
+        const errorMessage = error && typeof error === 'object' && 'response' in error 
+          ? (error.response as { data?: { message?: string } })?.data?.message 
+          : 'Please try again.'
+        toast.error('Failed to renew membership', {
+          description: errorMessage || 'Please try again.'
+        })
+      }
+    })
   }
 
   const getUrgencyColor = (urgency: 'critical' | 'high' | 'medium') => {
@@ -255,7 +325,7 @@ export function ExpiringMembersModal({
                   </div>
                 ) : (
                   criticalMembers.map((member) => (
-                    <MemberCard key={member.id} member={member} showTenant={userRole === 'SUPER_ADMIN'} />
+                    <MemberCard key={member.id} member={member} showTenant={userRole === 'SUPER_ADMIN'} onRenewClick={handleOpenRenewalModal} />
                   ))
                 )}
               </div>
@@ -275,7 +345,7 @@ export function ExpiringMembersModal({
                   </div>
                 ) : (
                   filteredMembers.map((member) => (
-                    <MemberCard key={member.id} member={member} showTenant={userRole === 'SUPER_ADMIN'} />
+                    <MemberCard key={member.id} member={member} showTenant={userRole === 'SUPER_ADMIN'} onRenewClick={handleOpenRenewalModal} />
                   ))
                 )}
               </div>
@@ -351,6 +421,84 @@ export function ExpiringMembersModal({
           </Button>
         </DialogFooter>
       </DialogContent>
+      
+      {/* Simple Renewal Modal */}
+      <Dialog open={showRenewalModal} onOpenChange={setShowRenewalModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-green-500" />
+              Renew Membership
+            </DialogTitle>
+            <DialogDescription>
+              Renew the expired membership for {selectedMemberForRenewal?.memberName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {selectedMemberForRenewal && (
+              <div className="space-y-2">
+                <Label>Current Plan</Label>
+                <div className="p-3 bg-gray-50 rounded-md">
+                  <p className="font-medium">{selectedMemberForRenewal.membershipPlan?.name}</p>
+                  <p className="text-sm text-muted-foreground">₱{selectedMemberForRenewal.price.toLocaleString()}</p>
+                  <p className="text-xs text-red-600">Expired: {new Date(selectedMemberForRenewal.endDate).toLocaleDateString()}</p>
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label>Select New Plan</Label>
+              <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a membership plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {membershipPlans.length === 0 ? (
+                    <SelectItem value="no-plans" disabled>No membership plans available</SelectItem>
+                  ) : (
+                    membershipPlans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name} - ₱{plan.price.toLocaleString()} ({plan.duration} days)
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedPlanId && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-800">
+                  <strong>Selected Plan:</strong> {membershipPlans.find(p => p.id === selectedPlanId)?.name}
+                </p>
+                <p className="text-sm text-green-700">
+                  Price: ₱{membershipPlans.find(p => p.id === selectedPlanId)?.price.toLocaleString()}
+                </p>
+                <p className="text-sm text-green-700">
+                  Duration: {membershipPlans.find(p => p.id === selectedPlanId)?.duration} days
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={handleCloseRenewalModal}
+            >
+              Cancel
+            </Button>
+            <Button 
+              disabled={!selectedPlanId || renewMembershipMutation.isPending}
+              onClick={handleRenewal}
+            >
+              <UserCheck className="w-4 h-4 mr-2" />
+              {renewMembershipMutation.isPending ? 'Renewing...' : 'Renew Membership'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }
@@ -359,9 +507,10 @@ interface MemberCardProps {
   member: ExpiringMember
   showTenant?: boolean
   compact?: boolean
+  onRenewClick?: (member: ExpiringMember) => void
 }
 
-function MemberCard({ member, showTenant = false, compact = false }: MemberCardProps) {
+function MemberCard({ member, showTenant = false, compact = false, onRenewClick }: MemberCardProps) {
   const getUrgencyInfo = (urgency: 'critical' | 'high' | 'medium', days: number) => {
     if (days <= 0) {
       const expiredDays = Math.abs(days)
@@ -411,10 +560,11 @@ function MemberCard({ member, showTenant = false, compact = false }: MemberCardP
   }
 
   const handleRenewClick = () => {
-    // TODO: Implement renewal logic - redirect to renewal page or open renewal modal
-    toast.success(`Opening renewal for ${member.memberName}...`)
-    // You can implement this to navigate to renewal page or open a renewal modal
-    // For example: router.push(`/members/${member.customerId}/renew`)
+    if (onRenewClick) {
+      onRenewClick(member)
+    } else {
+      toast.success(`Opening renewal for ${member.memberName}...`)
+    }
   }
 
   const urgencyInfo = getUrgencyInfo(member.urgency, member.daysUntilExpiry)
