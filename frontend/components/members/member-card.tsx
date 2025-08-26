@@ -283,7 +283,7 @@ export function MemberCard({
               case 'EXPIRED':
                 return () => onRenewSubscription(member)
               case 'EXPIRING':
-                return () => onCancelSubscription(member)
+                return () => onRenewSubscription(member)
               case 'ACTIVE':
                 return () => onCancelSubscription(member)
               case 'NO_SUBSCRIPTION':
