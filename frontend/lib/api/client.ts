@@ -134,6 +134,11 @@ apiClient.interceptors.response.use(
       })
     }
 
+    // Enhance error with better message extraction
+    if (error.response?.data?.message && !error.message.includes(error.response.data.message)) {
+      error.message = error.response.data.message
+    }
+
     return Promise.reject(error)
   }
 )

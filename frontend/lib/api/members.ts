@@ -98,8 +98,34 @@ export const membersApi = {
 
   // Renew member subscription
   async renewMemberSubscription(memberId: string, data: MemberRenewRequest): Promise<MemberActionResponse> {
-    const response = await apiClient.post(`/users/${memberId}/renew`, data)
-    return response.data
+    try {
+      const response = await apiClient.post(`/users/${memberId}/renew`, data)
+      return response.data
+    } catch (error: any) {
+      // Enhanced error handling for renewal restrictions
+      console.log('renewMemberSubscription API Error:', error)
+      
+      // Create a more comprehensive error object that React Query can handle
+      if (error.response?.data?.message) {
+        // Create an error that preserves the original structure but enhances the message
+        const enhancedError = Object.assign(new Error(error.response.data.message), {
+          name: 'RenewalError',
+          response: error.response,
+          status: error.response.status,
+          data: error.response.data,
+          // Preserve original axios error properties that React Query might expect
+          config: error.config,
+          request: error.request,
+          code: error.code
+        })
+        
+        console.log('🚀 Throwing enhanced renewal error:', enhancedError)
+        throw enhancedError
+      }
+      
+      // For other errors, just rethrow as-is
+      throw error
+    }
   },
 
   // Get member status

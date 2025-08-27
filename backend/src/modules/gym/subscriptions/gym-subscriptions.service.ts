@@ -69,6 +69,26 @@ export class GymSubscriptionsService {
     processedBy: string,
     paymentMethod: string = 'cash'
   ) {
+    // Check for existing renewal on the same day to prevent duplicates
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+    
+    const existingTodayRenewal = await this.prisma.gymMemberSubscription.findFirst({
+      where: {
+        memberId: memberId,
+        tenantId,
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      }
+    });
+
+    if (existingTodayRenewal) {
+      throw new BadRequestException('A membership renewal has already been processed for this member today. Please wait until tomorrow to process another renewal.');
+    }
+
     // Get the membership plan
     const membershipPlan = await this.prisma.membershipPlan.findFirst({
       where: {
