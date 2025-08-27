@@ -1528,6 +1528,26 @@ export class UsersService {
     const member = await this.getMemberById(memberId);
     const currentState = await this.getMemberState(member);
     
+    // Check for existing renewal on the same day to prevent duplicates
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+    
+    const existingTodayRenewal = await this.prisma.gymMemberSubscription.findFirst({
+      where: {
+        memberId: memberId,
+        tenantId: member.tenantId!,
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      }
+    });
+
+    if (existingTodayRenewal) {
+      throw new BadRequestException('A membership renewal has already been processed for this member today. Please wait until tomorrow to process another renewal.');
+    }
+    
     // Get the membership plan
     const membershipPlan = await this.prisma.membershipPlan.findUnique({
       where: { id: planId }
@@ -1535,6 +1555,31 @@ export class UsersService {
     
     if (!membershipPlan) {
       throw new NotFoundException('Membership plan not found');
+    }
+    
+    // Check for existing active subscription and expire it first
+    const existingSubscription = await this.prisma.gymMemberSubscription.findFirst({
+      where: {
+        memberId: memberId,
+        tenantId: member.tenantId!,
+        status: 'ACTIVE'
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    
+    // If there's an active subscription, expire it first
+    if (existingSubscription) {
+      await this.prisma.gymMemberSubscription.update({
+        where: { id: existingSubscription.id },
+        data: { 
+          status: 'EXPIRED',
+          cancelledAt: new Date(),
+          cancellationReason: 'renewed',
+          cancellationNotes: 'Expired due to membership renewal'
+        }
+      });
     }
     
     // Calculate new dates

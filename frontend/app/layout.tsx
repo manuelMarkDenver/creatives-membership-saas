@@ -4,6 +4,8 @@ import './globals.css'
 import ReactQueryProvider from '@/lib/providers/react-query'
 import { TenantProvider } from '@/lib/providers/tenant-context'
 import { ThemeProvider } from '@/lib/providers/theme-provider'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -41,6 +43,18 @@ export default function RootLayout({
               {children}
             </TenantProvider>
           </ReactQueryProvider>
+          <ToastContainer
+            position="top-center"
+            autoClose={6000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="colored"
+          />
         </ThemeProvider>
       </body>
     </html>

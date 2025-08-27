@@ -30,7 +30,7 @@ import {
   Check,
   AlertCircle
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 import { formatPHP } from '@/lib/utils/currency'
 
 interface MemberRenewalModalProps {
@@ -87,6 +87,8 @@ export function MemberRenewalModal({
 
     const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
     
+    console.log('📥 STARTING RENEWAL PROCESS for:', memberName)
+    
     renewMemberMutation.mutate({
       memberId: member.id,
       data: {
@@ -94,13 +96,75 @@ export function MemberRenewalModal({
       }
     }, {
       onSuccess: () => {
+        console.log('🎉 RENEWAL SUCCESS in modal')
         toast.success(`Membership renewed successfully for ${memberName}`)
         onRenewed?.()
         onClose()
       },
       onError: (error: any) => {
-        console.error('Error renewing membership:', error)
-        toast.error('Failed to renew membership')
+        console.error('🚨 MODAL ERROR HANDLER TRIGGERED:', error)
+        console.error('Error type:', typeof error)
+        console.error('Error name:', error?.name)
+        console.error('Error constructor:', error?.constructor?.name)
+        console.log('Full error structure:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+        
+        // Extract error message from the response - try multiple paths
+        let errorMessage = 'Failed to renew membership'
+        
+        // Try different error message paths
+        if (error?.response?.data?.message) {
+          console.log('✅ Found error message in response.data.message:', error.response.data.message)
+          errorMessage = error.response.data.message
+        } else if (error?.data?.message) {
+          console.log('✅ Found error message in data.message:', error.data.message)
+          errorMessage = error.data.message
+        } else if (error?.message) {
+          console.log('✅ Found error message in message:', error.message)
+          errorMessage = error.message
+        } else if (typeof error === 'string') {
+          console.log('✅ Error is a string:', error)
+          errorMessage = error
+        } else {
+          console.log('❌ No error message found, using default')
+        }
+        
+        console.log('📢 SHOWING TOAST with message:', errorMessage)
+        
+        toast.error(errorMessage, {
+          position: 'top-center',
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        })
+      },
+      onSettled: () => {
+        // Always runs after success or error
+        console.log('🎯 MUTATION SETTLED - checking mutation state:')
+        console.log('Mutation error:', renewMemberMutation.error)
+        console.log('Mutation isError:', renewMemberMutation.isError)
+        console.log('Mutation isPending:', renewMemberMutation.isPending)
+        
+        // If there's an error that wasn't caught by onError, handle it here
+        if (renewMemberMutation.isError && renewMemberMutation.error) {
+          console.log('🔴 FALLBACK ERROR HANDLING in onSettled')
+          const error = renewMemberMutation.error as any
+          let errorMessage = 'Failed to renew membership'
+          
+          if (error?.message) {
+            errorMessage = error.message
+          }
+          
+          toast.error(errorMessage, {
+            position: 'top-center',
+            autoClose: 6000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          })
+        }
       }
     })
   }

@@ -140,9 +140,13 @@ export function useRenewMemberSubscription() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ memberId, data }: { memberId: string; data: MemberRenewRequest }) =>
-      membersApi.renewMemberSubscription(memberId, data),
-    onSuccess: (_, { memberId }) => {
+    mutationFn: ({ memberId, data }: { memberId: string; data: MemberRenewRequest }) => {
+      console.log('🔄 RENEW MEMBER SUBSCRIPTION REQUEST:', { memberId, data })
+      return membersApi.renewMemberSubscription(memberId, data)
+    },
+    onSuccess: (result, { memberId }) => {
+      console.log('✅ RENEW MEMBER SUCCESS:', { result, memberId })
+      
       // Invalidate member status and history
       queryClient.invalidateQueries({ queryKey: memberKeys.status(memberId) })
       queryClient.invalidateQueries({ 
@@ -165,6 +169,36 @@ export function useRenewMemberSubscription() {
       })
       queryClient.invalidateQueries({ 
         queryKey: ['gym-subscriptions', 'stats'] 
+      })
+    },
+    onError: (error: any, { memberId }) => {
+      console.log('🚨 RENEWAL ERROR - Showing toast notification for member:', memberId)
+      console.log('Error message:', error.message)
+      
+      // Since component onError is not being triggered, handle it here
+      // Import toast dynamically to avoid import issues
+      import('react-toastify').then(({ toast }) => {
+        let errorMessage = 'Failed to renew membership'
+        
+        // Extract error message from the response - try multiple paths
+        if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message
+        } else if (error?.data?.message) {
+          errorMessage = error.data.message
+        } else if (error?.message) {
+          errorMessage = error.message
+        }
+        
+        console.log('📢 SHOWING REACT-TOASTIFY TOAST with message:', errorMessage)
+        
+        toast.error(errorMessage, {
+          position: 'top-center',
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        })
       })
     },
   })

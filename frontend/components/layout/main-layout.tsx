@@ -278,13 +278,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </main>
       </div>
       
-      {/* Expiring Members Auto Popup - only for gym staff with tenant */}
-      {profile?.role && ['OWNER', 'MANAGER', 'STAFF'].includes(profile.role) && currentTenant?.id && (
-        <ExpiringMembersAutoPopup
-          userRole={profile.role as 'OWNER' | 'MANAGER' | 'STAFF'}
-          userTenantId={currentTenant.id}
-        />
-      )}
+      {/* Expiring Members Auto Popup - disabled */}
+      {/* Auto popup has been disabled as requested */}
     </div>
   )
 }
