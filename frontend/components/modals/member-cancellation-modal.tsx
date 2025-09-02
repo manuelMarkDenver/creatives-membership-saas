@@ -90,7 +90,7 @@ export function MemberCancellationModal({
   if (!member) return null
 
   const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
-  const currentMembership = member.businessData?.membership
+  const currentMembership = member.gymSubscriptions?.[0]
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

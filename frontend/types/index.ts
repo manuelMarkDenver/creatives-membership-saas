@@ -121,7 +121,7 @@ export type Location = Branch
 
 export interface User {
   id: string
-  tenantId: string
+  tenantId?: string
   tenant?: Tenant
   firstName: string
   lastName: string
@@ -131,12 +131,13 @@ export interface User {
   isActive: boolean
   photoUrl?: string // Member photo URL
   notes?: string
-  businessData?: any // JSON field for business-specific data
   deletedAt?: string
   deletedBy?: string
   createdAt: string
   updatedAt: string
   userBranches?: UserBranch[]
+  gymMemberProfile?: GymMemberProfile
+  coffeeCustomerProfile?: CoffeeCustomerProfile
   gymSubscriptions?: Array<{
     id: string
     status: string
@@ -241,7 +242,33 @@ export interface PaginatedResponse<T> {
   totalPages: number
 }
 
-// Business-specific data types
+// Business-specific profile types
+export interface GymMemberProfile {
+  id: string
+  userId: string
+  user?: User
+  emergencyContact?: string
+  medicalConditions?: string
+  fitnessGoals?: string
+  preferredTrainer?: string
+  membershipHistory?: any // JSON field for historical data
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CoffeeCustomerProfile {
+  id: string
+  userId: string
+  user?: User
+  favoriteDrinks: string[]
+  dietaryPreferences?: string
+  loyaltyPoints: number
+  visitHistory?: any // JSON field for visit history
+  createdAt: string
+  updatedAt: string
+}
+
+// Legacy business-specific data types (for backward compatibility)
 export interface GymMemberData {
   membershipType: 'Gold' | 'Silver' | 'Platinum' | 'Basic'
   startDate: string
@@ -278,7 +305,7 @@ export interface CreateTenantDto {
 }
 
 export interface CreateUserDto {
-  tenantId: string
+  tenantId?: string
   firstName: string
   lastName: string
   email?: string
@@ -287,7 +314,6 @@ export interface CreateUserDto {
   isActive?: boolean
   photoUrl?: string
   notes?: string
-  businessData?: any
 }
 
 export interface CreateBranchDto {

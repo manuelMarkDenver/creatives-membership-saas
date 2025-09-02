@@ -65,7 +65,7 @@ export function MemberInfoModal({
     photoUrl: '',
     notes: '',
     
-    // Personal info from businessData
+    // Personal info from gymMemberProfile
     dateOfBirth: '',
     gender: '',
     height: '',
@@ -74,12 +74,12 @@ export function MemberInfoModal({
     emergencyContactName: '',
     emergencyContactPhone: '',
     emergencyContactRelationship: '',
-    
+
     // Health info
-    medicalConditions: [] as string[],
-    allergies: [] as string[],
+    medicalConditions: '',
+    allergies: '',
     fitnessLevel: '',
-    
+
     // Preferences
     preferredWorkoutTime: '',
     favoriteEquipment: '',
@@ -109,11 +109,16 @@ export function MemberInfoModal({
 
   useEffect(() => {
     if (member && isOpen) {
-      const businessData = member.businessData || {}
-      const personalInfo = businessData.personalInfo || {}
-      const healthInfo = businessData.healthInfo || {}
-      const preferences = businessData.preferences || {}
-      const emergencyContact = personalInfo.emergencyContact || {}
+      const gymProfile = member.gymMemberProfile
+      const membershipHistory = gymProfile?.membershipHistory || {}
+
+      // Extract data from the new profile structure
+      const personalInfo = membershipHistory
+      const healthInfo = membershipHistory
+      const preferences = membershipHistory
+
+      // Parse emergency contact from the stored string format
+      const emergencyContact = gymProfile?.emergencyContact || ''
 
       setFormData({
         firstName: member.firstName || '',
@@ -225,34 +230,7 @@ export function MemberInfoModal({
         phoneNumber: formData.phoneNumber,
         photoUrl: formData.photoUrl,
         notes: formData.notes,
-        businessData: {
-          personalInfo: {
-            dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
-            gender: formData.gender,
-            height: formData.height ? parseFloat(formData.height) : null,
-            weight: formData.weight ? parseFloat(formData.weight) : null,
-            fitnessGoals: formData.fitnessGoals,
-            emergencyContact: {
-              name: formData.emergencyContactName,
-              phone: formData.emergencyContactPhone,
-              relationship: formData.emergencyContactRelationship
-            }
-          },
-          healthInfo: {
-            medicalConditions: formData.medicalConditions,
-            allergies: formData.allergies,
-            fitnessLevel: formData.fitnessLevel
-          },
-          preferences: {
-            preferredWorkoutTime: formData.preferredWorkoutTime,
-            favoriteEquipment: formData.favoriteEquipment,
-            notifications: {
-              email: formData.emailNotifications,
-              sms: formData.smsNotifications,
-              push: formData.pushNotifications
-            }
-          }
-        }
+        // businessData removed - profile data is now stored in separate GymMemberProfile table
       }
 
       // Remove null/empty values
@@ -276,11 +254,13 @@ export function MemberInfoModal({
     setIsEditing(false)
     // Reset form data to original values
     if (member) {
-      const businessData = member.businessData || {}
-      const personalInfo = businessData.personalInfo || {}
-      const healthInfo = businessData.healthInfo || {}
-      const preferences = businessData.preferences || {}
-      const emergencyContact = personalInfo.emergencyContact || {}
+      // businessData removed - using gymMemberProfile instead
+      const gymProfile = member.gymMemberProfile
+      const membershipHistory = gymProfile?.membershipHistory || {}
+      const personalInfo = membershipHistory
+      const healthInfo = membershipHistory
+      const preferences = membershipHistory
+      const emergencyContact = gymProfile?.emergencyContact || ''
 
       setFormData({
         firstName: member.firstName || '',
@@ -663,7 +643,7 @@ export function MemberInfoModal({
           </div>
 
           {/* Membership Information */}
-          {member.businessData?.membership && (
+          {member.gymSubscriptions?.[0] && (
             <div className="grid gap-4">
               <h4 className="font-medium flex items-center gap-2">
                 <CreditCard className="h-4 w-4" />
@@ -673,10 +653,10 @@ export function MemberInfoModal({
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-purple-600">
-                    {member.businessData.membership.planName}
+                    {member.gymSubscriptions?.[0]?.membershipPlan?.name || 'No Plan'}
                   </span>
-                  <Badge variant={member.businessData.membership.isExpired ? "destructive" : "default"}>
-                    {member.businessData.membership.isExpired ? 'Expired' : 'Active'}
+                  <Badge variant={member.gymSubscriptions?.[0]?.status === 'EXPIRED' ? "destructive" : "default"}>
+                    {member.gymSubscriptions?.[0]?.status === 'EXPIRED' ? 'Expired' : 'Active'}
                   </Badge>
                 </div>
                 
@@ -684,20 +664,20 @@ export function MemberInfoModal({
                   <div>
                     <span className="text-muted-foreground">Price:</span>
                     <span className="ml-2 font-medium text-green-600">
-                      ₱{member.businessData.membership.price}
+                      ₱{member.gymSubscriptions?.[0]?.price || '0'}
                     </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Type:</span>
-                    <span className="ml-2">{member.businessData.membership.planType}</span>
+                    <span className="ml-2">{member.gymSubscriptions?.[0]?.membershipPlan?.type || 'N/A'}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Start:</span>
-                    <span className="ml-2">{new Date(member.businessData.membership.startDate).toLocaleDateString()}</span>
+                    <span className="ml-2">{member.gymSubscriptions?.[0]?.startDate ? new Date(member.gymSubscriptions[0].startDate).toLocaleDateString() : 'N/A'}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">End:</span>
-                    <span className="ml-2">{new Date(member.businessData.membership.endDate).toLocaleDateString()}</span>
+                    <span className="ml-2">{member.gymSubscriptions?.[0]?.endDate ? new Date(member.gymSubscriptions[0].endDate).toLocaleDateString() : 'N/A'}</span>
                   </div>
                 </div>
               </div>
@@ -705,7 +685,7 @@ export function MemberInfoModal({
           )}
 
           {/* Activity Summary */}
-          {member.businessData?.attendance && (
+          {member.gymMemberProfile?.membershipHistory && (
             <div className="grid gap-4">
               <h4 className="font-medium flex items-center gap-2">
                 <Activity className="h-4 w-4" />
@@ -715,20 +695,20 @@ export function MemberInfoModal({
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 text-center">
                   <div className="font-bold text-blue-600 text-lg">
-                    {member.businessData.attendance.totalVisits}
+                    {member.gymMemberProfile?.membershipHistory?.totalVisits || 0}
                   </div>
                   <div className="text-blue-600 dark:text-blue-400 text-xs">Total Visits</div>
                 </div>
                 <div className="bg-green-50 dark:bg-green-950 rounded-lg p-3 text-center">
                   <div className="font-bold text-green-600 text-lg">
-                    {member.businessData.attendance.averageVisitsPerWeek}
+                    {member.gymMemberProfile?.membershipHistory?.averageVisitsPerWeek || 0}
                   </div>
                   <div className="text-green-600 dark:text-green-400 text-xs">Visits/Week</div>
                 </div>
                 <div className="bg-purple-50 dark:bg-purple-950 rounded-lg p-3 text-center">
                   <div className="font-bold text-purple-600 text-xs">
-                    {member.businessData.attendance.lastVisit 
-                      ? new Date(member.businessData.attendance.lastVisit).toLocaleDateString()
+                    {member.gymMemberProfile?.membershipHistory?.lastVisit
+                      ? new Date(member.gymMemberProfile.membershipHistory.lastVisit).toLocaleDateString()
                       : 'N/A'
                     }
                   </div>

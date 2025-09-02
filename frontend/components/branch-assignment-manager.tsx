@@ -77,13 +77,13 @@ export function BranchAssignmentManager({
       
       // Owner and Manager can see all branches in their tenant
       if (profile.role === 'OWNER' || profile.role === 'MANAGER') {
-        return await branchesApi.getByTenant(profile.tenantId)
+        return await branchesApi.getByTenant(profile.tenantId!)
       }
       
       // For staff and other roles, only show branches in their tenant
       // They should only be able to assign to branches within the same tenant
       // but the backend should enforce specific branch access control
-      return await branchesApi.getByTenant(profile.tenantId)
+      return await branchesApi.getByTenant(profile.tenantId!)
     },
     enabled: open && !!profile && !!profile.tenantId
   })

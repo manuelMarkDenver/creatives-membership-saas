@@ -129,10 +129,10 @@ model User {
   role                   Role                    @default(GYM_MEMBER)
   isActive               Boolean                 @default(true)
   notes                  String?
-  photoUrl               String?
-  businessData           Json?
-  deletedAt              DateTime?
-  deletedBy              String?
+   photoUrl               String?
+   businessData           Json?
+   deletedAt              DateTime?
+   deletedBy              String?
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   name                   String?
@@ -146,6 +146,8 @@ model User {
   deletedUsers           User[]                  @relation("UserDeletions")
   tenant                 Tenant?                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   userBranches           UserBranch[]
+  gymMemberProfile       GymMemberProfile?
+  coffeeCustomerProfile  CoffeeCustomerProfile?
 }
 
 model UserBranch {
@@ -161,6 +163,41 @@ model UserBranch {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, branchId])
+}
+
+ model GymMemberProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Gym-specific fields
+  emergencyContact  String?
+  medicalConditions String?
+  fitnessGoals      String?
+  preferredTrainer  String?
+  membershipHistory Json? // Past memberships, achievements, etc.
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model CoffeeCustomerProfile {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Coffee shop-specific fields
+  favoriteDrinks      String[]
+  dietaryPreferences  String?
+  loyaltyPoints       Int      @default(0)
+  visitHistory        Json?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model MembershipPlan {

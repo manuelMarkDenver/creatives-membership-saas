@@ -83,9 +83,7 @@ export function ExpiringMembersModal({
   const refreshMutation = useRefreshExpiringMembers()
   
   // Get membership plans for renewal
-  const { data: membershipPlans = [], isLoading: plansLoading } = useActiveMembershipPlans(
-    selectedMemberForRenewal?.tenant.id
-  )
+  const { data: membershipPlans = [], isLoading: plansLoading } = useActiveMembershipPlans()
   
   // Renewal mutation
   const renewMembershipMutation = useRenewMemberSubscription()

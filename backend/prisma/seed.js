@@ -128,18 +128,20 @@ async function main() {
     
     // Create owner
     const hashedOwnerPassword = await bcrypt.hash(tenantInfo.owner.password, 12);
-    const owner = await prisma.user.create({
-      data: {
-        email: tenantInfo.owner.email,
-        password: hashedOwnerPassword,
-        firstName: tenantInfo.owner.firstName,
-        lastName: tenantInfo.owner.lastName,
-        name: tenantInfo.owner.name,
-        role: 'OWNER',
-        isActive: true,
-        tenantId: tenant.id
-      }
-    });
+     const owner = await prisma.user.create({
+       data: {
+         email: tenantInfo.owner.email,
+         password: hashedOwnerPassword,
+         firstName: tenantInfo.owner.firstName,
+         lastName: tenantInfo.owner.lastName,
+         name: tenantInfo.owner.name,
+         role: 'OWNER',
+         isActive: true,
+         tenant: {
+           connect: { id: tenant.id }
+         }
+       }
+     });
     
     console.log(`✅ Created owner: ${owner.email}`);
     loginCredentials.push({
@@ -223,26 +225,30 @@ async function main() {
     
     const createdPlans = [];
     for (const planData of membershipPlans) {
-      const plan = await prisma.membershipPlan.create({
-        data: {
-          ...planData,
-          tenantId: tenant.id
-        }
-      });
+       const plan = await prisma.membershipPlan.create({
+         data: {
+           ...planData,
+           tenant: {
+             connect: { id: tenant.id }
+           }
+         }
+       });
       createdPlans.push(plan);
       console.log(`✅ Created membership plan: ${plan.name} (₱${plan.price})`);
     }
     
     // Create only Manggahan branch
     console.log('🏪 Creating Manggahan branch...');
-    const branch = await prisma.branch.create({
-      data: {
-        name: 'Muscle Mania Manggahan',
-        address: '123 Manggahan Street, Pasig City',
-        isActive: true,
-        tenantId: tenant.id
-      }
-    });
+     const branch = await prisma.branch.create({
+       data: {
+         name: 'Muscle Mania Manggahan',
+         address: '123 Manggahan Street, Pasig City',
+         isActive: true,
+         tenant: {
+           connect: { id: tenant.id }
+         }
+       }
+     });
     
     console.log(`✅ Created branch: ${branch.name}`);
     
@@ -284,18 +290,20 @@ async function main() {
     const managerPassword = 'Manager123!';
     const hashedManagerPassword = await bcrypt.hash(managerPassword, 12);
     
-    const manager = await prisma.user.create({
-      data: {
-        email: managerEmail,
-        password: hashedManagerPassword,
-        firstName: 'Manager',
-        lastName: 'Cruz',
-        name: 'Manager Cruz',
-        role: 'MANAGER',
-        isActive: true,
-        tenantId: tenant.id
-      }
-    });
+     const manager = await prisma.user.create({
+       data: {
+         email: managerEmail,
+         password: hashedManagerPassword,
+         firstName: 'Manager',
+         lastName: 'Cruz',
+         name: 'Manager Cruz',
+         role: 'MANAGER',
+         isActive: true,
+         tenant: {
+           connect: { id: tenant.id }
+         }
+       }
+     });
     
     console.log(`✅ Created manager: ${manager.email}`);
     loginCredentials.push({
@@ -428,53 +436,49 @@ async function main() {
       // Set member active status based on type
       const isActive = memberInfo.status !== 'DELETED';
       
-      const memberBusinessData = {
-        personalInfo: {
-          emergencyContact: {
-            name: `Emergency ${memberInfo.lastName}`,
-            phone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
-            relationship: 'Spouse'
-          },
-          dateOfBirth: new Date(1990 + i, 0, 1).toISOString(),
-          gender: i % 2 === 0 ? 'MALE' : 'FEMALE',
-          height: 170 + i * 5,
-          weight: 70 + i * 5,
-          fitnessGoals: 'Fitness Maintenance'
-        },
-        attendance: {
-          totalVisits: 50 - i * 10,
-          lastVisit: new Date().toISOString(),
-          averageVisitsPerWeek: 3
-        },
-        healthInfo: {
-          medicalConditions: ['None'],
-          allergies: ['None'],
-          fitnessLevel: 'Intermediate'
-        },
-        preferences: {
-          preferredWorkoutTime: 'Morning',
-          favoriteEquipment: 'Weights',
-          notifications: {
-            email: true,
-            sms: false,
-            push: true
-          }
-        }
-      };
-      
-      const member = await prisma.user.create({
-        data: {
-          email: memberInfo.email,
-          password: hashedMemberPassword,
-          firstName: memberInfo.firstName,
-          lastName: memberInfo.lastName,
-          name: `${memberInfo.firstName} ${memberInfo.lastName}`,
-          role: 'GYM_MEMBER',
-          isActive: isActive,
-          tenantId: tenant.id,
-          businessData: memberBusinessData
-        }
-      });
+       const member = await prisma.user.create({
+         data: {
+           email: memberInfo.email,
+           password: hashedMemberPassword,
+           firstName: memberInfo.firstName,
+           lastName: memberInfo.lastName,
+           name: `${memberInfo.firstName} ${memberInfo.lastName}`,
+           role: 'GYM_MEMBER',
+           isActive: isActive,
+           tenant: {
+             connect: { id: tenant.id }
+           }
+         }
+       });
+
+       // Create gym member profile
+       const gymProfile = await prisma.gymMemberProfile.create({
+         data: {
+           userId: member.id,
+           emergencyContact: `Emergency ${memberInfo.lastName} (Spouse) - +63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
+           medicalConditions: 'None',
+           fitnessGoals: 'Fitness Maintenance',
+           preferredTrainer: null,
+           membershipHistory: {
+             totalVisits: 50 - i * 10,
+             lastVisit: new Date().toISOString(),
+             averageVisitsPerWeek: 3,
+             fitnessLevel: 'Intermediate',
+             dateOfBirth: new Date(1990 + i, 0, 1).toISOString(),
+             gender: i % 2 === 0 ? 'MALE' : 'FEMALE',
+             height: 170 + i * 5,
+             weight: 70 + i * 5,
+             allergies: ['None'],
+             preferredWorkoutTime: 'Morning',
+             favoriteEquipment: 'Weights',
+             notifications: {
+               email: true,
+               sms: false,
+               push: true
+             }
+           }
+         }
+       });
       
       // Create gym member subscription based on status
       let subscriptionStatus;

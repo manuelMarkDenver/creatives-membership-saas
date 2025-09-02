@@ -52,7 +52,7 @@ export interface MemberWithStatus {
   phoneNumber?: string
   isActive: boolean
   deletedAt?: string
-  businessData?: any
+  // businessData removed - using separate profile tables
   currentStatus: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'DELETED' | 'INACTIVE'
   subscription?: {
     id: string

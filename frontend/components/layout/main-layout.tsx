@@ -202,12 +202,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
             </div>
             <div className="flex items-center gap-x-2 sm:gap-x-4 lg:gap-x-6 flex-shrink-0">
               {/* Expiring Members Button - temporarily hidden */}
-              {false && profile?.role && ['SUPER_ADMIN', 'OWNER', 'MANAGER', 'STAFF'].includes(profile.role) && (
+              {/* Expiring Members Button - temporarily disabled due to TypeScript issues */}
+              {/*
+              {false && profile && (
                 <ExpiringMembersButton
                   userRole={profile.role as 'SUPER_ADMIN' | 'OWNER' | 'MANAGER' | 'STAFF'}
                   userTenantId={currentTenant?.id}
                 />
               )}
+              */}
               
               <Button variant="ghost" size="sm">
                 <Bell className="h-5 w-5" />
