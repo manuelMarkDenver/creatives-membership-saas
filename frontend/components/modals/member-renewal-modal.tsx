@@ -61,8 +61,9 @@ export function MemberRenewalModal({
       setStartDate(today.toISOString().split('T')[0])
       
       // If member had a previous plan, select it by default
-      if (member?.businessData?.membership?.planId) {
-        setSelectedPlanId(member.businessData.membership.planId)
+      const latestSubscription = member?.gymSubscriptions?.[0]
+      if (latestSubscription?.membershipPlan?.id) {
+        setSelectedPlanId(latestSubscription.membershipPlan.id)
       }
     }
   }, [isOpen, member])
@@ -178,7 +179,7 @@ export function MemberRenewalModal({
   if (!member) return null
 
   const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
-  const currentMembership = member.businessData?.membership
+  const currentMembership = member.gymSubscriptions?.[0]
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

@@ -309,7 +309,7 @@ export default function MemberSubscriptionsPage() {
           onSaved={handlePlanSaved}
           plan={selectedPlan}
           mode={modalMode}
-          tenantId={profile?.tenantId}
+          tenantId={profile?.tenantId || ''}
         />
       )}
     </div>

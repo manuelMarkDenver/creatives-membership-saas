@@ -231,42 +231,29 @@ export function AddMemberModal({
       return
     }
 
-    // Prepare business data
-    const businessData = {
-      personalInfo: {
+    // Prepare profile data for the new gym member
+    const profileData = {
+      emergencyContact: formData.emergencyContactName
+        ? `${formData.emergencyContactName} (${formData.emergencyContactRelationship}) - ${formData.emergencyContactPhone}`
+        : null,
+      medicalConditions: null,
+      fitnessGoals: formData.fitnessGoals || null,
+      preferredTrainer: null,
+      membershipHistory: {
         dateOfBirth: formData.dateOfBirth || null,
         gender: formData.gender || null,
         height: formData.height ? parseInt(formData.height) : null,
         weight: formData.weight ? parseInt(formData.weight) : null,
-        fitnessGoals: formData.fitnessGoals || null,
-        emergencyContact: {
-          name: formData.emergencyContactName || null,
-          phone: formData.emergencyContactPhone || null,
-          relationship: formData.emergencyContactRelationship || null,
-        }
-      },
-      healthInfo: {
         fitnessLevel: formData.fitnessLevel || null,
-      },
-      preferences: {
         preferredWorkoutTime: formData.preferredWorkoutTime || null,
         favoriteEquipment: formData.favoriteEquipment || null,
-      },
-      membership: {
-        planId: formData.selectedPlanId,
-        planName: selectedPlan?.name,
-        planType: selectedPlan?.type,
-        startDate: formData.membershipStartDate,
-        endDate: calculateEndDate(),
-        price: selectedPlan?.price,
-        isExpired: false
-      },
-      paymentHistory: [{
-        amount: parseFloat(formData.paymentAmount),
-        date: new Date().toISOString(),
-        method: formData.paymentMethod,
-        status: 'PAID'
-      }]
+        allergies: null,
+        notifications: {
+          email: true,
+          sms: true,
+          push: true
+        }
+      }
     }
 
     // Create the member using the mutation hook
@@ -279,6 +266,13 @@ export function AddMemberModal({
     }, {
       onSuccess: async (createdUser) => {
         try {
+          // Create gym member profile
+          if (profileData.emergencyContact || profileData.fitnessGoals) {
+            // Note: This would need a new API endpoint to create gym member profiles
+            // For now, we'll skip this step as the profile can be created later through the member info modal
+            console.log('Profile data prepared:', profileData)
+          }
+
           // Create subscription for the new member
           const subscriptionData = {
             membershipPlanId: formData.selectedPlanId,

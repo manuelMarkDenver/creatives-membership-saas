@@ -40,13 +40,7 @@ export interface MemberData {
     branchId?: string
     createdAt?: string
   }>
-  businessData?: {
-    membership?: {
-      status?: string
-      cancelledAt?: string | null
-      endDate?: string
-    }
-  }
+  // businessData removed - now using gymSubscriptions from User interface
 }
 
 /**
@@ -83,11 +77,11 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
   
   // Select the most recent subscription (matching backend logic)
   const subscription = subscriptions[0]
-  const businessMembership = member.businessData?.membership
+  // businessData removed - using gymSubscriptions from User interface
   
   
   // If no subscription data available, member has no subscription
-  if (!subscription && !businessMembership) {
+  if (!subscription) {
     return {
       canAccessFacilities: false,
       displayStatus: 'NO_SUBSCRIPTION',
@@ -110,13 +104,6 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
     subscriptionCancelledAt = subscription.cancelledAt || null
     if (subscription.endDate) {
       subscriptionEndDate = new Date(subscription.endDate)
-      subscriptionEndDate.setHours(0, 0, 0, 0)
-    }
-  } else if (businessMembership) {
-    subscriptionStatus = businessMembership.status?.toUpperCase() || 'UNKNOWN'
-    subscriptionCancelledAt = businessMembership.cancelledAt || null
-    if (businessMembership.endDate) {
-      subscriptionEndDate = new Date(businessMembership.endDate)
       subscriptionEndDate.setHours(0, 0, 0, 0)
     }
   } else {

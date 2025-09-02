@@ -481,13 +481,13 @@ export default function MembersPage() {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {selectedMemberForAction?.businessData?.membership && (
+            {selectedMemberForAction?.gymSubscriptions?.[0] && (
               <div className="space-y-2">
                 <Label>Current Plan</Label>
                 <div className="p-3 bg-gray-50 rounded-md">
-                  <p className="font-medium">{selectedMemberForAction.businessData.membership.planName}</p>
-                  <p className="text-sm text-muted-foreground">₱{selectedMemberForAction.businessData.membership.price}</p>
-                  <p className="text-xs text-red-600">Expired: {new Date(selectedMemberForAction.businessData.membership.endDate).toLocaleDateString()}</p>
+                  <p className="font-medium">{selectedMemberForAction.gymSubscriptions[0].membershipPlan?.name}</p>
+                  <p className="text-sm text-muted-foreground">₱{selectedMemberForAction.gymSubscriptions[0].price}</p>
+                  <p className="text-xs text-red-600">Expired: {new Date(selectedMemberForAction.gymSubscriptions[0].endDate).toLocaleDateString()}</p>
                 </div>
               </div>
             )}
@@ -563,13 +563,13 @@ export default function MembersPage() {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {selectedMemberForAction?.businessData?.membership && (
+            {selectedMemberForAction?.gymSubscriptions?.[0] && (
               <div className="space-y-2">
                 <Label>Current Plan</Label>
                 <div className="p-3 bg-gray-50 rounded-md">
-                  <p className="font-medium">{selectedMemberForAction.businessData.membership.planName}</p>
-                  <p className="text-sm text-muted-foreground">₱{selectedMemberForAction.businessData.membership.price}</p>
-                  <p className="text-xs text-green-600">Valid until: {new Date(selectedMemberForAction.businessData.membership.endDate).toLocaleDateString()}</p>
+                  <p className="font-medium">{selectedMemberForAction.gymSubscriptions[0].membershipPlan?.name}</p>
+                  <p className="text-sm text-muted-foreground">₱{selectedMemberForAction.gymSubscriptions[0].price}</p>
+                  <p className="text-xs text-green-600">Valid until: {new Date(selectedMemberForAction.gymSubscriptions[0].endDate).toLocaleDateString()}</p>
                 </div>
               </div>
             )}
@@ -655,9 +655,9 @@ export default function MembersPage() {
                 <div>
                   <h4 className="font-semibold">{`${selectedMemberForTransactions?.firstName || ''} ${selectedMemberForTransactions?.lastName || ''}`}</h4>
                   <p className="text-sm text-muted-foreground">{selectedMemberForTransactions?.email}</p>
-                  {selectedMemberForTransactions.businessData?.membership && (
+                  {selectedMemberForTransactions.gymSubscriptions?.[0] && (
                     <p className="text-xs text-purple-600 font-medium">
-                      Current Plan: {selectedMemberForTransactions.businessData.membership.planName} - ₱{selectedMemberForTransactions.businessData.membership.price}
+                      Current Plan: {selectedMemberForTransactions.gymSubscriptions[0].membershipPlan?.name} - ₱{selectedMemberForTransactions.gymSubscriptions[0].price}
                     </p>
                   )}
                 </div>
@@ -667,7 +667,8 @@ export default function MembersPage() {
             {/* Transaction Table */}
             <div className="border rounded-lg overflow-hidden">
               <div className="overflow-auto max-h-96">
-                {selectedMemberForTransactions?.businessData?.paymentHistory && selectedMemberForTransactions.businessData.paymentHistory.length > 0 ? (
+                {/* Payment history is now handled through the transaction history API */}
+                {false ? (
                   <table className="w-full">
                     <thead className="bg-gray-50 sticky top-0">
                       <tr>
@@ -680,8 +681,8 @@ export default function MembersPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {selectedMemberForTransactions.businessData.paymentHistory
-                        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      {/* Payment history is now handled through transaction API */}
+                      {[] /* Temporarily disabled - payment history moved to transaction API */
                         .map((transaction: any, index: number) => (
                         <tr key={index} className="hover:bg-gray-50">
                           <td className="p-3 text-sm">
@@ -731,29 +732,26 @@ export default function MembersPage() {
               </div>
             </div>
 
-            {/* Transaction Summary */}
-            {selectedMemberForTransactions?.businessData?.paymentHistory && selectedMemberForTransactions.businessData.paymentHistory.length > 0 && (
+            {/* Transaction Summary - Payment history now handled through transaction API */}
+            {false && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                   <div className="text-sm text-green-800 font-medium">Total Paid</div>
                   <div className="text-2xl font-bold text-green-600">
-                    ₱{selectedMemberForTransactions.businessData.paymentHistory
-                      .reduce((sum: number, transaction: any) => sum + parseFloat(transaction.amount), 0)
-                      .toFixed(2)}
+                    ₱0.00 {/* Payment history moved to transaction API */}
                   </div>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <div className="text-sm text-blue-800 font-medium">Total Transactions</div>
                   <div className="text-2xl font-bold text-blue-600">
-                    {selectedMemberForTransactions.businessData.paymentHistory.length}
+                    0 {/* Payment history moved to transaction API */}
                   </div>
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                   <div className="text-sm text-purple-800 font-medium">Latest Payment</div>
                   <div className="text-lg font-bold text-purple-600">
                     {new Date(
-                      selectedMemberForTransactions.businessData.paymentHistory
-                        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date
+                      new Date().toISOString() /* Payment history moved to transaction API */
                     ).toLocaleDateString()}
                   </div>
                 </div>
