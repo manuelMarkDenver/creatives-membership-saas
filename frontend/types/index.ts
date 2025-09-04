@@ -251,7 +251,22 @@ export interface GymMemberProfile {
   medicalConditions?: string
   fitnessGoals?: string
   preferredTrainer?: string
-  membershipHistory?: any // JSON field for historical data
+  // Profile fields
+  gender?: string
+  height?: number
+  weight?: number
+  allergies?: any // JSON array
+  lastVisit?: string
+  dateOfBirth?: string
+  totalVisits?: number
+  fitnessLevel?: string
+  notifications?: any // JSON object
+  favoriteEquipment?: string
+  averageVisitsPerWeek?: number
+  preferredWorkoutTime?: string
+  // Historical data
+  membershipHistory?: any // JSON field for past memberships
+  profileMetadata?: any // JSON field for additional dynamic data
   createdAt: string
   updatedAt: string
 }
