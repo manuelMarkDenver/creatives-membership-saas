@@ -1,4 +1,10 @@
-import { IsString, IsBoolean, IsOptional, IsEnum, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsEnum,
+  IsUUID,
+} from 'class-validator';
 import { AccessLevel } from '@prisma/client';
 
 export class CreateUserBranchDto {

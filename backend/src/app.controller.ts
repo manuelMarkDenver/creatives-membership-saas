@@ -15,7 +15,7 @@ export class AppController {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      service: 'creatives-saas-backend'
+      service: 'creatives-saas-backend',
     };
   }
 }

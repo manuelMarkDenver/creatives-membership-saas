@@ -1,4 +1,13 @@
-import { IsString, IsOptional, IsDecimal, IsInt, IsEnum, IsBoolean, IsUUID, Min } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsDecimal,
+  IsInt,
+  IsEnum,
+  IsBoolean,
+  IsUUID,
+  Min,
+} from 'class-validator';
 import { MembershipType } from '@prisma/client';
 import { Type } from 'class-transformer';
 

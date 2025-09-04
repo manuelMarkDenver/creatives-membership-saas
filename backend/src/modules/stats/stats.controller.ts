@@ -1,14 +1,6 @@
-import {
-  Controller,
-  Get,
-  UseGuards,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, UseGuards, Req } from '@nestjs/common';
 import { StatsService } from './stats.service';
-import {
-  RBACGuard,
-  RequiredRoles,
-} from '../../core/guard/rbac.guard';
+import { RBACGuard, RequiredRoles } from '../../core/guard/rbac.guard';
 import { AuthGuard } from '../../core/auth/auth.guard';
 import { Role } from '@prisma/client';
 import { Request } from 'express';

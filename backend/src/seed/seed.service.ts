@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common'
-import { PrismaService } from '../core/prisma/prisma.service'
-import { execSync } from 'child_process'
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../core/prisma/prisma.service';
+import { execSync } from 'child_process';
 
 @Injectable()
 export class SeedService {
@@ -10,7 +10,7 @@ export class SeedService {
     try {
       // Clear existing data first to ensure clean seeding
       console.log('🧹 Clearing existing data...');
-      
+
       // Delete in correct order to avoid foreign key constraints
       await this.prisma.memberAuditLog.deleteMany({});
       await this.prisma.platformRevenue.deleteMany({});
@@ -23,29 +23,32 @@ export class SeedService {
       await this.prisma.membershipPlan.deleteMany({});
       await this.prisma.branch.deleteMany({});
       await this.prisma.businessUnit.deleteMany({});
-      await this.prisma.user.deleteMany({ where: { role: { not: 'SUPER_ADMIN' } } });
+      await this.prisma.user.deleteMany({
+        where: { role: { not: 'SUPER_ADMIN' } },
+      });
       await this.prisma.tenant.deleteMany({});
       await this.prisma.plan.deleteMany({});
-      
+
       console.log('✅ Existing data cleared successfully');
-      
+
       // Run the comprehensive Filipino seed script
-      const result = execSync('node prisma/seed-filipino.js', { 
+      const result = execSync('node prisma/seed-filipino.js', {
         cwd: process.cwd(),
-        encoding: 'utf8'
-      })
-      
+        encoding: 'utf8',
+      });
+
       return {
         success: true,
-        message: 'Database seeding completed successfully with realistic Filipino members',
-        output: result
-      }
+        message:
+          'Database seeding completed successfully with realistic Filipino members',
+        output: result,
+      };
     } catch (error) {
       return {
         success: false,
         message: 'Database seeding failed',
-        error: error.message
-      }
+        error: error.message,
+      };
     }
   }
 
@@ -57,14 +60,16 @@ export class SeedService {
         userCount,
         planCount,
         membershipPlanCount,
-        adminCount
+        adminCount,
       ] = await Promise.all([
         this.prisma.tenant.count(),
         this.prisma.user.count({ where: { role: 'GYM_MEMBER' } }),
         this.prisma.plan.count(),
         this.prisma.membershipPlan.count(),
-        this.prisma.user.count({ where: { email: 'admin@creatives-saas.com' } })
-      ])
+        this.prisma.user.count({
+          where: { email: 'admin@creatives-saas.com' },
+        }),
+      ]);
 
       return {
         success: true,
@@ -73,16 +78,16 @@ export class SeedService {
           gymMembers: userCount,
           subscriptionPlans: planCount,
           membershipPlans: membershipPlanCount,
-          superAdmin: adminCount
+          superAdmin: adminCount,
         },
-        seeded: tenantCount > 0 && adminCount > 0
-      }
+        seeded: tenantCount > 0 && adminCount > 0,
+      };
     } catch (error) {
       return {
         success: false,
         message: 'Failed to check database status',
-        error: error.message
-      }
+        error: error.message,
+      };
     }
   }
 }

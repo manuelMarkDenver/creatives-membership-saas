@@ -1,5 +1,13 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { IsOptional, IsDateString, IsString, IsUUID, IsObject, IsNumber, IsEnum } from 'class-validator';
+import {
+  IsOptional,
+  IsDateString,
+  IsString,
+  IsUUID,
+  IsObject,
+  IsNumber,
+  IsEnum,
+} from 'class-validator';
 import { CreateUserDto } from './create-user.dto';
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {
@@ -40,7 +48,15 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   // Gym Member Profile fields
   @IsOptional()
   @IsString()
-  emergencyContact?: string;
+  emergencyContactName?: string;
+
+  @IsOptional()
+  @IsString()
+  emergencyContactPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  emergencyContactRelation?: string;
 
   @IsOptional()
   @IsString()

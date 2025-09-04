@@ -1,6 +1,12 @@
 import { Controller, Post, Body, Get, Param, Query } from '@nestjs/common';
-import { NotificationsService, NotificationResult } from './notifications.service';
-import { SendNotificationDto, BulkNotificationDto } from './dto/notification.dto';
+import {
+  NotificationsService,
+  NotificationResult,
+} from './notifications.service';
+import {
+  SendNotificationDto,
+  BulkNotificationDto,
+} from './dto/notification.dto';
 
 @Controller('notifications')
 export class NotificationsController {
@@ -11,7 +17,9 @@ export class NotificationsController {
    * POST /notifications/send
    */
   @Post('send')
-  async sendNotification(@Body() notificationDto: SendNotificationDto): Promise<NotificationResult> {
+  async sendNotification(
+    @Body() notificationDto: SendNotificationDto,
+  ): Promise<NotificationResult> {
     return this.notificationsService.sendEnhancedNotification(notificationDto);
   }
 
@@ -20,8 +28,12 @@ export class NotificationsController {
    * POST /notifications/bulk
    */
   @Post('bulk')
-  async sendBulkNotifications(@Body() bulkDto: BulkNotificationDto): Promise<{ sent: number; failed: number; results: NotificationResult[] }> {
-    return this.notificationsService.sendBulkExpiryNotifications(bulkDto.notifications);
+  async sendBulkNotifications(
+    @Body() bulkDto: BulkNotificationDto,
+  ): Promise<{ sent: number; failed: number; results: NotificationResult[] }> {
+    return this.notificationsService.sendBulkExpiryNotifications(
+      bulkDto.notifications,
+    );
   }
 
   /**
@@ -30,12 +42,19 @@ export class NotificationsController {
    */
   @Post('welcome')
   async sendWelcomeNotification(
-    @Body() body: { userId: string; email: string; name: string; tenantId?: string; businessType?: string }
+    @Body()
+    body: {
+      userId: string;
+      email: string;
+      name: string;
+      tenantId?: string;
+      businessType?: string;
+    },
   ): Promise<NotificationResult> {
     return this.notificationsService.sendWelcomeNotification(
       body.userId,
       body.email,
-      body.name
+      body.name,
     );
   }
 
@@ -50,8 +69,16 @@ export class NotificationsController {
       service: 'notifications',
       providers: ['email', 'sms', 'push'],
       businessTypes: ['GYM', 'COFFEE_SHOP', 'E_COMMERCE'],
-      notificationTypes: ['expired', 'expiring_soon', 'welcome', 'general', 'reminder', 'promotion', 'update'],
-      timestamp: new Date().toISOString()
+      notificationTypes: [
+        'expired',
+        'expiring_soon',
+        'welcome',
+        'general',
+        'reminder',
+        'promotion',
+        'update',
+      ],
+      timestamp: new Date().toISOString(),
     };
   }
 }

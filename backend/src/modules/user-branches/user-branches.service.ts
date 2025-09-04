@@ -6,7 +6,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
-import { CreateUserBranchDto, UpdateUserBranchDto } from './dto/user-branch.dto';
+import {
+  CreateUserBranchDto,
+  UpdateUserBranchDto,
+} from './dto/user-branch.dto';
 
 @Injectable()
 export class UserBranchesService {
@@ -59,15 +62,14 @@ export class UserBranchesService {
             },
           },
         },
-        orderBy: [
-          { isPrimary: 'desc' },
-          { user: { firstName: 'asc' } },
-        ],
+        orderBy: [{ isPrimary: 'desc' }, { user: { firstName: 'asc' } }],
       });
 
       return assignments;
     } catch (error) {
-      this.logger.error(`Failed to get user-branch assignments: ${error.message}`);
+      this.logger.error(
+        `Failed to get user-branch assignments: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -90,7 +92,9 @@ export class UserBranchesService {
       // Role-based access control
       if (currentUser.role !== 'SUPER_ADMIN') {
         if (user.tenantId !== currentUser.tenantId) {
-          throw new ForbiddenException('Access denied to user from different tenant');
+          throw new ForbiddenException(
+            'Access denied to user from different tenant',
+          );
         }
       }
 
@@ -114,17 +118,14 @@ export class UserBranchesService {
             },
           },
         },
-        orderBy: [
-          { isPrimary: 'desc' },
-          { branch: { name: 'asc' } },
-        ],
+        orderBy: [{ isPrimary: 'desc' }, { branch: { name: 'asc' } }],
       });
 
       return {
         userId,
         branchAssignments: userBranches,
         totalBranches: userBranches.length,
-        primaryBranch: userBranches.find(ub => ub.isPrimary),
+        primaryBranch: userBranches.find((ub) => ub.isPrimary),
       };
     } catch (error) {
       this.logger.error(`Failed to get user branches: ${error.message}`);
@@ -150,7 +151,9 @@ export class UserBranchesService {
       // Role-based access control
       if (currentUser.role !== 'SUPER_ADMIN') {
         if (branch.tenantId !== currentUser.tenantId) {
-          throw new ForbiddenException('Access denied to branch from different tenant');
+          throw new ForbiddenException(
+            'Access denied to branch from different tenant',
+          );
         }
 
         // Managers can only see branches they have access to
@@ -196,8 +199,10 @@ export class UserBranchesService {
         branchName: branch.name,
         userAssignments: branchUsers,
         totalUsers: branchUsers.length,
-        managers: branchUsers.filter(ub => ub.accessLevel === 'MANAGER_ACCESS'),
-        staff: branchUsers.filter(ub => ub.accessLevel === 'STAFF_ACCESS'),
+        managers: branchUsers.filter(
+          (ub) => ub.accessLevel === 'MANAGER_ACCESS',
+        ),
+        staff: branchUsers.filter((ub) => ub.accessLevel === 'STAFF_ACCESS'),
       };
     } catch (error) {
       this.logger.error(`Failed to get branch users: ${error.message}`);
@@ -213,13 +218,20 @@ export class UserBranchesService {
     currentUser: any,
   ) {
     try {
-      const { userId, branchId, accessLevel, isPrimary, permissions } = createUserBranchDto;
+      const { userId, branchId, accessLevel, isPrimary, permissions } =
+        createUserBranchDto;
 
       // Validate user and branch exist
       const [user, branch] = await Promise.all([
         this.prisma.user.findUnique({
           where: { id: userId },
-          select: { id: true, firstName: true, lastName: true, role: true, tenantId: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            tenantId: true,
+          },
         }),
         this.prisma.branch.findUnique({
           where: { id: branchId },
@@ -237,13 +249,17 @@ export class UserBranchesService {
 
       // Check if user and branch are in the same tenant
       if (user.tenantId !== branch.tenantId) {
-        throw new BadRequestException('User and branch must be in the same tenant');
+        throw new BadRequestException(
+          'User and branch must be in the same tenant',
+        );
       }
 
       // Role-based access control
       if (currentUser.role !== 'SUPER_ADMIN') {
         if (branch.tenantId !== currentUser.tenantId) {
-          throw new ForbiddenException('Access denied to branch from different tenant');
+          throw new ForbiddenException(
+            'Access denied to branch from different tenant',
+          );
         }
 
         // Only OWNER can assign MANAGER level access
@@ -262,7 +278,9 @@ export class UserBranchesService {
           });
 
           if (!hasAccess) {
-            throw new ForbiddenException('You can only assign staff to branches you manage');
+            throw new ForbiddenException(
+              'You can only assign staff to branches you manage',
+            );
           }
         }
       }
@@ -278,7 +296,9 @@ export class UserBranchesService {
       });
 
       if (existingAssignment) {
-        throw new BadRequestException('User is already assigned to this branch');
+        throw new BadRequestException(
+          'User is already assigned to this branch',
+        );
       }
 
       // If this is primary, remove primary from other assignments for this user
@@ -344,7 +364,14 @@ export class UserBranchesService {
       const existingAssignment = await this.prisma.userBranch.findUnique({
         where: { id },
         include: {
-          user: { select: { id: true, firstName: true, lastName: true, tenantId: true } },
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              tenantId: true,
+            },
+          },
           branch: { select: { id: true, name: true, tenantId: true } },
         },
       });
@@ -368,10 +395,10 @@ export class UserBranchesService {
       // If this is becoming primary, remove primary from other assignments for this user
       if (isPrimary) {
         await this.prisma.userBranch.updateMany({
-          where: { 
-            userId: existingAssignment.userId, 
+          where: {
+            userId: existingAssignment.userId,
             isPrimary: true,
-            id: { not: id }
+            id: { not: id },
           },
           data: { isPrimary: false },
         });
@@ -411,7 +438,9 @@ export class UserBranchesService {
 
       return updatedAssignment;
     } catch (error) {
-      this.logger.error(`Failed to update user-branch assignment: ${error.message}`);
+      this.logger.error(
+        `Failed to update user-branch assignment: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -425,7 +454,14 @@ export class UserBranchesService {
       const existingAssignment = await this.prisma.userBranch.findUnique({
         where: { id },
         include: {
-          user: { select: { id: true, firstName: true, lastName: true, tenantId: true } },
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              tenantId: true,
+            },
+          },
           branch: { select: { id: true, name: true, tenantId: true } },
         },
       });
@@ -450,8 +486,13 @@ export class UserBranchesService {
             },
           });
 
-          if (!hasAccess || existingAssignment.accessLevel === 'MANAGER_ACCESS') {
-            throw new ForbiddenException('You can only remove staff from branches you manage');
+          if (
+            !hasAccess ||
+            existingAssignment.accessLevel === 'MANAGER_ACCESS'
+          ) {
+            throw new ForbiddenException(
+              'You can only remove staff from branches you manage',
+            );
           }
         }
       }
@@ -482,12 +523,23 @@ export class UserBranchesService {
     currentUser: any,
   ) {
     try {
-      const { userId, branchIds, accessLevel = 'STAFF_ACCESS', primaryBranchId } = bulkAssignDto;
+      const {
+        userId,
+        branchIds,
+        accessLevel = 'STAFF_ACCESS',
+        primaryBranchId,
+      } = bulkAssignDto;
 
       // Validate user exists
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, firstName: true, lastName: true, role: true, tenantId: true },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          tenantId: true,
+        },
       });
 
       if (!user) {
@@ -496,7 +548,7 @@ export class UserBranchesService {
 
       // Validate branches exist and are in same tenant
       const branches = await this.prisma.branch.findMany({
-        where: { 
+        where: {
           id: { in: branchIds },
           tenantId: user.tenantId || undefined,
         },
@@ -504,7 +556,9 @@ export class UserBranchesService {
       });
 
       if (branches.length !== branchIds.length) {
-        throw new BadRequestException('Some branches were not found or are not in the same tenant');
+        throw new BadRequestException(
+          'Some branches were not found or are not in the same tenant',
+        );
       }
 
       // Role-based access control
@@ -524,7 +578,7 @@ export class UserBranchesService {
       });
 
       // Create new assignments
-      const assignmentsData = branchIds.map(branchId => ({
+      const assignmentsData = branchIds.map((branchId) => ({
         userId,
         branchId,
         accessLevel,
@@ -543,10 +597,7 @@ export class UserBranchesService {
             select: { id: true, name: true, address: true },
           },
         },
-        orderBy: [
-          { isPrimary: 'desc' },
-          { branch: { name: 'asc' } },
-        ],
+        orderBy: [{ isPrimary: 'desc' }, { branch: { name: 'asc' } }],
       });
 
       this.logger.log(
@@ -559,7 +610,9 @@ export class UserBranchesService {
         totalAssignments: assignments.length,
       };
     } catch (error) {
-      this.logger.error(`Failed to bulk assign user to branches: ${error.message}`);
+      this.logger.error(
+        `Failed to bulk assign user to branches: ${error.message}`,
+      );
       throw error;
     }
   }

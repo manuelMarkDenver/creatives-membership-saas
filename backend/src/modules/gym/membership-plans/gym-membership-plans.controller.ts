@@ -1,6 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { GymMembershipPlansService } from './gym-membership-plans.service';
-import { CreateMembershipPlanDto, UpdateMembershipPlanDto } from '../../membership-plans/dto/membership-plan.dto';
+import {
+  CreateMembershipPlanDto,
+  UpdateMembershipPlanDto,
+} from '../../membership-plans/dto/membership-plan.dto';
 import { AuthGuard } from '../../../core/auth/auth.guard';
 import { RoleGuard } from '../../../core/auth/guards/role.guard';
 import { Roles } from '../../../core/auth/decorators/roles.decorator';
@@ -11,7 +24,9 @@ import type { User } from '@prisma/client';
 @Controller('gym/membership-plans')
 @UseGuards(AuthGuard, RoleGuard)
 export class GymMembershipPlansController {
-  constructor(private readonly gymMembershipPlansService: GymMembershipPlansService) {}
+  constructor(
+    private readonly gymMembershipPlansService: GymMembershipPlansService,
+  ) {}
 
   @Post()
   @Roles(Role.OWNER, Role.MANAGER)
@@ -47,7 +62,11 @@ export class GymMembershipPlansController {
 
   @Patch(':id')
   @Roles(Role.OWNER, Role.MANAGER)
-  update(@Param('id') id: string, @Body() updateDto: UpdateMembershipPlanDto, @GetUser() user: User) {
+  update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateMembershipPlanDto,
+    @GetUser() user: User,
+  ) {
     return this.gymMembershipPlansService.update(id, user.tenantId!, updateDto);
   }
 

@@ -124,7 +124,9 @@ export class TenantsService {
         });
 
         if (!trialPlan) {
-          throw new NotFoundException('Free Trial plan not found. Please run database seeding.');
+          throw new NotFoundException(
+            'Free Trial plan not found. Please run database seeding.',
+          );
         }
 
         const startDate = new Date();
@@ -209,37 +211,37 @@ export class TenantsService {
             include: {
               subscriptions: {
                 where: {
-                  status: { in: ['ACTIVE', 'EXPIRED'] }
+                  status: { in: ['ACTIVE', 'EXPIRED'] },
                 },
                 include: {
-                  plan: true
+                  plan: true,
                 },
                 orderBy: {
-                  createdAt: 'desc'
+                  createdAt: 'desc',
                 },
-                take: 1 // Get latest subscription per branch
+                take: 1, // Get latest subscription per branch
               },
               _count: {
                 select: {
                   userBranches: {
                     where: {
                       user: {
-                        role: 'GYM_MEMBER'
-                      }
-                    }
-                  }
-                }
-              }
-            }
+                        role: 'GYM_MEMBER',
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
           _count: {
-            select: { 
+            select: {
               users: {
                 where: {
-                  role: 'GYM_MEMBER'
-                }
+                  role: 'GYM_MEMBER',
+                },
               },
-              branches: true 
+              branches: true,
             },
           },
         },
@@ -462,7 +464,9 @@ export class TenantsService {
       }
 
       if (override < 0) {
-        throw new BadRequestException('Free branch override cannot be negative');
+        throw new BadRequestException(
+          'Free branch override cannot be negative',
+        );
       }
 
       const existingTenant = await this.prisma.tenant.findUnique({
@@ -506,70 +510,81 @@ export class TenantsService {
   async getSystemStats() {
     try {
       // Get total counts using Prisma's count aggregation
-      const [totalTenants, totalBranches, totalUsers, activeTenants, totalActiveSubscriptions, totalSubscriptions, totalRevenue] = await Promise.all([
+      const [
+        totalTenants,
+        totalBranches,
+        totalUsers,
+        activeTenants,
+        totalActiveSubscriptions,
+        totalSubscriptions,
+        totalRevenue,
+      ] = await Promise.all([
         this.prisma.tenant.count(),
         this.prisma.branch.count(),
         this.prisma.user.count(),
         this.prisma.tenant.count({
-          where: { 
+          where: {
             // Assuming tenants are active if they have at least one active branch
             branches: {
               some: {
-                isActive: true
-              }
-            }
-          }
+                isActive: true,
+              },
+            },
+          },
         }),
         this.prisma.subscription.count({
-          where: { status: 'ACTIVE' }
+          where: { status: 'ACTIVE' },
         }),
         this.prisma.subscription.count(),
         this.prisma.payment.aggregate({
           where: { status: 'SUCCESSFUL' },
-          _sum: { amount: true }
-        })
+          _sum: { amount: true },
+        }),
       ]);
 
       // Get tenant breakdown by category
       const tenantsByCategory = await this.prisma.tenant.groupBy({
         by: ['category'],
         _count: {
-          id: true
-        }
+          id: true,
+        },
       });
 
       // Get recent tenant activity (last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
+
       const recentTenants = await this.prisma.tenant.count({
         where: {
           createdAt: {
-            gte: thirtyDaysAgo
-          }
-        }
+            gte: thirtyDaysAgo,
+          },
+        },
       });
 
       const stats = {
         overview: {
           totalTenants,
-          totalBranches, 
+          totalBranches,
           totalUsers,
           activeTenants,
           recentTenants, // Added in last 30 days
           totalActiveSubscriptions,
           totalSubscriptions,
-          totalRevenue: totalRevenue._sum.amount || 0
+          totalRevenue: totalRevenue._sum.amount || 0,
         },
-        tenantsByCategory: tenantsByCategory.reduce((acc, item) => {
-          acc[item.category] = item._count.id;
-          return acc;
-        }, {} as Record<string, number>),
+        tenantsByCategory: tenantsByCategory.reduce(
+          (acc, item) => {
+            acc[item.category] = item._count.id;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
         systemHealth: {
           status: 'healthy',
           uptime: process.uptime(),
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
 
       this.logger.log('Retrieved system statistics for Super Admin');

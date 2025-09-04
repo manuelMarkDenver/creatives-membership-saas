@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { GymSubscriptionsService } from './gym-subscriptions.service';
 import { AuthGuard } from '../../../core/auth/auth.guard';
 import { RBACGuard, RequiredRoles } from '../../../core/guard/rbac.guard';
@@ -20,12 +29,15 @@ interface RequestWithUser extends Request {
 @Controller('gym/subscriptions')
 @UseGuards(AuthGuard, RBACGuard)
 export class GymSubscriptionsController {
-  constructor(private readonly gymSubscriptionsService: GymSubscriptionsService) {}
+  constructor(
+    private readonly gymSubscriptionsService: GymSubscriptionsService,
+  ) {}
 
   @Get('stats')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   getSubscriptionStats(@Req() req: RequestWithUser) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     // For Super Admin or users without tenantId, return empty stats
     if (!tenantId) {
       return { total: 0, active: 0, expired: 0, cancelled: 0, expiring: 0 };
@@ -39,25 +51,43 @@ export class GymSubscriptionsController {
     @Req() req: RequestWithUser,
     @Query('daysBefore') daysBefore?: string,
     @Query('page') page?: string,
-    @Query('limit') limit?: string
+    @Query('limit') limit?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
-      return { subscriptions: [], pagination: { page: 1, limit: 10, total: 0, pages: 0, hasNext: false, hasPrev: false }, summary: { totalExpiring: 0, critical: 0, high: 0, medium: 0 } };
+      return {
+        subscriptions: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          pages: 0,
+          hasNext: false,
+          hasPrev: false,
+        },
+        summary: { totalExpiring: 0, critical: 0, high: 0, medium: 0 },
+      };
     }
     const days = parseInt(daysBefore || '7', 10);
     const pageNum = parseInt(page || '1', 10);
     const limitNum = parseInt(limit || '50', 10);
-    return this.gymSubscriptionsService.getExpiringSubscriptions(tenantId, days, pageNum, limitNum);
+    return this.gymSubscriptionsService.getExpiringSubscriptions(
+      tenantId,
+      days,
+      pageNum,
+      limitNum,
+    );
   }
 
   @Get('expiring/count')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   getExpiringCount(
     @Req() req: RequestWithUser,
-    @Query('daysBefore') daysBefore?: string
+    @Query('daysBefore') daysBefore?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       return { count: 0 };
     }
@@ -67,32 +97,53 @@ export class GymSubscriptionsController {
 
   @Get(':memberId')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
-  getCurrentSubscription(@Param('memberId') memberId: string, @Req() req: RequestWithUser) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+  getCurrentSubscription(
+    @Param('memberId') memberId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       return null;
     }
-    return this.gymSubscriptionsService.getCurrentSubscription(memberId, tenantId);
+    return this.gymSubscriptionsService.getCurrentSubscription(
+      memberId,
+      tenantId,
+    );
   }
 
   @Get(':memberId/history')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
-  getSubscriptionHistory(@Param('memberId') memberId: string, @Req() req: RequestWithUser) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+  getSubscriptionHistory(
+    @Param('memberId') memberId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       return [];
     }
-    return this.gymSubscriptionsService.getSubscriptionHistory(memberId, tenantId);
+    return this.gymSubscriptionsService.getSubscriptionHistory(
+      memberId,
+      tenantId,
+    );
   }
 
   @Get(':memberId/transactions')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
-  getMemberTransactions(@Param('memberId') memberId: string, @Req() req: RequestWithUser) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+  getMemberTransactions(
+    @Param('memberId') memberId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       return [];
     }
-    return this.gymSubscriptionsService.getMemberTransactions(memberId, tenantId);
+    return this.gymSubscriptionsService.getMemberTransactions(
+      memberId,
+      tenantId,
+    );
   }
 
   @Post(':memberId/renew')
@@ -100,26 +151,27 @@ export class GymSubscriptionsController {
   renewMembership(
     @Param('memberId') memberId: string,
     @Body() renewDto: { membershipPlanId: string; paymentMethod?: string },
-    @Req() req: RequestWithUser
+    @Req() req: RequestWithUser,
   ) {
     // Get authenticated user info
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     const userId = req.user?.id;
-    
+
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
-    
+
     if (!userId) {
       throw new Error('User ID is required');
     }
-    
+
     return this.gymSubscriptionsService.renewMembership(
       memberId,
       renewDto.membershipPlanId,
       tenantId,
       userId,
-      renewDto.paymentMethod || 'cash'
+      renewDto.paymentMethod || 'cash',
     );
   }
 
@@ -127,26 +179,28 @@ export class GymSubscriptionsController {
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   cancelMembership(
     @Param('memberId') memberId: string,
-    @Body() cancelDto: { cancellationReason?: string; cancellationNotes?: string },
-    @Req() req: RequestWithUser
+    @Body()
+    cancelDto: { cancellationReason?: string; cancellationNotes?: string },
+    @Req() req: RequestWithUser,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     const userId = req.user?.id;
-    
+
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
-    
+
     if (!userId) {
       throw new Error('User ID is required');
     }
-    
+
     return this.gymSubscriptionsService.cancelMembership(
       memberId,
       tenantId,
       userId,
       cancelDto.cancellationReason,
-      cancelDto.cancellationNotes
+      cancelDto.cancellationNotes,
     );
   }
 }

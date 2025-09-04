@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CreatePlanDto, UpdatePlanDto } from './dto/plan.dto';
 import { SubscriptionStatus } from '@prisma/client';
@@ -13,19 +18,19 @@ export class PlansService {
         _count: {
           select: {
             subscriptions: {
-              where: { status: SubscriptionStatus.ACTIVE }
-            }
-          }
-        }
+              where: { status: SubscriptionStatus.ACTIVE },
+            },
+          },
+        },
       },
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
     });
 
     return {
-      plans: plans.map(plan => ({
+      plans: plans.map((plan) => ({
         ...plan,
-        activeSubscriptions: plan._count.subscriptions
-      }))
+        activeSubscriptions: plan._count.subscriptions,
+      })),
     };
   }
 
@@ -36,19 +41,19 @@ export class PlansService {
         _count: {
           select: {
             subscriptions: {
-              where: { status: SubscriptionStatus.ACTIVE }
-            }
-          }
-        }
+              where: { status: SubscriptionStatus.ACTIVE },
+            },
+          },
+        },
       },
-      orderBy: { price: 'asc' }
+      orderBy: { price: 'asc' },
     });
 
     return {
-      plans: plans.map(plan => ({
+      plans: plans.map((plan) => ({
         ...plan,
-        activeSubscriptions: plan._count.subscriptions
-      }))
+        activeSubscriptions: plan._count.subscriptions,
+      })),
     };
   }
 
@@ -65,21 +70,21 @@ export class PlansService {
                     id: true,
                     name: true,
                     slug: true,
-                    category: true
-                  }
-                }
-              }
-            }
+                    category: true,
+                  },
+                },
+              },
+            },
           },
           orderBy: { createdAt: 'desc' },
-          take: 10 // Limit to recent subscriptions
+          take: 10, // Limit to recent subscriptions
         },
         _count: {
           select: {
-            subscriptions: true
-          }
-        }
-      }
+            subscriptions: true,
+          },
+        },
+      },
     });
 
     if (!plan) {
@@ -89,14 +94,16 @@ export class PlansService {
     return {
       ...plan,
       totalSubscriptions: plan._count.subscriptions,
-      activeSubscriptions: plan.subscriptions.filter(s => s.status === SubscriptionStatus.ACTIVE).length
+      activeSubscriptions: plan.subscriptions.filter(
+        (s) => s.status === SubscriptionStatus.ACTIVE,
+      ).length,
     };
   }
 
   async createPlan(createPlanDto: CreatePlanDto) {
     // Check if plan with same name already exists
     const existingPlan = await this.prisma.plan.findUnique({
-      where: { name: createPlanDto.name }
+      where: { name: createPlanDto.name },
     });
 
     if (existingPlan) {
@@ -109,8 +116,9 @@ export class PlansService {
         price: createPlanDto.price,
         billingCycle: createPlanDto.billingCycle,
         description: createPlanDto.description || '',
-        isActive: createPlanDto.isActive !== undefined ? createPlanDto.isActive : true,
-      }
+        isActive:
+          createPlanDto.isActive !== undefined ? createPlanDto.isActive : true,
+      },
     });
 
     return plan;
@@ -118,7 +126,7 @@ export class PlansService {
 
   async updatePlan(id: string, updatePlanDto: UpdatePlanDto) {
     const existingPlan = await this.prisma.plan.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!existingPlan) {
@@ -128,7 +136,7 @@ export class PlansService {
     // Check if updating name would cause conflict
     if (updatePlanDto.name && updatePlanDto.name !== existingPlan.name) {
       const conflictingPlan = await this.prisma.plan.findUnique({
-        where: { name: updatePlanDto.name }
+        where: { name: updatePlanDto.name },
       });
 
       if (conflictingPlan) {
@@ -138,7 +146,7 @@ export class PlansService {
 
     const updatedPlan = await this.prisma.plan.update({
       where: { id },
-      data: updatePlanDto
+      data: updatePlanDto,
     });
 
     return updatedPlan;
@@ -149,9 +157,9 @@ export class PlansService {
       where: { id },
       include: {
         subscriptions: {
-          where: { status: SubscriptionStatus.ACTIVE }
-        }
-      }
+          where: { status: SubscriptionStatus.ACTIVE },
+        },
+      },
     });
 
     if (!plan) {
@@ -162,12 +170,12 @@ export class PlansService {
     if (plan.subscriptions.length > 0) {
       throw new BadRequestException(
         `Cannot delete plan with ${plan.subscriptions.length} active subscription(s). ` +
-        'Please deactivate the plan instead or wait for subscriptions to expire.'
+          'Please deactivate the plan instead or wait for subscriptions to expire.',
       );
     }
 
     await this.prisma.plan.delete({
-      where: { id }
+      where: { id },
     });
 
     return { message: 'Plan deleted successfully' };
@@ -175,7 +183,7 @@ export class PlansService {
 
   async togglePlanStatus(id: string) {
     const plan = await this.prisma.plan.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!plan) {
@@ -184,18 +192,18 @@ export class PlansService {
 
     const updatedPlan = await this.prisma.plan.update({
       where: { id },
-      data: { isActive: !plan.isActive }
+      data: { isActive: !plan.isActive },
     });
 
     return {
       ...updatedPlan,
-      message: `Plan ${updatedPlan.isActive ? 'activated' : 'deactivated'} successfully`
+      message: `Plan ${updatedPlan.isActive ? 'activated' : 'deactivated'} successfully`,
     };
   }
 
   async getPlanSubscriptions(id: string) {
     const plan = await this.prisma.plan.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!plan) {
@@ -212,19 +220,19 @@ export class PlansService {
                 id: true,
                 name: true,
                 slug: true,
-                category: true
-              }
-            }
-          }
+                category: true,
+              },
+            },
+          },
         },
         payments: {
-          where: { status: 'SUCCESSFUL' }
-        }
+          where: { status: 'SUCCESSFUL' },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
-    const subscriptionStats = subscriptions.map(sub => ({
+    const subscriptionStats = subscriptions.map((sub) => ({
       id: sub.id,
       status: sub.status,
       startDate: sub.startDate,
@@ -233,32 +241,53 @@ export class PlansService {
       branch: {
         id: sub.branch.id,
         name: sub.branch.name,
-        tenant: sub.branch.tenant
+        tenant: sub.branch.tenant,
       },
-      totalPayments: sub.payments.reduce((sum, payment) => sum + Number(payment.amount), 0),
+      totalPayments: sub.payments.reduce(
+        (sum, payment) => sum + Number(payment.amount),
+        0,
+      ),
       paymentCount: sub.payments.length,
-      daysRemaining: Math.max(0, Math.ceil((sub.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))),
-      isExpired: sub.endDate <= new Date()
+      daysRemaining: Math.max(
+        0,
+        Math.ceil(
+          (sub.endDate.getTime() - new Date().getTime()) /
+            (1000 * 60 * 60 * 24),
+        ),
+      ),
+      isExpired: sub.endDate <= new Date(),
     }));
 
     // Calculate summary stats
     const summary = {
       totalSubscriptions: subscriptions.length,
-      activeSubscriptions: subscriptions.filter(s => s.status === SubscriptionStatus.ACTIVE).length,
-      expiredSubscriptions: subscriptions.filter(s => s.endDate <= new Date()).length,
-      totalRevenue: subscriptionStats.reduce((sum, s) => sum + s.totalPayments, 0),
-      averageSubscriptionDuration: subscriptions.length > 0 
-        ? Math.round(subscriptions.reduce((sum, s) => {
-            const duration = Math.ceil((s.endDate.getTime() - s.startDate.getTime()) / (1000 * 60 * 60 * 24));
-            return sum + duration;
-          }, 0) / subscriptions.length)
-        : 0
+      activeSubscriptions: subscriptions.filter(
+        (s) => s.status === SubscriptionStatus.ACTIVE,
+      ).length,
+      expiredSubscriptions: subscriptions.filter((s) => s.endDate <= new Date())
+        .length,
+      totalRevenue: subscriptionStats.reduce(
+        (sum, s) => sum + s.totalPayments,
+        0,
+      ),
+      averageSubscriptionDuration:
+        subscriptions.length > 0
+          ? Math.round(
+              subscriptions.reduce((sum, s) => {
+                const duration = Math.ceil(
+                  (s.endDate.getTime() - s.startDate.getTime()) /
+                    (1000 * 60 * 60 * 24),
+                );
+                return sum + duration;
+              }, 0) / subscriptions.length,
+            )
+          : 0,
     };
 
     return {
       plan,
       subscriptions: subscriptionStats,
-      summary
+      summary,
     };
   }
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { BusinessUnitType, SaasSubscriptionStatus } from '@prisma/client';
 
@@ -35,8 +39,8 @@ export class BusinessUnitsService {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: createDto.tenantId },
       include: {
-        businessUnits: true
-      }
+        businessUnits: true,
+      },
     });
 
     if (!tenant) {
@@ -66,7 +70,7 @@ export class BusinessUnitsService {
         trialEndsAt,
         subscriptionTier: createDto.subscriptionTier || 'basic',
         monthlyPrice: createDto.monthlyPrice || 3999,
-      }
+      },
     });
 
     // Create initial SaaS subscription (trial)
@@ -80,13 +84,13 @@ export class BusinessUnitsService {
         monthlyPrice: createDto.monthlyPrice || 3999,
         currency: 'PHP',
         autoRenew: true,
-      }
+      },
     });
 
     return {
       businessUnit,
       saasSubscription,
-      message: `Business unit created with ${tenant.trialDurationDays}-day trial period`
+      message: `Business unit created with ${tenant.trialDurationDays}-day trial period`,
     };
   }
 
@@ -98,9 +102,9 @@ export class BusinessUnitsService {
       where: { id: tenantId },
       include: {
         businessUnits: {
-          where: { isActive: true }
-        }
-      }
+          where: { isActive: true },
+        },
+      },
     });
 
     if (!tenant) {
@@ -112,22 +116,25 @@ export class BusinessUnitsService {
 
     // If paid mode is disabled, allow unlimited units
     if (!tenant.paidModeEnabled) {
-      return { allowed: true, reason: 'Paid mode disabled - unlimited units allowed' };
+      return {
+        allowed: true,
+        reason: 'Paid mode disabled - unlimited units allowed',
+      };
     }
 
     // Check if under free limit
     if (activeUnitsCount < freeUnitsAllowed) {
-      return { 
-        allowed: true, 
-        reason: `Free unit available (${activeUnitsCount}/${freeUnitsAllowed} used)` 
+      return {
+        allowed: true,
+        reason: `Free unit available (${activeUnitsCount}/${freeUnitsAllowed} used)`,
       };
     }
 
     // Must create paid unit
-    return { 
-      allowed: true, 
+    return {
+      allowed: true,
       reason: 'Paid unit required',
-      requiresPayment: true
+      requiresPayment: true,
     };
   }
 
@@ -136,7 +143,7 @@ export class BusinessUnitsService {
    */
   async togglePaidMode(tenantId: string, enabled: boolean, adminId: string) {
     const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId }
+      where: { id: tenantId },
     });
 
     if (!tenant) {
@@ -145,18 +152,20 @@ export class BusinessUnitsService {
 
     const updatedTenant = await this.prisma.tenant.update({
       where: { id: tenantId },
-      data: { 
+      data: {
         paidModeEnabled: enabled,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
 
     // Log the change for audit purposes
-    console.log(`Paid mode ${enabled ? 'enabled' : 'disabled'} for tenant ${tenant.name} by admin ${adminId}`);
+    console.log(
+      `Paid mode ${enabled ? 'enabled' : 'disabled'} for tenant ${tenant.name} by admin ${adminId}`,
+    );
 
     return {
       tenant: updatedTenant,
-      message: `Paid mode ${enabled ? 'enabled' : 'disabled'} successfully`
+      message: `Paid mode ${enabled ? 'enabled' : 'disabled'} successfully`,
     };
   }
 
@@ -169,10 +178,10 @@ export class BusinessUnitsService {
       include: {
         saasSubscriptions: {
           orderBy: { createdAt: 'desc' },
-          take: 1 // Get most recent subscription
-        }
+          take: 1, // Get most recent subscription
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -181,23 +190,23 @@ export class BusinessUnitsService {
    */
   async getBusinessUnit(unitId: string, tenantId: string) {
     const unit = await this.prisma.businessUnit.findFirst({
-      where: { 
+      where: {
         id: unitId,
-        tenantId 
+        tenantId,
       },
       include: {
         saasSubscriptions: {
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: 'desc' },
         },
         tenant: {
           select: {
             name: true,
             paidModeEnabled: true,
             freeUnitsLimit: true,
-            trialDurationDays: true
-          }
-        }
-      }
+            trialDurationDays: true,
+          },
+        },
+      },
     });
 
     if (!unit) {
@@ -210,7 +219,11 @@ export class BusinessUnitsService {
   /**
    * Update business unit
    */
-  async updateBusinessUnit(unitId: string, tenantId: string, updateDto: UpdateBusinessUnitDto) {
+  async updateBusinessUnit(
+    unitId: string,
+    tenantId: string,
+    updateDto: UpdateBusinessUnitDto,
+  ) {
     // Verify unit exists and belongs to tenant
     await this.getBusinessUnit(unitId, tenantId);
 
@@ -218,14 +231,14 @@ export class BusinessUnitsService {
       where: { id: unitId },
       data: {
         ...updateDto,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       include: {
         saasSubscriptions: {
           orderBy: { createdAt: 'desc' },
-          take: 1
-        }
-      }
+          take: 1,
+        },
+      },
     });
   }
 
@@ -240,20 +253,24 @@ export class BusinessUnitsService {
       where: { id: unitId },
       data: {
         isActive: false,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
   }
 
   /**
    * Convert business unit from trial to paid
    */
-  async upgradeToPaid(unitId: string, tenantId: string, paymentDetails: {
-    paymentMethod: string;
-    paymentReference?: string;
-  }) {
+  async upgradeToPaid(
+    unitId: string,
+    tenantId: string,
+    paymentDetails: {
+      paymentMethod: string;
+      paymentReference?: string;
+    },
+  ) {
     const unit = await this.getBusinessUnit(unitId, tenantId);
-    
+
     if (unit.isPaid) {
       throw new BadRequestException('Business unit is already on paid plan');
     }
@@ -263,8 +280,8 @@ export class BusinessUnitsService {
       where: { id: unitId },
       data: {
         isPaid: true,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
 
     // Update SaaS subscription to active
@@ -278,13 +295,13 @@ export class BusinessUnitsService {
           paymentReference: paymentDetails.paymentReference,
           lastPaymentDate: new Date(),
           nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-        }
+        },
       });
     }
 
     return {
       businessUnit: updatedUnit,
-      message: 'Business unit upgraded to paid plan successfully'
+      message: 'Business unit upgraded to paid plan successfully',
     };
   }
 
@@ -292,19 +309,19 @@ export class BusinessUnitsService {
    * Get tenant statistics including business units
    */
   async getTenantStats(tenantId: string) {
-    const tenant = await this.prisma.tenant.findUnique({
+    const tenant = (await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       include: {
         businessUnits: {
           include: {
             saasSubscriptions: {
               orderBy: { createdAt: 'desc' },
-              take: 1
-            }
-          }
-        }
-      }
-    }) as {
+              take: 1,
+            },
+          },
+        },
+      },
+    })) as {
       id: string;
       name: string;
       category: any;
@@ -331,25 +348,25 @@ export class BusinessUnitsService {
         category: tenant.category,
         paidModeEnabled: tenant.paidModeEnabled,
         freeUnitsLimit: tenant.freeUnitsLimit,
-        trialDurationDays: tenant.trialDurationDays
+        trialDurationDays: tenant.trialDurationDays,
       },
       businessUnits: {
         total: tenant.businessUnits.length,
-        active: tenant.businessUnits.filter(u => u.isActive).length,
-        inactive: tenant.businessUnits.filter(u => !u.isActive).length,
-        paid: tenant.businessUnits.filter(u => u.isPaid).length,
-        trial: tenant.businessUnits.filter(u => !u.isPaid).length,
+        active: tenant.businessUnits.filter((u) => u.isActive).length,
+        inactive: tenant.businessUnits.filter((u) => !u.isActive).length,
+        paid: tenant.businessUnits.filter((u) => u.isPaid).length,
+        trial: tenant.businessUnits.filter((u) => !u.isPaid).length,
       },
       subscriptions: {
         trial: 0,
         active: 0,
         expired: 0,
-        cancelled: 0
-      }
+        cancelled: 0,
+      },
     };
 
     // Count subscription statuses
-    tenant.businessUnits.forEach(unit => {
+    tenant.businessUnits.forEach((unit) => {
       const latestSub = unit.saasSubscriptions[0];
       if (latestSub) {
         stats.subscriptions[latestSub.status.toLowerCase()]++;

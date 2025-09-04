@@ -20,13 +20,14 @@ import { SeedModule } from './seed/seed.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ 
+    ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: process.env.NODE_ENV === 'production' 
-        ? ['../.env.prod', '../.env']
-        : process.env.NODE_ENV === 'test'
-        ? ['../.env.test', '../.env.local', '../.env']
-        : ['../.env.local', '../.env']
+      envFilePath:
+        process.env.NODE_ENV === 'production'
+          ? ['../.env.prod', '../.env']
+          : process.env.NODE_ENV === 'test'
+            ? ['../.env.test', '../.env.local', '../.env']
+            : ['../.env.local', '../.env'],
     }),
     PrismaModule,
     SupabaseModule,

@@ -20,34 +20,42 @@ export class AuthGuard implements CanActivate {
 
     // Check if auth was bypassed (for local testing)
     if (request.headers['x-bypass-auth'] || request.headers['X-Bypass-Auth']) {
-      
       // SECURITY: NEVER allow bypass auth in production
       if (process.env.NODE_ENV === 'production') {
-        console.error('🚨 SECURITY ALERT: Bypass auth attempt in PRODUCTION environment - BLOCKED!');
-        throw new UnauthorizedException('Bypass authentication is not allowed in production');
+        console.error(
+          '🚨 SECURITY ALERT: Bypass auth attempt in PRODUCTION environment - BLOCKED!',
+        );
+        throw new UnauthorizedException(
+          'Bypass authentication is not allowed in production',
+        );
       }
-      
+
       // Additional safety: Check for explicit bypass enable flag
-      const bypassEnabled = process.env.ENABLE_AUTH_BYPASS === 'true' || process.env.NODE_ENV === 'development';
+      const bypassEnabled =
+        process.env.ENABLE_AUTH_BYPASS === 'true' ||
+        process.env.NODE_ENV === 'development';
       if (!bypassEnabled) {
-        console.error('🚨 SECURITY ALERT: Bypass auth not explicitly enabled - BLOCKED!');
+        console.error(
+          '🚨 SECURITY ALERT: Bypass auth not explicitly enabled - BLOCKED!',
+        );
         throw new UnauthorizedException('Bypass authentication is not enabled');
       }
-      
+
       console.warn('⚠️  Auth guard bypassed for local testing/scripting');
-      
+
       // Check for specific user email in bypass header for dynamic user selection
-      const bypassUserEmail = request.headers['x-bypass-user'] || request.headers['X-Bypass-User'];
-      
+      const bypassUserEmail =
+        request.headers['x-bypass-user'] || request.headers['X-Bypass-User'];
+
       let bypassUser: AuthenticatedUser;
-      
+
       if (bypassUserEmail) {
         // Dynamic bypass: authenticate as the specified user
         try {
           const targetUser = await this.prisma.user.findFirst({
-            where: { 
+            where: {
               email: bypassUserEmail,
-              isActive: true
+              isActive: true,
             },
             include: {
               userBranches: {
@@ -65,25 +73,32 @@ export class AuthGuard implements CanActivate {
               email: targetUser.email || bypassUserEmail,
               role: targetUser.role,
               tenantId: targetUser.tenantId,
-              branchAccess: targetUser.userBranches.map(ub => ({
+              branchAccess: targetUser.userBranches.map((ub) => ({
                 branchId: ub.branchId,
                 accessLevel: ub.accessLevel,
-                permissions: ub.permissions as Record<string, boolean> || {},
+                permissions: (ub.permissions as Record<string, boolean>) || {},
                 isPrimary: ub.isPrimary,
               })),
             };
-            console.log(`🔧 Bypassing auth as: ${targetUser.email} (${targetUser.role}) - Tenant: ${targetUser.tenant?.name || 'None'}`);
+            console.log(
+              `🔧 Bypassing auth as: ${targetUser.email} (${targetUser.role}) - Tenant: ${targetUser.tenant?.name || 'None'}`,
+            );
           } else {
-            console.warn(`⚠️  Bypass user not found: ${bypassUserEmail}, falling back to Super Admin`);
+            console.warn(
+              `⚠️  Bypass user not found: ${bypassUserEmail}, falling back to Super Admin`,
+            );
             throw new Error('User not found');
           }
         } catch (error) {
-          console.error(`Failed to find bypass user ${bypassUserEmail}:`, error);
+          console.error(
+            `Failed to find bypass user ${bypassUserEmail}:`,
+            error,
+          );
           // Fallback to super admin
           const realSuperAdmin = await this.prisma.user.findFirst({
-            where: { 
+            where: {
               role: 'SUPER_ADMIN',
-              email: 'admin@creatives-saas.com'
+              email: 'admin@creatives-saas.com',
             },
             include: {
               userBranches: {
@@ -100,10 +115,10 @@ export class AuthGuard implements CanActivate {
               email: realSuperAdmin.email || 'admin@creatives-saas.com',
               role: realSuperAdmin.role,
               tenantId: realSuperAdmin.tenantId || null,
-              branchAccess: realSuperAdmin.userBranches.map(ub => ({
+              branchAccess: realSuperAdmin.userBranches.map((ub) => ({
                 branchId: ub.branchId,
                 accessLevel: ub.accessLevel,
-                permissions: ub.permissions as Record<string, boolean> || {},
+                permissions: (ub.permissions as Record<string, boolean>) || {},
                 isPrimary: ub.isPrimary,
               })),
             };
@@ -122,9 +137,9 @@ export class AuthGuard implements CanActivate {
         // Default bypass: use super admin
         try {
           const realSuperAdmin = await this.prisma.user.findFirst({
-            where: { 
+            where: {
               role: 'SUPER_ADMIN',
-              email: 'admin@creatives-saas.com'
+              email: 'admin@creatives-saas.com',
             },
             include: {
               userBranches: {
@@ -141,10 +156,10 @@ export class AuthGuard implements CanActivate {
               email: realSuperAdmin.email || 'admin@creatives-saas.com',
               role: realSuperAdmin.role,
               tenantId: realSuperAdmin.tenantId || null,
-              branchAccess: realSuperAdmin.userBranches.map(ub => ({
+              branchAccess: realSuperAdmin.userBranches.map((ub) => ({
                 branchId: ub.branchId,
                 accessLevel: ub.accessLevel,
-                permissions: ub.permissions as Record<string, boolean> || {},
+                permissions: (ub.permissions as Record<string, boolean>) || {},
                 isPrimary: ub.isPrimary,
               })),
             };
@@ -170,24 +185,26 @@ export class AuthGuard implements CanActivate {
           };
         }
       }
-      
+
       request.user = bypassUser;
       return true;
     }
 
     // Extract token from Authorization header
     const token = this.extractTokenFromHeader(request);
-    
+
     if (!token) {
       throw new UnauthorizedException('Access token is required');
     }
 
     try {
       let dbUser;
-      
+
       // Try to decode as custom token first (base64 encoded JSON)
       try {
-        const decodedToken = JSON.parse(Buffer.from(token, 'base64').toString());
+        const decodedToken = JSON.parse(
+          Buffer.from(token, 'base64').toString(),
+        );
         if (decodedToken.userId && decodedToken.email) {
           // This is our custom token
           dbUser = await this.prisma.user.findUnique({
@@ -204,12 +221,12 @@ export class AuthGuard implements CanActivate {
       } catch (customTokenError) {
         // Not a custom token, try Supabase
       }
-      
+
       // If custom token didn't work, try Supabase token
       if (!dbUser) {
         try {
           const supabaseUser = await this.supabaseService.verifyToken(token);
-          
+
           dbUser = await this.prisma.user.findUnique({
             where: { email: supabaseUser.email },
             include: {
@@ -223,7 +240,9 @@ export class AuthGuard implements CanActivate {
         } catch (supabaseError) {
           // In development, if Supabase fails, fall back to bypass auth
           if (process.env.NODE_ENV === 'development') {
-            console.warn('Supabase token verification failed in development, using auth bypass');
+            console.warn(
+              'Supabase token verification failed in development, using auth bypass',
+            );
             // Trigger bypass auth behavior - create fallback super admin user
             const bypassUser: AuthenticatedUser = {
               id: 'development-bypass-user',
@@ -250,17 +269,17 @@ export class AuthGuard implements CanActivate {
         email: dbUser.email || '',
         role: dbUser.role,
         tenantId: dbUser.tenantId,
-        branchAccess: dbUser.userBranches.map(ub => ({
+        branchAccess: dbUser.userBranches.map((ub) => ({
           branchId: ub.branchId,
           accessLevel: ub.accessLevel,
-          permissions: ub.permissions as Record<string, boolean> || {},
+          permissions: (ub.permissions as Record<string, boolean>) || {},
           isPrimary: ub.isPrimary,
         })),
       };
-      
+
       // Attach user to request object for use in controllers
       request.user = authenticatedUser;
-      
+
       return true;
     } catch (error) {
       console.error('Auth error:', error);

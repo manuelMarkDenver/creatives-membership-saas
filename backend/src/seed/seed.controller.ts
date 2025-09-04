@@ -1,5 +1,5 @@
-import { Controller, Post, Get } from '@nestjs/common'
-import { SeedService } from './seed.service'
+import { Controller, Post, Get } from '@nestjs/common';
+import { SeedService } from './seed.service';
 
 @Controller('api/v1/seed')
 export class SeedController {
@@ -7,11 +7,11 @@ export class SeedController {
 
   @Post()
   async seedDatabase() {
-    return await this.seedService.seedDatabase()
+    return await this.seedService.seedDatabase();
   }
 
   @Get('status')
   async getSeedStatus() {
-    return await this.seedService.getDatabaseStatus()
+    return await this.seedService.getDatabaseStatus();
   }
 }

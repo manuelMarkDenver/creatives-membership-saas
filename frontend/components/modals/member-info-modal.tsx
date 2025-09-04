@@ -111,9 +111,6 @@ export function MemberInfoModal({
     if (member && isOpen) {
       const gymProfile = member.gymMemberProfile
 
-      // Parse emergency contact from the stored string format
-      const emergencyContact = gymProfile?.emergencyContact || ''
-
       setFormData({
         firstName: member.firstName || '',
         lastName: member.lastName || '',
@@ -127,9 +124,9 @@ export function MemberInfoModal({
         height: gymProfile?.height?.toString() || '',
         weight: gymProfile?.weight?.toString() || '',
         fitnessGoals: gymProfile?.fitnessGoals || '',
-        emergencyContactName: emergencyContact.split(' - ')[0] || '',
-        emergencyContactPhone: emergencyContact.split(' - ')[1] || '',
-        emergencyContactRelationship: '',
+        emergencyContactName: gymProfile?.emergencyContactName || '',
+        emergencyContactPhone: gymProfile?.emergencyContactPhone || '',
+        emergencyContactRelationship: gymProfile?.emergencyContactRelation || '',
 
         medicalConditions: gymProfile?.medicalConditions || '',
         allergies: Array.isArray(gymProfile?.allergies) ? gymProfile.allergies.join(', ') : '',
@@ -225,9 +222,9 @@ export function MemberInfoModal({
         photoUrl: formData.photoUrl,
         notes: formData.notes,
         // Gym member profile fields
-        emergencyContact: formData.emergencyContactName && formData.emergencyContactPhone
-          ? `${formData.emergencyContactName} - ${formData.emergencyContactPhone}`
-          : null,
+        emergencyContactName: formData.emergencyContactName || null,
+        emergencyContactPhone: formData.emergencyContactPhone || null,
+        emergencyContactRelation: formData.emergencyContactRelationship || null,
         medicalConditions: formData.medicalConditions || null,
         fitnessGoals: formData.fitnessGoals || null,
         preferredTrainer: null,

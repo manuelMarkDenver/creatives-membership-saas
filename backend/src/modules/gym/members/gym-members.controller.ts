@@ -24,9 +24,11 @@ interface CreateGymMemberDto {
   email: string;
   phoneNumber?: string;
   dateOfBirth?: string;
-  address?: any;
-  emergencyContact?: any;
-  membershipPlanId?: string;
+   address?: any;
+   emergencyContactName?: any;
+   emergencyContactPhone?: any;
+   emergencyContactRelation?: any;
+   membershipPlanId?: string;
   paymentMethod?: string;
 }
 
@@ -37,9 +39,11 @@ interface UpdateGymMemberDto {
   email?: string;
   phoneNumber?: string;
   dateOfBirth?: string;
-  address?: any;
-  emergencyContact?: any;
-  isActive?: boolean;
+   address?: any;
+   emergencyContactName?: any;
+   emergencyContactPhone?: any;
+   emergencyContactRelation?: any;
+   isActive?: boolean;
 }
 
 @Controller('gym/members')
@@ -50,14 +54,15 @@ export class GymMembersController {
   // ========================================
   // NOTE: For basic user CRUD (create, read, update, delete, photo upload)
   // use the Users controller at /users - it handles ALL user types
-  // 
+  //
   // This controller focuses ONLY on gym-specific business logic
   // ========================================
 
   @Get('stats')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   async getGymStats(@Req() req: RequestWithUser) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
@@ -66,8 +71,12 @@ export class GymMembersController {
 
   @Get('workout-stats')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
-  async getWorkoutStats(@Req() req: RequestWithUser, @Query('memberId') memberId?: string) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+  async getWorkoutStats(
+    @Req() req: RequestWithUser,
+    @Query('memberId') memberId?: string,
+  ) {
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
@@ -77,7 +86,8 @@ export class GymMembersController {
   @Get('equipment-usage')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   async getEquipmentUsage(@Req() req: RequestWithUser) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }

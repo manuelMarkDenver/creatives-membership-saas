@@ -8,13 +8,13 @@ export class RoleGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    
+
     // Check if auth was bypassed (for local testing)
     if (request.headers['x-bypass-auth'] || request.headers['X-Bypass-Auth']) {
       console.warn('⚠️  Role guard bypassed for local testing');
       return true;
     }
-    
+
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>('roles', [
       context.getHandler(),
       context.getClass(),

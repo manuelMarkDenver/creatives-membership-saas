@@ -1,4 +1,9 @@
-import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
@@ -12,13 +17,21 @@ export class SupabaseService {
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
     const supabaseKey = this.configService.get<string>('SUPABASE_ANON_KEY');
-    const serviceRoleKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
+    const serviceRoleKey = this.configService.get<string>(
+      'SUPABASE_SERVICE_ROLE_KEY',
+    );
     const nodeEnv = this.configService.get<string>('NODE_ENV');
 
     this.logger.log(`Environment: ${nodeEnv}`);
-    this.logger.log(`Supabase URL: ${supabaseUrl ? supabaseUrl : 'NOT CONFIGURED'}`);
-    this.logger.log(`Anon Key: ${supabaseKey ? 'CONFIGURED' : 'NOT CONFIGURED'}`);
-    this.logger.log(`Service Role Key: ${serviceRoleKey ? 'CONFIGURED' : 'NOT CONFIGURED'}`);
+    this.logger.log(
+      `Supabase URL: ${supabaseUrl ? supabaseUrl : 'NOT CONFIGURED'}`,
+    );
+    this.logger.log(
+      `Anon Key: ${supabaseKey ? 'CONFIGURED' : 'NOT CONFIGURED'}`,
+    );
+    this.logger.log(
+      `Service Role Key: ${serviceRoleKey ? 'CONFIGURED' : 'NOT CONFIGURED'}`,
+    );
 
     // Use anon key for storage operations with proper RLS policies
     // Service role key bypasses RLS which might cause signature verification issues
@@ -32,23 +45,30 @@ export class SupabaseService {
             auth: {
               persistSession: false,
               autoRefreshToken: false,
-              detectSessionInUrl: false
+              detectSessionInUrl: false,
             },
             global: {
               headers: {
                 'Cache-Control': 'no-cache',
-                'Prefer': 'return=minimal'
-              }
-            }
+                Prefer: 'return=minimal',
+              },
+            },
           });
-          this.logger.log('Supabase client initialized for development with anon key');
+          this.logger.log(
+            'Supabase client initialized for development with anon key',
+          );
           this.initializeStorage();
         } catch (error) {
-          this.logger.error('Failed to initialize Supabase client:', error.message);
+          this.logger.error(
+            'Failed to initialize Supabase client:',
+            error.message,
+          );
           this.supabase = null;
         }
       } else {
-        this.logger.warn('Supabase not configured - photo upload and OAuth features will be disabled');
+        this.logger.warn(
+          'Supabase not configured - photo upload and OAuth features will be disabled',
+        );
         this.supabase = null;
       }
     } else {
@@ -61,13 +81,16 @@ export class SupabaseService {
           auth: {
             persistSession: false,
             autoRefreshToken: false,
-            detectSessionInUrl: false
-          }
+            detectSessionInUrl: false,
+          },
         });
         this.logger.log('Supabase client initialized for production');
         this.initializeStorage();
       } catch (error) {
-        this.logger.error('Failed to initialize Supabase client for production:', error.message);
+        this.logger.error(
+          'Failed to initialize Supabase client for production:',
+          error.message,
+        );
         throw error;
       }
     }
@@ -90,25 +113,35 @@ export class SupabaseService {
         this.logger.log(`Storage URL format: ${urlData.publicUrl}`);
         this.isStorageReady = true;
       } else {
-        this.logger.warn(`Could not generate public URLs for bucket '${this.bucketName}'`);
+        this.logger.warn(
+          `Could not generate public URLs for bucket '${this.bucketName}'`,
+        );
       }
 
       // Optional: Try to list buckets if we have permissions (won't fail if we don't)
       try {
-        const { data: buckets, error: listError } = await this.supabase.storage.listBuckets();
+        const { data: buckets, error: listError } =
+          await this.supabase.storage.listBuckets();
         if (!listError && buckets) {
-          const bucketExists = buckets.some(bucket => bucket.name === this.bucketName);
+          const bucketExists = buckets.some(
+            (bucket) => bucket.name === this.bucketName,
+          );
           if (bucketExists) {
-            this.logger.log(`Confirmed: Storage bucket '${this.bucketName}' exists`);
+            this.logger.log(
+              `Confirmed: Storage bucket '${this.bucketName}' exists`,
+            );
           } else {
-            this.logger.warn(`Warning: Bucket '${this.bucketName}' not found in bucket list`);
+            this.logger.warn(
+              `Warning: Bucket '${this.bucketName}' not found in bucket list`,
+            );
           }
         }
       } catch (listError) {
         // Ignore list errors - we don't need admin permissions for uploads
-        this.logger.debug('Could not list buckets (this is normal with anon key)');
+        this.logger.debug(
+          'Could not list buckets (this is normal with anon key)',
+        );
       }
-
     } catch (error) {
       this.logger.warn(`Storage initialization failed: ${error.message}`);
       // Don't fail the service initialization for storage issues
@@ -124,12 +157,14 @@ export class SupabaseService {
    */
   async verifyToken(token: string) {
     if (!this.supabase) {
-      throw new Error('Supabase not configured - token verification not available');
+      throw new Error(
+        'Supabase not configured - token verification not available',
+      );
     }
-    
+
     try {
       const { data, error } = await this.supabase.auth.getUser(token);
-      
+
       if (error) {
         throw new Error(`Token verification failed: ${error.message}`);
       }
@@ -143,14 +178,19 @@ export class SupabaseService {
   /**
    * Get OAuth URL for provider
    */
-  async getOAuthUrl(provider: 'google' | 'facebook' | 'twitter', redirectTo?: string) {
+  async getOAuthUrl(
+    provider: 'google' | 'facebook' | 'twitter',
+    redirectTo?: string,
+  ) {
     if (!this.supabase) {
       throw new Error('Supabase not configured - OAuth not available');
     }
     const { data, error } = await this.supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: redirectTo || `${this.configService.get('FRONTEND_URL')}/auth/callback`,
+        redirectTo:
+          redirectTo ||
+          `${this.configService.get('FRONTEND_URL')}/auth/callback`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -172,8 +212,9 @@ export class SupabaseService {
     if (!this.supabase) {
       throw new Error('Supabase not configured - code exchange not available');
     }
-    const { data, error } = await this.supabase.auth.exchangeCodeForSession(code);
-    
+    const { data, error } =
+      await this.supabase.auth.exchangeCodeForSession(code);
+
     if (error) {
       throw new Error(`Code exchange failed: ${error.message}`);
     }
@@ -186,7 +227,9 @@ export class SupabaseService {
    */
   async refreshSession(refreshToken: string) {
     if (!this.supabase) {
-      throw new Error('Supabase not configured - session refresh not available');
+      throw new Error(
+        'Supabase not configured - session refresh not available',
+      );
     }
     const { data, error } = await this.supabase.auth.refreshSession({
       refresh_token: refreshToken,
@@ -213,7 +256,7 @@ export class SupabaseService {
     });
 
     const { error } = await this.supabase.auth.signOut();
-    
+
     if (error) {
       throw new Error(`Sign out failed: ${error.message}`);
     }
@@ -229,24 +272,30 @@ export class SupabaseService {
   async uploadMemberPhoto(
     memberId: string,
     tenantId: string,
-    file: Express.Multer.File
+    file: Express.Multer.File,
   ): Promise<{ url: string; path: string }> {
     if (!this.supabase) {
-      throw new InternalServerErrorException('Photo upload not available - Supabase not configured');
+      throw new InternalServerErrorException(
+        'Photo upload not available - Supabase not configured',
+      );
     }
-    
+
     // For storage operations, create a separate client with service role key to bypass RLS
-    const serviceRoleKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
+    const serviceRoleKey = this.configService.get<string>(
+      'SUPABASE_SERVICE_ROLE_KEY',
+    );
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-    
-    const storageClient = serviceRoleKey ? createClient(supabaseUrl!, serviceRoleKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false
-      }
-    }) : this.supabase;
-    
+
+    const storageClient = serviceRoleKey
+      ? createClient(supabaseUrl!, serviceRoleKey, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+          },
+        })
+      : this.supabase;
+
     try {
       // Validate file type
       if (!file.mimetype.startsWith('image/')) {
@@ -269,7 +318,7 @@ export class SupabaseService {
         .upload(fileName, file.buffer, {
           contentType: file.mimetype,
           cacheControl: '3600',
-          upsert: true // Force overwrite existing files
+          upsert: true, // Force overwrite existing files
         });
 
       if (error) {
@@ -279,9 +328,11 @@ export class SupabaseService {
           fileName,
           bucketName: this.bucketName,
           fileSize: file.size,
-          mimeType: file.mimetype
+          mimeType: file.mimetype,
         });
-        throw new InternalServerErrorException(`Failed to upload photo: ${error.message}`);
+        throw new InternalServerErrorException(
+          `Failed to upload photo: ${error.message}`,
+        );
       }
 
       // Get public URL with cache busting
@@ -297,14 +348,13 @@ export class SupabaseService {
 
       return {
         url: publicUrl,
-        path: fileName
+        path: fileName,
       };
-
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      
+
       this.logger.error(`Upload failed: ${error.message}`, error.stack);
       throw new InternalServerErrorException('Failed to upload photo');
     }
@@ -315,10 +365,12 @@ export class SupabaseService {
    */
   async deleteMemberPhoto(photoPath: string): Promise<boolean> {
     if (!this.supabase) {
-      this.logger.warn('Photo deletion not available - Supabase not configured');
+      this.logger.warn(
+        'Photo deletion not available - Supabase not configured',
+      );
       return true; // Don't fail if Supabase not configured
     }
-    
+
     try {
       if (!photoPath) {
         return true; // Nothing to delete
@@ -337,7 +389,6 @@ export class SupabaseService {
 
       this.logger.log(`Photo deleted successfully: ${photoPath}`);
       return true;
-
     } catch (error) {
       this.logger.warn(`Delete failed: ${error.message}`);
       return false; // Don't throw error for delete operations
@@ -356,13 +407,12 @@ export class SupabaseService {
       // Extract path after bucket name
       const bucketPath = `/${this.bucketName}/`;
       const pathIndex = photoUrl.indexOf(bucketPath);
-      
+
       if (pathIndex === -1) {
         return null;
       }
 
       return photoUrl.substring(pathIndex + bucketPath.length);
-
     } catch (error) {
       this.logger.warn(`Failed to extract photo path from URL: ${photoUrl}`);
       return null;

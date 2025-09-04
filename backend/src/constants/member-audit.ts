@@ -1,11 +1,11 @@
 export const MEMBER_ACTION_REASONS = {
   ACTIVATION: [
     'PAYMENT_RECEIVED',
-    'ISSUE_RESOLVED', 
+    'ISSUE_RESOLVED',
     'POLICY_UPDATE',
     'ADMIN_DECISION',
     'SUBSCRIPTION_RENEWED',
-    'OTHER'
+    'OTHER',
   ],
   DEACTIVATION: [
     'NON_PAYMENT',
@@ -14,7 +14,7 @@ export const MEMBER_ACTION_REASONS = {
     'FACILITY_ABUSE',
     'SUBSCRIPTION_EXPIRED',
     'ADMIN_DECISION',
-    'OTHER'
+    'OTHER',
   ],
   CANCELLATION: [
     'NON_PAYMENT',
@@ -22,16 +22,16 @@ export const MEMBER_ACTION_REASONS = {
     'MEMBER_REQUEST',
     'FACILITY_ABUSE',
     'ADMIN_DECISION',
-    'OTHER'
+    'OTHER',
   ],
   RESTORATION: [
     'DATA_ERROR',
-    'POLICY_CHANGE', 
+    'POLICY_CHANGE',
     'MEMBER_REQUEST',
     'ADMIN_ERROR',
     'PAYMENT_RESOLVED',
-    'OTHER'
-  ]
+    'OTHER',
+  ],
 };
 
 export const MEMBER_STATES = {
@@ -39,7 +39,7 @@ export const MEMBER_STATES = {
   INACTIVE: 'INACTIVE',
   CANCELLED: 'CANCELLED',
   EXPIRED: 'EXPIRED',
-  DELETED: 'DELETED'
+  DELETED: 'DELETED',
 } as const;
 
 export const MEMBER_ACTION_DESCRIPTIONS = {
@@ -62,5 +62,5 @@ export const MEMBER_ACTION_DESCRIPTIONS = {
   FACILITY_ACCESS_GRANTED: 'Facility access was granted',
   FACILITY_ACCESS_REVOKED: 'Facility access was revoked',
   LOGIN_SUCCESSFUL: 'Member logged in successfully',
-  LOGIN_FAILED: 'Member login attempt failed'
+  LOGIN_FAILED: 'Member login attempt failed',
 };

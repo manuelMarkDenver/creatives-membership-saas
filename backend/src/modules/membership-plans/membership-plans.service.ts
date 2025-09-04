@@ -1,7 +1,15 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../core/prisma/prisma.service';
-import { CreateMembershipPlanDto, UpdateMembershipPlanDto } from './dto/membership-plan.dto';
+import {
+  CreateMembershipPlanDto,
+  UpdateMembershipPlanDto,
+} from './dto/membership-plan.dto';
 
 @Injectable()
 export class MembershipPlansService {
@@ -20,7 +28,9 @@ export class MembershipPlansService {
       });
 
       if (existingPlan) {
-        throw new ConflictException('A membership plan with this name already exists for this tenant');
+        throw new ConflictException(
+          'A membership plan with this name already exists for this tenant',
+        );
       }
 
       // Verify tenant exists
@@ -35,7 +45,9 @@ export class MembershipPlansService {
       const createdPlan = await this.prisma.membershipPlan.create({
         data: {
           ...createDto,
-          benefits: createDto.benefits ? JSON.stringify(createDto.benefits) : undefined,
+          benefits: createDto.benefits
+            ? JSON.stringify(createDto.benefits)
+            : undefined,
         },
         include: {
           tenant: {
@@ -46,13 +58,18 @@ export class MembershipPlansService {
           },
         },
       });
-      
+
       return {
         ...createdPlan,
-        benefits: createdPlan.benefits ? JSON.parse(createdPlan.benefits as string) : [],
+        benefits: createdPlan.benefits
+          ? JSON.parse(createdPlan.benefits as string)
+          : [],
       };
     } catch (error) {
-      if (error instanceof ConflictException || error instanceof NotFoundException) {
+      if (
+        error instanceof ConflictException ||
+        error instanceof NotFoundException
+      ) {
         throw error;
       }
       throw new ConflictException('Failed to create membership plan');
@@ -62,10 +79,7 @@ export class MembershipPlansService {
   async findAllByTenant(tenantId: string) {
     const plans = await this.prisma.membershipPlan.findMany({
       where: { tenantId },
-      orderBy: [
-        { isActive: 'desc' },
-        { createdAt: 'desc' }
-      ],
+      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
       include: {
         tenant: {
           select: {
@@ -75,8 +89,8 @@ export class MembershipPlansService {
         },
       },
     });
-    
-    return plans.map(plan => ({
+
+    return plans.map((plan) => ({
       ...plan,
       benefits: plan.benefits ? JSON.parse(plan.benefits as string) : [],
     }));
@@ -84,9 +98,9 @@ export class MembershipPlansService {
 
   async findAllActive(tenantId: string) {
     const plans = await this.prisma.membershipPlan.findMany({
-      where: { 
+      where: {
         tenantId,
-        isActive: true 
+        isActive: true,
       },
       orderBy: { price: 'asc' },
       include: {
@@ -98,8 +112,8 @@ export class MembershipPlansService {
         },
       },
     });
-    
-    return plans.map(plan => ({
+
+    return plans.map((plan) => ({
       ...plan,
       benefits: plan.benefits ? JSON.parse(plan.benefits as string) : [],
     }));
@@ -107,9 +121,9 @@ export class MembershipPlansService {
 
   async findOne(id: string, tenantId: string) {
     const plan = await this.prisma.membershipPlan.findFirst({
-      where: { 
+      where: {
         id,
-        tenantId 
+        tenantId,
       },
       include: {
         tenant: {
@@ -131,7 +145,11 @@ export class MembershipPlansService {
     };
   }
 
-  async update(id: string, tenantId: string, updateDto: UpdateMembershipPlanDto) {
+  async update(
+    id: string,
+    tenantId: string,
+    updateDto: UpdateMembershipPlanDto,
+  ) {
     // Verify the plan exists and belongs to the tenant
     const existingPlan = await this.findOne(id, tenantId);
 
@@ -147,7 +165,9 @@ export class MembershipPlansService {
       });
 
       if (conflictingPlan) {
-        throw new ConflictException('A membership plan with this name already exists for this tenant');
+        throw new ConflictException(
+          'A membership plan with this name already exists for this tenant',
+        );
       }
     }
 
@@ -155,7 +175,9 @@ export class MembershipPlansService {
       where: { id },
       data: {
         ...updateDto,
-        benefits: updateDto.benefits ? JSON.stringify(updateDto.benefits) : undefined,
+        benefits: updateDto.benefits
+          ? JSON.stringify(updateDto.benefits)
+          : undefined,
       },
       include: {
         tenant: {
@@ -166,16 +188,18 @@ export class MembershipPlansService {
         },
       },
     });
-    
+
     return {
       ...updatedPlan,
-      benefits: updatedPlan.benefits ? JSON.parse(updatedPlan.benefits as string) : [],
+      benefits: updatedPlan.benefits
+        ? JSON.parse(updatedPlan.benefits as string)
+        : [],
     };
   }
 
   async toggleStatus(id: string, tenantId: string) {
     const plan = await this.findOne(id, tenantId);
-    
+
     const updatedPlan = await this.prisma.membershipPlan.update({
       where: { id },
       data: { isActive: !plan.isActive },
@@ -188,10 +212,12 @@ export class MembershipPlansService {
         },
       },
     });
-    
+
     return {
       ...updatedPlan,
-      benefits: updatedPlan.benefits ? JSON.parse(updatedPlan.benefits as string) : [],
+      benefits: updatedPlan.benefits
+        ? JSON.parse(updatedPlan.benefits as string)
+        : [],
     };
   }
 
@@ -212,7 +238,9 @@ export class MembershipPlansService {
     });
 
     if (membersWithPlan) {
-      throw new ConflictException('Cannot delete membership plan that is currently in use by members');
+      throw new ConflictException(
+        'Cannot delete membership plan that is currently in use by members',
+      );
     }
 
     return this.prisma.membershipPlan.delete({
@@ -224,7 +252,9 @@ export class MembershipPlansService {
     const [total, active, inactive] = await Promise.all([
       this.prisma.membershipPlan.count({ where: { tenantId } }),
       this.prisma.membershipPlan.count({ where: { tenantId, isActive: true } }),
-      this.prisma.membershipPlan.count({ where: { tenantId, isActive: false } }),
+      this.prisma.membershipPlan.count({
+        where: { tenantId, isActive: false },
+      }),
     ]);
 
     // Get usage stats by checking User businessData
@@ -265,10 +295,7 @@ export class MembershipPlansService {
           },
         },
       },
-      orderBy: [
-        { tenant: { name: 'asc' } },
-        { createdAt: 'desc' },
-      ],
+      orderBy: [{ tenant: { name: 'asc' } }, { createdAt: 'desc' }],
     });
 
     // Group plans by tenant and add member count for each plan

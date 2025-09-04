@@ -1,4 +1,10 @@
-import { IsString, IsEmail, IsOptional, IsEnum, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsEnum,
+  IsObject,
+} from 'class-validator';
 
 export class NotificationDataDto {
   @IsString()
@@ -21,8 +27,23 @@ export class NotificationDataDto {
   @IsOptional()
   businessType?: 'GYM' | 'COFFEE_SHOP' | 'E_COMMERCE';
 
-  @IsEnum(['expired', 'expiring_soon', 'welcome', 'general', 'reminder', 'promotion', 'update'])
-  notificationType: 'expired' | 'expiring_soon' | 'welcome' | 'general' | 'reminder' | 'promotion' | 'update';
+  @IsEnum([
+    'expired',
+    'expiring_soon',
+    'welcome',
+    'general',
+    'reminder',
+    'promotion',
+    'update',
+  ])
+  notificationType:
+    | 'expired'
+    | 'expiring_soon'
+    | 'welcome'
+    | 'general'
+    | 'reminder'
+    | 'promotion'
+    | 'update';
 
   @IsObject()
   @IsOptional()
@@ -65,8 +86,23 @@ export class SendNotificationDto {
   @IsOptional()
   businessType?: 'GYM' | 'COFFEE_SHOP' | 'E_COMMERCE';
 
-  @IsEnum(['expired', 'expiring_soon', 'welcome', 'general', 'reminder', 'promotion', 'update'])
-  notificationType: 'expired' | 'expiring_soon' | 'welcome' | 'general' | 'reminder' | 'promotion' | 'update';
+  @IsEnum([
+    'expired',
+    'expiring_soon',
+    'welcome',
+    'general',
+    'reminder',
+    'promotion',
+    'update',
+  ])
+  notificationType:
+    | 'expired'
+    | 'expiring_soon'
+    | 'welcome'
+    | 'general'
+    | 'reminder'
+    | 'promotion'
+    | 'update';
 
   @IsObject()
   @IsOptional()
@@ -75,20 +111,20 @@ export class SendNotificationDto {
     membershipType?: string;
     expirationDate?: string;
     daysUntilExpiry?: number;
-    
+
     // For promotions
     offerDetails?: string;
     discountPercent?: number;
     promoCode?: string;
-    
+
     // For updates
     updateDetails?: string;
-    
+
     // For reminders
     message?: string;
     actionRequired?: string;
     dueDate?: string;
-    
+
     // Generic fields
     [key: string]: any;
   };

@@ -171,7 +171,9 @@ model UserBranch {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Gym-specific fields
-  emergencyContact  String?
+  emergencyContactName     String?
+  emergencyContactPhone    String?
+  emergencyContactRelation String?
   medicalConditions String?
   fitnessGoals      String?
   preferredTrainer  String?
@@ -188,12 +190,14 @@ model UserBranch {
   notifications      Json? // Object with sms, push, email
   favoriteEquipment  String?
   averageVisitsPerWeek Int?
-  preferredWorkoutTime String?
+   preferredWorkoutTime String?
 
-  membershipHistory  Json? // Past memberships, achievements, etc.
-  profileMetadata    Json? // For any additional dynamic data
+   joinedDate         DateTime? // Date when member first joined the gym
 
-  createdAt         DateTime @default(now())
+   membershipHistory  Json? // Past memberships, achievements, etc.
+   profileMetadata    Json? // For any additional dynamic data
+
+   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   @@index([userId])

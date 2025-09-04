@@ -1,7 +1,27 @@
-import { Controller, Post, Body, Param, Put, Get, Delete, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  Put,
+  Get,
+  Delete,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { GymLocationsService } from './gym-locations.service';
-import { CreateBranchDto, UpdateBranchDto, AssignUserToBranchDto, UpdateUserBranchAccessDto } from '../../branches/dto/branch.dto';
-import { RBACGuard, RequiredRoles, RequiredAccessLevel, AuthenticatedUser } from '../../../core/guard/rbac.guard';
+import {
+  CreateBranchDto,
+  UpdateBranchDto,
+  AssignUserToBranchDto,
+  UpdateUserBranchAccessDto,
+} from '../../branches/dto/branch.dto';
+import {
+  RBACGuard,
+  RequiredRoles,
+  RequiredAccessLevel,
+  AuthenticatedUser,
+} from '../../../core/guard/rbac.guard';
 import { AuthGuard } from '../../../core/auth/auth.guard';
 import { Role, AccessLevel } from '@prisma/client';
 
@@ -19,13 +39,19 @@ export class GymLocationsController {
   ) {
     const user = req.user as AuthenticatedUser;
     // Handle bypass auth case - use tenantId from body or headers
-    const tenantId = user?.tenantId || createLocationDto.tenantId || req.headers['x-tenant-id'];
-    
+    const tenantId =
+      user?.tenantId ||
+      createLocationDto.tenantId ||
+      req.headers['x-tenant-id'];
+
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
-    
-    return this.gymLocationsService.createGymLocation({ ...createLocationDto, tenantId });
+
+    return this.gymLocationsService.createGymLocation({
+      ...createLocationDto,
+      tenantId,
+    });
   }
 
   @Put(':locationId')
@@ -35,7 +61,10 @@ export class GymLocationsController {
     @Param('locationId') locationId: string,
     @Body() updateLocationDto: UpdateBranchDto,
   ) {
-    return this.gymLocationsService.updateGymLocation(locationId, updateLocationDto);
+    return this.gymLocationsService.updateGymLocation(
+      locationId,
+      updateLocationDto,
+    );
   }
 
   @Get()
@@ -44,30 +73,27 @@ export class GymLocationsController {
   async findAllGymLocations(@Request() req: any) {
     const user = req.user as AuthenticatedUser;
     // Handle bypass auth case - use tenantId from query or headers
-    const tenantId = user?.tenantId || req.query?.tenantId || req.headers['x-tenant-id'];
-    
+    const tenantId =
+      user?.tenantId || req.query?.tenantId || req.headers['x-tenant-id'];
+
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
-    
+
     return this.gymLocationsService.findAllGymLocations(tenantId);
   }
 
   @Get(':locationId')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
-  async findGymLocationById(
-    @Param('locationId') locationId: string,
-  ) {
+  async findGymLocationById(@Param('locationId') locationId: string) {
     return this.gymLocationsService.findGymLocationById(locationId);
   }
 
   @Delete(':locationId')
   @RequiredRoles(Role.OWNER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
-  async deleteGymLocation(
-    @Param('locationId') locationId: string,
-  ) {
+  async deleteGymLocation(@Param('locationId') locationId: string) {
     return this.gymLocationsService.deleteGymLocation(locationId);
   }
 
@@ -78,7 +104,10 @@ export class GymLocationsController {
     @Param('locationId') locationId: string,
     @Body() assignUserDto: AssignUserToBranchDto,
   ) {
-    return this.gymLocationsService.assignStaffToLocation(assignUserDto, locationId);
+    return this.gymLocationsService.assignStaffToLocation(
+      assignUserDto,
+      locationId,
+    );
   }
 
   @Put(':locationId/staff/:userId')
@@ -89,6 +118,10 @@ export class GymLocationsController {
     @Param('userId') userId: string,
     @Body() updateAccessDto: UpdateUserBranchAccessDto,
   ) {
-    return this.gymLocationsService.updateStaffLocationAccess(updateAccessDto, userId, locationId);
+    return this.gymLocationsService.updateStaffLocationAccess(
+      updateAccessDto,
+      userId,
+      locationId,
+    );
   }
 }

@@ -12,8 +12,10 @@ import { Role, AccessLevel, BusinessCategory } from '@prisma/client';
 
 // Decorators for RBAC
 export const RequiredRoles = (...roles: Role[]) => SetMetadata('roles', roles);
-export const RequiredAccessLevel = (level: AccessLevel) => SetMetadata('accessLevel', level);
-export const RequiredPermissions = (...permissions: string[]) => SetMetadata('permissions', permissions);
+export const RequiredAccessLevel = (level: AccessLevel) =>
+  SetMetadata('accessLevel', level);
+export const RequiredPermissions = (...permissions: string[]) =>
+  SetMetadata('permissions', permissions);
 export const SkipRBAC = () => SetMetadata('skipRBAC', true);
 
 // Interface for authenticated user with RBAC info
@@ -39,13 +41,13 @@ export class RBACGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    
+
     // Skip RBAC if decorator is present
     const skipRBAC = this.reflector.getAllAndOverride<boolean>('skipRBAC', [
       context.getHandler(),
       context.getClass(),
     ]);
-    
+
     if (skipRBAC) {
       return true;
     }
@@ -57,8 +59,14 @@ export class RBACGuard implements CanActivate {
     }
 
     // Get tenant and branch context
-    const tenantId = request.params?.tenantId || request.query?.tenantId || request.headers?.['x-tenant-id'];
-    const branchId = request.params?.branchId || request.query?.branchId || request.headers?.['x-branch-id'];
+    const tenantId =
+      request.params?.tenantId ||
+      request.query?.tenantId ||
+      request.headers?.['x-tenant-id'];
+    const branchId =
+      request.params?.branchId ||
+      request.query?.branchId ||
+      request.headers?.['x-branch-id'];
 
     // Load user's full RBAC info if not already loaded
     if (!user.branchAccess) {
@@ -73,16 +81,18 @@ export class RBACGuard implements CanActivate {
 
     if (requiredRoles && requiredRoles.length > 0) {
       if (!this.hasRole(user, requiredRoles)) {
-        throw new ForbiddenException(`Access denied. Required roles: ${requiredRoles.join(', ')}`);
+        throw new ForbiddenException(
+          `Access denied. Required roles: ${requiredRoles.join(', ')}`,
+        );
       }
     }
 
     // Check branch-level access
     if (branchId) {
-      const requiredAccessLevel = this.reflector.getAllAndOverride<AccessLevel>('accessLevel', [
-        context.getHandler(),
-        context.getClass(),
-      ]);
+      const requiredAccessLevel = this.reflector.getAllAndOverride<AccessLevel>(
+        'accessLevel',
+        [context.getHandler(), context.getClass()],
+      );
 
       if (!this.hasBranchAccess(user, branchId, requiredAccessLevel)) {
         throw new ForbiddenException('Insufficient branch access permissions');
@@ -90,14 +100,16 @@ export class RBACGuard implements CanActivate {
     }
 
     // Check specific permissions
-    const requiredPermissions = this.reflector.getAllAndOverride<string[]>('permissions', [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
+      'permissions',
+      [context.getHandler(), context.getClass()],
+    );
 
     if (requiredPermissions && requiredPermissions.length > 0) {
       if (!this.hasPermissions(user, branchId, requiredPermissions)) {
-        throw new ForbiddenException(`Missing required permissions: ${requiredPermissions.join(', ')}`);
+        throw new ForbiddenException(
+          `Missing required permissions: ${requiredPermissions.join(', ')}`,
+        );
       }
     }
 
@@ -107,7 +119,9 @@ export class RBACGuard implements CanActivate {
       tenantId,
       branchId,
       canAccessBranch: branchId ? this.hasBranchAccess(user, branchId) : true,
-      accessLevel: branchId ? this.getUserBranchAccessLevel(user, branchId) : null,
+      accessLevel: branchId
+        ? this.getUserBranchAccessLevel(user, branchId)
+        : null,
     };
 
     return true;
@@ -131,10 +145,10 @@ export class RBACGuard implements CanActivate {
 
     user.role = dbUser.role;
     user.tenantId = dbUser.tenantId;
-    user.branchAccess = dbUser.userBranches.map(ub => ({
+    user.branchAccess = dbUser.userBranches.map((ub) => ({
       branchId: ub.branchId,
       accessLevel: ub.accessLevel,
-      permissions: ub.permissions as Record<string, boolean> || {},
+      permissions: (ub.permissions as Record<string, boolean>) || {},
       isPrimary: ub.isPrimary,
     }));
   }
@@ -154,16 +168,18 @@ export class RBACGuard implements CanActivate {
   }
 
   private hasBranchAccess(
-    user: AuthenticatedUser, 
-    branchId: string, 
-    requiredLevel?: AccessLevel
+    user: AuthenticatedUser,
+    branchId: string,
+    requiredLevel?: AccessLevel,
   ): boolean {
     // SUPER_ADMIN and OWNER have access to all branches
     if (user.role === Role.SUPER_ADMIN || user.role === Role.OWNER) {
       return true;
     }
 
-    const branchAccess = user.branchAccess?.find(ba => ba.branchId === branchId);
+    const branchAccess = user.branchAccess?.find(
+      (ba) => ba.branchId === branchId,
+    );
     if (!branchAccess) {
       return false;
     }
@@ -173,13 +189,16 @@ export class RBACGuard implements CanActivate {
     }
 
     // Check if user's access level meets requirement
-    return this.accessLevelHierarchy(branchAccess.accessLevel) >= this.accessLevelHierarchy(requiredLevel);
+    return (
+      this.accessLevelHierarchy(branchAccess.accessLevel) >=
+      this.accessLevelHierarchy(requiredLevel)
+    );
   }
 
   private hasPermissions(
-    user: AuthenticatedUser, 
-    branchId: string | undefined, 
-    requiredPermissions: string[]
+    user: AuthenticatedUser,
+    branchId: string | undefined,
+    requiredPermissions: string[],
   ): boolean {
     // SUPER_ADMIN has all permissions
     if (user.role === Role.SUPER_ADMIN) {
@@ -195,23 +214,30 @@ export class RBACGuard implements CanActivate {
       return false; // Need branch context for permission checks
     }
 
-    const branchAccess = user.branchAccess?.find(ba => ba.branchId === branchId);
+    const branchAccess = user.branchAccess?.find(
+      (ba) => ba.branchId === branchId,
+    );
     if (!branchAccess) {
       return false;
     }
 
     // Check if user has all required permissions
-    return requiredPermissions.every(permission => 
-      branchAccess.permissions?.[permission] === true
+    return requiredPermissions.every(
+      (permission) => branchAccess.permissions?.[permission] === true,
     );
   }
 
-  private getUserBranchAccessLevel(user: AuthenticatedUser, branchId: string): AccessLevel | null {
+  private getUserBranchAccessLevel(
+    user: AuthenticatedUser,
+    branchId: string,
+  ): AccessLevel | null {
     if (user.role === Role.SUPER_ADMIN || user.role === Role.OWNER) {
       return AccessLevel.FULL_ACCESS;
     }
 
-    const branchAccess = user.branchAccess?.find(ba => ba.branchId === branchId);
+    const branchAccess = user.branchAccess?.find(
+      (ba) => ba.branchId === branchId,
+    );
     return branchAccess?.accessLevel || null;
   }
 
@@ -230,7 +256,7 @@ export class RBACGuard implements CanActivate {
 export async function getUserAccessibleBranches(
   prisma: PrismaService,
   userId: string,
-  tenantId?: string
+  tenantId?: string,
 ): Promise<string[]> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -253,7 +279,7 @@ export async function getUserAccessibleBranches(
       where: tenantId ? { tenantId } : {},
       select: { id: true },
     });
-    return allBranches.map(b => b.id);
+    return allBranches.map((b) => b.id);
   }
 
   if (user.role === Role.OWNER) {
@@ -261,9 +287,9 @@ export async function getUserAccessibleBranches(
       where: { tenantId: user.tenantId || undefined },
       select: { id: true },
     });
-    return tenantBranches.map(b => b.id);
+    return tenantBranches.map((b) => b.id);
   }
 
   // Return branches the user has explicit access to
-  return user.userBranches.map(ub => ub.branchId);
+  return user.userBranches.map((ub) => ub.branchId);
 }

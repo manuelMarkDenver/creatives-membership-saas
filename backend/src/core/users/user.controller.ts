@@ -46,7 +46,7 @@ export class UsersController {
     @Query('role') role?: string,
     @Query('search') search?: string,
     @Query('page') page?: string,
-    @Query('limit') limit?: string
+    @Query('limit') limit?: string,
   ) {
     if (tenantId) {
       const filters = {
@@ -55,16 +55,18 @@ export class UsersController {
         page: page ? parseInt(page, 10) : undefined,
         limit: limit ? parseInt(limit, 10) : undefined,
         requestingUserId: req.user?.id,
-        requestingUserRole: req.user?.role
+        requestingUserRole: req.user?.role,
       };
       return this.usersService.getUsersByTenant(tenantId, filters);
     }
-    
+
     // Only SUPER_ADMIN should be able to call getAllUsers without tenantId
     if (req.user?.role !== 'SUPER_ADMIN') {
-      throw new BadRequestException('tenantId parameter is required for non-super-admin users');
+      throw new BadRequestException(
+        'tenantId parameter is required for non-super-admin users',
+      );
     }
-    
+
     return this.usersService.getAllUsers();
   }
 
@@ -87,7 +89,7 @@ export class UsersController {
     @Query('role') role?: string,
     @Query('search') search?: string,
     @Query('page') page?: string,
-    @Query('limit') limit?: string
+    @Query('limit') limit?: string,
   ) {
     const filters = {
       role: role as Role,
@@ -95,7 +97,7 @@ export class UsersController {
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
       requestingUserId: req.user?.id,
-      requestingUserRole: req.user?.role
+      requestingUserRole: req.user?.role,
     };
     return this.usersService.getUsersByTenant(tenantId, filters);
   }
@@ -105,7 +107,10 @@ export class UsersController {
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
   @AllowedBusinessTypes(BusinessCategory.GYM)
-  async getExpiringMembers(@Param('tenantId') tenantId: string, @Query('daysBefore') daysBefore?: string) {
+  async getExpiringMembers(
+    @Param('tenantId') tenantId: string,
+    @Query('daysBefore') daysBefore?: string,
+  ) {
     const days = parseInt(daysBefore || '7', 10);
     return this.usersService.getExpiringGymMembers(tenantId, days);
   }
@@ -117,10 +122,13 @@ export class UsersController {
   @AllowedBusinessTypes(BusinessCategory.GYM)
   async getExpiringMembersWithNotifications(
     @Param('tenantId') tenantId: string,
-    @Query('daysBefore') daysBefore?: string
+    @Query('daysBefore') daysBefore?: string,
   ) {
     const days = parseInt(daysBefore || '7', 10);
-    return this.usersService.getExpiringGymMembersWithNotifications(tenantId, days);
+    return this.usersService.getExpiringGymMembersWithNotifications(
+      tenantId,
+      days,
+    );
   }
 
   // Get count of expiring memberships for badges/notifications
@@ -131,18 +139,22 @@ export class UsersController {
   async getExpiringMembersCount(
     @Param('tenantId') tenantId: string,
     @Req() req: any,
-    @Query('daysBefore') daysBefore?: string
+    @Query('daysBefore') daysBefore?: string,
   ) {
     const days = parseInt(daysBefore || '7', 10);
-    
+
     // Pass user context for role-based filtering
     const userContext = {
       userId: req.user?.id,
       role: req.user?.role,
-      tenantId: req.user?.tenantId
+      tenantId: req.user?.tenantId,
     };
-    
-    return this.usersService.getExpiringMembersCount(tenantId, days, userContext);
+
+    return this.usersService.getExpiringMembersCount(
+      tenantId,
+      days,
+      userContext,
+    );
   }
 
   // Super Admin + role-based expiring members overview
@@ -156,7 +168,7 @@ export class UsersController {
     @Query('tenantId') tenantId?: string,
     @Query('branchId') branchId?: string,
     @Query('page') page?: string,
-    @Query('limit') limit?: string
+    @Query('limit') limit?: string,
   ) {
     const days = parseInt(daysBefore || '7', 10);
     const filters = {
@@ -166,9 +178,9 @@ export class UsersController {
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 50,
       userRole: req.user?.role,
-      userTenantId: req.user?.tenantId
+      userTenantId: req.user?.tenantId,
     };
-    
+
     return await this.usersService.getExpiringMembersOverview(days, filters);
   }
 
@@ -212,22 +224,25 @@ export class UsersController {
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
   @AllowedBusinessTypes(BusinessCategory.GYM)
   softDelete(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Body() body: { reason: string; notes?: string },
-    @Req() req: any
+    @Req() req: any,
   ) {
     const { reason, notes } = body;
     const deletedBy = req.user?.id;
-    
+
     if (!deletedBy) {
       throw new BadRequestException('User not authenticated');
     }
-    
+
     if (!reason || reason.trim() === '') {
       throw new BadRequestException('Reason is required for member deletion');
     }
-    
-    return this.usersService.softDeleteUser(id, deletedBy, { reason: reason.trim(), notes });
+
+    return this.usersService.softDeleteUser(id, deletedBy, {
+      reason: reason.trim(),
+      notes,
+    });
   }
 
   // Restore soft-deleted user (business agnostic)
@@ -238,20 +253,25 @@ export class UsersController {
   restoreUser(
     @Param('id') id: string,
     @Body() body: { reason: string; notes?: string },
-    @Req() req: any
+    @Req() req: any,
   ) {
     const { reason, notes } = body;
     const performedBy = req.user?.id;
-    
+
     if (!performedBy) {
       throw new BadRequestException('User not authenticated');
     }
-    
+
     if (!reason || reason.trim() === '') {
-      throw new BadRequestException('Reason is required for member restoration');
+      throw new BadRequestException(
+        'Reason is required for member restoration',
+      );
     }
-    
-    return this.usersService.restoreUser(id, performedBy, { reason: reason.trim(), notes });
+
+    return this.usersService.restoreUser(id, performedBy, {
+      reason: reason.trim(),
+      notes,
+    });
   }
 
   // Member management endpoints
@@ -262,7 +282,7 @@ export class UsersController {
   async activateMember(
     @Param('id') id: string,
     @Body() body: { reason: string; notes?: string },
-    @Req() req: any
+    @Req() req: any,
   ) {
     const { reason, notes } = body || {};
     const performedBy = req.user?.id;
@@ -275,7 +295,11 @@ export class UsersController {
       throw new BadRequestException('Reason is required and cannot be empty');
     }
 
-    return await this.usersService.activateMember(id, { reason: reason.trim(), notes }, performedBy);
+    return await this.usersService.activateMember(
+      id,
+      { reason: reason.trim(), notes },
+      performedBy,
+    );
   }
 
   @Post(':id/cancel')
@@ -285,7 +309,7 @@ export class UsersController {
   async cancelMember(
     @Param('id') id: string,
     @Body() body: { reason: string; notes?: string },
-    @Req() req: any
+    @Req() req: any,
   ) {
     const { reason, notes } = body;
     const performedBy = req.user?.id;
@@ -308,7 +332,7 @@ export class UsersController {
   async renewMemberSubscription(
     @Param('id') id: string,
     @Body() body: { membershipPlanId: string },
-    @Req() req: any
+    @Req() req: any,
   ) {
     const { membershipPlanId } = body;
     const performedBy = req.user?.id;
@@ -321,7 +345,11 @@ export class UsersController {
       throw new BadRequestException('Membership plan ID is required');
     }
 
-    return this.usersService.renewMemberSubscription(id, membershipPlanId, performedBy);
+    return this.usersService.renewMemberSubscription(
+      id,
+      membershipPlanId,
+      performedBy,
+    );
   }
 
   @Get(':id/status')
@@ -338,15 +366,27 @@ export class UsersController {
   @AllowedBusinessTypes(BusinessCategory.GYM)
   async getMemberHistory(
     @Param('id') id: string,
-    @Query() query: { page?: string; limit?: string; category?: string; startDate?: string; endDate?: string }
+    @Query()
+    query: {
+      page?: string;
+      limit?: string;
+      category?: string;
+      startDate?: string;
+      endDate?: string;
+    },
   ) {
     // Convert string numbers to integers
     const parsedQuery = {
       page: query.page ? parseInt(query.page, 10) : undefined,
       limit: query.limit ? parseInt(query.limit, 10) : undefined,
-      category: query.category as 'ACCOUNT' | 'SUBSCRIPTION' | 'PAYMENT' | 'ACCESS' | undefined,
+      category: query.category as
+        | 'ACCOUNT'
+        | 'SUBSCRIPTION'
+        | 'PAYMENT'
+        | 'ACCESS'
+        | undefined,
       startDate: query.startDate,
-      endDate: query.endDate
+      endDate: query.endDate,
     };
 
     return this.usersService.getMemberHistory(id, parsedQuery);
@@ -357,23 +397,25 @@ export class UsersController {
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
   @AllowedBusinessTypes(BusinessCategory.GYM)
-  @UseInterceptors(FileInterceptor('photo', {
-    limits: {
-      fileSize: 5 * 1024 * 1024, // 5MB limit
-      files: 1
-    },
-    fileFilter: (req, file, callback) => {
-      // Check if file is an image
-      if (!file.mimetype.startsWith('image/')) {
-        return callback(new Error('Only image files are allowed'), false);
-      }
-      callback(null, true);
-    }
-  }))
+  @UseInterceptors(
+    FileInterceptor('photo', {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+        files: 1,
+      },
+      fileFilter: (req, file, callback) => {
+        // Check if file is an image
+        if (!file.mimetype.startsWith('image/')) {
+          return callback(new Error('Only image files are allowed'), false);
+        }
+        callback(null, true);
+      },
+    }),
+  )
   async uploadUserPhoto(
     @Param('id') userId: string,
     @UploadedFile() file: Express.Multer.File,
-    @Req() req: any
+    @Req() req: any,
   ) {
     if (!file) {
       throw new BadRequestException('Photo file is required');
@@ -386,10 +428,7 @@ export class UsersController {
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
   @AllowedBusinessTypes(BusinessCategory.GYM)
-  async deleteUserPhoto(
-    @Param('id') userId: string,
-    @Req() req: any
-  ) {
+  async deleteUserPhoto(@Param('id') userId: string, @Req() req: any) {
     return this.usersService.deleteUserPhoto(userId);
   }
 }

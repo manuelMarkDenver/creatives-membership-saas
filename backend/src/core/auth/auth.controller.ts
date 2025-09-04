@@ -65,13 +65,15 @@ export class AuthController {
       }
 
       // Generate a simple token (in production, use proper JWT)
-      const token = Buffer.from(JSON.stringify({
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        tenantId: user.tenantId,
-        timestamp: Date.now(),
-      })).toString('base64');
+      const token = Buffer.from(
+        JSON.stringify({
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+          tenantId: user.tenantId,
+          timestamp: Date.now(),
+        }),
+      ).toString('base64');
 
       return {
         success: true,
@@ -110,7 +112,9 @@ export class AuthController {
     @Query('redirect_to') redirectTo?: string,
   ) {
     if (!provider || !['google', 'facebook', 'twitter'].includes(provider)) {
-      throw new BadRequestException('Valid provider (google, facebook, twitter) is required');
+      throw new BadRequestException(
+        'Valid provider (google, facebook, twitter) is required',
+      );
     }
 
     try {
@@ -122,7 +126,9 @@ export class AuthController {
       // Redirect user to OAuth provider
       return res.redirect(oauthUrl);
     } catch (error) {
-      throw new InternalServerErrorException(`OAuth initiation failed: ${error.message}`);
+      throw new InternalServerErrorException(
+        `OAuth initiation failed: ${error.message}`,
+      );
     }
   }
 
@@ -141,7 +147,9 @@ export class AuthController {
     if (error) {
       const message = errorDescription || error;
       console.error('OAuth callback error:', message);
-      return res.redirect(`${process.env.FRONTEND_URL}/auth/error?message=${encodeURIComponent(message)}`);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth/error?message=${encodeURIComponent(message)}`,
+      );
     }
 
     if (!code) {
@@ -151,7 +159,7 @@ export class AuthController {
     try {
       // Exchange code for session
       const session = await this.supabaseService.exchangeCodeForSession(code);
-      
+
       if (!session.session) {
         throw new Error('Failed to create session');
       }
@@ -162,7 +170,7 @@ export class AuthController {
       // 1. Create/update user record in your database
       // 2. Set secure HTTP-only cookies
       // 3. Create JWT tokens for your app
-      
+
       // For now, redirect to frontend with tokens (not recommended for production)
       const params = new URLSearchParams({
         access_token,
@@ -172,10 +180,14 @@ export class AuthController {
         name: user.user_metadata?.full_name || user.user_metadata?.name || '',
       });
 
-      return res.redirect(`${process.env.FRONTEND_URL}/auth/success?${params.toString()}`);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth/success?${params.toString()}`,
+      );
     } catch (error) {
       console.error('OAuth callback processing error:', error);
-      return res.redirect(`${process.env.FRONTEND_URL}/auth/error?message=${encodeURIComponent('Authentication failed')}`);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth/error?message=${encodeURIComponent('Authentication failed')}`,
+      );
     }
   }
 
@@ -191,7 +203,7 @@ export class AuthController {
 
     try {
       const session = await this.supabaseService.refreshSession(refreshToken);
-      
+
       return {
         success: true,
         data: {
@@ -202,7 +214,9 @@ export class AuthController {
         },
       };
     } catch (error) {
-      throw new InternalServerErrorException(`Token refresh failed: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Token refresh failed: ${error.message}`,
+      );
     }
   }
 
@@ -218,13 +232,15 @@ export class AuthController {
 
     try {
       await this.supabaseService.signOut(token);
-      
+
       return {
         success: true,
         message: 'Successfully signed out',
       };
     } catch (error) {
-      throw new InternalServerErrorException(`Sign out failed: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Sign out failed: ${error.message}`,
+      );
     }
   }
 
@@ -235,8 +251,9 @@ export class AuthController {
   @Get('me')
   async getMe(@Query('token') token: string, @Req() request: Request) {
     // Check for bypass auth header for local development
-    const bypassAuth = request.headers['x-bypass-auth'] || request.headers['X-Bypass-Auth'];
-    
+    const bypassAuth =
+      request.headers['x-bypass-auth'] || request.headers['X-Bypass-Auth'];
+
     if (bypassAuth) {
       console.warn('⚠️  Auth bypassed for /auth/me endpoint');
       // Return the Super Admin user for development
@@ -244,25 +261,27 @@ export class AuthController {
         where: { email: 'admin@creatives-saas.com' },
         include: { tenant: true },
       });
-      
+
       if (superAdmin) {
         // Super Admins should not have a tenantId assigned
         // They have global access across all tenants
         let effectiveTenantId = superAdmin.tenantId;
         let effectiveTenant = superAdmin.tenant;
-        
+
         if (superAdmin.role === 'SUPER_ADMIN') {
           // Super Admins should always have null tenantId for global access
           effectiveTenantId = null;
           effectiveTenant = null;
         }
-        
+
         return {
           success: true,
           user: {
             id: superAdmin.id,
             email: superAdmin.email,
-            name: superAdmin.name || `${superAdmin.firstName} ${superAdmin.lastName}`,
+            name:
+              superAdmin.name ||
+              `${superAdmin.firstName} ${superAdmin.lastName}`,
             firstName: superAdmin.firstName,
             lastName: superAdmin.lastName,
             role: superAdmin.role,
@@ -272,7 +291,7 @@ export class AuthController {
           },
         };
       }
-      
+
       // Fallback to mock user if Super Admin not found
       return {
         success: true,
@@ -295,7 +314,7 @@ export class AuthController {
 
     try {
       const user = await this.supabaseService.verifyToken(token);
-      
+
       return {
         success: true,
         user: {
@@ -308,7 +327,9 @@ export class AuthController {
         },
       };
     } catch (error) {
-      throw new BadRequestException(`User verification failed: ${error.message}`);
+      throw new BadRequestException(
+        `User verification failed: ${error.message}`,
+      );
     }
   }
 }

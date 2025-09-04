@@ -1,6 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { BusinessUnitsService } from './business-units.service';
-import type { CreateBusinessUnitDto, UpdateBusinessUnitDto } from './business-units.service';
+import type {
+  CreateBusinessUnitDto,
+  UpdateBusinessUnitDto,
+} from './business-units.service';
 import { AuthGuard } from '../../core/auth/auth.guard';
 import { RBACGuard, RequiredRoles } from '../../core/guard/rbac.guard';
 import { Role } from '@prisma/client';
@@ -35,7 +49,8 @@ export class BusinessUnitsController {
   @Get()
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   async getBusinessUnits(@Req() req: RequestWithUser) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
@@ -45,7 +60,8 @@ export class BusinessUnitsController {
   @Get('stats')
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   async getTenantStats(@Req() req: RequestWithUser) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
@@ -55,7 +71,8 @@ export class BusinessUnitsController {
   @Get('can-create')
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   async canCreateBusinessUnit(@Req() req: RequestWithUser) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
@@ -64,8 +81,12 @@ export class BusinessUnitsController {
 
   @Get(':unitId')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
-  async getBusinessUnit(@Param('unitId') unitId: string, @Req() req: RequestWithUser) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+  async getBusinessUnit(
+    @Param('unitId') unitId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
@@ -74,12 +95,16 @@ export class BusinessUnitsController {
 
   @Post()
   @RequiredRoles(Role.OWNER, Role.MANAGER)
-  async createBusinessUnit(@Body() createDto: CreateBusinessUnitDto, @Req() req: RequestWithUser) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+  async createBusinessUnit(
+    @Body() createDto: CreateBusinessUnitDto,
+    @Req() req: RequestWithUser,
+  ) {
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
-    
+
     createDto.tenantId = tenantId; // Ensure correct tenant
     return this.businessUnitsService.createBusinessUnit(createDto);
   }
@@ -89,19 +114,28 @@ export class BusinessUnitsController {
   async updateBusinessUnit(
     @Param('unitId') unitId: string,
     @Body() updateDto: UpdateBusinessUnitDto,
-    @Req() req: RequestWithUser
+    @Req() req: RequestWithUser,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
-    return this.businessUnitsService.updateBusinessUnit(unitId, tenantId, updateDto);
+    return this.businessUnitsService.updateBusinessUnit(
+      unitId,
+      tenantId,
+      updateDto,
+    );
   }
 
   @Delete(':unitId')
   @RequiredRoles(Role.OWNER, Role.MANAGER)
-  async deleteBusinessUnit(@Param('unitId') unitId: string, @Req() req: RequestWithUser) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+  async deleteBusinessUnit(
+    @Param('unitId') unitId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
@@ -113,13 +147,18 @@ export class BusinessUnitsController {
   async upgradeToPaid(
     @Param('unitId') unitId: string,
     @Body() upgradeDto: UpgradeToPaidDto,
-    @Req() req: RequestWithUser
+    @Req() req: RequestWithUser,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'] as string;
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
-    return this.businessUnitsService.upgradeToPaid(unitId, tenantId, upgradeDto);
+    return this.businessUnitsService.upgradeToPaid(
+      unitId,
+      tenantId,
+      upgradeDto,
+    );
   }
 
   // Admin-only endpoints for paid mode management
@@ -128,13 +167,17 @@ export class BusinessUnitsController {
   async togglePaidMode(
     @Param('tenantId') tenantId: string,
     @Body() toggleDto: TogglePaidModeDto,
-    @Req() req: RequestWithUser
+    @Req() req: RequestWithUser,
   ) {
     const adminId = req.user?.id;
     if (!adminId) {
       throw new Error('Admin ID is required');
     }
-    return this.businessUnitsService.togglePaidMode(tenantId, toggleDto.enabled, adminId);
+    return this.businessUnitsService.togglePaidMode(
+      tenantId,
+      toggleDto.enabled,
+      adminId,
+    );
   }
 
   @Get('admin/tenant-stats/:tenantId')
