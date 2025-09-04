@@ -14,7 +14,12 @@ async function bootstrap() {
   app.enableCors({
     origin: true, // Allow all origins temporarily for MVP testing
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-bypass-auth', 'x-tenant-id'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-bypass-auth',
+      'x-tenant-id',
+    ],
     credentials: true,
   });
 

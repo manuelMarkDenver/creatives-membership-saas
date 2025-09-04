@@ -15,7 +15,7 @@ declare global {
       tenantId?: string;
       tenantSlug?: string;
     }
-    
+
     namespace Multer {
       interface File {
         fieldname: string;

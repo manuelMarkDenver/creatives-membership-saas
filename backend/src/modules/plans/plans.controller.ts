@@ -11,10 +11,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { PlansService } from './plans.service';
-import {
-  RBACGuard,
-  RequiredRoles,
-} from '../../core/guard/rbac.guard';
+import { RBACGuard, RequiredRoles } from '../../core/guard/rbac.guard';
 import { AuthGuard } from '../../core/auth/auth.guard';
 import { Role } from '@prisma/client';
 import { CreatePlanDto, UpdatePlanDto } from './dto/plan.dto';

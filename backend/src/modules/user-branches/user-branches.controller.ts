@@ -14,8 +14,15 @@ import {
 } from '@nestjs/common';
 import { UserBranchesService } from './user-branches.service';
 import { AuthGuard } from '../../core/auth/auth.guard';
-import { RBACGuard, RequiredRoles, RequiredAccessLevel } from '../../core/guard/rbac.guard';
-import { CreateUserBranchDto, UpdateUserBranchDto } from './dto/user-branch.dto';
+import {
+  RBACGuard,
+  RequiredRoles,
+  RequiredAccessLevel,
+} from '../../core/guard/rbac.guard';
+import {
+  CreateUserBranchDto,
+  UpdateUserBranchDto,
+} from './dto/user-branch.dto';
 import { Role, AccessLevel } from '@prisma/client';
 
 @Controller('user-branches')
@@ -62,14 +69,13 @@ export class UserBranchesController {
    */
   @Get('user/:userId')
   @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER, Role.STAFF)
-  async getUserBranches(
-    @Param('userId') userId: string,
-    @Req() req: any,
-  ) {
+  async getUserBranches(@Param('userId') userId: string, @Req() req: any) {
     const currentUser = req.user;
     // Staff can only view their own branch assignments
     if (currentUser.role === 'STAFF' && currentUser.id !== userId) {
-      throw new ForbiddenException('Staff can only view their own branch assignments');
+      throw new ForbiddenException(
+        'Staff can only view their own branch assignments',
+      );
     }
 
     return this.userBranchesService.getUserBranches(userId, currentUser);
@@ -80,10 +86,7 @@ export class UserBranchesController {
    */
   @Get('branch/:branchId')
   @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER)
-  async getBranchUsers(
-    @Param('branchId') branchId: string,
-    @Req() req: any,
-  ) {
+  async getBranchUsers(@Param('branchId') branchId: string, @Req() req: any) {
     return this.userBranchesService.getBranchUsers(branchId, req.user);
   }
 
@@ -125,10 +128,7 @@ export class UserBranchesController {
    */
   @Delete(':id')
   @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER)
-  async removeUserFromBranch(
-    @Param('id') id: string,
-    @Req() req: any,
-  ) {
+  async removeUserFromBranch(@Param('id') id: string, @Req() req: any) {
     return this.userBranchesService.removeUserFromBranch(id, req.user);
   }
 
@@ -138,7 +138,8 @@ export class UserBranchesController {
   @Post('bulk-assign')
   @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER)
   async bulkAssignUserToBranches(
-    @Body() bulkAssignDto: {
+    @Body()
+    bulkAssignDto: {
       userId: string;
       branchIds: string[];
       accessLevel?: 'MANAGER_ACCESS' | 'STAFF_ACCESS';

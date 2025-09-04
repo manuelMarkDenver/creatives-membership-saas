@@ -26,39 +26,51 @@ async function setupSupabaseStorage() {
 
   // Use service role key if available, otherwise try anon key
   const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
-  
+
   console.log('🔧 Setting up Supabase Storage...');
   console.log(`📍 Supabase URL: ${SUPABASE_URL}`);
-  console.log(`🔑 Using ${SUPABASE_SERVICE_ROLE_KEY ? 'Service Role' : 'Anon'} key`);
+  console.log(
+    `🔑 Using ${SUPABASE_SERVICE_ROLE_KEY ? 'Service Role' : 'Anon'} key`,
+  );
 
   const supabase: SupabaseClient = createClient(SUPABASE_URL, supabaseKey);
 
   try {
     // Check if bucket exists
     console.log(`🔍 Checking if bucket '${BUCKET_NAME}' exists...`);
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-    
+    const { data: buckets, error: listError } =
+      await supabase.storage.listBuckets();
+
     if (listError) {
       console.error('❌ Error listing buckets:', listError.message);
       // Try to continue anyway
     } else {
-      console.log('📦 Available buckets:', buckets.map(b => b.name).join(', '));
+      console.log(
+        '📦 Available buckets:',
+        buckets.map((b) => b.name).join(', '),
+      );
     }
 
-    const bucketExists = buckets?.some(bucket => bucket.name === BUCKET_NAME);
+    const bucketExists = buckets?.some((bucket) => bucket.name === BUCKET_NAME);
 
     if (!bucketExists) {
       console.log(`🆕 Creating bucket '${BUCKET_NAME}'...`);
-      
-      const { data: bucket, error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
-        public: true,
-        allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
-        fileSizeLimit: 5 * 1024 * 1024 // 5MB
-      });
+
+      const { data: bucket, error: createError } =
+        await supabase.storage.createBucket(BUCKET_NAME, {
+          public: true,
+          allowedMimeTypes: [
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/webp',
+          ],
+          fileSizeLimit: 5 * 1024 * 1024, // 5MB
+        });
 
       if (createError) {
         console.error('❌ Error creating bucket:', createError.message);
-        
+
         // If bucket creation fails, it might already exist or we don't have permissions
         // Let's try to test upload functionality anyway
         console.log('⚠️  Continuing with existing configuration...');
@@ -71,7 +83,7 @@ async function setupSupabaseStorage() {
 
     // Test upload functionality
     console.log('🧪 Testing upload functionality...');
-    
+
     const testFileName = `test-${Date.now()}.txt`;
     const testContent = 'Test file for Supabase storage setup';
     const testBlob = new Blob([testContent], { type: 'text/plain' });
@@ -88,12 +100,12 @@ async function setupSupabaseStorage() {
       console.log('   - Supabase project not configured for storage');
     } else {
       console.log('✅ Upload test successful');
-      
+
       // Clean up test file
       const { error: deleteError } = await supabase.storage
         .from(BUCKET_NAME)
         .remove([testFileName]);
-      
+
       if (deleteError) {
         console.warn('⚠️  Could not clean up test file:', deleteError.message);
       } else {
@@ -121,7 +133,6 @@ async function setupSupabaseStorage() {
     console.log(`   Public: Yes`);
     console.log(`   File size limit: 5MB`);
     console.log(`   Allowed types: JPEG, PNG, WebP`);
-
   } catch (error) {
     console.error('💥 Setup failed:', error);
     process.exit(1);

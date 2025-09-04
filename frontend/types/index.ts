@@ -246,9 +246,12 @@ export interface PaginatedResponse<T> {
 export interface GymMemberProfile {
   id: string
   userId: string
-  user?: User
-  emergencyContact?: string
-  medicalConditions?: string
+   user?: User
+   emergencyContactName?: string
+   emergencyContactPhone?: string
+   emergencyContactRelation?: string
+   joinedDate?: string
+   medicalConditions?: string
   fitnessGoals?: string
   preferredTrainer?: string
   // Profile fields

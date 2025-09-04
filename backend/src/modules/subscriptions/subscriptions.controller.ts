@@ -13,14 +13,14 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
-import {
-  RBACGuard,
-  RequiredRoles,
-} from '../../core/guard/rbac.guard';
+import { RBACGuard, RequiredRoles } from '../../core/guard/rbac.guard';
 import { AuthGuard } from '../../core/auth/auth.guard';
 import { Role } from '@prisma/client';
 import { Request } from 'express';
-import { CreateSubscriptionDto, UpdateSubscriptionDto } from './dto/subscription.dto';
+import {
+  CreateSubscriptionDto,
+  UpdateSubscriptionDto,
+} from './dto/subscription.dto';
 
 interface RequestWithTenant extends Request {
   tenantId?: string;
@@ -38,8 +38,9 @@ export class SubscriptionsController {
     // Super Admins don't belong to a specific tenant
     if (!req.tenantId) {
       return {
-        message: 'Super Admin users do not have tenant-specific subscription status',
-        data: null
+        message:
+          'Super Admin users do not have tenant-specific subscription status',
+        data: null,
       };
     }
     return this.subscriptionsService.getTenantSubscriptionStatus(req.tenantId);
@@ -59,7 +60,11 @@ export class SubscriptionsController {
     @Query('planId') planId?: string,
     @Query('tenantId') tenantId?: string,
   ) {
-    return this.subscriptionsService.getAllSubscriptions({ status, planId, tenantId });
+    return this.subscriptionsService.getAllSubscriptions({
+      status,
+      planId,
+      tenantId,
+    });
   }
 
   @Get(':id')
@@ -70,7 +75,9 @@ export class SubscriptionsController {
 
   @Post()
   @RequiredRoles(Role.SUPER_ADMIN)
-  async createSubscription(@Body() createSubscriptionDto: CreateSubscriptionDto) {
+  async createSubscription(
+    @Body() createSubscriptionDto: CreateSubscriptionDto,
+  ) {
     return this.subscriptionsService.createSubscription(createSubscriptionDto);
   }
 
@@ -80,7 +87,10 @@ export class SubscriptionsController {
     @Param('id') id: string,
     @Body() updateSubscriptionDto: UpdateSubscriptionDto,
   ) {
-    return this.subscriptionsService.updateSubscription(id, updateSubscriptionDto);
+    return this.subscriptionsService.updateSubscription(
+      id,
+      updateSubscriptionDto,
+    );
   }
 
   @Delete(':id')

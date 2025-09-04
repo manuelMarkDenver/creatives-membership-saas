@@ -3,6 +3,39 @@ import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+// Helper functions for generating realistic emergency contact data
+function generateEmergencyContactName(): string {
+  const firstNames = [
+    'Maria', 'Juan', 'Ana', 'Pedro', 'Rosa', 'Carlos', 'Elena', 'Miguel',
+    'Sofia', 'Diego', 'Isabella', 'Antonio', 'Gabriela', 'Luis', 'Carmen',
+    'Fernando', 'Victoria', 'Roberto', 'Patricia', 'Manuel', 'Teresa',
+    'Ricardo', 'Monica', 'Francisco', 'Laura', 'Alberto', 'Cristina',
+    'Javier', 'Natalia', 'Rafael', 'Silvia', 'Enrique', 'Beatriz', 'Oscar',
+    'Angela', 'Pablo', 'Dolores', 'Sergio', 'Pilar', 'Adrian', 'Gloria'
+  ];
+
+  const lastNames = [
+    'Santos', 'Dela Cruz', 'Garcia', 'Rodriguez', 'Martinez', 'Lopez',
+    'Hernandez', 'Gonzalez', 'Perez', 'Sanchez', 'Ramirez', 'Torres',
+    'Flores', 'Rivera', 'Gomez', 'Diaz', 'Morales', 'Ortiz', 'Gutierrez',
+    'Chavez', 'Ramos', 'Hernandez', 'Jimenez', 'Ruiz', 'Fernandez', 'Moreno'
+  ];
+
+  const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+  const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+
+  return `${firstName} ${lastName}`;
+}
+
+function getRandomRelationship(): string {
+  const relationships = [
+    'Spouse', 'Parent', 'Child', 'Sibling', 'Grandparent', 'Aunt', 'Uncle',
+    'Cousin', 'Friend', 'Neighbor', 'Colleague', 'Guardian', 'In-law'
+  ];
+
+  return relationships[Math.floor(Math.random() * relationships.length)];
+}
+
 async function main() {
   console.log('🌱 Starting simplified database seeding...');
 
@@ -499,11 +532,10 @@ async function main() {
           // Simplified member business data - only keep personal info and preferences
           const memberBusinessData = {
             personalInfo: {
-              emergencyContact: {
-                name: `Emergency ${lastName}`,
-                phone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
-                relationship: ['Spouse', 'Parent', 'Sibling', 'Friend'][Math.floor(Math.random() * 4)]
-              },
+              emergencyContactName: generateEmergencyContactName(),
+              emergencyContactPhone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
+              emergencyContactRelation: getRandomRelationship(),
+              joinedDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(), // Random date within last year
               dateOfBirth: new Date(1980 + Math.floor(Math.random() * 30), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
               gender: Math.random() > 0.5 ? 'MALE' : 'FEMALE',
               height: 150 + Math.floor(Math.random() * 40), // 150-190 cm

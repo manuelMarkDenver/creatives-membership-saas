@@ -1,4 +1,12 @@
-import { IsString, IsNumber, IsBoolean, IsEnum, IsOptional, Min, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  Min,
+  MaxLength,
+} from 'class-validator';
 import { BillingCycle } from '@prisma/client';
 
 export class CreatePlanDto {

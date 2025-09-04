@@ -1,6 +1,16 @@
-import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
 
 @Injectable()
 export class S3UploadService {
@@ -13,12 +23,18 @@ export class S3UploadService {
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
     const s3Endpoint = this.configService.get<string>('SUPABASE_S3_ENDPOINT');
-    const accessKeyId = this.configService.get<string>('SUPABASE_S3_ACCESS_KEY_ID');
-    const secretAccessKey = this.configService.get<string>('SUPABASE_S3_SECRET_ACCESS_KEY');
+    const accessKeyId = this.configService.get<string>(
+      'SUPABASE_S3_ACCESS_KEY_ID',
+    );
+    const secretAccessKey = this.configService.get<string>(
+      'SUPABASE_S3_SECRET_ACCESS_KEY',
+    );
 
     // Extract project ID from Supabase URL for S3 endpoint if not provided
     if (!s3Endpoint && supabaseUrl) {
-      const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
+      const projectId = supabaseUrl.match(
+        /https:\/\/([^.]+)\.supabase\.co/,
+      )?.[1];
       if (projectId) {
         this.endpoint = `https://${projectId}.storage.supabase.co/storage/v1/s3`;
       } else {
@@ -31,10 +47,14 @@ export class S3UploadService {
 
     // Use provided credentials
     const finalAccessKey = accessKeyId || '76cf8298817e75467a20ac5456e9c694';
-    const finalSecretKey = secretAccessKey || '6877a4d587f5a46923d00d3a2ccf55f0e26c2c6ffe72fd751651853a9ce2fef0';
+    const finalSecretKey =
+      secretAccessKey ||
+      '6877a4d587f5a46923d00d3a2ccf55f0e26c2c6ffe72fd751651853a9ce2fef0';
 
     this.logger.log(`S3 Endpoint: ${this.endpoint}`);
-    this.logger.log(`Access Key ID: ${finalAccessKey ? finalAccessKey.substring(0, 8) + '...' : 'NOT SET'}`);
+    this.logger.log(
+      `Access Key ID: ${finalAccessKey ? finalAccessKey.substring(0, 8) + '...' : 'NOT SET'}`,
+    );
 
     if (this.endpoint && finalAccessKey && finalSecretKey) {
       try {
@@ -62,10 +82,12 @@ export class S3UploadService {
   async uploadMemberPhoto(
     memberId: string,
     tenantId: string,
-    file: Express.Multer.File
+    file: Express.Multer.File,
   ): Promise<{ url: string; path: string }> {
     if (!this.s3Client) {
-      throw new InternalServerErrorException('S3 upload not available - client not configured');
+      throw new InternalServerErrorException(
+        'S3 upload not available - client not configured',
+      );
     }
 
     try {
@@ -82,7 +104,9 @@ export class S3UploadService {
       // Generate consistent filename (always overwrite as profile.jpg)
       const fileName = `${tenantId}/${memberId}/profile.jpg`;
 
-      this.logger.log(`Uploading photo via S3 for member ${memberId}: ${fileName}`);
+      this.logger.log(
+        `Uploading photo via S3 for member ${memberId}: ${fileName}`,
+      );
 
       // Upload to S3
       const uploadCommand = new PutObjectCommand({
@@ -104,16 +128,17 @@ export class S3UploadService {
 
       return {
         url: publicUrl,
-        path: fileName
+        path: fileName,
       };
-
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      
+
       this.logger.error(`S3 upload failed: ${error.message}`, error.stack);
-      throw new InternalServerErrorException(`Failed to upload photo: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Failed to upload photo: ${error.message}`,
+      );
     }
   }
 
@@ -122,7 +147,9 @@ export class S3UploadService {
    */
   async deleteMemberPhoto(photoPath: string): Promise<boolean> {
     if (!this.s3Client) {
-      this.logger.warn('S3 photo deletion not available - client not configured');
+      this.logger.warn(
+        'S3 photo deletion not available - client not configured',
+      );
       return true;
     }
 
@@ -142,7 +169,6 @@ export class S3UploadService {
 
       this.logger.log(`Photo deleted successfully via S3: ${photoPath}`);
       return true;
-
     } catch (error) {
       this.logger.warn(`S3 delete failed: ${error.message}`);
       return false;

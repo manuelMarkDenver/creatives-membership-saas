@@ -8,7 +8,13 @@ import { AuthModule } from '../auth/auth.module';
 import { SupabaseModule } from '../supabase/supabase.module';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, TenantsModule, AuthModule, SupabaseModule], // <-- Needed here
+  imports: [
+    PrismaModule,
+    NotificationsModule,
+    TenantsModule,
+    AuthModule,
+    SupabaseModule,
+  ], // <-- Needed here
   controllers: [UsersController],
   providers: [UsersService],
 })

@@ -1,5 +1,12 @@
 // import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEnum, IsUUID, IsBoolean, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsUUID,
+  IsBoolean,
+  IsObject,
+} from 'class-validator';
 import { BusinessCategory, AccessLevel } from '@prisma/client';
 
 export class CreateBranchDto {

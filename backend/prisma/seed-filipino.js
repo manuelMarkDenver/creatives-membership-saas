@@ -3,6 +3,39 @@ const bcrypt = require('bcrypt');
 
 const prisma = new PrismaClient();
 
+// Helper functions for generating realistic emergency contact data
+function generateEmergencyContactName() {
+  const firstNames = [
+    'Maria', 'Juan', 'Ana', 'Pedro', 'Rosa', 'Carlos', 'Elena', 'Miguel',
+    'Sofia', 'Diego', 'Isabella', 'Antonio', 'Gabriela', 'Luis', 'Carmen',
+    'Fernando', 'Victoria', 'Roberto', 'Patricia', 'Manuel', 'Teresa',
+    'Ricardo', 'Monica', 'Francisco', 'Laura', 'Alberto', 'Cristina',
+    'Javier', 'Natalia', 'Rafael', 'Silvia', 'Enrique', 'Beatriz', 'Oscar',
+    'Angela', 'Pablo', 'Dolores', 'Sergio', 'Pilar', 'Adrian', 'Gloria'
+  ];
+
+  const lastNames = [
+    'Santos', 'Dela Cruz', 'Garcia', 'Rodriguez', 'Martinez', 'Lopez',
+    'Hernandez', 'Gonzalez', 'Perez', 'Sanchez', 'Ramirez', 'Torres',
+    'Flores', 'Rivera', 'Gomez', 'Diaz', 'Morales', 'Ortiz', 'Gutierrez',
+    'Chavez', 'Ramos', 'Hernandez', 'Jimenez', 'Ruiz', 'Fernandez', 'Moreno'
+  ];
+
+  const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+  const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+
+  return `${firstName} ${lastName}`;
+}
+
+function getRandomRelationship() {
+  const relationships = [
+    'Spouse', 'Parent', 'Child', 'Sibling', 'Grandparent', 'Aunt', 'Uncle',
+    'Cousin', 'Friend', 'Neighbor', 'Colleague', 'Guardian', 'In-law'
+  ];
+
+  return relationships[Math.floor(Math.random() * relationships.length)];
+}
+
 async function main() {
   console.log('🌱 Starting comprehensive Filipino member seeding...');
 
@@ -385,11 +418,10 @@ async function main() {
       
       const memberBusinessData = {
         personalInfo: {
-          emergencyContact: {
-            name: `Emergency ${memberInfo.lastName}`,
-            phone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
-            relationship: 'Spouse'
-          },
+          emergencyContactName: generateEmergencyContactName(),
+          emergencyContactPhone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
+          emergencyContactRelation: getRandomRelationship(),
+          joinedDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(), // Random date within last year
           dateOfBirth: new Date(1990 + i, 0, 1).toISOString(),
           gender: i % 2 === 0 ? 'MALE' : 'FEMALE',
           height: 170 + i * 5,

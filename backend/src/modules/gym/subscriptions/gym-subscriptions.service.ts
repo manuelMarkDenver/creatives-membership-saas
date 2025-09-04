@@ -1,6 +1,14 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../core/prisma/prisma.service';
-import { GymMemberSubscriptionStatus, TransactionType, TransactionStatus } from '@prisma/client';
+import {
+  GymMemberSubscriptionStatus,
+  TransactionType,
+  TransactionStatus,
+} from '@prisma/client';
 
 @Injectable()
 export class GymSubscriptionsService {
@@ -13,7 +21,7 @@ export class GymSubscriptionsService {
     return this.prisma.gymMemberSubscription.findFirst({
       where: {
         memberId: memberId,
-        tenantId
+        tenantId,
       },
       include: {
         membershipPlan: true,
@@ -23,13 +31,13 @@ export class GymSubscriptionsService {
             firstName: true,
             lastName: true,
             name: true,
-            email: true
-          }
-        }
+            email: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     });
   }
 
@@ -40,7 +48,7 @@ export class GymSubscriptionsService {
     return this.prisma.gymMemberSubscription.findMany({
       where: {
         memberId: memberId,
-        tenantId
+        tenantId,
       },
       include: {
         membershipPlan: {
@@ -49,13 +57,13 @@ export class GymSubscriptionsService {
             name: true,
             price: true,
             duration: true,
-            type: true
-          }
-        }
+            type: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     });
   }
 
@@ -63,30 +71,45 @@ export class GymSubscriptionsService {
    * Renew gym membership for a member
    */
   async renewMembership(
-    memberId: string, 
-    membershipPlanId: string, 
-    tenantId: string, 
+    memberId: string,
+    membershipPlanId: string,
+    tenantId: string,
     processedBy: string,
-    paymentMethod: string = 'cash'
+    paymentMethod: string = 'cash',
   ) {
     // Check for existing renewal on the same day to prevent duplicates
     const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
-    
-    const existingTodayRenewal = await this.prisma.gymMemberSubscription.findFirst({
-      where: {
-        memberId: memberId,
-        tenantId,
-        createdAt: {
-          gte: startOfDay,
-          lte: endOfDay
-        }
-      }
-    });
+    const startOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const endOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+
+    const existingTodayRenewal =
+      await this.prisma.gymMemberSubscription.findFirst({
+        where: {
+          memberId: memberId,
+          tenantId,
+          createdAt: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+      });
 
     if (existingTodayRenewal) {
-      throw new BadRequestException('A membership renewal has already been processed for this member today. Please wait until tomorrow to process another renewal.');
+      throw new BadRequestException(
+        'A membership renewal has already been processed for this member today. Please wait until tomorrow to process another renewal.',
+      );
     }
 
     // Get the membership plan
@@ -94,8 +117,8 @@ export class GymSubscriptionsService {
       where: {
         id: membershipPlanId,
         tenantId,
-        isActive: true
-      }
+        isActive: true,
+      },
     });
 
     if (!membershipPlan) {
@@ -107,8 +130,8 @@ export class GymSubscriptionsService {
       where: {
         id: memberId,
         tenantId,
-        role: 'GYM_MEMBER'
-      }
+        role: 'GYM_MEMBER',
+      },
     });
 
     if (!member) {
@@ -116,18 +139,24 @@ export class GymSubscriptionsService {
     }
 
     // Check for existing active subscription
-    const existingSubscription = await this.getCurrentSubscription(memberId, tenantId);
-    
+    const existingSubscription = await this.getCurrentSubscription(
+      memberId,
+      tenantId,
+    );
+
     // If there's an active subscription, expire it first
-    if (existingSubscription && existingSubscription.status === GymMemberSubscriptionStatus.ACTIVE) {
+    if (
+      existingSubscription &&
+      existingSubscription.status === GymMemberSubscriptionStatus.ACTIVE
+    ) {
       await this.prisma.gymMemberSubscription.update({
         where: { id: existingSubscription.id },
-        data: { 
+        data: {
           status: GymMemberSubscriptionStatus.EXPIRED,
           cancelledAt: new Date(),
           cancellationReason: 'renewed',
-          cancellationNotes: 'Expired due to membership renewal'
-        }
+          cancellationNotes: 'Expired due to membership renewal',
+        },
       });
     }
 
@@ -147,7 +176,7 @@ export class GymSubscriptionsService {
         endDate,
         price: membershipPlan.price,
         currency: 'PHP',
-        autoRenew: true
+        autoRenew: true,
       },
       include: {
         membershipPlan: true,
@@ -157,17 +186,17 @@ export class GymSubscriptionsService {
             firstName: true,
             lastName: true,
             name: true,
-            email: true
-          }
-        }
-      }
+            email: true,
+          },
+        },
+      },
     });
 
     // Validate processedBy user exists if provided
     let validProcessedBy: string | null = null;
     if (processedBy) {
       const processor = await this.prisma.user.findUnique({
-        where: { id: processedBy }
+        where: { id: processedBy },
       });
       if (processor) {
         validProcessedBy = processedBy;
@@ -190,31 +219,33 @@ export class GymSubscriptionsService {
         relatedEntityId: membershipPlan.id,
         relatedEntityName: membershipPlan.name,
         description: `Gym membership renewal: ${membershipPlan.name}`,
-        processedBy: validProcessedBy
-      }
+        processedBy: validProcessedBy,
+      },
     });
 
     // Update user's businessData to remove payment history only
     // (keep other business-specific data but use new transaction system)
-    const currentUser = await this.prisma.user.findUnique({ where: { id: memberId } });
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: memberId },
+    });
     const currentBusinessData = currentUser?.businessData as any;
-    
+
     if (currentBusinessData) {
       // Remove paymentHistory but keep other data
       delete currentBusinessData.paymentHistory;
-      
+
       await this.prisma.user.update({
         where: { id: memberId },
         data: {
-          businessData: currentBusinessData
-        }
+          businessData: currentBusinessData,
+        },
       });
     }
 
     return {
       success: true,
       subscription,
-      message: `Gym membership renewed successfully. Valid until ${endDate.toLocaleDateString()}`
+      message: `Gym membership renewed successfully. Valid until ${endDate.toLocaleDateString()}`,
     };
   }
 
@@ -222,69 +253,74 @@ export class GymSubscriptionsService {
    * Cancel gym membership for a member
    */
   async cancelMembership(
-    memberId: string, 
-    tenantId: string, 
+    memberId: string,
+    tenantId: string,
     processedBy: string,
     cancellationReason?: string,
-    cancellationNotes?: string
+    cancellationNotes?: string,
   ) {
     // Get current subscription
     const subscription = await this.getCurrentSubscription(memberId, tenantId);
-    
+
     if (!subscription) {
       throw new NotFoundException('No subscription found for this gym member');
     }
 
     // Check if already cancelled or expired
     if (subscription.status !== GymMemberSubscriptionStatus.ACTIVE) {
-      throw new BadRequestException('Subscription is already cancelled or expired');
+      throw new BadRequestException(
+        'Subscription is already cancelled or expired',
+      );
     }
 
     // Cancel the subscription
-    const cancelledSubscription = await this.prisma.gymMemberSubscription.update({
-      where: { id: subscription.id },
-      data: {
-        status: GymMemberSubscriptionStatus.CANCELLED,
-        cancelledAt: new Date(),
-        cancellationReason: cancellationReason || 'manual_cancellation',
-        cancellationNotes,
-        autoRenew: false
-      },
-      include: {
-        membershipPlan: true,
-        member: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            name: true,
-            email: true
-          }
-        }
-      }
-    });
+    const cancelledSubscription =
+      await this.prisma.gymMemberSubscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: GymMemberSubscriptionStatus.CANCELLED,
+          cancelledAt: new Date(),
+          cancellationReason: cancellationReason || 'manual_cancellation',
+          cancellationNotes,
+          autoRenew: false,
+        },
+        include: {
+          membershipPlan: true,
+          member: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
 
-    // Update user's businessData to remove payment history only  
+    // Update user's businessData to remove payment history only
     // (keep other business-specific data but use new transaction system)
-    const currentUser = await this.prisma.user.findUnique({ where: { id: memberId } });
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: memberId },
+    });
     const currentBusinessData = currentUser?.businessData as any;
-    
+
     if (currentBusinessData) {
       // Remove paymentHistory but keep other data
       delete currentBusinessData.paymentHistory;
-      
+
       await this.prisma.user.update({
         where: { id: memberId },
         data: {
-          businessData: currentBusinessData
-        }
+          businessData: currentBusinessData,
+        },
       });
     }
 
     return {
       success: true,
       subscription: cancelledSubscription,
-      message: 'Gym membership cancelled successfully'
+      message: 'Gym membership cancelled successfully',
     };
   }
 
@@ -296,10 +332,10 @@ export class GymSubscriptionsService {
       where: {
         customerId: memberId,
         tenantId,
-        businessType: 'gym' // Filter for gym-specific transactions
+        businessType: 'gym', // Filter for gym-specific transactions
       },
       orderBy: {
-        createdAt: 'desc'
+        createdAt: 'desc',
       },
       include: {
         processor: {
@@ -307,10 +343,10 @@ export class GymSubscriptionsService {
             id: true,
             firstName: true,
             lastName: true,
-            name: true
-          }
-        }
-      }
+            name: true,
+          },
+        },
+      },
     });
   }
 
@@ -320,19 +356,20 @@ export class GymSubscriptionsService {
    */
   async getSubscriptionStats(tenantId: string) {
     // Get all gym member subscriptions for the tenant, grouped by member
-    const subscriptionsByMember = await this.prisma.gymMemberSubscription.groupBy({
-      by: ['memberId'],
-      where: { 
-        tenantId,
-        // Only include gym members
-        member: {
-          role: 'GYM_MEMBER'
-        }
-      },
-      _max: {
-        createdAt: true
-      }
-    });
+    const subscriptionsByMember =
+      await this.prisma.gymMemberSubscription.groupBy({
+        by: ['memberId'],
+        where: {
+          tenantId,
+          // Only include gym members
+          member: {
+            role: 'GYM_MEMBER',
+          },
+        },
+        _max: {
+          createdAt: true,
+        },
+      });
 
     // For each gym member, get their most recent subscription
     const memberStatuses = await Promise.all(
@@ -340,26 +377,26 @@ export class GymSubscriptionsService {
         if (!group._max.createdAt) {
           return { status: null, endDate: null }; // Skip if no createdAt found
         }
-        
+
         const mostRecent = await this.prisma.gymMemberSubscription.findFirst({
           where: {
             memberId: group.memberId,
             tenantId,
             createdAt: group._max.createdAt,
             member: {
-              role: 'GYM_MEMBER'
-            }
+              role: 'GYM_MEMBER',
+            },
           },
           select: {
             status: true,
-            endDate: true
-          }
+            endDate: true,
+          },
         });
         return {
           status: mostRecent?.status || null,
-          endDate: mostRecent?.endDate || null
+          endDate: mostRecent?.endDate || null,
         };
-      })
+      }),
     );
 
     // Count expiring subscriptions (active subscriptions ending within 7 days)
@@ -368,23 +405,31 @@ export class GymSubscriptionsService {
     sevenDaysFromNow.setDate(now.getDate() + 7);
 
     const expiringCount = memberStatuses.filter(({ status, endDate }) => {
-      return status === 'ACTIVE' && endDate && endDate <= sevenDaysFromNow && endDate >= now;
+      return (
+        status === 'ACTIVE' &&
+        endDate &&
+        endDate <= sevenDaysFromNow &&
+        endDate >= now
+      );
     }).length;
 
     // Count gym members by their current status
-    const stats = memberStatuses.reduce((acc, { status }) => {
-      if (status) {
-        acc[status.toLowerCase()] = (acc[status.toLowerCase()] || 0) + 1;
-        acc.total += 1;
-      }
-      return acc;
-    }, {
-      total: 0,
-      active: 0,
-      expired: 0,
-      cancelled: 0,
-      expiring: expiringCount
-    });
+    const stats = memberStatuses.reduce(
+      (acc, { status }) => {
+        if (status) {
+          acc[status.toLowerCase()] = (acc[status.toLowerCase()] || 0) + 1;
+          acc.total += 1;
+        }
+        return acc;
+      },
+      {
+        total: 0,
+        active: 0,
+        expired: 0,
+        cancelled: 0,
+        expiring: expiringCount,
+      },
+    );
 
     return stats;
   }
@@ -403,14 +448,14 @@ export class GymSubscriptionsService {
         status: 'ACTIVE',
         endDate: {
           gte: now,
-          lte: targetDate
+          lte: targetDate,
         },
         member: {
           role: 'GYM_MEMBER',
           isActive: true,
-          deletedAt: null
-        }
-      }
+          deletedAt: null,
+        },
+      },
     });
 
     return { count };
@@ -419,7 +464,12 @@ export class GymSubscriptionsService {
   /**
    * Get detailed list of expiring subscriptions
    */
-  async getExpiringSubscriptions(tenantId: string, daysBefore: number = 7, page: number = 1, limit: number = 50) {
+  async getExpiringSubscriptions(
+    tenantId: string,
+    daysBefore: number = 7,
+    page: number = 1,
+    limit: number = 50,
+  ) {
     const now = new Date();
     const targetDate = new Date();
     targetDate.setDate(now.getDate() + daysBefore);
@@ -434,13 +484,13 @@ export class GymSubscriptionsService {
           status: 'ACTIVE',
           endDate: {
             gte: now,
-            lte: targetDate
+            lte: targetDate,
           },
           member: {
             role: 'GYM_MEMBER',
             isActive: true,
-            deletedAt: null
-          }
+            deletedAt: null,
+          },
         },
         include: {
           member: {
@@ -451,30 +501,30 @@ export class GymSubscriptionsService {
               name: true,
               email: true,
               phoneNumber: true,
-              photoUrl: true
-            }
+              photoUrl: true,
+            },
           },
           membershipPlan: {
             select: {
               id: true,
               name: true,
               type: true,
-              price: true
-            }
+              price: true,
+            },
           },
           tenant: {
             select: {
               id: true,
               name: true,
-              category: true
-            }
-          }
+              category: true,
+            },
+          },
         },
         orderBy: {
-          endDate: 'asc' // Most urgent first
+          endDate: 'asc', // Most urgent first
         },
         skip,
-        take: limit
+        take: limit,
       }),
       this.prisma.gymMemberSubscription.count({
         where: {
@@ -482,21 +532,24 @@ export class GymSubscriptionsService {
           status: 'ACTIVE',
           endDate: {
             gte: now,
-            lte: targetDate
+            lte: targetDate,
           },
           member: {
             role: 'GYM_MEMBER',
             isActive: true,
-            deletedAt: null
-          }
-        }
-      })
+            deletedAt: null,
+          },
+        },
+      }),
     ]);
 
     // Calculate urgency and days until expiry for each subscription
     const enrichedSubscriptions = subscriptions.map((subscription) => {
-      const daysUntilExpiry = Math.ceil((subscription.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      
+      const daysUntilExpiry = Math.ceil(
+        (subscription.endDate.getTime() - now.getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+
       let urgency: 'critical' | 'high' | 'medium';
       if (daysUntilExpiry <= 1) {
         urgency = 'critical';
@@ -516,7 +569,9 @@ export class GymSubscriptionsService {
         endDate: subscription.endDate.toISOString(),
         price: subscription.price,
         daysUntilExpiry,
-        memberName: subscription.member.name || `${subscription.member.firstName} ${subscription.member.lastName}`.trim(),
+        memberName:
+          subscription.member.name ||
+          `${subscription.member.firstName} ${subscription.member.lastName}`.trim(),
         isExpired: daysUntilExpiry <= 0,
         urgency,
         customer: {
@@ -525,17 +580,23 @@ export class GymSubscriptionsService {
           lastName: subscription.member.lastName,
           email: subscription.member.email,
           phoneNumber: subscription.member.phoneNumber,
-          photoUrl: subscription.member.photoUrl
+          photoUrl: subscription.member.photoUrl,
         },
         membershipPlan: subscription.membershipPlan,
-        tenant: subscription.tenant
+        tenant: subscription.tenant,
       };
     });
 
     // Calculate summary statistics
-    const critical = enrichedSubscriptions.filter(s => s.urgency === 'critical').length;
-    const high = enrichedSubscriptions.filter(s => s.urgency === 'high').length;
-    const medium = enrichedSubscriptions.filter(s => s.urgency === 'medium').length;
+    const critical = enrichedSubscriptions.filter(
+      (s) => s.urgency === 'critical',
+    ).length;
+    const high = enrichedSubscriptions.filter(
+      (s) => s.urgency === 'high',
+    ).length;
+    const medium = enrichedSubscriptions.filter(
+      (s) => s.urgency === 'medium',
+    ).length;
 
     const pages = Math.ceil(totalCount / limit);
     const hasNext = page < pages;
@@ -549,15 +610,15 @@ export class GymSubscriptionsService {
         total: totalCount,
         pages,
         hasNext,
-        hasPrev
+        hasPrev,
       },
       summary: {
         totalExpiring: totalCount,
         daysBefore,
         critical,
         high,
-        medium
-      }
+        medium,
+      },
     };
   }
 }

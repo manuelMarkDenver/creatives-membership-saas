@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../../core/prisma/prisma.service';
 import { SupabaseService } from '../../../core/supabase/supabase.service';
 import { S3UploadService } from '../../../core/supabase/s3-upload.service';
@@ -10,16 +15,16 @@ export class GymMembersService {
   constructor(
     private prisma: PrismaService,
     private supabaseService: SupabaseService,
-    private s3UploadService: S3UploadService
+    private s3UploadService: S3UploadService,
   ) {}
 
   // ========================================
   // NOTE: For basic user CRUD (create, read, update, delete, photo upload)
   // use the Users service - it handles ALL user types (GYM_MEMBER, ECOM_CUSTOMER, etc.)
-  // 
+  //
   // This service focuses ONLY on gym-specific business logic:
   // - Subscription management
-  // - Gym analytics and stats  
+  // - Gym analytics and stats
   // - Workout tracking
   // - Equipment usage
   // - Gym-specific reporting

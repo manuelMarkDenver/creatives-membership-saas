@@ -1,4 +1,13 @@
-import { IsEnum, IsOptional, IsString, IsEmail, IsUrl, IsInt, Min, IsNotEmpty } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsEmail,
+  IsUrl,
+  IsInt,
+  Min,
+  IsNotEmpty,
+} from 'class-validator';
 import { BusinessCategory } from '@prisma/client';
 
 export class CreateTenantDto {

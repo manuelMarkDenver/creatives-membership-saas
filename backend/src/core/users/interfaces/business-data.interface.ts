@@ -14,11 +14,9 @@ export interface GymMemberData extends BaseBusinessData {
   startDate: string; // ISO date string
   endDate: string; // ISO date string - THIS IS THE EXPIRATION
   planFeatures: string[];
-  emergencyContact?: {
-    name: string;
-    phone: string;
-    relationship: string;
-  };
+   emergencyContactName?: string;
+   emergencyContactPhone?: string;
+   emergencyContactRelation?: string;
   medicalNotes?: string;
   paymentStatus?: 'current' | 'overdue' | 'suspended';
 }

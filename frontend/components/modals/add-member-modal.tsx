@@ -233,9 +233,9 @@ export function AddMemberModal({
 
     // Prepare profile data for the new gym member
     const profileData = {
-      emergencyContact: formData.emergencyContactName
-        ? `${formData.emergencyContactName} (${formData.emergencyContactRelationship}) - ${formData.emergencyContactPhone}`
-        : null,
+      emergencyContactName: formData.emergencyContactName || null,
+      emergencyContactPhone: formData.emergencyContactPhone || null,
+      emergencyContactRelation: formData.emergencyContactRelationship || null,
       medicalConditions: null,
       fitnessGoals: formData.fitnessGoals || null,
       preferredTrainer: null,
@@ -276,7 +276,7 @@ export function AddMemberModal({
       onSuccess: async (createdUser) => {
         try {
           // Create gym member profile
-          if (profileData.emergencyContact || profileData.fitnessGoals) {
+          if (profileData.emergencyContactName || profileData.emergencyContactPhone || profileData.fitnessGoals) {
             // Note: This would need a new API endpoint to create gym member profiles
             // For now, we'll skip this step as the profile can be created later through the member info modal
             console.log('Profile data prepared:', profileData)

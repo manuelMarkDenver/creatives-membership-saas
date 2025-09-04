@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { BillingCycle, SubscriptionStatus } from '@prisma/client';
 
@@ -12,11 +16,13 @@ export class SubscriptionsService {
   async createTrialSubscription(branchId: string) {
     // Get the trial plan
     const trialPlan = await this.prisma.plan.findUnique({
-      where: { name: 'Free Trial' }
+      where: { name: 'Free Trial' },
     });
 
     if (!trialPlan) {
-      throw new NotFoundException('Free Trial plan not found. Please run database seeding.');
+      throw new NotFoundException(
+        'Free Trial plan not found. Please run database seeding.',
+      );
     }
 
     const startDate = new Date();
@@ -75,16 +81,19 @@ export class SubscriptionsService {
     }
 
     // Count active branches with trial subscriptions
-    const activeBranches = tenant.branches.filter(branch => 
-      branch.subscriptions.some(sub => sub.status === SubscriptionStatus.ACTIVE)
+    const activeBranches = tenant.branches.filter((branch) =>
+      branch.subscriptions.some(
+        (sub) => sub.status === SubscriptionStatus.ACTIVE,
+      ),
     );
 
-    const trialBranchesActive = activeBranches.filter(branch => 
-      branch.subscriptions.some(sub => 
-        sub.status === SubscriptionStatus.ACTIVE && 
-        sub.plan.billingCycle === BillingCycle.TRIAL &&
-        sub.endDate > new Date() // Trial not expired
-      )
+    const trialBranchesActive = activeBranches.filter((branch) =>
+      branch.subscriptions.some(
+        (sub) =>
+          sub.status === SubscriptionStatus.ACTIVE &&
+          sub.plan.billingCycle === BillingCycle.TRIAL &&
+          sub.endDate > new Date(), // Trial not expired
+      ),
     ).length;
 
     const paidBranchesActive = activeBranches.length - trialBranchesActive;
@@ -92,7 +101,10 @@ export class SubscriptionsService {
     // Calculate free branches allowed: 1 standard trial + any override
     const freeBranchesAllowed = 1 + (tenant.freeBranchOverride || 0);
     const freeBranchesUsed = trialBranchesActive;
-    const freeBranchesRemaining = Math.max(0, freeBranchesAllowed - freeBranchesUsed);
+    const freeBranchesRemaining = Math.max(
+      0,
+      freeBranchesAllowed - freeBranchesUsed,
+    );
 
     if (freeBranchesRemaining > 0) {
       return {
@@ -103,19 +115,20 @@ export class SubscriptionsService {
     }
 
     // Check if any trial branches have expired
-    const expiredTrialBranches = tenant.branches.filter(branch => 
-      branch.subscriptions.some(sub => 
-        sub.plan.billingCycle === BillingCycle.TRIAL &&
-        sub.endDate <= new Date() && // Trial expired
-        sub.status === SubscriptionStatus.ACTIVE
-      )
+    const expiredTrialBranches = tenant.branches.filter((branch) =>
+      branch.subscriptions.some(
+        (sub) =>
+          sub.plan.billingCycle === BillingCycle.TRIAL &&
+          sub.endDate <= new Date() && // Trial expired
+          sub.status === SubscriptionStatus.ACTIVE,
+      ),
     );
 
     if (expiredTrialBranches.length > 0) {
       // Mark expired subscriptions as expired
       await this.prisma.subscription.updateMany({
         where: {
-          branchId: { in: expiredTrialBranches.map(b => b.id) },
+          branchId: { in: expiredTrialBranches.map((b) => b.id) },
           status: SubscriptionStatus.ACTIVE,
           endDate: { lte: new Date() },
         },
@@ -126,7 +139,8 @@ export class SubscriptionsService {
 
       return {
         canCreate: false,
-        reason: 'Trial period expired. Please upgrade to a paid plan to create more branches.',
+        reason:
+          'Trial period expired. Please upgrade to a paid plan to create more branches.',
         freeBranchesRemaining: 0,
         trialBranchesActive: 0,
       };
@@ -151,7 +165,9 @@ export class SubscriptionsService {
           include: {
             subscriptions: {
               where: {
-                status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRED] },
+                status: {
+                  in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRED],
+                },
               },
               include: {
                 plan: true,
@@ -169,17 +185,27 @@ export class SubscriptionsService {
       throw new NotFoundException('Tenant not found');
     }
 
-    const branchStatuses = tenant.branches.map(branch => {
+    const branchStatuses = tenant.branches.map((branch) => {
       const latestSubscription = branch.subscriptions[0];
-      const isExpired = latestSubscription && latestSubscription.endDate <= new Date();
-      
+      const isExpired =
+        latestSubscription && latestSubscription.endDate <= new Date();
+
       return {
         branchId: branch.id,
         branchName: branch.name,
         subscription: latestSubscription,
-        status: isExpired ? 'EXPIRED' : latestSubscription?.status || 'NO_SUBSCRIPTION',
-        daysRemaining: latestSubscription ? 
-          Math.max(0, Math.ceil((latestSubscription.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0,
+        status: isExpired
+          ? 'EXPIRED'
+          : latestSubscription?.status || 'NO_SUBSCRIPTION',
+        daysRemaining: latestSubscription
+          ? Math.max(
+              0,
+              Math.ceil(
+                (latestSubscription.endDate.getTime() - new Date().getTime()) /
+                  (1000 * 60 * 60 * 24),
+              ),
+            )
+          : 0,
       };
     });
 
@@ -219,18 +245,18 @@ export class SubscriptionsService {
     tenantId?: string;
   }) {
     const where: any = {};
-    
+
     if (filters.status) {
       where.status = filters.status;
     }
-    
+
     if (filters.planId) {
       where.planId = filters.planId;
     }
-    
+
     if (filters.tenantId) {
       where.branch = {
-        tenantId: filters.tenantId
+        tenantId: filters.tenantId,
       };
     }
 
@@ -245,19 +271,19 @@ export class SubscriptionsService {
                 id: true,
                 name: true,
                 slug: true,
-                category: true
-              }
-            }
-          }
+                category: true,
+              },
+            },
+          },
         },
         payments: {
-          where: { status: 'SUCCESSFUL' }
-        }
+          where: { status: 'SUCCESSFUL' },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
-    const subscriptionStats = subscriptions.map(sub => ({
+    const subscriptionStats = subscriptions.map((sub) => ({
       id: sub.id,
       status: sub.status,
       startDate: sub.startDate,
@@ -268,22 +294,36 @@ export class SubscriptionsService {
       branch: {
         id: sub.branch.id,
         name: sub.branch.name,
-        tenant: sub.branch.tenant
+        tenant: sub.branch.tenant,
       },
-      totalPayments: sub.payments.reduce((sum, payment) => sum + Number(payment.amount), 0),
+      totalPayments: sub.payments.reduce(
+        (sum, payment) => sum + Number(payment.amount),
+        0,
+      ),
       paymentCount: sub.payments.length,
-      daysRemaining: Math.max(0, Math.ceil((sub.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))),
-      isExpired: sub.endDate <= new Date()
+      daysRemaining: Math.max(
+        0,
+        Math.ceil(
+          (sub.endDate.getTime() - new Date().getTime()) /
+            (1000 * 60 * 60 * 24),
+        ),
+      ),
+      isExpired: sub.endDate <= new Date(),
     }));
 
     return {
       subscriptions: subscriptionStats,
       summary: {
         total: subscriptions.length,
-        active: subscriptions.filter(s => s.status === SubscriptionStatus.ACTIVE).length,
-        expired: subscriptions.filter(s => s.endDate <= new Date()).length,
-        totalRevenue: subscriptionStats.reduce((sum, s) => sum + s.totalPayments, 0)
-      }
+        active: subscriptions.filter(
+          (s) => s.status === SubscriptionStatus.ACTIVE,
+        ).length,
+        expired: subscriptions.filter((s) => s.endDate <= new Date()).length,
+        totalRevenue: subscriptionStats.reduce(
+          (sum, s) => sum + s.totalPayments,
+          0,
+        ),
+      },
     };
   }
 
@@ -302,15 +342,15 @@ export class SubscriptionsService {
                 id: true,
                 name: true,
                 slug: true,
-                category: true
-              }
-            }
-          }
+                category: true,
+              },
+            },
+          },
         },
         payments: {
-          orderBy: { createdAt: 'desc' }
-        }
-      }
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
 
     if (!subscription) {
@@ -319,9 +359,18 @@ export class SubscriptionsService {
 
     return {
       ...subscription,
-      totalPayments: subscription.payments.reduce((sum, payment) => sum + Number(payment.amount), 0),
-      daysRemaining: Math.max(0, Math.ceil((subscription.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))),
-      isExpired: subscription.endDate <= new Date()
+      totalPayments: subscription.payments.reduce(
+        (sum, payment) => sum + Number(payment.amount),
+        0,
+      ),
+      daysRemaining: Math.max(
+        0,
+        Math.ceil(
+          (subscription.endDate.getTime() - new Date().getTime()) /
+            (1000 * 60 * 60 * 24),
+        ),
+      ),
+      isExpired: subscription.endDate <= new Date(),
     };
   }
 
@@ -337,18 +386,18 @@ export class SubscriptionsService {
   }) {
     // Verify branch exists
     const branch = await this.prisma.branch.findUnique({
-      where: { id: data.branchId }
+      where: { id: data.branchId },
     });
-    
+
     if (!branch) {
       throw new NotFoundException('Branch not found');
     }
 
     // Verify plan exists
     const plan = await this.prisma.plan.findUnique({
-      where: { id: data.planId }
+      where: { id: data.planId },
     });
-    
+
     if (!plan) {
       throw new NotFoundException('Plan not found');
     }
@@ -361,18 +410,20 @@ export class SubscriptionsService {
         OR: [
           {
             startDate: {
-              lte: new Date(data.endDate)
+              lte: new Date(data.endDate),
             },
             endDate: {
-              gte: new Date(data.startDate)
-            }
-          }
-        ]
-      }
+              gte: new Date(data.startDate),
+            },
+          },
+        ],
+      },
     });
 
     if (overlappingSubscription) {
-      throw new BadRequestException('Branch already has an active subscription for this period');
+      throw new BadRequestException(
+        'Branch already has an active subscription for this period',
+      );
     }
 
     const subscription = await this.prisma.subscription.create({
@@ -381,16 +432,16 @@ export class SubscriptionsService {
         planId: data.planId,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
-        status: data.status || SubscriptionStatus.ACTIVE
+        status: data.status || SubscriptionStatus.ACTIVE,
       },
       include: {
         plan: true,
         branch: {
           include: {
-            tenant: true
-          }
-        }
-      }
+            tenant: true,
+          },
+        },
+      },
     });
 
     return subscription;
@@ -399,14 +450,17 @@ export class SubscriptionsService {
   /**
    * Update subscription (Super Admin)
    */
-  async updateSubscription(id: string, data: {
-    planId?: string;
-    startDate?: string;
-    endDate?: string;
-    status?: SubscriptionStatus;
-  }) {
+  async updateSubscription(
+    id: string,
+    data: {
+      planId?: string;
+      startDate?: string;
+      endDate?: string;
+      status?: SubscriptionStatus;
+    },
+  ) {
     const existingSubscription = await this.prisma.subscription.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!existingSubscription) {
@@ -416,9 +470,9 @@ export class SubscriptionsService {
     // Verify plan exists if planId is being updated
     if (data.planId) {
       const plan = await this.prisma.plan.findUnique({
-        where: { id: data.planId }
+        where: { id: data.planId },
       });
-      
+
       if (!plan) {
         throw new NotFoundException('Plan not found');
       }
@@ -437,10 +491,10 @@ export class SubscriptionsService {
         plan: true,
         branch: {
           include: {
-            tenant: true
-          }
-        }
-      }
+            tenant: true,
+          },
+        },
+      },
     });
 
     return updatedSubscription;
@@ -453,8 +507,8 @@ export class SubscriptionsService {
     const subscription = await this.prisma.subscription.findUnique({
       where: { id },
       include: {
-        payments: true
-      }
+        payments: true,
+      },
     });
 
     if (!subscription) {
@@ -465,12 +519,12 @@ export class SubscriptionsService {
     if (subscription.payments.length > 0) {
       throw new BadRequestException(
         `Cannot delete subscription with ${subscription.payments.length} payment(s). ` +
-        'Please set status to CANCELED instead.'
+          'Please set status to CANCELED instead.',
       );
     }
 
     await this.prisma.subscription.delete({
-      where: { id }
+      where: { id },
     });
 
     return { message: 'Subscription deleted successfully' };
@@ -480,12 +534,14 @@ export class SubscriptionsService {
    * Update subscription status (Super Admin)
    */
   async updateSubscriptionStatus(id: string, status: string) {
-    if (!Object.values(SubscriptionStatus).includes(status as SubscriptionStatus)) {
+    if (
+      !Object.values(SubscriptionStatus).includes(status as SubscriptionStatus)
+    ) {
       throw new BadRequestException('Invalid subscription status');
     }
 
     const subscription = await this.prisma.subscription.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!subscription) {
@@ -499,15 +555,15 @@ export class SubscriptionsService {
         plan: true,
         branch: {
           include: {
-            tenant: true
-          }
-        }
-      }
+            tenant: true,
+          },
+        },
+      },
     });
 
     return {
       ...updatedSubscription,
-      message: `Subscription status updated to ${status}`
+      message: `Subscription status updated to ${status}`,
     };
   }
 
@@ -520,7 +576,7 @@ export class SubscriptionsService {
     }
 
     const subscription = await this.prisma.subscription.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!subscription) {
@@ -537,16 +593,21 @@ export class SubscriptionsService {
         plan: true,
         branch: {
           include: {
-            tenant: true
-          }
-        }
-      }
+            tenant: true,
+          },
+        },
+      },
     });
 
     return {
       ...updatedSubscription,
       message: `Subscription extended by ${days} days`,
-      daysRemaining: Math.max(0, Math.ceil((newEndDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+      daysRemaining: Math.max(
+        0,
+        Math.ceil(
+          (newEndDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+        ),
+      ),
     };
   }
 
@@ -562,8 +623,8 @@ export class SubscriptionsService {
         status: SubscriptionStatus.ACTIVE,
         endDate: {
           lte: futureDate,
-          gte: new Date() // Not already expired
-        }
+          gte: new Date(), // Not already expired
+        },
       },
       include: {
         plan: true,
@@ -575,16 +636,16 @@ export class SubscriptionsService {
                 name: true,
                 slug: true,
                 category: true,
-                email: true
-              }
-            }
-          }
-        }
+                email: true,
+              },
+            },
+          },
+        },
       },
-      orderBy: { endDate: 'asc' }
+      orderBy: { endDate: 'asc' },
     });
 
-    const subscriptionStats = subscriptions.map(sub => ({
+    const subscriptionStats = subscriptions.map((sub) => ({
       id: sub.id,
       status: sub.status,
       startDate: sub.startDate,
@@ -593,19 +654,25 @@ export class SubscriptionsService {
       branch: {
         id: sub.branch.id,
         name: sub.branch.name,
-        tenant: sub.branch.tenant
+        tenant: sub.branch.tenant,
       },
-      daysRemaining: Math.ceil((sub.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+      daysRemaining: Math.ceil(
+        (sub.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+      ),
     }));
 
     return {
       subscriptions: subscriptionStats,
       summary: {
         total: subscriptions.length,
-        averageDaysRemaining: subscriptions.length > 0 
-          ? Math.round(subscriptionStats.reduce((sum, s) => sum + s.daysRemaining, 0) / subscriptions.length)
-          : 0
-      }
+        averageDaysRemaining:
+          subscriptions.length > 0
+            ? Math.round(
+                subscriptionStats.reduce((sum, s) => sum + s.daysRemaining, 0) /
+                  subscriptions.length,
+              )
+            : 0,
+      },
     };
   }
 }
