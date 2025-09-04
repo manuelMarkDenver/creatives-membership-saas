@@ -239,20 +239,29 @@ export function AddMemberModal({
       medicalConditions: null,
       fitnessGoals: formData.fitnessGoals || null,
       preferredTrainer: null,
-      membershipHistory: {
-        dateOfBirth: formData.dateOfBirth || null,
-        gender: formData.gender || null,
-        height: formData.height ? parseInt(formData.height) : null,
-        weight: formData.weight ? parseInt(formData.weight) : null,
-        fitnessLevel: formData.fitnessLevel || null,
-        preferredWorkoutTime: formData.preferredWorkoutTime || null,
-        favoriteEquipment: formData.favoriteEquipment || null,
-        allergies: null,
-        notifications: {
-          email: true,
-          sms: true,
-          push: true
-        }
+      // New column structure
+      dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth) : null,
+      gender: formData.gender || null,
+      height: formData.height ? parseInt(formData.height) : null,
+      weight: formData.weight ? parseInt(formData.weight) : null,
+      fitnessLevel: formData.fitnessLevel || null,
+      preferredWorkoutTime: formData.preferredWorkoutTime || null,
+      favoriteEquipment: formData.favoriteEquipment || null,
+      allergies: null,
+      notifications: {
+        email: true,
+        sms: true,
+        push: true
+      },
+      totalVisits: 0,
+      averageVisitsPerWeek: 0,
+      lastVisit: null,
+      // Keep membershipHistory for past memberships
+      membershipHistory: [],
+      profileMetadata: {
+        joinedDate: new Date().toISOString(),
+        referralSource: 'Direct',
+        specialNotes: ''
       }
     }
 

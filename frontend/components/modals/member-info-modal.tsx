@@ -110,12 +110,6 @@ export function MemberInfoModal({
   useEffect(() => {
     if (member && isOpen) {
       const gymProfile = member.gymMemberProfile
-      const membershipHistory = gymProfile?.membershipHistory || {}
-
-      // Extract data from the new profile structure
-      const personalInfo = membershipHistory
-      const healthInfo = membershipHistory
-      const preferences = membershipHistory
 
       // Parse emergency contact from the stored string format
       const emergencyContact = gymProfile?.emergencyContact || ''
@@ -127,25 +121,25 @@ export function MemberInfoModal({
         phoneNumber: member.phoneNumber || '',
         photoUrl: member.photoUrl || '',
         notes: member.notes || '',
-        
-        dateOfBirth: personalInfo.dateOfBirth ? personalInfo.dateOfBirth.split('T')[0] : '',
-        gender: personalInfo.gender || '',
-        height: personalInfo.height?.toString() || '',
-        weight: personalInfo.weight?.toString() || '',
-        fitnessGoals: personalInfo.fitnessGoals || '',
-        emergencyContactName: emergencyContact.name || '',
-        emergencyContactPhone: emergencyContact.phone || '',
-        emergencyContactRelationship: emergencyContact.relationship || '',
-        
-        medicalConditions: healthInfo.medicalConditions || [],
-        allergies: healthInfo.allergies || [],
-        fitnessLevel: healthInfo.fitnessLevel || '',
-        
-        preferredWorkoutTime: preferences.preferredWorkoutTime || '',
-        favoriteEquipment: preferences.favoriteEquipment || '',
-        emailNotifications: preferences.notifications?.email ?? true,
-        smsNotifications: preferences.notifications?.sms ?? true,
-        pushNotifications: preferences.notifications?.push ?? true,
+
+        dateOfBirth: gymProfile?.dateOfBirth ? new Date(gymProfile.dateOfBirth).toISOString().split('T')[0] : '',
+        gender: gymProfile?.gender || '',
+        height: gymProfile?.height?.toString() || '',
+        weight: gymProfile?.weight?.toString() || '',
+        fitnessGoals: gymProfile?.fitnessGoals || '',
+        emergencyContactName: emergencyContact.split(' - ')[0] || '',
+        emergencyContactPhone: emergencyContact.split(' - ')[1] || '',
+        emergencyContactRelationship: '',
+
+        medicalConditions: gymProfile?.medicalConditions || '',
+        allergies: Array.isArray(gymProfile?.allergies) ? gymProfile.allergies.join(', ') : '',
+        fitnessLevel: gymProfile?.fitnessLevel || '',
+
+        preferredWorkoutTime: gymProfile?.preferredWorkoutTime || '',
+        favoriteEquipment: gymProfile?.favoriteEquipment || '',
+        emailNotifications: gymProfile?.notifications?.email ?? true,
+        smsNotifications: gymProfile?.notifications?.sms ?? true,
+        pushNotifications: gymProfile?.notifications?.push ?? true,
       })
     }
   }, [member, isOpen])
@@ -230,7 +224,33 @@ export function MemberInfoModal({
         phoneNumber: formData.phoneNumber,
         photoUrl: formData.photoUrl,
         notes: formData.notes,
-        // businessData removed - profile data is now stored in separate GymMemberProfile table
+        // Gym member profile fields
+        emergencyContact: formData.emergencyContactName && formData.emergencyContactPhone
+          ? `${formData.emergencyContactName} - ${formData.emergencyContactPhone}`
+          : null,
+        medicalConditions: formData.medicalConditions || null,
+        fitnessGoals: formData.fitnessGoals || null,
+        preferredTrainer: null,
+        gender: formData.gender || null,
+        height: formData.height ? parseInt(formData.height) : null,
+        weight: formData.weight ? parseInt(formData.weight) : null,
+        allergies: formData.allergies ? formData.allergies.split(',').map((a: string) => a.trim()) : null,
+        dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
+        totalVisits: 0, // Will be updated by system
+        fitnessLevel: formData.fitnessLevel || null,
+        notifications: {
+          email: formData.emailNotifications,
+          sms: formData.smsNotifications,
+          push: formData.pushNotifications
+        },
+        favoriteEquipment: formData.favoriteEquipment || null,
+        averageVisitsPerWeek: 0, // Will be updated by system
+        preferredWorkoutTime: formData.preferredWorkoutTime || null,
+        membershipHistory: [], // Keep as empty array for now
+        profileMetadata: {
+          updatedAt: new Date().toISOString(),
+          updatedBy: 'admin'
+        }
       }
 
       // Remove null/empty values
@@ -254,12 +274,7 @@ export function MemberInfoModal({
     setIsEditing(false)
     // Reset form data to original values
     if (member) {
-      // businessData removed - using gymMemberProfile instead
       const gymProfile = member.gymMemberProfile
-      const membershipHistory = gymProfile?.membershipHistory || {}
-      const personalInfo = membershipHistory
-      const healthInfo = membershipHistory
-      const preferences = membershipHistory
       const emergencyContact = gymProfile?.emergencyContact || ''
 
       setFormData({
@@ -269,25 +284,25 @@ export function MemberInfoModal({
         phoneNumber: member.phoneNumber || '',
         photoUrl: member.photoUrl || '',
         notes: member.notes || '',
-        
-        dateOfBirth: personalInfo.dateOfBirth ? personalInfo.dateOfBirth.split('T')[0] : '',
-        gender: personalInfo.gender || '',
-        height: personalInfo.height?.toString() || '',
-        weight: personalInfo.weight?.toString() || '',
-        fitnessGoals: personalInfo.fitnessGoals || '',
-        emergencyContactName: emergencyContact.name || '',
-        emergencyContactPhone: emergencyContact.phone || '',
-        emergencyContactRelationship: emergencyContact.relationship || '',
-        
-        medicalConditions: healthInfo.medicalConditions || [],
-        allergies: healthInfo.allergies || [],
-        fitnessLevel: healthInfo.fitnessLevel || '',
-        
-        preferredWorkoutTime: preferences.preferredWorkoutTime || '',
-        favoriteEquipment: preferences.favoriteEquipment || '',
-        emailNotifications: preferences.notifications?.email ?? true,
-        smsNotifications: preferences.notifications?.sms ?? true,
-        pushNotifications: preferences.notifications?.push ?? true,
+
+        dateOfBirth: gymProfile?.dateOfBirth ? new Date(gymProfile.dateOfBirth).toISOString().split('T')[0] : '',
+        gender: gymProfile?.gender || '',
+        height: gymProfile?.height?.toString() || '',
+        weight: gymProfile?.weight?.toString() || '',
+        fitnessGoals: gymProfile?.fitnessGoals || '',
+        emergencyContactName: emergencyContact.split(' - ')[0] || '',
+        emergencyContactPhone: emergencyContact.split(' - ')[1] || '',
+        emergencyContactRelationship: '',
+
+        medicalConditions: gymProfile?.medicalConditions || '',
+        allergies: Array.isArray(gymProfile?.allergies) ? gymProfile.allergies.join(', ') : '',
+        fitnessLevel: gymProfile?.fitnessLevel || '',
+
+        preferredWorkoutTime: gymProfile?.preferredWorkoutTime || '',
+        favoriteEquipment: gymProfile?.favoriteEquipment || '',
+        emailNotifications: gymProfile?.notifications?.email ?? true,
+        smsNotifications: gymProfile?.notifications?.sms ?? true,
+        pushNotifications: gymProfile?.notifications?.push ?? true,
       })
     }
   }
@@ -685,30 +700,30 @@ export function MemberInfoModal({
           )}
 
           {/* Activity Summary */}
-          {member.gymMemberProfile?.membershipHistory && (
+          {member.gymMemberProfile && (
             <div className="grid gap-4">
               <h4 className="font-medium flex items-center gap-2">
                 <Activity className="h-4 w-4" />
                 Activity Summary
               </h4>
-              
+
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 text-center">
                   <div className="font-bold text-blue-600 text-lg">
-                    {member.gymMemberProfile?.membershipHistory?.totalVisits || 0}
+                    {member.gymMemberProfile?.totalVisits || 0}
                   </div>
                   <div className="text-blue-600 dark:text-blue-400 text-xs">Total Visits</div>
                 </div>
                 <div className="bg-green-50 dark:bg-green-950 rounded-lg p-3 text-center">
                   <div className="font-bold text-green-600 text-lg">
-                    {member.gymMemberProfile?.membershipHistory?.averageVisitsPerWeek || 0}
+                    {member.gymMemberProfile?.averageVisitsPerWeek || 0}
                   </div>
                   <div className="text-green-600 dark:text-green-400 text-xs">Visits/Week</div>
                 </div>
                 <div className="bg-purple-50 dark:bg-purple-950 rounded-lg p-3 text-center">
                   <div className="font-bold text-purple-600 text-xs">
-                    {member.gymMemberProfile?.membershipHistory?.lastVisit
-                      ? new Date(member.gymMemberProfile.membershipHistory.lastVisit).toLocaleDateString()
+                    {member.gymMemberProfile?.lastVisit
+                      ? new Date(member.gymMemberProfile.lastVisit).toLocaleDateString()
                       : 'N/A'
                     }
                   </div>

@@ -184,10 +184,30 @@ export class UsersService {
       if (updateData.phoneNumber) updateData.phoneNumber = updateData.phoneNumber.trim();
       if (updateData.notes) updateData.notes = updateData.notes.trim();
 
+      // Separate gym member profile fields
+      const gymProfileFields = [
+        'emergencyContact', 'medicalConditions', 'fitnessGoals', 'preferredTrainer',
+        'gender', 'height', 'weight', 'allergies', 'lastVisit', 'dateOfBirth',
+        'totalVisits', 'fitnessLevel', 'notifications', 'favoriteEquipment',
+        'averageVisitsPerWeek', 'preferredWorkoutTime', 'membershipHistory', 'profileMetadata'
+      ];
+
+      const userUpdateData: any = {};
+      const gymProfileUpdateData: any = {};
+
+      Object.keys(updateData).forEach(key => {
+        if (gymProfileFields.includes(key)) {
+          gymProfileUpdateData[key] = updateData[key];
+        } else {
+          userUpdateData[key] = updateData[key];
+        }
+      });
+
+      // Update user
       const updatedUser = await this.prisma.user.update({
         where: { id },
         data: {
-          ...updateData,
+          ...userUpdateData,
           updatedAt: new Date(),
         },
         include: {
@@ -198,8 +218,33 @@ export class UsersService {
               category: true,
             },
           },
+          gymMemberProfile: true,
         },
       });
+
+      // Update or create gym member profile if profile fields are provided
+      if (Object.keys(gymProfileUpdateData).length > 0) {
+        const existingProfile = await this.prisma.gymMemberProfile.findUnique({
+          where: { userId: id }
+        });
+
+        if (existingProfile) {
+          await this.prisma.gymMemberProfile.update({
+            where: { userId: id },
+            data: {
+              ...gymProfileUpdateData,
+              updatedAt: new Date(),
+            }
+          });
+        } else {
+          await this.prisma.gymMemberProfile.create({
+            data: {
+              userId: id,
+              ...gymProfileUpdateData,
+            }
+          });
+        }
+      }
 
       this.logger.log(`Updated user: ${updatedUser.firstName} ${updatedUser.lastName} (${id})`);
       return updatedUser;
@@ -670,6 +715,7 @@ export class UsersService {
               },
             },
           },
+          gymMemberProfile: true,
           gymMemberSubscriptions: {
             include: {
               membershipPlan: {
@@ -738,6 +784,7 @@ export class UsersService {
               slug: true,
             },
           },
+          gymMemberProfile: true,
         },
       });
 
