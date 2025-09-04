@@ -553,12 +553,12 @@ async function main() {
               fitnessLevel: ['Beginner', 'Intermediate', 'Advanced'][Math.floor(Math.random() * 3)]
             },
             preferences: {
-              preferredWorkoutTime: ['Morning', 'Afternoon', 'Evening'][Math.floor(Math.random() * 3)],
-              favoriteEquipment: ['Cardio', 'Weights', 'Functional Training'][Math.floor(Math.random() * 3)],
+              preferredWorkoutTime: ['Morning', 'Afternoon', 'Evening', 'Night'][Math.floor(Math.random() * 4)],
+              favoriteEquipment: ['Weights', 'Cardio Machines', 'Yoga Mats', 'Treadmill', 'Dumbbells', 'Resistance Bands'][Math.floor(Math.random() * 6)],
               notifications: {
-                email: Math.random() > 0.3,
-                sms: Math.random() > 0.5,
-                push: Math.random() > 0.4
+                email: Math.random() > 0.2, // 80% have email notifications
+                sms: Math.random() > 0.7, // 30% have SMS notifications
+                push: Math.random() > 0.3 // 70% have push notifications
               }
             }
           };

@@ -83,6 +83,8 @@ export function MemberInfoModal({
     // Preferences
     preferredWorkoutTime: '',
     favoriteEquipment: '',
+    preferredTrainer: '',
+    trainerContactNumber: '',
     emailNotifications: true,
     smsNotifications: true,
     pushNotifications: true,
@@ -134,6 +136,8 @@ export function MemberInfoModal({
 
         preferredWorkoutTime: gymProfile?.preferredWorkoutTime || '',
         favoriteEquipment: gymProfile?.favoriteEquipment || '',
+        preferredTrainer: gymProfile?.preferredTrainer || '',
+        trainerContactNumber: gymProfile?.trainerContactNumber || '',
         emailNotifications: gymProfile?.notifications?.email ?? true,
         smsNotifications: gymProfile?.notifications?.sms ?? true,
         pushNotifications: gymProfile?.notifications?.push ?? true,
@@ -227,7 +231,8 @@ export function MemberInfoModal({
         emergencyContactRelation: formData.emergencyContactRelationship || null,
         medicalConditions: formData.medicalConditions || null,
         fitnessGoals: formData.fitnessGoals || null,
-        preferredTrainer: null,
+        preferredTrainer: formData.preferredTrainer || null,
+        trainerContactNumber: formData.trainerContactNumber || null,
         gender: formData.gender || null,
         height: formData.height ? parseInt(formData.height) : null,
         weight: formData.weight ? parseInt(formData.weight) : null,
@@ -297,6 +302,8 @@ export function MemberInfoModal({
 
         preferredWorkoutTime: gymProfile?.preferredWorkoutTime || '',
         favoriteEquipment: gymProfile?.favoriteEquipment || '',
+        preferredTrainer: gymProfile?.preferredTrainer || '',
+        trainerContactNumber: gymProfile?.trainerContactNumber || '',
         emailNotifications: gymProfile?.notifications?.email ?? true,
         smsNotifications: gymProfile?.notifications?.sms ?? true,
         pushNotifications: gymProfile?.notifications?.push ?? true,
@@ -621,35 +628,58 @@ export function MemberInfoModal({
             
             {expandedSections.preferences && (
               <div className="space-y-4 pl-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="preferredWorkoutTime">Preferred Workout Time</Label>
-                    <Select 
-                      value={formData.preferredWorkoutTime} 
-                      onValueChange={(value) => handleInputChange('preferredWorkoutTime', value)}
-                      disabled={!isEditing}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Morning">Morning</SelectItem>
-                        <SelectItem value="Afternoon">Afternoon</SelectItem>
-                        <SelectItem value="Evening">Evening</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="favoriteEquipment">Favorite Equipment</Label>
-                    <Input
-                      id="favoriteEquipment"
-                      value={formData.favoriteEquipment}
-                      onChange={(e) => handleInputChange('favoriteEquipment', e.target.value)}
-                      disabled={!isEditing}
-                      placeholder="e.g., Cardio, Weights, Functional Training"
-                    />
-                  </div>
-                </div>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div>
+                     <Label htmlFor="preferredWorkoutTime">Preferred Workout Time</Label>
+                     <Select
+                       value={formData.preferredWorkoutTime}
+                       onValueChange={(value) => handleInputChange('preferredWorkoutTime', value)}
+                       disabled={!isEditing}
+                     >
+                       <SelectTrigger>
+                         <SelectValue placeholder="Select time" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="Morning">Morning</SelectItem>
+                         <SelectItem value="Afternoon">Afternoon</SelectItem>
+                         <SelectItem value="Evening">Evening</SelectItem>
+                       </SelectContent>
+                     </Select>
+                   </div>
+                   <div>
+                     <Label htmlFor="favoriteEquipment">Favorite Equipment</Label>
+                     <Input
+                       id="favoriteEquipment"
+                       value={formData.favoriteEquipment}
+                       onChange={(e) => handleInputChange('favoriteEquipment', e.target.value)}
+                       disabled={!isEditing}
+                       placeholder="e.g., Cardio, Weights, Functional Training"
+                     />
+                   </div>
+                 </div>
+
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div>
+                     <Label htmlFor="preferredTrainer">Preferred Trainer</Label>
+                     <Input
+                       id="preferredTrainer"
+                       value={formData.preferredTrainer}
+                       onChange={(e) => handleInputChange('preferredTrainer', e.target.value)}
+                       disabled={!isEditing}
+                       placeholder="e.g., Coach Mike Santos"
+                     />
+                   </div>
+                   <div>
+                     <Label htmlFor="trainerContactNumber">Trainer Contact</Label>
+                     <Input
+                       id="trainerContactNumber"
+                       value={formData.trainerContactNumber}
+                       onChange={(e) => handleInputChange('trainerContactNumber', e.target.value)}
+                       disabled={!isEditing}
+                       placeholder="e.g., +63 917 123 4567"
+                     />
+                   </div>
+                 </div>
               </div>
             )}
           </div>
@@ -717,15 +747,15 @@ export function MemberInfoModal({
                   </div>
                   <div className="text-green-600 dark:text-green-400 text-xs">Visits/Week</div>
                 </div>
-                <div className="bg-purple-50 dark:bg-purple-950 rounded-lg p-3 text-center">
-                  <div className="font-bold text-purple-600 text-xs">
-                    {member.gymMemberProfile?.lastVisit
-                      ? new Date(member.gymMemberProfile.lastVisit).toLocaleDateString()
-                      : 'N/A'
-                    }
-                  </div>
-                  <div className="text-purple-600 dark:text-purple-400 text-xs">Last Visit</div>
-                </div>
+                 <div className="bg-purple-50 dark:bg-purple-950 rounded-lg p-3 text-center">
+                   <div className="font-bold text-purple-600 text-lg">
+                     {member.gymMemberProfile?.lastVisit
+                       ? new Date(member.gymMemberProfile.lastVisit).toLocaleDateString()
+                       : 'N/A'
+                     }
+                   </div>
+                   <div className="text-purple-600 dark:text-purple-400 text-xs">Last Visit</div>
+                 </div>
               </div>
             </div>
           )}

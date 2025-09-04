@@ -187,14 +187,15 @@ export class UsersService {
         updateData.phoneNumber = updateData.phoneNumber.trim();
       if (updateData.notes) updateData.notes = updateData.notes.trim();
 
-       // Separate gym member profile fields
-       const gymProfileFields = [
-         'emergencyContactName',
-         'emergencyContactPhone',
-         'emergencyContactRelation',
-         'medicalConditions',
+      // Separate gym member profile fields
+      const gymProfileFields = [
+        'emergencyContactName',
+        'emergencyContactPhone',
+        'emergencyContactRelation',
+        'medicalConditions',
         'fitnessGoals',
         'preferredTrainer',
+        'trainerContactNumber',
         'gender',
         'height',
         'weight',
