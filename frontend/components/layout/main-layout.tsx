@@ -32,30 +32,38 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const { data: profile, error: profileError, isLoading: profileLoading } = useProfile()
   const { currentTenant } = useTenantContext()
-  
+
+  // Mark as mounted to prevent hydration issues
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Get role-based navigation (must be called before any early returns to maintain hooks order)
   const { navigation } = useRoleNavigation(profile?.role)
-  
+
   // Get subscription status for owners only (must be called before early returns)
   const { data: subscriptionStatus } = useSubscriptionStatus(
     currentTenant?.id,
     { enabled: profile?.role === 'OWNER' && !!currentTenant?.id }
   )
-  
-  // Authentication guard
+
+  // Authentication guard (only run on client after hydration)
   useEffect(() => {
+    if (!mounted) return
+
     const token = localStorage.getItem('auth_token')
     const userData = localStorage.getItem('user_data')
-    
+
     if (!token || !userData) {
       // No authentication data, redirect to login
       router.push('/auth/login')
       return
     }
-    
+
     // If profile fetch failed with 401 (unauthorized), clear auth and redirect
     if (profileError && (profileError as any)?.response?.status === 401) {
       localStorage.removeItem('auth_token')
@@ -63,7 +71,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       router.push('/auth/login')
       return
     }
-  }, [router, profileError])
+  }, [router, profileError, mounted])
   
   // Show loading while checking authentication
   if (profileLoading || !profile) {

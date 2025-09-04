@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "public"."BusinessCategory" AS ENUM ('GYM', 'COFFEE_SHOP', 'ECOMMERCE', 'OTHER');
 
@@ -182,6 +185,48 @@ CREATE TABLE "public"."UserBranch" (
 );
 
 -- CreateTable
+CREATE TABLE "public"."GymMemberProfile" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "emergencyContact" TEXT,
+    "medicalConditions" TEXT,
+    "fitnessGoals" TEXT,
+    "preferredTrainer" TEXT,
+    "gender" TEXT,
+    "height" INTEGER,
+    "weight" INTEGER,
+    "allergies" JSONB,
+    "lastVisit" TIMESTAMP(3),
+    "dateOfBirth" TIMESTAMP(3),
+    "totalVisits" INTEGER DEFAULT 0,
+    "fitnessLevel" TEXT,
+    "notifications" JSONB,
+    "favoriteEquipment" TEXT,
+    "averageVisitsPerWeek" INTEGER,
+    "preferredWorkoutTime" TEXT,
+    "membershipHistory" JSONB,
+    "profileMetadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "GymMemberProfile_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."CoffeeCustomerProfile" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "favoriteDrinks" TEXT[],
+    "dietaryPreferences" TEXT,
+    "loyaltyPoints" INTEGER NOT NULL DEFAULT 0,
+    "visitHistory" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CoffeeCustomerProfile_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "public"."MembershipPlan" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
@@ -354,6 +399,18 @@ CREATE UNIQUE INDEX "User_email_key" ON "public"."User"("email");
 CREATE UNIQUE INDEX "UserBranch_userId_branchId_key" ON "public"."UserBranch"("userId", "branchId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "GymMemberProfile_userId_key" ON "public"."GymMemberProfile"("userId");
+
+-- CreateIndex
+CREATE INDEX "GymMemberProfile_userId_idx" ON "public"."GymMemberProfile"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CoffeeCustomerProfile_userId_key" ON "public"."CoffeeCustomerProfile"("userId");
+
+-- CreateIndex
+CREATE INDEX "CoffeeCustomerProfile_userId_idx" ON "public"."CoffeeCustomerProfile"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "MembershipPlan_tenantId_name_key" ON "public"."MembershipPlan"("tenantId", "name");
 
 -- CreateIndex
@@ -456,6 +513,12 @@ ALTER TABLE "public"."UserBranch" ADD CONSTRAINT "UserBranch_branchId_fkey" FORE
 ALTER TABLE "public"."UserBranch" ADD CONSTRAINT "UserBranch_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."GymMemberProfile" ADD CONSTRAINT "GymMemberProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."CoffeeCustomerProfile" ADD CONSTRAINT "CoffeeCustomerProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."MembershipPlan" ADD CONSTRAINT "MembershipPlan_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "public"."Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -493,3 +556,4 @@ ALTER TABLE "public"."MemberAuditLog" ADD CONSTRAINT "MemberAuditLog_performedBy
 
 -- AddForeignKey
 ALTER TABLE "public"."SaasSubscription" ADD CONSTRAINT "SaasSubscription_businessUnitId_fkey" FOREIGN KEY ("businessUnitId") REFERENCES "public"."BusinessUnit"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

@@ -39,6 +39,10 @@ cd backend && npm run start:dev
 cd frontend && npm run dev
 ```
 
+### Port Management
+- **Frontend**: Always run on port 3000. Kill any process using it if needed.
+- **Backend**: Always run on port 5000. Kill any process using it if needed.
+
 ### Production Infrastructure
 - **Backend**: Railway.com ($5/month) - NestJS + PostgreSQL (149+ seeded users)
 - **Frontend**: Vercel.com (free) - Next.js with SSR compatibility
@@ -100,6 +104,7 @@ cd frontend && npm run dev
 - **Business Units Model**: Flexible LOCATION, CHANNEL, DEPARTMENT, FRANCHISE types
 - **Semantic Naming**: GymMemberSubscription, BusinessUnit, SaasSubscription
 - **Migration Strategy**: Prisma migrations with comprehensive seeding (149+ users)
+- **Schema Changes**: Always use Prisma migrations, never prisma push
 - **Data Consistency**: Single source of truth with proper foreign key relationships
 - **Paid Mode Toggle**: Subscription enforcement per tenant with trial management
 
@@ -141,6 +146,7 @@ cd frontend && npm run dev
 - **Commits**: Detailed messages with file changes and impact
 - **Code Review**: TypeScript compilation and functionality testing
 - **Deployment**: Automated Railway/Vercel deployments on main branch push
+- **Change Approval**: Ask user before applying or updating files
 
 ### Environment Management
 - **Development**: Docker Compose (frontend, backend, PostgreSQL)

@@ -7,10 +7,10 @@ export default function Home() {
   const router = useRouter()
 
   useEffect(() => {
-    // Check if user is authenticated
-    const token = localStorage.getItem('auth_token')
-    const userData = localStorage.getItem('user_data')
-    
+    // Check if user is authenticated (only on client after hydration)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+    const userData = typeof window !== 'undefined' ? localStorage.getItem('user_data') : null
+
     if (token && userData) {
       // User is authenticated, redirect to dashboard
       router.push('/dashboard')
