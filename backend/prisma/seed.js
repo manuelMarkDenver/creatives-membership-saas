@@ -492,26 +492,26 @@ async function main() {
             emergencyContactPhone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
             emergencyContactRelation: getRandomRelationship(),
             joinedDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000), // Random date within last year
-            medicalConditions: 'None',
-            fitnessGoals: 'Fitness Maintenance',
-            preferredTrainer: null,
+            medicalConditions: Math.random() > 0.8 ? ['None'] : ['Asthma', 'Back Pain', 'Knee Issues', 'Shoulder Pain'][Math.floor(Math.random() * 4)],
+            fitnessGoals: ['Weight Loss', 'Muscle Gain', 'Fitness Maintenance', 'Strength Training', 'Endurance', 'Flexibility'][Math.floor(Math.random() * 6)],
+            preferredTrainer: Math.random() > 0.7 ? 'Any Available' : null,
             // Profile fields
             gender: i % 2 === 0 ? 'MALE' : 'FEMALE',
-            height: 170 + i * 5,
-            weight: 70 + i * 5,
+            height: i % 2 === 0 ? 165 + Math.floor(Math.random() * 20) : 155 + Math.floor(Math.random() * 15), // Males: 165-185cm, Females: 155-170cm
+            weight: i % 2 === 0 ? 60 + Math.floor(Math.random() * 30) : 45 + Math.floor(Math.random() * 25), // Males: 60-90kg, Females: 45-70kg
             allergies: ['None'],
-            lastVisit: new Date(),
+            lastVisit: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000), // Random within last 30 days
             dateOfBirth: new Date(1990 + i, 0, 1),
-            totalVisits: 50 - i * 10,
-            fitnessLevel: 'Intermediate',
+            totalVisits: Math.max(0, 50 - i * 5 + Math.floor(Math.random() * 20)), // Ensure non-negative, add randomness
+            fitnessLevel: ['Beginner', 'Intermediate', 'Advanced'][Math.floor(Math.random() * 3)],
             notifications: {
-              email: true,
-              sms: false,
-              push: true
+              email: Math.random() > 0.2, // 80% have email notifications
+              sms: Math.random() > 0.7, // 30% have SMS notifications
+              push: Math.random() > 0.3 // 70% have push notifications
             },
-            favoriteEquipment: 'Weights',
-            averageVisitsPerWeek: 3,
-            preferredWorkoutTime: 'Morning',
+            favoriteEquipment: ['Weights', 'Cardio Machines', 'Yoga Mats', 'Treadmill', 'Dumbbells', 'Resistance Bands'][Math.floor(Math.random() * 6)],
+            averageVisitsPerWeek: Math.floor(Math.random() * 5) + 1, // 1-5 visits per week
+            preferredWorkoutTime: ['Morning', 'Afternoon', 'Evening', 'Night'][Math.floor(Math.random() * 4)],
             // Past memberships history
             membershipHistory: [
               {
@@ -523,9 +523,8 @@ async function main() {
             ],
             // Additional dynamic data
             profileMetadata: {
-              joinedDate: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
-              referralSource: 'Friend',
-              specialNotes: 'Regular member'
+              referralSource: ['Friend', 'Social Media', 'Website', 'Gym Advertisement', 'Word of Mouth'][Math.floor(Math.random() * 5)],
+              specialNotes: ['Regular member', 'VIP member', 'New member', 'Returning member', 'Fitness enthusiast'][Math.floor(Math.random() * 5)]
             }
           }
         });

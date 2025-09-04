@@ -170,13 +170,14 @@ model UserBranch {
   userId            String   @unique
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Gym-specific fields
-  emergencyContactName     String?
-  emergencyContactPhone    String?
-  emergencyContactRelation String?
-  medicalConditions String?
-  fitnessGoals      String?
-  preferredTrainer  String?
+   // Gym-specific fields
+   emergencyContactName     String?
+   emergencyContactPhone    String?
+   emergencyContactRelation String?
+   medicalConditions String?
+   fitnessGoals      String?
+   preferredTrainer  String?
+   trainerContactNumber     String?
 
   // Profile fields
   gender             String?

@@ -36,6 +36,29 @@ function getRandomRelationship(): string {
   return relationships[Math.floor(Math.random() * relationships.length)];
 }
 
+function generateTrainerData(): { name: string; contact: string } | null {
+  const trainers = [
+    { name: 'Coach Mike Santos', contact: '+63 917 123 4567' },
+    { name: 'Trainer Ana Reyes', contact: '+63 918 234 5678' },
+    { name: 'PT Carlos Garcia', contact: '+63 919 345 6789' },
+    { name: 'Fitness Coach Elena Rodriguez', contact: '+63 920 456 7890' },
+    { name: 'Strength Coach Miguel Torres', contact: '+63 921 567 8901' },
+    { name: 'Wellness Trainer Sofia Lopez', contact: '+63 922 678 9012' },
+    { name: 'Personal Trainer Diego Martinez', contact: '+63 923 789 0123' },
+    { name: 'Gym Instructor Isabella Hernandez', contact: '+63 924 890 1234' },
+    { name: 'Fitness Specialist Antonio Gonzalez', contact: '+63 925 901 2345' },
+    { name: 'Coach Maria Santos', contact: '+63 926 012 3456' }
+  ];
+
+  // 70% chance of having a preferred trainer
+  if (Math.random() > 0.3) {
+    const trainer = trainers[Math.floor(Math.random() * trainers.length)];
+    return trainer;
+  }
+
+  return null;
+}
+
 async function main() {
   console.log('🌱 Starting simplified database seeding...');
 
@@ -450,6 +473,17 @@ async function main() {
 
     for (let i = 0; i < specificMembers.length; i++) {
       const memberInfo = specificMembers[i];
+
+      // Check if member already exists
+      const existingMember = await prisma.user.findUnique({
+        where: { email: memberInfo.email }
+      });
+
+      if (existingMember) {
+        console.log(`⏭️  Member already exists: ${memberInfo.email}`);
+        continue;
+      }
+
       const hashedMemberPassword = await bcrypt.hash(memberInfo.password, 12);
 
       // Set member active status based on type
@@ -474,30 +508,36 @@ async function main() {
        const gymProfile = await prisma.gymMemberProfile.create({
         data: {
           userId: member.id,
-          emergencyContactName: `${memberInfo.lastName} (Spouse)`,
+          emergencyContactName: generateEmergencyContactName(),
           emergencyContactPhone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
-          emergencyContactRelation: 'Spouse',
+          emergencyContactRelation: getRandomRelationship(),
           joinedDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000), // Random date within last year
-          medicalConditions: 'None',
-          fitnessGoals: 'Fitness Maintenance',
-          preferredTrainer: null,
+           medicalConditions: Math.random() > 0.8 ? 'None' : ['Asthma', 'Back Pain', 'Knee Issues', 'Shoulder Pain'][Math.floor(Math.random() * 4)],
+           fitnessGoals: ['Weight Loss', 'Muscle Gain', 'Fitness Maintenance', 'Strength Training', 'Endurance', 'Flexibility'][Math.floor(Math.random() * 6)],
+           ...(() => {
+             const trainer = generateTrainerData();
+             return {
+               preferredTrainer: trainer?.name || null,
+               trainerContactNumber: trainer?.contact || null,
+             };
+           })(),
           // Profile fields
           gender: i % 2 === 0 ? 'MALE' : 'FEMALE',
-          height: 170 + i * 5,
-          weight: 70 + i * 5,
+          height: i % 2 === 0 ? 165 + Math.floor(Math.random() * 20) : 155 + Math.floor(Math.random() * 15), // Males: 165-185cm, Females: 155-170cm
+          weight: i % 2 === 0 ? 60 + Math.floor(Math.random() * 30) : 45 + Math.floor(Math.random() * 25), // Males: 60-90kg, Females: 45-70kg
           allergies: ['None'],
-          lastVisit: new Date(),
+          lastVisit: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000), // Random within last 30 days
           dateOfBirth: new Date(1990 + i, 0, 1),
-          totalVisits: 50 - i * 10,
-          fitnessLevel: 'Intermediate',
+          totalVisits: Math.max(0, 50 - i * 5 + Math.floor(Math.random() * 20)), // Ensure non-negative, add randomness
+          fitnessLevel: ['Beginner', 'Intermediate', 'Advanced'][Math.floor(Math.random() * 3)],
           notifications: {
-            email: true,
-            sms: false,
-            push: true
+            email: Math.random() > 0.2, // 80% have email notifications
+            sms: Math.random() > 0.7, // 30% have SMS notifications
+            push: Math.random() > 0.3 // 70% have push notifications
           },
-          favoriteEquipment: 'Weights',
-          averageVisitsPerWeek: 3,
-          preferredWorkoutTime: 'Morning',
+          favoriteEquipment: ['Weights', 'Cardio Machines', 'Yoga Mats', 'Treadmill', 'Dumbbells', 'Resistance Bands'][Math.floor(Math.random() * 6)],
+          averageVisitsPerWeek: Math.floor(Math.random() * 5) + 1, // 1-5 visits per week
+          preferredWorkoutTime: ['Morning', 'Afternoon', 'Evening', 'Night'][Math.floor(Math.random() * 4)],
           // Past memberships history
           membershipHistory: [
             {
@@ -509,9 +549,8 @@ async function main() {
           ],
           // Additional dynamic data
           profileMetadata: {
-            joinedDate: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
-            referralSource: 'Friend',
-            specialNotes: 'Regular member'
+            referralSource: ['Friend', 'Social Media', 'Website', 'Gym Advertisement', 'Word of Mouth'][Math.floor(Math.random() * 5)],
+            specialNotes: ['Regular member', 'VIP member', 'New member', 'Returning member', 'Fitness enthusiast'][Math.floor(Math.random() * 5)]
           }
         }
       });
@@ -763,9 +802,20 @@ async function main() {
      }
    ];
 
-   for (let i = 0; i < specificMembers.length; i++) {
-     const memberInfo = specificMembers[i];
-     const hashedMemberPassword = await bcrypt.hash(memberInfo.password, 12);
+    for (let i = 0; i < specificMembers.length; i++) {
+      const memberInfo = specificMembers[i];
+
+      // Check if member already exists
+      const existingMember = await prisma.user.findUnique({
+        where: { email: memberInfo.email }
+      });
+
+      if (existingMember) {
+        console.log(`⏭️  Member already exists: ${memberInfo.email}`);
+        continue;
+      }
+
+      const hashedMemberPassword = await bcrypt.hash(memberInfo.password, 12);
 
      // Set member active status based on type
      const isActive = memberInfo.status !== 'DELETED';
@@ -792,10 +842,16 @@ async function main() {
          emergencyContactName: generateEmergencyContactName(),
          emergencyContactPhone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
          emergencyContactRelation: getRandomRelationship(),
-         joinedDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000), // Random date within last year
-         medicalConditions: 'None',
-         fitnessGoals: 'Fitness Maintenance',
-         preferredTrainer: null,
+          joinedDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000), // Random date within last year
+          medicalConditions: 'None',
+          fitnessGoals: 'Fitness Maintenance',
+          ...(() => {
+            const trainer = generateTrainerData();
+            return {
+              preferredTrainer: trainer?.name || null,
+              trainerContactNumber: trainer?.contact || null,
+            };
+          })(),
          // Profile fields
          gender: i % 2 === 0 ? 'MALE' : 'FEMALE',
          height: 170 + i * 5,
