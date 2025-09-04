@@ -175,7 +175,23 @@ model UserBranch {
   medicalConditions String?
   fitnessGoals      String?
   preferredTrainer  String?
-  membershipHistory Json? // Past memberships, achievements, etc.
+
+  // Profile fields
+  gender             String?
+  height             Int?
+  weight             Int?
+  allergies          Json? // Array of strings
+  lastVisit          DateTime?
+  dateOfBirth        DateTime?
+  totalVisits        Int?     @default(0)
+  fitnessLevel       String?
+  notifications      Json? // Object with sms, push, email
+  favoriteEquipment  String?
+  averageVisitsPerWeek Int?
+  preferredWorkoutTime String?
+
+  membershipHistory  Json? // Past memberships, achievements, etc.
+  profileMetadata    Json? // For any additional dynamic data
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

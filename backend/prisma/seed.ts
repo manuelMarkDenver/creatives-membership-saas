@@ -447,34 +447,48 @@ async function main() {
          }
        });
 
-       // Create gym member profile
-       const gymProfile = await prisma.gymMemberProfile.create({
-         data: {
-           userId: member.id,
-           emergencyContact: `Emergency ${memberInfo.lastName} (Spouse) - +63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
-           medicalConditions: 'None',
-           fitnessGoals: 'Fitness Maintenance',
-           preferredTrainer: null,
-           membershipHistory: {
-             totalVisits: 50 - i * 10,
-             lastVisit: new Date().toISOString(),
-             averageVisitsPerWeek: 3,
-             fitnessLevel: 'Intermediate',
-             dateOfBirth: new Date(1990 + i, 0, 1).toISOString(),
-             gender: i % 2 === 0 ? 'MALE' : 'FEMALE',
-             height: 170 + i * 5,
-             weight: 70 + i * 5,
-             allergies: ['None'],
-             preferredWorkoutTime: 'Morning',
-             favoriteEquipment: 'Weights',
-             notifications: {
-               email: true,
-               sms: false,
-               push: true
-             }
-           }
-         }
-       });
+        // Create gym member profile
+        const gymProfile = await prisma.gymMemberProfile.create({
+          data: {
+            userId: member.id,
+            emergencyContact: `Emergency ${memberInfo.lastName} (Spouse) - +63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
+            medicalConditions: 'None',
+            fitnessGoals: 'Fitness Maintenance',
+            preferredTrainer: null,
+            // Profile fields
+            gender: i % 2 === 0 ? 'MALE' : 'FEMALE',
+            height: 170 + i * 5,
+            weight: 70 + i * 5,
+            allergies: ['None'],
+            lastVisit: new Date(),
+            dateOfBirth: new Date(1990 + i, 0, 1),
+            totalVisits: 50 - i * 10,
+            fitnessLevel: 'Intermediate',
+            notifications: {
+              email: true,
+              sms: false,
+              push: true
+            },
+            favoriteEquipment: 'Weights',
+            averageVisitsPerWeek: 3,
+            preferredWorkoutTime: 'Morning',
+            // Past memberships history
+            membershipHistory: [
+              {
+                planName: 'Basic Monthly',
+                startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
+                endDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                status: 'COMPLETED'
+              }
+            ],
+            // Additional dynamic data
+            profileMetadata: {
+              joinedDate: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
+              referralSource: 'Friend',
+              specialNotes: 'Regular member'
+            }
+          }
+        });
       
       // Create gym member subscription based on status
       let subscriptionStatus: GymMemberSubscriptionStatus;
