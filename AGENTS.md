@@ -4,9 +4,51 @@
 **Multi-Business SaaS Platform** supporting gyms → coffee shops → e-commerce
 - **Current Status**: Phase 1 Complete - Business Units & Performance Optimization ✅
 - **Architecture**: Multi-tenant with business units for scalability
-- **Business Model**: SaaS subscriptions with paid mode toggle per tenant
+- **Business Model**: SaaS subscriptions with paid mode toggle per tenant (₱399/month per business unit)
 - **Current Focus**: Gym MVP polish and production deployment
-- **Mobile Strategy**: React Native apps ($15K-25K setup + $1.5K-2K/month)
+- **Mobile Strategy**: React Native apps (₱1.5M-2.5M setup + ₱150K-200K/month)
+- **Pricing**: ₱399/month per business unit, ₱3,999/year (save 2 months)
+
+## ⚠️ Important Agent Rules
+- **ALWAYS ASK BEFORE MAKING CHANGES**: Never modify files, run commands, or make schema changes without explicit user approval first
+- **CONFIRM UNDERSTANDING**: Ask clarifying questions if the request is ambiguous
+- **EXPLAIN CHANGES**: When proposing changes, clearly explain what will be modified and why
+- **PRESERVE USER CONTROL**: The user must approve every change to maintain their ability to follow along
+
+## 🚨 Critical Issues & Safeguards Tracker
+
+### ✅ RESOLVED
+- [x] **User Schema Refactoring**: User table now business-agnostic
+- [x] **RBAC Separation**: Global roles (SUPER_ADMIN, OWNER, MANAGER, STAFF) + Business roles (GYM_MEMBER, etc.)
+- [x] **UserBranch Renamed**: GymUserBranch for gym-specific location management
+- [x] **Photo Enhancement**: photoUrl (main) + photos (JSON array for multiple images)
+- [x] **Orphaned Business Profiles**: Automatic User + Profile creation
+- [x] **Role Consistency**: Clear global vs business role separation
+- [x] **Automatic User Creation**: Gym members created with User + Profile atomically
+- [x] **Database Constraints**: Unique constraints and proper relations
+- [x] **CRUD Separation**: Users CRUD vs Gym CRUD operations
+
+### 🔄 IN PROGRESS
+- [x] **Orphaned Business Profiles**: Users without corresponding business profiles
+- [x] **Role Consistency**: Global vs business role conflicts
+- [x] **Automatic User Creation**: Create User + GymMemberProfile together
+- [x] **Database Constraints**: Unique constraints and validation checks
+- [x] **CRUD Separation**: Users CRUD vs Gym CRUD operations
+
+### ❌ PENDING
+- [ ] **Coffee Module**: Business-specific module for coffee customers
+- [ ] **Cross-Business User Management**: Super admin dashboard for all users
+- [ ] **Business-Specific Location Tables**: Separate tables for different business types
+- [ ] **Permission-Based Access Control**: Granular permissions per business profile
+
+### 🛡️ Safeguards Implemented
+- [x] **Schema Constraints**: Foreign key relationships and indexes
+- [x] **Application Validation**: Business logic validation layers
+- [x] **Database Constraints**: Unique constraints and proper relations
+- [x] **Transaction Safety**: Atomic operations for user + profile creation
+- [x] **Role System**: Option A - Global + Business roles implemented
+- [x] **CRUD Separation**: Users vs Business-specific operations
+- [x] **Data Integrity**: Prevents orphaned profiles and duplicate entries
 
 ## Build/Lint/Test Commands
 
@@ -44,11 +86,11 @@ cd frontend && npm run dev
 - **Backend**: Always run on port 5000. Kill any process using it if needed.
 
 ### Production Infrastructure
-- **Backend**: Railway.com ($5/month) - NestJS + PostgreSQL (149+ seeded users)
+- **Backend**: Railway.com (₱250/month) - NestJS + PostgreSQL (149+ seeded users)
 - **Frontend**: Vercel.com (free) - Next.js with SSR compatibility
 - **Database**: Railway PostgreSQL with business units and gym subscriptions
 - **File Storage**: Supabase Storage for member photos
-- **Total Cost**: $5/month (bootstrap-friendly)
+- **Total Cost**: ₱250/month (bootstrap-friendly)
 - **URLs**: https://happy-respect-production.up.railway.app (backend), Vercel deployment (frontend)
 
 ## Code Style Guidelines
@@ -87,10 +129,12 @@ cd frontend && npm run dev
 
 ### Authentication & Authorization
 - **JWT-based authentication** with comprehensive RBAC
-- **Roles**: Super Admin → Owner → Manager → Staff
+- **Global Roles**: SUPER_ADMIN, OWNER, MANAGER, STAFF (platform-level)
+- **Business Roles**: GYM_MEMBER, GYM_TRAINER, etc. (business-specific)
 - **Guards**: Route-level protection with automatic redirects
 - **Session Management**: Automatic cleanup of expired tokens
 - **Branch Access**: Role-based member management per assigned branches
+- **Data Integrity**: Prevents orphaned profiles and role conflicts
 
 ### State Management
 - **Zustand Stores**: Business units, gym subscriptions, API caching, tenant context
@@ -107,6 +151,40 @@ cd frontend && npm run dev
 - **Schema Changes**: Always use Prisma migrations, never prisma push
 - **Data Consistency**: Single source of truth with proper foreign key relationships
 - **Paid Mode Toggle**: Subscription enforcement per tenant with trial management
+- **Data Integrity**: Unique constraints, transaction safety, orphaned profile prevention
+
+### RBAC Use Cases & Implementation
+
+#### Global Roles (Platform-Level)
+- **SUPER_ADMIN**: Full platform access, all tenants, system administration
+- **OWNER**: Full tenant access, all branches, user management, billing
+- **MANAGER**: Branch-specific management, staff supervision, member management
+- **STAFF**: Limited operations, member check-in, basic member management
+
+#### Business Roles (Gym-Specific)
+- **GYM_MEMBER**: Basic member access, profile management
+- **GYM_TRAINER**: Member training, workout plans, progress tracking
+- **GYM_FRONT_DESK**: Member check-in, basic administration
+- **GYM_MAINTENANCE**: Equipment maintenance, facility management
+
+#### Access Patterns
+- **Owner Access**: All branches within their tenant ✅
+- **Manager Access**: Assigned branches only (via GymUserBranch table) ✅
+- **Staff Access**: Assigned branches only (via GymUserBranch table) ✅
+- **Member Access**: Their own profile and assigned branches ✅
+
+#### RBAC Implementation Status
+- **Global Roles**: SUPER_ADMIN, OWNER, MANAGER, STAFF ✅
+- **Business Roles**: GYM_MEMBER, GYM_TRAINER, etc. ✅
+- **Branch Assignment**: GymUserBranch table ✅
+- **Owner All-Access**: Implemented in RBAC guard ✅
+- **Manager Branch Assignment**: Via GymUserBranch ✅
+- **Role Conflicts**: Resolved with clear separation ✅
+
+#### User Creation Flow
+- **Automatic**: `POST /gym/members` creates User + GymMemberProfile
+- **Manual**: `POST /users` creates business-agnostic users
+- **Role Assignment**: Global roles in User, business roles in profiles
 
 ## Current System Status
 
@@ -115,10 +193,11 @@ cd frontend && npm run dev
 - **Gym Subscriptions API**: Renewal, cancellation, transaction history, statistics
 - **Performance Optimization**: < 3 re-renders per operation (eliminated 20+ loops)
 - **State Management**: Zustand stores with React Query integration
-- **Authentication Security**: JWT with comprehensive RBAC (5 user roles)
-- **Production Deployment**: Railway backend + Vercel frontend ($5/month total)
+- **Authentication Security**: JWT with comprehensive RBAC (global + business roles)
+- **Production Deployment**: Railway backend + Vercel frontend (₱250/month total)
 - **Database**: 149+ seeded users with realistic gym membership scenarios
 - **API Architecture**: Business-specific endpoints (`/api/v1/gym/*`, `/api/v1/business-units/*`)
+- **Data Integrity**: Automatic User + Profile creation, database constraints
 
 ### 🔧 Technical Achievements
 - **Business Units Architecture**: Complete multi-tenant business unit management
@@ -126,18 +205,19 @@ cd frontend && npm run dev
 - **Gym-Specific APIs**: Complete overhaul to business-centric endpoints
 - **State Management**: Efficient Zustand stores with React Query integration
 - **Database Schema**: Multi-tenant with proper foreign key relationships
-- **Production Deployment**: Railway + Vercel with automated CI/CD
-- **Authentication System**: Enterprise-level RBAC with 5 user roles
+- **Production Deployment**: Railway + Vercel with automated CI/CD (₱250/month)
+- **Authentication System**: Enterprise-level RBAC with global + business roles
 - **SSR Compatibility**: Client components for third-party libraries
 - **Data Seeding**: 149+ realistic users with comprehensive test scenarios
+- **Data Integrity**: Database constraints, transaction safety, orphaned profile prevention
 
 ### 📊 Business Metrics
 - **User Base**: 149+ seeded users across multiple gym tenants with realistic scenarios
-- **Cost Structure**: $5/month total (Railway backend + Vercel frontend)
+- **Cost Structure**: ₱250/month total (Railway backend + Vercel frontend)
 - **Database**: Railway PostgreSQL with business units and subscription tracking
 - **Scalability**: Multi-tenant architecture ready for 100+ gym locations
-- **Revenue Model**: SaaS subscriptions with paid mode toggle per tenant
-- **Mobile Strategy**: React Native apps ($15K-25K setup + $1.5K-2K/month)
+- **Revenue Model**: SaaS subscriptions with paid mode toggle per tenant (₱399/month)
+- **Mobile Strategy**: React Native apps (₱1.5M-2.5M setup + ₱150K-200K/month)
 
 ## Development Workflow
 
@@ -209,5 +289,10 @@ cd frontend && npm run dev
 - **Frontend**: Next.js with Zustand stores and React Query integration
 - **Database**: Multi-tenant PostgreSQL with business unit isolation
 - **Deployment**: Railway backend + Vercel frontend ($5/month total)
+
+### Super Admin Features
+- **Universal User Dashboard**: Tab/view showing all users across businesses (gym, coffee, e-commerce) agnostically
+- **Cross-Business User Management**: View and manage users regardless of their business context
+- **Business Profile Aggregation**: Display user information from respective business profiles (GymMemberProfile, CoffeeCustomerProfile, etc.)
 
 This comprehensive AGENTS.md provides complete context for any agent working on the Creatives SaaS platform, ensuring consistent development practices and understanding of the current Phase 1 completion status, Phase 2 roadmap, and multi-business architecture foundation.

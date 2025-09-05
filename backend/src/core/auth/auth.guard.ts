@@ -55,15 +55,18 @@ export class AuthGuard implements CanActivate {
           const targetUser = await this.prisma.user.findFirst({
             where: {
               email: bypassUserEmail,
-              isActive: true,
             },
             include: {
-              userBranches: {
+              gymUserBranches: {
                 include: {
                   branch: true,
                 },
               },
-              tenant: true,
+              gymMemberProfile: {
+                include: {
+                  tenant: true,
+                },
+              },
             },
           });
 
@@ -71,9 +74,9 @@ export class AuthGuard implements CanActivate {
             bypassUser = {
               id: targetUser.id,
               email: targetUser.email || bypassUserEmail,
-              role: targetUser.role,
-              tenantId: targetUser.tenantId,
-              branchAccess: targetUser.userBranches.map((ub) => ({
+              role: targetUser.globalRole || Role.GYM_MEMBER,
+              tenantId: targetUser.gymMemberProfile?.tenantId || null,
+              branchAccess: targetUser.gymUserBranches.map((ub) => ({
                 branchId: ub.branchId,
                 accessLevel: ub.accessLevel,
                 permissions: (ub.permissions as Record<string, boolean>) || {},
@@ -81,7 +84,7 @@ export class AuthGuard implements CanActivate {
               })),
             };
             console.log(
-              `🔧 Bypassing auth as: ${targetUser.email} (${targetUser.role}) - Tenant: ${targetUser.tenant?.name || 'None'}`,
+              `🔧 Bypassing auth as: ${targetUser.email} (${targetUser.globalRole || 'GYM_MEMBER'}) - Tenant: ${targetUser.gymMemberProfile?.tenant?.name || 'None'}`,
             );
           } else {
             console.warn(
@@ -97,11 +100,11 @@ export class AuthGuard implements CanActivate {
           // Fallback to super admin
           const realSuperAdmin = await this.prisma.user.findFirst({
             where: {
-              role: 'SUPER_ADMIN',
+              globalRole: 'SUPER_ADMIN',
               email: 'admin@creatives-saas.com',
             },
             include: {
-              userBranches: {
+              gymUserBranches: {
                 include: {
                   branch: true,
                 },
@@ -113,9 +116,9 @@ export class AuthGuard implements CanActivate {
             bypassUser = {
               id: realSuperAdmin.id,
               email: realSuperAdmin.email || 'admin@creatives-saas.com',
-              role: realSuperAdmin.role,
-              tenantId: realSuperAdmin.tenantId || null,
-              branchAccess: realSuperAdmin.userBranches.map((ub) => ({
+              role: realSuperAdmin.globalRole || Role.SUPER_ADMIN,
+              tenantId: null, // Super admin has no tenant restriction
+              branchAccess: realSuperAdmin.gymUserBranches.map((ub) => ({
                 branchId: ub.branchId,
                 accessLevel: ub.accessLevel,
                 permissions: (ub.permissions as Record<string, boolean>) || {},
@@ -138,11 +141,11 @@ export class AuthGuard implements CanActivate {
         try {
           const realSuperAdmin = await this.prisma.user.findFirst({
             where: {
-              role: 'SUPER_ADMIN',
+              globalRole: 'SUPER_ADMIN',
               email: 'admin@creatives-saas.com',
             },
             include: {
-              userBranches: {
+              gymUserBranches: {
                 include: {
                   branch: true,
                 },

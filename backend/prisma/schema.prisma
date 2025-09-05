@@ -32,7 +32,9 @@ model Tenant {
   customerTransactions   CustomerTransaction[]
   membershipPlans        MembershipPlan[]
   platformRevenues       PlatformRevenue[]
-  users                  User[]
+  gymMemberProfiles      GymMemberProfile[]
+  coffeeCustomerProfiles CoffeeCustomerProfile[]
+  gymUserBranches        GymUserBranch[]
 }
 
 model Branch {
@@ -49,7 +51,7 @@ model Branch {
   tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   gymMemberSubscriptions GymMemberSubscription[]
   subscriptions          Subscription[]
-  userBranches           UserBranch[]
+  gymUserBranches        GymUserBranch[]
 
   @@unique([tenantId, name])
 }
@@ -121,21 +123,19 @@ model Payment {
 
 model User {
   id                     String                  @id @default(uuid())
-  tenantId               String?
   firstName              String
   lastName               String
   email                  String?                 @unique
   phoneNumber            String?
-  role                   Role                    @default(GYM_MEMBER)
-  isActive               Boolean                 @default(true)
   notes                  String?
-   photoUrl               String?
+   photoUrl               String? // Main profile photo
+   photos                 Json?   // Array of additional photo URLs for future features
+   globalRole             Role?   // Platform-level roles (SUPER_ADMIN, OWNER, MANAGER, STAFF)
    businessData           Json?
    deletedAt              DateTime?
    deletedBy              String?
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
-  name                   String?
   password               String?
   gymMemberSubscriptions GymMemberSubscription[] @relation("GymMemberSubscriptions")
   customerTransactions   CustomerTransaction[]   @relation("CustomerTransactions")
@@ -144,16 +144,16 @@ model User {
   performedAuditLogs     MemberAuditLog[]        @relation("PerformedAuditLogs")
   deletedByUser          User?                   @relation("UserDeletions", fields: [deletedBy], references: [id])
   deletedUsers           User[]                  @relation("UserDeletions")
-  tenant                 Tenant?                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  userBranches           UserBranch[]
+  gymUserBranches        GymUserBranch[]
   gymMemberProfile       GymMemberProfile?
   coffeeCustomerProfile  CoffeeCustomerProfile?
 }
 
-model UserBranch {
+model GymUserBranch {
   id          String      @id @default(uuid())
   userId      String
   branchId    String
+  tenantId    String
   accessLevel AccessLevel @default(STAFF_ACCESS)
   isPrimary   Boolean     @default(false)
   permissions Json?
@@ -161,14 +161,22 @@ model UserBranch {
   updatedAt   DateTime    @updatedAt
   branch      Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([userId, branchId])
+  @@index([tenantId])
 }
 
  model GymMemberProfile {
   id                String   @id @default(uuid())
-  userId            String   @unique
+  userId            String   @unique // One profile per user (across all tenants)
+  tenantId          String
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Business-specific fields
+  role              GymRole  @default(GYM_MEMBER)
+  status            GymMemberSubscriptionStatus @default(ACTIVE)
 
    // Gym-specific fields
    emergencyContactName     String?
@@ -201,13 +209,19 @@ model UserBranch {
    createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  @@index([userId])
+  @@index([tenantId])
 }
 
 model CoffeeCustomerProfile {
-  id                  String   @id @default(uuid())
-  userId              String   @unique
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String     @id @default(uuid())
+  userId              String     @unique // One profile per user (across all tenants)
+  tenantId            String
+  user                User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant              Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Business-specific fields
+  role                CoffeeRole @default(COFFEE_CUSTOMER)
+  status              String     @default("active")
 
   // Coffee shop-specific fields
   favoriteDrinks      String[]
@@ -218,7 +232,7 @@ model CoffeeCustomerProfile {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  @@index([userId])
+  @@index([tenantId])
 }
 
 model MembershipPlan {
@@ -395,16 +409,33 @@ enum BusinessCategory {
   OTHER
 }
 
+// Global roles for platform-wide access
 enum Role {
   SUPER_ADMIN
   OWNER
   MANAGER
   STAFF
+}
+
+// Business-specific role enums
+enum GymRole {
   GYM_TRAINER
   GYM_NUTRITIONIST
   GYM_FRONT_DESK
   GYM_MAINTENANCE
   GYM_MEMBER
+}
+
+enum CoffeeRole {
+  COFFEE_MANAGER
+  BARISTA
+  CASHIER
+  BAKER
+  SHIFT_SUPERVISOR
+  COFFEE_CUSTOMER
+}
+
+enum EcommerceRole {
   STORE_MANAGER
   PRODUCT_MANAGER
   INVENTORY_MANAGER
@@ -413,12 +444,6 @@ enum Role {
   FULFILLMENT_STAFF
   VENDOR
   ECOM_CUSTOMER
-  COFFEE_MANAGER
-  BARISTA
-  CASHIER
-  BAKER
-  SHIFT_SUPERVISOR
-  COFFEE_CUSTOMER
 }
 
 enum AccessLevel {

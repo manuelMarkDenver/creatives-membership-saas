@@ -70,7 +70,7 @@ export class UsersController {
     return this.usersService.getAllUsers();
   }
 
-  // Tenant-scoped routes with business type validation
+  // General user creation (business-agnostic)
   @Post()
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)

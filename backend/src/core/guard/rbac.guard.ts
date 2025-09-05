@@ -131,11 +131,12 @@ export class RBACGuard implements CanActivate {
     const dbUser = await this.prisma.user.findUnique({
       where: { id: user.id },
       include: {
-        userBranches: {
+        gymUserBranches: {
           include: {
             branch: true,
           },
         },
+        gymMemberProfile: true,
       },
     });
 
@@ -143,9 +144,10 @@ export class RBACGuard implements CanActivate {
       throw new NotFoundException('User not found');
     }
 
-    user.role = dbUser.role;
-    user.tenantId = dbUser.tenantId;
-    user.branchAccess = dbUser.userBranches.map((ub) => ({
+    // Use globalRole for platform-level permissions
+    user.role = dbUser.globalRole || Role.GYM_MEMBER;
+    user.tenantId = dbUser.gymMemberProfile?.tenantId || null;
+    user.branchAccess = dbUser.gymUserBranches.map((ub) => ({
       branchId: ub.branchId,
       accessLevel: ub.accessLevel,
       permissions: (ub.permissions as Record<string, boolean>) || {},
@@ -261,11 +263,12 @@ export async function getUserAccessibleBranches(
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      userBranches: {
+      gymUserBranches: {
         include: {
           branch: true,
         },
       },
+      gymMemberProfile: true,
     },
   });
 
@@ -274,7 +277,7 @@ export async function getUserAccessibleBranches(
   }
 
   // SUPER_ADMIN and OWNER can access all branches
-  if (user.role === Role.SUPER_ADMIN) {
+  if (user.globalRole === Role.SUPER_ADMIN) {
     const allBranches = await prisma.branch.findMany({
       where: tenantId ? { tenantId } : {},
       select: { id: true },
@@ -282,14 +285,15 @@ export async function getUserAccessibleBranches(
     return allBranches.map((b) => b.id);
   }
 
-  if (user.role === Role.OWNER) {
+  if (user.globalRole === Role.OWNER) {
+    const profileTenantId = user.gymMemberProfile?.tenantId;
     const tenantBranches = await prisma.branch.findMany({
-      where: { tenantId: user.tenantId || undefined },
+      where: { tenantId: profileTenantId || undefined },
       select: { id: true },
     });
     return tenantBranches.map((b) => b.id);
   }
 
   // Return branches the user has explicit access to
-  return user.userBranches.map((ub) => ub.branchId);
+  return user.gymUserBranches.map((ub) => ub.branchId);
 }
