@@ -78,11 +78,9 @@ async function main() {
       data: {
         email: superAdminEmail,
         password: hashedPassword,
-        name: 'Super Admin',
         firstName: 'Super',
         lastName: 'Admin',
-        role: Role.SUPER_ADMIN,
-        isActive: true,
+        globalRole: Role.SUPER_ADMIN,
       },
     });
 
@@ -185,10 +183,10 @@ async function main() {
 
     console.log(`✅ Created owner: ${owner.email}`);
     loginCredentials.push({
-      email: owner.email,
+      email: owner.email || '',
       password: tenantInfo.owner.password,
       role: 'OWNER',
-      name: owner.name || owner.firstName + ' ' + owner.lastName
+      name: owner.firstName + ' ' + owner.lastName
     });
 
     // Create membership plans for this tenant
