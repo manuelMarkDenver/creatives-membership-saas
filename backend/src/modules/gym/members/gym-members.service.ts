@@ -94,7 +94,7 @@ export class GymMembersService {
   // - Gym analytics and stats
   // - Workout tracking
   // - Equipment usage
-  - Gym-specific reporting
+  // - Gym-specific reporting
   // ========================================
 
   async getGymSpecificStats(tenantId: string) {

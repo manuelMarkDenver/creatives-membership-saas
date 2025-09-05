@@ -108,10 +108,11 @@ export class TenantsService {
         });
 
         // 4. Assign the owner to the branch with full access
-        await tx.userBranch.create({
+        await tx.gymUserBranch.create({
           data: {
             userId: owner.id,
             branchId: branch.id,
+            tenantId: tenant.id,
             accessLevel: AccessLevel.FULL_ACCESS,
             isPrimary: true,
           },
@@ -223,10 +224,10 @@ export class TenantsService {
               },
               _count: {
                 select: {
-                  userBranches: {
+                  gymUserBranches: {
                     where: {
                       user: {
-                        role: 'GYM_MEMBER',
+                        globalRole: 'STAFF',
                       },
                     },
                   },
@@ -238,7 +239,7 @@ export class TenantsService {
             select: {
               users: {
                 where: {
-                  role: 'GYM_MEMBER',
+                  globalRole: 'STAFF',
                 },
               },
               branches: true,

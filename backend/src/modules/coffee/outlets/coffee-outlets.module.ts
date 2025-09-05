@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { GymLocationsController } from './gym-locations.controller';
+import { CoffeeOutletsController } from './coffee-outlets.controller';
 import { BranchesModule } from '../../branches/branches.module';
 import { PrismaModule } from '../../../core/prisma/prisma.module';
 import { SupabaseModule } from '../../../core/supabase/supabase.module';
@@ -7,8 +7,8 @@ import { SubscriptionsModule } from '../../subscriptions/subscriptions.module';
 
 @Module({
   imports: [PrismaModule, SupabaseModule, SubscriptionsModule, BranchesModule],
-  controllers: [GymLocationsController],
+  controllers: [CoffeeOutletsController],
   providers: [],
   exports: [],
 })
-export class GymLocationsModule {}
+export class CoffeeOutletsModule {}

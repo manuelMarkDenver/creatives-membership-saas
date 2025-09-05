@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { GymMembersService } from './gym-members.service';
 import { AuthGuard } from '../../../core/auth/auth.guard';
 import { RBACGuard, RequiredRoles } from '../../../core/guard/rbac.guard';

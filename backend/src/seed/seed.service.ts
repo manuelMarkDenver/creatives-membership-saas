@@ -18,7 +18,7 @@ export class SeedService {
       await this.prisma.saasSubscription.deleteMany({});
       await this.prisma.payment.deleteMany({});
       await this.prisma.gymMemberSubscription.deleteMany({});
-      await this.prisma.userBranch.deleteMany({});
+      await this.prisma.gymUserBranch.deleteMany({});
       await this.prisma.subscription.deleteMany({});
       await this.prisma.membershipPlan.deleteMany({});
       await this.prisma.branch.deleteMany({});
