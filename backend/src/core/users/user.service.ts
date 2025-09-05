@@ -655,12 +655,12 @@ export class UsersService {
         const requestingUser = await this.prisma.user.findUnique({
           where: { id: filters.requestingUserId },
           include: {
-            userBranches: { select: { branchId: true } },
+            gymUserBranches: { select: { branchId: true } },
           },
         });
 
         const accessibleBranchIds =
-          requestingUser?.userBranches.map((ub) => ub.branchId) || [];
+          requestingUser?.gymUserBranches.map((ub) => ub.branchId) || [];
 
         if (accessibleBranchIds.length > 0) {
           // For members (GYM_MEMBER), filter by customers who have subscriptions in accessible branches
@@ -689,7 +689,7 @@ export class UsersService {
           // For staff/managers, show users who have branch assignments in accessible branches
           else if (['MANAGER', 'STAFF', 'OWNER'].includes(filters.role || '')) {
             const usersInAccessibleBranches =
-              await this.prisma.userBranch.findMany({
+              await this.prisma.gymUserBranch.findMany({
                 where: {
                   branchId: { in: accessibleBranchIds },
                 },
@@ -738,7 +738,7 @@ export class UsersService {
               category: true,
             },
           },
-          userBranches: {
+          gymUserBranches: {
             include: {
               branch: {
                 select: {
@@ -1071,7 +1071,7 @@ export class UsersService {
         const userWithBranches = await this.prisma.user.findUnique({
           where: { id: userContext.userId },
           include: {
-            userBranches: {
+            gymUserBranches: {
               include: {
                 branch: {
                   select: {
@@ -1085,8 +1085,8 @@ export class UsersService {
           },
         });
 
-        const userBranchAccess = userWithBranches?.userBranches || [];
-        const accessibleBranchIds = userBranchAccess.map((ub) => ub.branchId);
+        const gymUserBranchAccess = userWithBranches?.gymUserBranches || [];
+        const accessibleBranchIds = gymUserBranchAccess.map((ub) => ub.branchId);
 
         if (userContext.role === 'MANAGER' || userContext.role === 'STAFF') {
           // Managers and Staff can only see branches they have access to
@@ -1160,14 +1160,14 @@ export class UsersService {
       const userId = filters.userId;
       let accessibleBranchIds: string[] = [];
       let availableBranches: any[] = [];
-      let userBranchAccess: any[] = [];
+      let gymUserBranchAccess: any[] = [];
 
       if (filters.userRole !== 'SUPER_ADMIN') {
         // Get user's branch access for non-super-admin users
         const userWithBranches = await this.prisma.user.findUnique({
           where: { id: userId },
           include: {
-            userBranches: {
+            gymUserBranches: {
               include: {
                 branch: {
                   select: {
@@ -1182,8 +1182,8 @@ export class UsersService {
           },
         });
 
-        userBranchAccess = userWithBranches?.userBranches || [];
-        accessibleBranchIds = userBranchAccess.map((ub) => ub.branchId);
+        gymUserBranchAccess = userWithBranches?.gymUserBranches || [];
+        accessibleBranchIds = gymUserBranchAccess.map((ub) => ub.branchId);
       }
 
       // Build where clause based on user role - include both expiring AND recently expired
@@ -1259,7 +1259,7 @@ export class UsersService {
         }
 
         // Available branches for dropdown (only branches they have access to)
-        availableBranches = userBranchAccess.map((ub) => ({
+        availableBranches = gymUserBranchAccess.map((ub) => ({
           id: ub.branch.id,
           name: ub.branch.name,
           address: ub.branch.address,
@@ -1283,7 +1283,7 @@ export class UsersService {
         }
 
         // Available branches for dropdown
-        availableBranches = userBranchAccess.map((ub) => ({
+        availableBranches = gymUserBranchAccess.map((ub) => ({
           id: ub.branch.id,
           name: ub.branch.name,
           address: ub.branch.address,

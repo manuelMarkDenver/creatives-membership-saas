@@ -98,7 +98,7 @@ export class UserBranchesService {
         }
       }
 
-      const userBranches = await this.prisma.userBranch.findMany({
+      const gymUserBranches = await this.prisma.gymUserBranch.findMany({
         where: { userId },
         include: {
           branch: {
@@ -123,9 +123,9 @@ export class UserBranchesService {
 
       return {
         userId,
-        branchAssignments: userBranches,
-        totalBranches: userBranches.length,
-        primaryBranch: userBranches.find((ub) => ub.isPrimary),
+        branchAssignments: gymUserBranches,
+        totalBranches: gymUserBranches.length,
+        primaryBranch: gymUserBranches.find((ub) => ub.isPrimary),
       };
     } catch (error) {
       this.logger.error(`Failed to get user branches: ${error.message}`);
@@ -158,7 +158,7 @@ export class UserBranchesService {
 
         // Managers can only see branches they have access to
         if (currentUser.role === 'MANAGER') {
-          const hasAccess = await this.prisma.userBranch.findFirst({
+          const hasAccess = await this.prisma.gymUserBranch.findFirst({
             where: {
               userId: currentUser.id,
               branchId: branchId,
@@ -171,7 +171,7 @@ export class UserBranchesService {
         }
       }
 
-      const branchUsers = await this.prisma.userBranch.findMany({
+      const branchUsers = await this.prisma.gymUserBranch.findMany({
         where: { branchId },
         include: {
           user: {
@@ -269,7 +269,7 @@ export class UserBranchesService {
 
         // MANAGER can only assign STAFF to branches they have access to
         if (currentUser.role === 'MANAGER') {
-          const hasAccess = await this.prisma.userBranch.findFirst({
+          const hasAccess = await this.prisma.gymUserBranch.findFirst({
             where: {
               userId: currentUser.id,
               branchId: branchId,
@@ -286,7 +286,7 @@ export class UserBranchesService {
       }
 
       // Check if assignment already exists
-      const existingAssignment = await this.prisma.userBranch.findUnique({
+      const existingAssignment = await this.prisma.gymUserBranch.findUnique({
         where: {
           userId_branchId: {
             userId,
@@ -303,17 +303,18 @@ export class UserBranchesService {
 
       // If this is primary, remove primary from other assignments for this user
       if (isPrimary) {
-        await this.prisma.userBranch.updateMany({
+        await this.prisma.gymUserBranch.updateMany({
           where: { userId, isPrimary: true },
           data: { isPrimary: false },
         });
       }
 
       // Create assignment
-      const assignment = await this.prisma.userBranch.create({
+      const assignment = await this.prisma.gymUserBranch.create({
         data: {
           userId,
           branchId,
+        tenantId: user.tenantId,
           accessLevel: accessLevel || 'STAFF_ACCESS',
           isPrimary: isPrimary || false,
           permissions,
@@ -361,7 +362,7 @@ export class UserBranchesService {
       const { accessLevel, isPrimary, permissions } = updateUserBranchDto;
 
       // Get existing assignment
-      const existingAssignment = await this.prisma.userBranch.findUnique({
+      const existingAssignment = await this.prisma.gymUserBranch.findUnique({
         where: { id },
         include: {
           user: {
@@ -394,7 +395,7 @@ export class UserBranchesService {
 
       // If this is becoming primary, remove primary from other assignments for this user
       if (isPrimary) {
-        await this.prisma.userBranch.updateMany({
+        await this.prisma.gymUserBranch.updateMany({
           where: {
             userId: existingAssignment.userId,
             isPrimary: true,
@@ -404,7 +405,7 @@ export class UserBranchesService {
         });
       }
 
-      const updatedAssignment = await this.prisma.userBranch.update({
+      const updatedAssignment = await this.prisma.gymUserBranch.update({
         where: { id },
         data: {
           ...(accessLevel && { accessLevel }),
@@ -451,7 +452,7 @@ export class UserBranchesService {
   async removeUserFromBranch(id: string, currentUser: any) {
     try {
       // Get existing assignment
-      const existingAssignment = await this.prisma.userBranch.findUnique({
+      const existingAssignment = await this.prisma.gymUserBranch.findUnique({
         where: { id },
         include: {
           user: {
@@ -478,7 +479,7 @@ export class UserBranchesService {
 
         // MANAGER can only remove STAFF from branches they have access to
         if (currentUser.role === 'MANAGER') {
-          const hasAccess = await this.prisma.userBranch.findFirst({
+          const hasAccess = await this.prisma.gymUserBranch.findFirst({
             where: {
               userId: currentUser.id,
               branchId: existingAssignment.branchId,
@@ -497,7 +498,7 @@ export class UserBranchesService {
         }
       }
 
-      await this.prisma.userBranch.delete({ where: { id } });
+      await this.prisma.gymUserBranch.delete({ where: { id } });
 
       this.logger.log(
         `Removed ${existingAssignment.user.firstName} ${existingAssignment.user.lastName} from branch ${existingAssignment.branch.name}`,
@@ -546,6 +547,12 @@ export class UserBranchesService {
         throw new NotFoundException('User not found');
       }
 
+      if (!user.tenantId) {
+        throw new BadRequestException('User must have a tenant');
+      }
+
+      const tenantId = user.tenantId;
+
       // Validate branches exist and are in same tenant
       const branches = await this.prisma.branch.findMany({
         where: {
@@ -573,7 +580,7 @@ export class UserBranchesService {
       }
 
       // Remove existing assignments for this user
-      await this.prisma.userBranch.deleteMany({
+      await this.prisma.gymUserBranch.deleteMany({
         where: { userId },
       });
 
@@ -581,16 +588,17 @@ export class UserBranchesService {
       const assignmentsData = branchIds.map((branchId) => ({
         userId,
         branchId,
+        tenantId: tenantId,
         accessLevel,
         isPrimary: branchId === primaryBranchId,
       }));
 
-      await this.prisma.userBranch.createMany({
+      await this.prisma.gymUserBranch.createMany({
         data: assignmentsData,
       });
 
       // Get created assignments with relations
-      const assignments = await this.prisma.userBranch.findMany({
+      const assignments = await this.prisma.gymUserBranch.findMany({
         where: { userId },
         include: {
           branch: {

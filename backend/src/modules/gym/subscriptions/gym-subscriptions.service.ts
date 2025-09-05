@@ -30,7 +30,7 @@ export class GymSubscriptionsService {
             id: true,
             firstName: true,
             lastName: true,
-            name: true,
+
             email: true,
           },
         },
@@ -54,7 +54,7 @@ export class GymSubscriptionsService {
         membershipPlan: {
           select: {
             id: true,
-            name: true,
+
             price: true,
             duration: true,
             type: true,
@@ -185,7 +185,7 @@ export class GymSubscriptionsService {
             id: true,
             firstName: true,
             lastName: true,
-            name: true,
+
             email: true,
           },
         },
@@ -286,16 +286,18 @@ export class GymSubscriptionsService {
         },
         include: {
           membershipPlan: true,
-          member: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              name: true,
-              email: true,
-            },
+        member: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phoneNumber: true,
+            photoUrl: true,
           },
         },
+        tenant: true,
+      },
       });
 
     // Update user's businessData to remove payment history only
@@ -343,7 +345,7 @@ export class GymSubscriptionsService {
             id: true,
             firstName: true,
             lastName: true,
-            name: true,
+
           },
         },
       },
@@ -496,18 +498,17 @@ export class GymSubscriptionsService {
           member: {
             select: {
               id: true,
-              firstName: true,
-              lastName: true,
-              name: true,
-              email: true,
-              phoneNumber: true,
-              photoUrl: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phoneNumber: true,
+            photoUrl: true,
             },
           },
           membershipPlan: {
             select: {
               id: true,
-              name: true,
+  
               type: true,
               price: true,
             },
@@ -515,7 +516,7 @@ export class GymSubscriptionsService {
           tenant: {
             select: {
               id: true,
-              name: true,
+  
               category: true,
             },
           },
@@ -569,9 +570,7 @@ export class GymSubscriptionsService {
         endDate: subscription.endDate.toISOString(),
         price: subscription.price,
         daysUntilExpiry,
-        memberName:
-          subscription.member.name ||
-          `${subscription.member.firstName} ${subscription.member.lastName}`.trim(),
+        memberName: `${subscription.member.firstName} ${subscription.member.lastName}`.trim(),
         isExpired: daysUntilExpiry <= 0,
         urgency,
         customer: {

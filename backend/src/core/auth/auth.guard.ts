@@ -7,6 +7,7 @@ import {
 import { SupabaseService } from '../supabase/supabase.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser } from '../guard/rbac.guard';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -74,7 +75,7 @@ export class AuthGuard implements CanActivate {
             bypassUser = {
               id: targetUser.id,
               email: targetUser.email || bypassUserEmail,
-              role: targetUser.globalRole || Role.GYM_MEMBER,
+              role: targetUser.globalRole || 'GYM_MEMBER',
               tenantId: targetUser.gymMemberProfile?.tenantId || null,
               branchAccess: targetUser.gymUserBranches.map((ub) => ({
                 branchId: ub.branchId,
@@ -84,7 +85,7 @@ export class AuthGuard implements CanActivate {
               })),
             };
             console.log(
-              `🔧 Bypassing auth as: ${targetUser.email} (${targetUser.globalRole || 'GYM_MEMBER'}) - Tenant: ${targetUser.gymMemberProfile?.tenant?.name || 'None'}`,
+              `🔧 Bypassing auth as: ${targetUser.email} (${targetUser.globalRole || targetUser.gymMemberProfile?.role || 'GYM_MEMBER'}) - Tenant: ${targetUser.gymMemberProfile?.tenant?.name || 'None'}`,
             );
           } else {
             console.warn(
@@ -157,9 +158,9 @@ export class AuthGuard implements CanActivate {
             bypassUser = {
               id: realSuperAdmin.id,
               email: realSuperAdmin.email || 'admin@creatives-saas.com',
-              role: realSuperAdmin.role,
+              role: realSuperAdmin.role || 'SUPER_ADMIN',
               tenantId: realSuperAdmin.tenantId || null,
-              branchAccess: realSuperAdmin.userBranches.map((ub) => ({
+              branchAccess: realSuperAdmin.gymUserBranches.map((ub) => ({
                 branchId: ub.branchId,
                 accessLevel: ub.accessLevel,
                 permissions: (ub.permissions as Record<string, boolean>) || {},
@@ -213,7 +214,7 @@ export class AuthGuard implements CanActivate {
           dbUser = await this.prisma.user.findUnique({
             where: { id: decodedToken.userId },
             include: {
-              userBranches: {
+              gymUserBranches: {
                 include: {
                   branch: true,
                 },
@@ -233,7 +234,7 @@ export class AuthGuard implements CanActivate {
           dbUser = await this.prisma.user.findUnique({
             where: { email: supabaseUser.email },
             include: {
-              userBranches: {
+              gymUserBranches: {
                 include: {
                   branch: true,
                 },
@@ -272,7 +273,7 @@ export class AuthGuard implements CanActivate {
         email: dbUser.email || '',
         role: dbUser.role,
         tenantId: dbUser.tenantId,
-        branchAccess: dbUser.userBranches.map((ub) => ({
+        branchAccess: dbUser.gymUserBranches.map((ub) => ({
           branchId: ub.branchId,
           accessLevel: ub.accessLevel,
           permissions: (ub.permissions as Record<string, boolean>) || {},

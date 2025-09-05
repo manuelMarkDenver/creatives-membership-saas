@@ -81,7 +81,7 @@ export class AuthController {
           user: {
             id: user.id,
             email: user.email,
-            name: user.name || `${user.firstName} ${user.lastName}`,
+            name: `${user.firstName} ${user.lastName}`,
             firstName: user.firstName,
             lastName: user.lastName,
             role: user.role,
@@ -280,7 +280,7 @@ export class AuthController {
             id: superAdmin.id,
             email: superAdmin.email,
             name:
-              superAdmin.name ||
+              `${superAdmin.firstName} ${superAdmin.lastName}` ||
               `${superAdmin.firstName} ${superAdmin.lastName}`,
             firstName: superAdmin.firstName,
             lastName: superAdmin.lastName,

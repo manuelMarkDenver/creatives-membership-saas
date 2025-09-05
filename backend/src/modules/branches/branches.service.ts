@@ -88,10 +88,10 @@ export class BranchesService {
         include: {
           _count: {
             select: {
-              userBranches: true,
+              gymUserBranches: true,
             },
           },
-          userBranches: {
+          gymUserBranches: {
             select: {
               user: {
                 select: {
@@ -109,26 +109,26 @@ export class BranchesService {
       })
       .then((branches) => {
         return branches.map((branch) => {
-          const members = branch.userBranches.filter(
+          const members = branch.gymUserBranches.filter(
             (ub) => ub.user.role === 'GYM_MEMBER',
           );
           const activeMembers = members.filter((ub) => ub.user.isActive).length;
           const inactiveMembers = members.filter(
             (ub) => !ub.user.isActive,
           ).length;
-          const staff = branch.userBranches.filter((ub) =>
-            ['STAFF', 'MANAGER'].includes(ub.user.role),
+          const staff = branch.gymUserBranches.filter((ub) =>
+            ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
           ).length;
 
           return {
             ...branch,
             _count: {
-              userBranches: members.length,
+              gymUserBranches: members.length,
               activeMembers,
               inactiveMembers,
               staff,
             },
-            userBranches: undefined, // Remove detailed userBranches from response
+            gymUserBranches: undefined, // Remove detailed gymUserBranches from response
           };
         });
       });
@@ -147,10 +147,10 @@ export class BranchesService {
           },
           _count: {
             select: {
-              userBranches: true,
+              gymUserBranches: true,
             },
           },
-          userBranches: {
+          gymUserBranches: {
             select: {
               user: {
                 select: {
@@ -168,26 +168,26 @@ export class BranchesService {
       })
       .then((branches) => {
         return branches.map((branch) => {
-          const members = branch.userBranches.filter(
+          const members = branch.gymUserBranches.filter(
             (ub) => ub.user.role === 'GYM_MEMBER',
           );
           const activeMembers = members.filter((ub) => ub.user.isActive).length;
           const inactiveMembers = members.filter(
             (ub) => !ub.user.isActive,
           ).length;
-          const staff = branch.userBranches.filter((ub) =>
-            ['STAFF', 'MANAGER'].includes(ub.user.role),
+          const staff = branch.gymUserBranches.filter((ub) =>
+            ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
           ).length;
 
           return {
             ...branch,
             _count: {
-              userBranches: members.length,
+              gymUserBranches: members.length,
               activeMembers,
               inactiveMembers,
               staff,
             },
-            userBranches: undefined, // Remove detailed userBranches from response
+            gymUserBranches: undefined, // Remove detailed gymUserBranches from response
           };
         });
       });
@@ -225,10 +225,11 @@ export class BranchesService {
       throw new NotFoundException('Branch not found');
     }
 
-    return this.prisma.userBranch.create({
+    return this.prisma.gymUserBranch.create({
       data: {
         ...assignUserToBranchDto,
         branchId,
+        tenantId: branch.tenantId,
       },
     });
   }
@@ -238,7 +239,7 @@ export class BranchesService {
     userId: string,
     branchId: string,
   ) {
-    const userBranch = await this.prisma.userBranch.findUnique({
+    const gymUserBranch = await this.prisma.gymUserBranch.findUnique({
       where: {
         userId_branchId: {
           userId,
@@ -247,11 +248,11 @@ export class BranchesService {
       },
     });
 
-    if (!userBranch) {
+    if (!gymUserBranch) {
       throw new NotFoundException('User not found in branch');
     }
 
-    return this.prisma.userBranch.update({
+    return this.prisma.gymUserBranch.update({
       where: {
         userId_branchId: {
           userId,

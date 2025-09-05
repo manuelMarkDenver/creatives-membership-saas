@@ -93,10 +93,10 @@ export class GymLocationsService {
         include: {
           _count: {
             select: {
-              userBranches: true,
+              gymUserBranches: true,
             },
           },
-          userBranches: {
+          gymUserBranches: {
             select: {
               user: {
                 select: {
@@ -114,26 +114,26 @@ export class GymLocationsService {
       })
       .then((locations) => {
         return locations.map((location) => {
-          const members = location.userBranches.filter(
+          const members = location.gymUserBranches.filter(
             (ub) => ub.user.role === 'GYM_MEMBER',
           );
           const activeMembers = members.filter((ub) => ub.user.isActive).length;
           const inactiveMembers = members.filter(
             (ub) => !ub.user.isActive,
           ).length;
-          const staff = location.userBranches.filter((ub) =>
-            ['STAFF', 'MANAGER'].includes(ub.user.role),
+          const staff = location.gymUserBranches.filter((ub) =>
+            ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
           ).length;
 
           return {
             ...location,
             _count: {
-              userBranches: members.length,
+              gymUserBranches: members.length,
               activeMembers,
               inactiveMembers,
               staff,
             },
-            userBranches: undefined, // Remove detailed userBranches from response
+            gymUserBranches: undefined, // Remove detailed gymUserBranches from response
           };
         });
       });
@@ -171,10 +171,11 @@ export class GymLocationsService {
       throw new NotFoundException('Gym location not found');
     }
 
-    return this.prisma.userBranch.create({
+    return this.prisma.gymUserBranch.create({
       data: {
         ...assignUserDto,
         branchId: locationId,
+        tenantId: location.tenantId,
       },
     });
   }
@@ -184,7 +185,7 @@ export class GymLocationsService {
     userId: string,
     locationId: string,
   ) {
-    const userBranch = await this.prisma.userBranch.findUnique({
+    const gymUserBranch = await this.prisma.gymUserBranch.findUnique({
       where: {
         userId_branchId: {
           userId,
@@ -193,11 +194,11 @@ export class GymLocationsService {
       },
     });
 
-    if (!userBranch) {
+    if (!gymUserBranch) {
       throw new NotFoundException('User not found in gym location');
     }
 
-    return this.prisma.userBranch.update({
+    return this.prisma.gymUserBranch.update({
       where: {
         userId_branchId: {
           userId,

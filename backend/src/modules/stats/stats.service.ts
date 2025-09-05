@@ -87,7 +87,7 @@ export class StatsService {
         },
         _count: {
           select: {
-            userBranches: true,
+            gymUserBranches: true,
           },
         },
       },
@@ -103,7 +103,7 @@ export class StatsService {
         isActive: branch.isActive,
         createdAt: branch.createdAt,
         tenant: branch.tenant,
-        memberCount: branch._count.userBranches,
+        memberCount: branch._count.gymUserBranches,
         subscription: activeSubscription
           ? {
               id: activeSubscription.id,
@@ -182,7 +182,7 @@ export class StatsService {
             category: true,
           },
         },
-        userBranches: {
+        gymUserBranches: {
           include: {
             branch: {
               select: {
@@ -198,14 +198,14 @@ export class StatsService {
 
     const memberStats = users.map((user) => ({
       id: user.id,
-      name: user.name || `${user.firstName} ${user.lastName}`,
+      name: `${user.firstName} ${user.lastName}`,
       email: user.email,
-      role: user.role,
+      role: user.role || 'GYM_MEMBER',
       isActive: user.isActive,
       createdAt: user.createdAt,
       tenant: user.tenant,
-      branches: user.userBranches.map((ub) => ub.branch),
-      branchCount: user.userBranches.length,
+      branches: user.gymUserBranches.map((ub) => ub.branch),
+      branchCount: user.gymUserBranches.length,
     }));
 
     // Group by role
@@ -270,21 +270,6 @@ export class StatsService {
       Role.OWNER,
       Role.MANAGER,
       Role.STAFF,
-      Role.GYM_TRAINER,
-      Role.GYM_NUTRITIONIST,
-      Role.GYM_FRONT_DESK,
-      Role.GYM_MAINTENANCE,
-      Role.STORE_MANAGER,
-      Role.PRODUCT_MANAGER,
-      Role.INVENTORY_MANAGER,
-      Role.CUSTOMER_SERVICE,
-      Role.MARKETING_MANAGER,
-      Role.FULFILLMENT_STAFF,
-      Role.COFFEE_MANAGER,
-      Role.BARISTA,
-      Role.CASHIER,
-      Role.BAKER,
-      Role.SHIFT_SUPERVISOR,
     ];
 
     const staff = await this.prisma.user.findMany({
@@ -300,7 +285,7 @@ export class StatsService {
             category: true,
           },
         },
-        userBranches: {
+        gymUserBranches: {
           include: {
             branch: {
               select: {
@@ -316,14 +301,14 @@ export class StatsService {
 
     const staffStats = staff.map((user) => ({
       id: user.id,
-      name: user.name || `${user.firstName} ${user.lastName}`,
+      name: `${user.firstName} ${user.lastName}`,
       email: user.email,
-      role: user.role,
+      role: user.role || 'GYM_MEMBER',
       isActive: user.isActive,
       createdAt: user.createdAt,
       tenant: user.tenant,
-      branches: user.userBranches.map((ub) => ub.branch),
-      branchCount: user.userBranches.length,
+      branches: user.gymUserBranches.map((ub) => ub.branch),
+      branchCount: user.gymUserBranches.length,
     }));
 
     // Group by role
@@ -503,7 +488,7 @@ export class StatsService {
                   include: { plan: true },
                 },
                 _count: {
-                  select: { userBranches: true },
+                  select: { gymUserBranches: true },
                 },
               },
             },
@@ -533,7 +518,7 @@ export class StatsService {
       name: branch.name,
       address: branch.address,
       isActive: branch.isActive,
-      memberCount: branch._count.userBranches,
+      memberCount: branch._count.gymUserBranches,
       subscription: branch.subscriptions[0] || null,
     }));
 

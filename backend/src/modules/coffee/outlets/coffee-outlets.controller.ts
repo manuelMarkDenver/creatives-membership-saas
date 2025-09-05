@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Param,
-  Put,
-  Get,
-  Delete,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Controller, Post, Body, Param, Put, Get, Delete, UseGuards, Request } from '@nestjs/common';
 import { BranchesService } from '../../branches/branches.service';
 import {
   CreateBranchDto,
@@ -25,52 +15,50 @@ import {
 import { AuthGuard } from '../../../core/auth/auth.guard';
 import { Role, AccessLevel } from '@prisma/client';
 
-@Controller('gym/locations')
+@Controller('coffee/outlets')
 @UseGuards(AuthGuard, RBACGuard)
-export class GymLocationsController {
+export class CoffeeOutletsController {
   constructor(private readonly branchesService: BranchesService) {}
 
   @Post()
   @RequiredRoles(Role.OWNER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
-  async createGymLocation(
-    @Body() createLocationDto: CreateBranchDto,
+  async createCoffeeOutlet(
+    @Body() createOutletDto: CreateBranchDto,
     @Request() req: any,
   ) {
     const user = req.user as AuthenticatedUser;
     // Handle bypass auth case - use tenantId from body or headers
     const tenantId =
-      user?.tenantId ||
-      createLocationDto.tenantId ||
-      req.headers['x-tenant-id'];
+      user?.tenantId || createOutletDto.tenantId || req.headers['x-tenant-id'];
 
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
 
     return this.branchesService.createBranch({
-      ...createLocationDto,
+      ...createOutletDto,
       tenantId,
     });
   }
 
-  @Put(':locationId')
+  @Put(':outletId')
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
-  async updateGymLocation(
-    @Param('locationId') locationId: string,
-    @Body() updateLocationDto: UpdateBranchDto,
+  async updateCoffeeOutlet(
+    @Param('outletId') outletId: string,
+    @Body() updateOutletDto: UpdateBranchDto,
   ) {
     return this.branchesService.updateBranch(
-      locationId,
-      updateLocationDto,
+      outletId,
+      updateOutletDto,
     );
   }
 
   @Get()
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
-  async findAllGymLocations(@Request() req: any) {
+  async findAllCoffeeOutlets(@Request() req: any) {
     const user = req.user as AuthenticatedUser;
     // Handle bypass auth case - use tenantId from query or headers
     const tenantId =
@@ -83,45 +71,45 @@ export class GymLocationsController {
     return this.branchesService.findAllBranches(tenantId);
   }
 
-  @Get(':locationId')
+  @Get(':outletId')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
-  async findGymLocationById(@Param('locationId') locationId: string) {
-    return this.branchesService.findBranchById(locationId);
+  async findCoffeeOutletById(@Param('outletId') outletId: string) {
+    return this.branchesService.findBranchById(outletId);
   }
 
-  @Delete(':locationId')
+  @Delete(':outletId')
   @RequiredRoles(Role.OWNER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
-  async deleteGymLocation(@Param('locationId') locationId: string) {
-    return this.branchesService.deleteBranch(locationId);
+  async deleteCoffeeOutlet(@Param('outletId') outletId: string) {
+    return this.branchesService.deleteBranch(outletId);
   }
 
-  @Post(':locationId/staff')
+  @Post(':outletId/staff')
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
-  async assignStaffToLocation(
-    @Param('locationId') locationId: string,
+  async assignStaffToOutlet(
+    @Param('outletId') outletId: string,
     @Body() assignUserDto: AssignUserToBranchDto,
   ) {
     return this.branchesService.assignUserToBranch(
       assignUserDto,
-      locationId,
+      outletId,
     );
   }
 
-  @Put(':locationId/staff/:userId')
+  @Put(':outletId/staff/:userId')
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
-  async updateStaffLocationAccess(
-    @Param('locationId') locationId: string,
+  async updateStaffOutletAccess(
+    @Param('outletId') outletId: string,
     @Param('userId') userId: string,
     @Body() updateAccessDto: UpdateUserBranchAccessDto,
   ) {
     return this.branchesService.updateUserBranchAccess(
       updateAccessDto,
       userId,
-      locationId,
+      outletId,
     );
   }
 }

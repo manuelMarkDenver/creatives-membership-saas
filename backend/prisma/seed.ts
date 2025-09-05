@@ -172,7 +172,6 @@ async function main() {
         password: hashedOwnerPassword,
         firstName: tenantInfo.owner.firstName,
         lastName: tenantInfo.owner.lastName,
-        name: tenantInfo.owner.name,
         role: Role.OWNER,
         isActive: true,
         tenant: {
@@ -335,7 +334,6 @@ async function main() {
           password: hashedManagerPassword,
           firstName: 'Maria',
           lastName: 'Rodriguez',
-          name: 'Maria Rodriguez',
           role: Role.MANAGER,
           isActive: true,
           tenant: {
@@ -349,14 +347,15 @@ async function main() {
         email: manager.email,
         password: managerPassword,
         role: 'MANAGER',
-        name: manager.name || manager.firstName + ' ' + manager.lastName
+        name: manager.firstName + ' ' + manager.lastName
       });
 
       // Assign manager to branch
-      await prisma.userBranch.create({
+      await prisma.gymUserBranch.create({
         data: {
           userId: manager.id,
           branchId: branch.id,
+          tenantId: tenant.id,
           accessLevel: 'MANAGER_ACCESS'
         }
       });
@@ -493,7 +492,6 @@ async function main() {
           password: hashedMemberPassword,
           firstName: memberInfo.firstName,
           lastName: memberInfo.lastName,
-          name: `${memberInfo.firstName} ${memberInfo.lastName}`,
           role: Role.GYM_MEMBER,
           isActive: isActive,
           tenant: {
@@ -506,6 +504,7 @@ async function main() {
        const gymProfile = await prisma.gymMemberProfile.create({
         data: {
           userId: member.id,
+          tenantId: tenant.id,
           emergencyContactName: generateEmergencyContactName(),
           emergencyContactPhone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
           emergencyContactRelation: getRandomRelationship(),
@@ -625,7 +624,7 @@ async function main() {
        email: memberInfo.email,
        password: memberInfo.password,
        role: 'GYM_MEMBER',
-       name: member.name || member.firstName + ' ' + member.lastName
+       name: member.firstName + ' ' + member.lastName
      });
    }
 
@@ -822,9 +821,8 @@ async function main() {
        data: {
          email: memberInfo.email,
          password: hashedMemberPassword,
-         firstName: memberInfo.firstName,
-         lastName: memberInfo.lastName,
-         name: `${memberInfo.firstName} ${memberInfo.lastName}`,
+          firstName: memberInfo.firstName,
+          lastName: memberInfo.lastName,
          role: Role.GYM_MEMBER,
          isActive: isActive,
          tenant: {
@@ -837,6 +835,7 @@ async function main() {
       const gymProfile = await prisma.gymMemberProfile.create({
        data: {
          userId: member.id,
+         tenantId: tenant.id,
          emergencyContactName: generateEmergencyContactName(),
          emergencyContactPhone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
          emergencyContactRelation: getRandomRelationship(),
@@ -957,7 +956,7 @@ async function main() {
       email: memberInfo.email,
       password: memberInfo.password,
       role: 'GYM_MEMBER',
-      name: member.name || member.firstName + ' ' + member.lastName
+      name: member.firstName + ' ' + member.lastName
     });
   }
  }
