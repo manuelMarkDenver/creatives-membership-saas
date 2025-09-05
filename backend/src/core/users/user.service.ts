@@ -26,14 +26,6 @@ export class UsersService {
   async createUser(data: CreateUserDto) {
     try {
       // Validate required fields
-      if (!data.tenantId?.trim()) {
-        throw new BadRequestException('Tenant ID is required');
-      }
-
-      if (!this.isValidUUID(data.tenantId)) {
-        throw new BadRequestException('Invalid tenant ID format');
-      }
-
       if (!data.firstName?.trim()) {
         throw new BadRequestException(
           'First name is required and cannot be empty',
@@ -51,49 +43,31 @@ export class UsersService {
         throw new BadRequestException('Invalid email format');
       }
 
-      // Validate role if provided (disable for now to avoid enum validation issues)
-      // if (data.role && !Object.values(Role).includes(data.role as Role)) {
-      //   throw new BadRequestException(
-      //     `Invalid role. Must be one of: ${Object.values(Role).join(', ')}`,
-      //   );
-      // }
-
-      // Verify tenant exists
-      const tenant = await this.prisma.tenant.findUnique({
-        where: { id: data.tenantId },
-      });
-
-      if (!tenant) {
-        throw new NotFoundException(
-          `Tenant with ID '${data.tenantId}' not found`,
+      // Validate globalRole if provided
+      if (data.globalRole && !Object.values(Role).includes(data.globalRole as Role)) {
+        throw new BadRequestException(
+          `Invalid global role. Must be one of: ${Object.values(Role).join(', ')}`,
         );
       }
 
       // Clean and prepare data
       const userData: any = {
-        ...data,
         firstName: data.firstName.trim(),
         lastName: data.lastName.trim(),
         email: data.email?.trim().toLowerCase() || null,
         phoneNumber: data.phoneNumber?.trim() || null,
         notes: data.notes?.trim() || null,
+        globalRole: data.globalRole || null,
+        photoUrl: data.photoUrl || null,
+        businessData: data.businessData || null,
       };
 
       const user = await this.prisma.user.create({
         data: userData,
-        include: {
-          tenant: {
-            select: {
-              id: true,
-              name: true,
-              category: true,
-            },
-          },
-        },
       });
 
       this.logger.log(
-        `Created user: ${user.firstName} ${user.lastName} (${user.id}) for tenant ${tenant.name}`,
+        `Created user: ${user.firstName} ${user.lastName} (${user.id})`,
       );
       return user;
     } catch (error) {
@@ -117,7 +91,7 @@ export class UsersService {
           );
         }
         if (error.code === 'P2003') {
-          throw new BadRequestException('Invalid tenant ID provided');
+          throw new BadRequestException('Invalid data provided');
         }
       }
 

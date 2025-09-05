@@ -13,9 +13,6 @@ import {
 import { Role } from '@prisma/client';
 
 export class CreateUserDto {
-  @IsUUID()
-  tenantId: string;
-
   @IsString()
   firstName: string;
 
@@ -32,11 +29,7 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsEnum(Role)
-  role?: Role;
-
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
+  globalRole?: Role; // Renamed to globalRole to match schema
 
   @IsOptional()
   @IsString()

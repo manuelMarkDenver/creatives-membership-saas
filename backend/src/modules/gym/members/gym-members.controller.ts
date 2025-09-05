@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { GymMembersService } from './gym-members.service';
 import { AuthGuard } from '../../../core/auth/auth.guard';
 import { RBACGuard, RequiredRoles } from '../../../core/guard/rbac.guard';
@@ -18,17 +18,15 @@ interface RequestWithUser extends Request {
 }
 
 interface CreateGymMemberDto {
-  firstName?: string;
-  lastName?: string;
-  name?: string;
-  email: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
   phoneNumber?: string;
   dateOfBirth?: string;
-   address?: any;
-   emergencyContactName?: any;
-   emergencyContactPhone?: any;
-   emergencyContactRelation?: any;
-   membershipPlanId?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyContactRelation?: string;
+  membershipPlanId?: string;
   paymentMethod?: string;
 }
 
@@ -52,7 +50,26 @@ export class GymMembersController {
   constructor(private readonly gymMembersService: GymMembersService) {}
 
   // ========================================
-  // NOTE: For basic user CRUD (create, read, update, delete, photo upload)
+  // Gym Member Creation - Creates User + GymMemberProfile automatically
+  // ========================================
+
+  @Post()
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  async createGymMember(
+    @Body() data: CreateGymMemberDto,
+    @Req() req: RequestWithUser
+  ) {
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
+    if (!tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+
+    return this.gymMembersService.createGymMember(data, tenantId);
+  }
+
+  // ========================================
+  // NOTE: For basic user CRUD (read, update, delete, photo upload)
   // use the Users controller at /users - it handles ALL user types
   //
   // This controller focuses ONLY on gym-specific business logic

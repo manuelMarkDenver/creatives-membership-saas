@@ -55,11 +55,9 @@ async function main() {
       data: {
         email: superAdminEmail,
         password: hashedPassword,
-        name: 'Super Admin',
         firstName: 'Super',
         lastName: 'Admin',
-        role: 'SUPER_ADMIN',
-        isActive: true,
+        globalRole: 'SUPER_ADMIN',
       },
     });
     
@@ -167,12 +165,17 @@ async function main() {
          password: hashedOwnerPassword,
          firstName: tenantInfo.owner.firstName,
          lastName: tenantInfo.owner.lastName,
-         name: tenantInfo.owner.name,
-         role: 'OWNER',
-         isActive: true,
-         tenant: {
-           connect: { id: tenant.id }
-         }
+         globalRole: 'OWNER',
+       }
+     });
+
+     // Create gym member profile for owner
+     await prisma.gymMemberProfile.create({
+       data: {
+         userId: owner.id,
+         tenantId: tenant.id,
+         role: 'GYM_MEMBER', // Business-specific role
+         status: 'ACTIVE'
        }
      });
     
@@ -329,12 +332,17 @@ async function main() {
          password: hashedManagerPassword,
          firstName: 'Manager',
          lastName: 'Cruz',
-         name: 'Manager Cruz',
-         role: 'MANAGER',
-         isActive: true,
-         tenant: {
-           connect: { id: tenant.id }
-         }
+         globalRole: 'MANAGER',
+       }
+     });
+
+     // Create gym member profile for manager
+     await prisma.gymMemberProfile.create({
+       data: {
+         userId: manager.id,
+         tenantId: tenant.id,
+         role: 'GYM_MEMBER', // Business-specific role
+         status: 'ACTIVE'
        }
      });
     
@@ -347,10 +355,11 @@ async function main() {
     });
     
     // Assign manager to branch
-    await prisma.userBranch.create({
+    await prisma.gymUserBranch.create({
       data: {
         userId: manager.id,
         branchId: branch.id,
+        tenantId: tenant.id,
         accessLevel: 'MANAGER_ACCESS'
       }
     });
@@ -466,21 +475,12 @@ async function main() {
       const memberInfo = specificMembers[i];
       const hashedMemberPassword = await bcrypt.hash(memberInfo.password, 12);
       
-      // Set member active status based on type
-      const isActive = memberInfo.status !== 'DELETED';
-      
        const member = await prisma.user.create({
          data: {
            email: memberInfo.email,
            password: hashedMemberPassword,
            firstName: memberInfo.firstName,
            lastName: memberInfo.lastName,
-           name: `${memberInfo.firstName} ${memberInfo.lastName}`,
-           role: 'GYM_MEMBER',
-           isActive: isActive,
-           tenant: {
-             connect: { id: tenant.id }
-           }
          }
        });
 
@@ -488,6 +488,11 @@ async function main() {
         const gymProfile = await prisma.gymMemberProfile.create({
           data: {
             userId: member.id,
+            tenantId: tenant.id,
+            role: 'GYM_MEMBER', // Business-specific role
+            status: memberInfo.status === 'DELETED' ? 'CANCELLED' :
+                   memberInfo.status === 'EXPIRING' ? 'ACTIVE' :
+                   memberInfo.status,
             emergencyContactName: generateEmergencyContactName(),
             emergencyContactPhone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
             emergencyContactRelation: getRandomRelationship(),
@@ -600,11 +605,12 @@ async function main() {
         }
       });
       
-      // Create UserBranch relationship
-      await prisma.userBranch.create({
+      // Create GymUserBranch relationship
+      await prisma.gymUserBranch.create({
         data: {
           userId: member.id,
           branchId: branch.id,
+          tenantId: tenant.id,
           accessLevel: 'READ_ONLY'
         }
       });
