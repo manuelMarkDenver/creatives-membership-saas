@@ -159,15 +159,16 @@ async function main() {
     
     // Create owner
     const hashedOwnerPassword = await bcrypt.hash(tenantInfo.owner.password, 12);
-     const owner = await prisma.user.create({
-       data: {
-         email: tenantInfo.owner.email,
-         password: hashedOwnerPassword,
-         firstName: tenantInfo.owner.firstName,
-         lastName: tenantInfo.owner.lastName,
-         globalRole: 'OWNER',
-       }
-     });
+      const owner = await prisma.user.create({
+        data: {
+          email: tenantInfo.owner.email,
+          password: hashedOwnerPassword,
+          firstName: tenantInfo.owner.firstName,
+          lastName: tenantInfo.owner.lastName,
+          globalRole: 'OWNER',
+          tenantId: tenant.id, // Set tenant context for owner
+        }
+      });
 
      // Create gym member profile for owner
      await prisma.gymMemberProfile.create({
@@ -326,15 +327,16 @@ async function main() {
     const managerPassword = 'Manager123!';
     const hashedManagerPassword = await bcrypt.hash(managerPassword, 12);
     
-     const manager = await prisma.user.create({
-       data: {
-         email: managerEmail,
-         password: hashedManagerPassword,
-         firstName: 'Manager',
-         lastName: 'Cruz',
-         globalRole: 'MANAGER',
-       }
-     });
+      const manager = await prisma.user.create({
+        data: {
+          email: managerEmail,
+          password: hashedManagerPassword,
+          firstName: 'Manager',
+          lastName: 'Cruz',
+          globalRole: 'MANAGER',
+          tenantId: tenant.id, // Set tenant context for manager
+        }
+      });
 
      // Create gym member profile for manager
      await prisma.gymMemberProfile.create({
@@ -475,14 +477,15 @@ async function main() {
       const memberInfo = specificMembers[i];
       const hashedMemberPassword = await bcrypt.hash(memberInfo.password, 12);
       
-       const member = await prisma.user.create({
-         data: {
-           email: memberInfo.email,
-           password: hashedMemberPassword,
-           firstName: memberInfo.firstName,
-           lastName: memberInfo.lastName,
-         }
-       });
+        const member = await prisma.user.create({
+          data: {
+            email: memberInfo.email,
+            password: hashedMemberPassword,
+            firstName: memberInfo.firstName,
+            lastName: memberInfo.lastName,
+            globalRole: 'CLIENT', // Global role for end users
+          }
+        });
 
         // Create gym member profile
         const gymProfile = await prisma.gymMemberProfile.create({

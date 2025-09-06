@@ -44,7 +44,7 @@ export class UsersService {
       }
 
       // Validate globalRole if provided
-      if (data.globalRole && !Object.values(Role).includes(data.globalRole as Role)) {
+      if (data.globalRole && !Object.values(Role).includes(data.globalRole)) {
         throw new BadRequestException(
           `Invalid global role. Must be one of: ${Object.values(Role).join(', ')}`,
         );
@@ -1086,7 +1086,9 @@ export class UsersService {
         });
 
         const gymUserBranchAccess = userWithBranches?.gymUserBranches || [];
-        const accessibleBranchIds = gymUserBranchAccess.map((ub) => ub.branchId);
+        const accessibleBranchIds = gymUserBranchAccess.map(
+          (ub) => ub.branchId,
+        );
 
         if (userContext.role === 'MANAGER' || userContext.role === 'STAFF') {
           // Managers and Staff can only see branches they have access to

@@ -40,15 +40,15 @@ export class UserBranchesService {
         whereClause.userId = filters.userId;
       }
 
-       const assignments = await this.prisma.gymUserBranch.findMany({
-         where: whereClause,
-         include: {
-           user: {
-             select: {
-               id: true,
-               firstName: true,
-               lastName: true,
-               email: true,
+      const assignments = await this.prisma.gymUserBranch.findMany({
+        where: whereClause,
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
               role: true,
               isActive: true,
             },
@@ -314,7 +314,7 @@ export class UserBranchesService {
         data: {
           userId,
           branchId,
-        tenantId: user.tenantId,
+          tenantId: user.tenantId,
           accessLevel: accessLevel || 'STAFF_ACCESS',
           isPrimary: isPrimary || false,
           permissions,

@@ -276,7 +276,7 @@ function OwnerDashboard() {
           Owner Dashboard
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground">
-          Welcome back, {profile?.name || profile?.firstName}! Here&apos;s your business overview.
+          Welcome back, {profile?.firstName}! Here&apos;s your business overview.
         </p>
       </div>
 
@@ -329,7 +329,7 @@ function DefaultDashboard() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome, {profile?.name || profile?.firstName}!
+          Welcome, {profile?.firstName}!
         </p>
       </div>
 
@@ -361,6 +361,10 @@ export default function DashboardPage() {
 
   if (profile.role === 'OWNER') {
     return <OwnerDashboard />
+  }
+
+  if (profile.role === 'CLIENT') {
+    return <DefaultDashboard />
   }
 
   return <DefaultDashboard />

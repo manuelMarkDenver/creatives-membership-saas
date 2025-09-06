@@ -266,11 +266,7 @@ export class StatsService {
    */
   async getSystemStaffStats() {
     // Staff roles: OWNER, MANAGER, STAFF, and other non-member roles
-    const staffRoles = [
-      Role.OWNER,
-      Role.MANAGER,
-      Role.STAFF,
-    ];
+    const staffRoles = [Role.OWNER, Role.MANAGER, Role.STAFF];
 
     const staff = await this.prisma.user.findMany({
       where: {

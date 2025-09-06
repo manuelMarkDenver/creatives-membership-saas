@@ -61,10 +61,7 @@ export class GymLocationsController {
     @Param('locationId') locationId: string,
     @Body() updateLocationDto: UpdateBranchDto,
   ) {
-    return this.branchesService.updateBranch(
-      locationId,
-      updateLocationDto,
-    );
+    return this.branchesService.updateBranch(locationId, updateLocationDto);
   }
 
   @Get()
@@ -104,10 +101,7 @@ export class GymLocationsController {
     @Param('locationId') locationId: string,
     @Body() assignUserDto: AssignUserToBranchDto,
   ) {
-    return this.branchesService.assignUserToBranch(
-      assignUserDto,
-      locationId,
-    );
+    return this.branchesService.assignUserToBranch(assignUserDto, locationId);
   }
 
   @Put(':locationId/staff/:userId')

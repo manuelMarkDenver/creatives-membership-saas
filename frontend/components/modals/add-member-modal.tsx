@@ -270,7 +270,7 @@ export function AddMemberModal({
       email: formData.email.trim(),
       firstName: formData.firstName.trim(),
       lastName: formData.lastName.trim(),
-      role: 'GYM_MEMBER' as Role,
+      role: 'CLIENT' as Role,
       tenantId: profile?.tenantId!,
     }, {
       onSuccess: async (createdUser) => {

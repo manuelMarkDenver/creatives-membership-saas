@@ -66,13 +66,13 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsString()
   fitnessGoals?: string;
 
-   @IsOptional()
-   @IsString()
-   preferredTrainer?: string;
+  @IsOptional()
+  @IsString()
+  preferredTrainer?: string;
 
-   @IsOptional()
-   @IsString()
-   trainerContactNumber?: string;
+  @IsOptional()
+  @IsString()
+  trainerContactNumber?: string;
 
   @IsOptional()
   @IsString()

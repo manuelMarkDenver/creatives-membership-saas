@@ -55,7 +55,7 @@ export interface MemberActionResponse {
 
 export const membersApi = {
   // Update member - use users service directly since users are business agnostic
-  // (GYM_MEMBER, ECOM_CUSTOMER, COFFEE_CUSTOMER are all user roles)
+  // (CLIENT, ECOM_CUSTOMER, COFFEE_CUSTOMER are all user roles)
   async updateMember(memberId: string, data: any): Promise<MemberActionResponse> {
     const response = await apiClient.patch(`/users/${memberId}`, data)
     return {

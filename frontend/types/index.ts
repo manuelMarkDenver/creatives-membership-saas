@@ -9,11 +9,12 @@ export enum BusinessCategory {
 export enum Role {
   // Global System Role
   SUPER_ADMIN = 'SUPER_ADMIN',
-  
+
   // Universal Business Roles
   OWNER = 'OWNER',
   MANAGER = 'MANAGER',
   STAFF = 'STAFF',
+  CLIENT = 'CLIENT',
   
   // GYM Specific Roles
   GYM_TRAINER = 'GYM_TRAINER',

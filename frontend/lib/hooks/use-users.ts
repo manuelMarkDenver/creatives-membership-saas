@@ -63,13 +63,47 @@ export function useUser(id: string) {
 export function useProfile() {
   return useQuery({
     queryKey: userKeys.profile(),
-    queryFn: async () => {
-      const { usersApi } = await import('@/lib/api/users')
-      const userData = await usersApi.getProfile()
-      return {
-        ...userData,
-        name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.email, // Add computed name field
+    queryFn: async (): Promise<User> => {
+      // Always get fresh data from localStorage for login sessions
+      if (typeof window !== 'undefined') {
+        const storedUser = localStorage.getItem('user_data');
+        const storedToken = localStorage.getItem('auth_token');
+
+        if (storedUser && storedToken) {
+          try {
+            const userData = JSON.parse(storedUser);
+
+            // Map globalRole to role for frontend compatibility
+            if (userData.globalRole && !userData.role) {
+              userData.role = userData.globalRole;
+            }
+
+            // Verify the data is not corrupted and has the required role field
+            if (userData && userData.id && userData.email && userData.role) {
+              // For OWNER role, userBranches might legitimately be empty/undefined
+              // since owners typically have access to all branches without explicit assignments
+              if (userData.role === 'OWNER' || userData.role === 'SUPER_ADMIN') {
+                return userData;
+              }
+
+              // If userBranches is missing for other roles, try to get fresh data
+              if (!userData.userBranches) {
+                // Fall through to API call
+              } else {
+                return userData;
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to parse stored user data:', error);
+            // Clear corrupted data
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('auth_token');
+          }
+        }
       }
+
+      // Fallback to API call if localStorage data is not available or valid
+      return usersApi.getProfile();
     },
     staleTime: 1 * 60 * 1000, // 1 minute - shorter cache for more accurate role detection
     retry: (failureCount, error) => {
