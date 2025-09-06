@@ -18,6 +18,7 @@ async function bootstrap() {
       'Content-Type',
       'Authorization',
       'x-bypass-auth',
+      'x-bypass-user',
       'x-tenant-id',
     ],
     credentials: true,

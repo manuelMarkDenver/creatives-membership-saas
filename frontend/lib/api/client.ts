@@ -50,10 +50,8 @@ apiClient.interceptors.request.use(
 
         console.log('🔧 Stored token exists:', !!storedToken);
 
-        // Use bypass auth ONLY if:
-        // 1. BYPASS_AUTH env is true AND
-        // 2. We have no stored token (meaning no real authentication)
-        if (BYPASS_AUTH && !storedToken) {
+        // Use bypass auth when BYPASS_AUTH is enabled (development mode)
+        if (BYPASS_AUTH) {
           useBypass = true;
           config.headers['x-bypass-auth'] = 'true';
           console.log('🔧 Using bypass auth for:', config.url);
