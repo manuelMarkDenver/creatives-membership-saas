@@ -33,8 +33,8 @@ import {
   Calendar
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useMemberStatus, useActionReasons, useActivateMember, useCancelMember, useRestoreMember, useRenewMemberSubscription } from '@/lib/hooks/use-member-actions'
-import type { MemberActionRequest } from '@/lib/api/members'
+import { useMemberStatus, useActionReasons, useActivateMember, useCancelMember, useRestoreMember, useRenewMemberSubscription } from '@/lib/hooks/use-gym-member-actions'
+import type { MemberActionRequest } from '@/lib/api/gym-members'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
 
 export type MemberActionType = 'activate' | 'cancel' | 'restore' | 'renew'

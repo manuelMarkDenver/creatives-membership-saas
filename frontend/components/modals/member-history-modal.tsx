@@ -38,8 +38,8 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
-import { useMemberHistory } from '@/lib/hooks/use-member-actions'
-import type { MemberHistoryQuery } from '@/lib/api/members'
+import { useMemberHistory } from '@/lib/hooks/use-gym-member-actions'
+import type { MemberHistoryQuery } from '@/lib/api/gym-members'
 import { format } from 'date-fns'
 
 interface MemberHistoryModalProps {

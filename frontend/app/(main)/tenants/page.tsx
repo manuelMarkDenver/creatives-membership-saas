@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
 import { useTenants, useCreateTenant, useDeleteTenant } from '@/lib/hooks/use-tenants'
 import { useUpdateFreeBranchOverride } from '@/lib/hooks/use-subscription'
-import { useProfile } from '@/lib/hooks/use-users'
+import { useProfile } from '@/lib/hooks/use-gym-users'
 import { Tenant } from '@/types'
 import { MoreHorizontal, Plus, Edit, Trash2, Crown, Gift } from 'lucide-react'
 import {

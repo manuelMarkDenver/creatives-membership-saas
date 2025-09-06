@@ -27,7 +27,7 @@ import {
   Calendar,
   CreditCard
 } from 'lucide-react'
-import { useRestoreUser } from '@/lib/hooks/use-users'
+import { useRestoreUser } from '@/lib/hooks/use-gym-users'
 import { toast } from 'sonner'
 
 interface RestoreMemberModalProps {

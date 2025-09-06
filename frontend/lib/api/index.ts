@@ -4,11 +4,11 @@ export { apiClient as api } from './client' // Also export as 'api' for consiste
 export { tenantsApi } from './tenants'
 export { branchesApi } from './branches'
 export { locationsApi } from './locations'
-export { usersApi } from './users'
+export { usersApi } from './gym-users'
 export { statsApi } from './stats'
 export { plansApi } from './plans'
 export { subscriptionsApi } from './subscriptions'
-export { membersApi } from './members'
+export { membersApi } from './gym-members'
 export { gymSubscriptionsApi } from './gym-subscriptions'
 export { businessUnitsApi } from './business-units'
 
@@ -16,7 +16,7 @@ export { businessUnitsApi } from './business-units'
 export type { CreateTenantDto, UpdateTenantDto, TenantQueryParams } from './tenants'
 export type { CreateBranchDto, UpdateBranchDto, BranchQueryParams } from './branches'
 export type { CreateLocationDto, UpdateLocationDto, LocationQueryParams } from './locations'
-export type { CreateUserDto, UpdateUserDto, UserQueryParams, AssignBranchDto } from './users'
+export type { CreateUserDto, UpdateUserDto, UserQueryParams, AssignBranchDto } from './gym-users'
 export type {
   SystemOverviewStats,
   SystemBranchStats,
@@ -50,7 +50,7 @@ export type {
   MemberHistoryItem,
   MemberHistoryResponse,
   MemberActionResponse
-} from './members'
+} from './gym-members'
 export type {
   GymMemberSubscriptionRenewalData,
   GymMemberSubscriptionCancellationData,

@@ -39,7 +39,7 @@ import {
   ChevronUp
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { membersApi } from '@/lib/api/members'
+import { membersApi } from '@/lib/api/gym-members'
 import { gymMemberPhotosApi } from '@/lib/api/gym-member-photos'
 
 interface MemberInfoModalProps {

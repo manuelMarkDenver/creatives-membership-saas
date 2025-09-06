@@ -82,7 +82,7 @@ class GymMemberPhotosApi {
     const formData = new FormData();
     formData.append('photo', file);
 
-    const response = await fetch(`${API_BASE_URL}/users/${memberId}/photo`, {
+    const response = await fetch(`${API_BASE_URL}/gym/users/${memberId}/photo`, {
       method: 'POST',
       headers: await this.getAuthHeaders(),
       body: formData,
@@ -100,7 +100,7 @@ class GymMemberPhotosApi {
    * Delete a member photo
    */
   async deletePhoto(memberId: string): Promise<PhotoDeleteResponse> {
-    const response = await fetch(`${API_BASE_URL}/users/${memberId}/photo`, {
+    const response = await fetch(`${API_BASE_URL}/gym/users/${memberId}/photo`, {
       method: 'DELETE',
       headers: await this.getAuthHeaders(),
     });

@@ -31,7 +31,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { BusinessCategory, Role, AccessLevel } from '@prisma/client';
 
-@Controller('users')
+@Controller('gym/users')
 @UseGuards(AuthGuard, RBACGuard, BusinessTypeGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useExpiringMembersCount, useExpiringMembersOverview, useExpiringMembers } from '@/lib/hooks/use-expiring-members'
-import { useProfile, useUsersByTenant } from '@/lib/hooks/use-users'
+import { useProfile, useUsersByTenant } from '@/lib/hooks/use-gym-users'
 import { Role } from '@/types'
 import { getExpiringMembersCount, isMemberConsideredExpiring, type MemberData } from '@/lib/utils/member-status'
 import { Badge } from '@/components/ui/badge'

@@ -54,10 +54,9 @@ export interface MemberActionResponse {
 }
 
 export const membersApi = {
-  // Update member - use users service directly since users are business agnostic
-  // (CLIENT, ECOM_CUSTOMER, COFFEE_CUSTOMER are all user roles)
+  // Update member - use gym-specific endpoint for gym members
   async updateMember(memberId: string, data: any): Promise<MemberActionResponse> {
-    const response = await apiClient.patch(`/users/${memberId}`, data)
+    const response = await apiClient.patch(`/gym/members/${memberId}`, data)
     return {
       success: true,
       message: 'Member updated successfully',
@@ -67,15 +66,15 @@ export const membersApi = {
 
   // Activate member
   async activateMember(memberId: string, data: MemberActionRequest): Promise<MemberActionResponse> {
-    const response = await apiClient.post(`/users/${memberId}/activate`, data)
+    const response = await apiClient.post(`/gym/members/${memberId}/activate`, data)
     return response.data
   },
 
   // Cancel member
   async cancelMember(memberId: string, data: MemberActionRequest): Promise<MemberActionResponse> {
-    console.log('🔥 API CALL: POST /users/' + memberId + '/cancel', data)
+    console.log('🔥 API CALL: POST /gym/members/' + memberId + '/cancel', data)
     try {
-      const response = await apiClient.post(`/users/${memberId}/cancel`, data)
+      const response = await apiClient.post(`/gym/members/${memberId}/cancel`, data)
       console.log('✅ API SUCCESS: cancelMember response:', response.data)
       return response.data
     } catch (error) {
@@ -86,25 +85,25 @@ export const membersApi = {
 
   // Restore member
   async restoreMember(memberId: string, data: MemberActionRequest): Promise<MemberActionResponse> {
-    const response = await apiClient.post(`/users/${memberId}/restore`, data)
+    const response = await apiClient.post(`/gym/members/${memberId}/restore`, data)
     return response.data
   },
 
   // Delete member (soft delete)
   async deleteMember(memberId: string, data: MemberActionRequest): Promise<MemberActionResponse> {
-    const response = await apiClient.post(`/users/${memberId}/soft-delete`, data)
+    const response = await apiClient.post(`/gym/members/${memberId}/soft-delete`, data)
     return response.data
   },
 
   // Renew member subscription
   async renewMemberSubscription(memberId: string, data: MemberRenewRequest): Promise<MemberActionResponse> {
     try {
-      const response = await apiClient.post(`/users/${memberId}/renew`, data)
+      const response = await apiClient.post(`/gym/members/${memberId}/renew`, data)
       return response.data
     } catch (error: any) {
       // Enhanced error handling for renewal restrictions
       console.log('renewMemberSubscription API Error:', error)
-      
+
       // Create a more comprehensive error object that React Query can handle
       if (error.response?.data?.message) {
         // Create an error that preserves the original structure but enhances the message
@@ -118,11 +117,11 @@ export const membersApi = {
           request: error.request,
           code: error.code
         })
-        
+
         console.log('🚀 Throwing enhanced renewal error:', enhancedError)
         throw enhancedError
       }
-      
+
       // For other errors, just rethrow as-is
       throw error
     }
@@ -130,14 +129,14 @@ export const membersApi = {
 
   // Get member status
   async getMemberStatus(memberId: string): Promise<any> {
-    const response = await apiClient.get(`/users/${memberId}/status`)
+    const response = await apiClient.get(`/gym/users/${memberId}/status`)
     return response.data
   },
 
   // Get member history
   async getMemberHistory(memberId: string, params?: MemberHistoryQuery): Promise<MemberHistoryResponse> {
     try {
-      const response = await apiClient.get(`/users/${memberId}/history`, { params })
+      const response = await apiClient.get(`/gym/users/${memberId}/history`, { params })
       return response.data
     } catch (error: any) {
       // If the endpoint doesn't exist (404), return empty history
@@ -161,7 +160,7 @@ export const membersApi = {
 
   // Get action reasons
   async getActionReasons(): Promise<any> {
-    const response = await apiClient.get('/users/action-reasons')
+    const response = await apiClient.get('/gym/users/action-reasons')
     return response.data
   }
 }

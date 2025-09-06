@@ -39,13 +39,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { 
+import {
   useProfile,
   useSoftDeleteUser,
   useActivateUser,
   useDeactivateUser,
   useRestoreUser
-} from '@/lib/hooks/use-users'
+} from '@/lib/hooks/use-gym-users'
 import { TransactionHistoryModal } from '@/components/modals/transaction-history-modal'
 import { MemberActionsModal, type MemberActionType } from '@/components/modals/member-actions-modal'
 import { MemberHistoryModal } from '@/components/modals/member-history-modal'

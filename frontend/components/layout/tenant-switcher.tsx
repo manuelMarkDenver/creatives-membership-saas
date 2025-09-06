@@ -14,7 +14,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useTenants } from '@/lib/hooks/use-tenants'
 import { useTenantContext } from '@/lib/providers/tenant-context'
-import { useProfile } from '@/lib/hooks/use-users'
+import { useProfile } from '@/lib/hooks/use-gym-users'
 import { cn } from '@/lib/utils'
 import { Tenant } from '@/types'
 

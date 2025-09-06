@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useUsersByTenant } from '@/lib/hooks/use-users'
+import { useUsersByTenant } from '@/lib/hooks/use-gym-users'
 import { gymSubscriptionsApi } from '@/lib/api'
 import { User, Role } from '@/types'
 

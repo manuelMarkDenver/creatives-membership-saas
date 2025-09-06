@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { membersApi } from '../api/members'
-import { userKeys } from './use-users'
-import type { 
-  MemberActionRequest, 
-  MemberRenewRequest, 
-  MemberHistoryQuery 
-} from '../api/members'
+import { membersApi } from '../api/gym-members'
+import { userKeys } from './use-gym-users'
+import type {
+  MemberActionRequest,
+  MemberRenewRequest,
+  MemberHistoryQuery
+} from '../api/gym-members'
 
 // Query keys
 export const memberKeys = {
@@ -75,13 +75,9 @@ export function useCancelMember() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ memberId, data }: { memberId: string; data: MemberActionRequest }) => {
-      console.log('🚨 CANCEL MEMBER REQUEST:', { memberId, data })
-      return membersApi.cancelMember(memberId, data)
-    },
+    mutationFn: ({ memberId, data }: { memberId: string; data: MemberActionRequest }) =>
+      membersApi.cancelMember(memberId, data),
     onSuccess: (result, { memberId }) => {
-      console.log('✅ CANCEL MEMBER SUCCESS:', { result, memberId })
-      
       // Invalidate member status and history
       queryClient.invalidateQueries({ queryKey: memberKeys.status(memberId) })
       queryClient.invalidateQueries({ 
@@ -95,13 +91,6 @@ export function useCancelMember() {
       
       // Force invalidation of all user queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: userKeys.all })
-      
-      // Invalidate gym subscription data
-      queryClient.invalidateQueries({ 
-        queryKey: ['gym-subscriptions', 'subscription', memberId] 
-      })
-      
-      console.log('🔄 All queries invalidated after member cancellation')
     },
     onError: (error, { memberId }) => {
       console.error('❌ CANCEL MEMBER ERROR:', { error, memberId })
@@ -140,10 +129,8 @@ export function useRenewMemberSubscription() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ memberId, data }: { memberId: string; data: MemberRenewRequest }) => {
-      console.log('🔄 RENEW MEMBER SUBSCRIPTION REQUEST:', { memberId, data })
-      return membersApi.renewMemberSubscription(memberId, data)
-    },
+    mutationFn: ({ memberId, data }: { memberId: string; data: MemberRenewRequest }) =>
+      membersApi.renewMemberSubscription(memberId, data),
     onSuccess: (result, { memberId }) => {
       console.log('✅ RENEW MEMBER SUCCESS:', { result, memberId })
       
@@ -172,9 +159,6 @@ export function useRenewMemberSubscription() {
       })
     },
     onError: (error: any, { memberId }) => {
-      console.log('🚨 RENEWAL ERROR - Showing toast notification for member:', memberId)
-      console.log('Error message:', error.message)
-      
       // Since component onError is not being triggered, handle it here
       // Import toast dynamically to avoid import issues
       import('react-toastify').then(({ toast }) => {
@@ -188,8 +172,6 @@ export function useRenewMemberSubscription() {
         } else if (error?.message) {
           errorMessage = error.message
         }
-        
-        console.log('📢 SHOWING REACT-TOASTIFY TOAST with message:', errorMessage)
         
         toast.error(errorMessage, {
           position: 'top-center',
