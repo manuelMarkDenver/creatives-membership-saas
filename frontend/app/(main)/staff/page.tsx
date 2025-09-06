@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useProfile, useUsersByTenant } from '@/lib/hooks/use-users'
+import { useProfile, useUsersByTenant } from '@/lib/hooks/use-gym-users'
 import { useSystemStaffStats } from '@/lib/hooks/use-stats'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

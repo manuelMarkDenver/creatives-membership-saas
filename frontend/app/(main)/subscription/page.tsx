@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useProfile } from '@/lib/hooks/use-users'
+import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useSystemSubscriptionStats } from '@/lib/hooks/use-stats'
 import { usePlans } from '@/lib/hooks/use-plans'
 import { Button } from '@/components/ui/button'

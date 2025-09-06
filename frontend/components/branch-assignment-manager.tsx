@@ -14,7 +14,7 @@ import { toast } from 'sonner'
 import { Building2, Crown, ShieldCheck, User, Star, Search, Save, X } from 'lucide-react'
 import { bulkAssignUserToBranches, getUserBranches, UserBranch } from '@/lib/api/user-branches'
 import { branchesApi } from '@/lib/api/branches'
-import { useProfile } from '@/lib/hooks/use-users'
+import { useProfile } from '@/lib/hooks/use-gym-users'
 
 interface BranchAssignmentManagerProps {
   user: {

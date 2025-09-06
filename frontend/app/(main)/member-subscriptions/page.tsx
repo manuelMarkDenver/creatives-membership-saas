@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useProfile } from '@/lib/hooks/use-users'
+import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useMembershipPlans } from '@/lib/hooks/use-membership-plans'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

@@ -27,7 +27,7 @@ import {
   Calendar,
   CreditCard
 } from 'lucide-react'
-import { useSoftDeleteUser } from '@/lib/hooks/use-users'
+import { useSoftDeleteUser } from '@/lib/hooks/use-gym-users'
 import { toast } from 'sonner'
 
 interface DeleteMemberModalProps {

@@ -80,10 +80,12 @@ export function useProfile() {
             firstName: 'Juan',
             lastName: 'Cruz',
             name: 'Juan Cruz',
-            role: 'OWNER',
+            role: 'OWNER' as Role,
             globalRole: 'OWNER',
             tenantId: '79ccff05-1824-4673-a11d-3ca1a10ef812',
-            isActive: true
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
           } as User;
 
           // Store bypass user data in localStorage for API client to use

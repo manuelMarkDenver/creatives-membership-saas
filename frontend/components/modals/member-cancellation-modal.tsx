@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useCancelMember } from '@/lib/hooks/use-member-actions'
+import { useCancelMember } from '@/lib/hooks/use-gym-member-actions'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'

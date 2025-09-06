@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useMembershipPlans } from '@/lib/hooks/use-membership-plans'
-import { useProfile } from '@/lib/hooks/use-users'
-import { useRenewMemberSubscription } from '@/lib/hooks/use-member-actions'
+import { useProfile } from '@/lib/hooks/use-gym-users'
+import { useRenewMemberSubscription } from '@/lib/hooks/use-gym-member-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2 } from 'lucide-react'
-import { userKeys } from '@/lib/hooks/use-users'
+import { userKeys } from '@/lib/hooks/use-gym-users'
 import { useTenantContext } from '@/lib/providers/tenant-context'
 import { type BusinessCategory } from '@/types'
 

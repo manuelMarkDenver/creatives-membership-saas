@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useMembershipPlans } from '@/lib/hooks/use-membership-plans'
-import { useProfile, useCreateUser } from '@/lib/hooks/use-users'
+import { useProfile, useCreateUser } from '@/lib/hooks/use-gym-users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

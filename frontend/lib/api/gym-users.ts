@@ -40,13 +40,13 @@ export interface AssignBranchDto {
 export const usersApi = {
   // Get all users (paginated with filters)
   getAll: async (params?: UserQueryParams) => {
-    const response = await apiClient.get('/users', { params })
+    const response = await apiClient.get('/gym/users', { params })
     return response.data
   },
 
   // Get users for a specific tenant
   getByTenant: async (tenantId: string, params?: Omit<UserQueryParams, 'tenantId'>) => {
-    const response = await apiClient.get(`/users/tenant/${tenantId}`, { params })
+    const response = await apiClient.get(`/gym/users/tenant/${tenantId}`, { params })
     return response.data
   },
 
@@ -58,7 +58,7 @@ export const usersApi = {
 
   // Get user by ID
   getById: async (id: string): Promise<User> => {
-    const response = await apiClient.get(`/users/${id}`)
+    const response = await apiClient.get(`/gym/users/${id}`)
     return response.data
   },
 
@@ -159,7 +159,7 @@ export const usersApi = {
 
   // Create user
   create: async (data: CreateUserDto): Promise<User> => {
-    const response = await apiClient.post('/users', data, {
+    const response = await apiClient.post('/gym/users', data, {
       headers: {
         'x-tenant-id': data.tenantId
       }
@@ -169,7 +169,7 @@ export const usersApi = {
 
   // Update user
   update: async (id: string, data: UpdateUserDto): Promise<User> => {
-    const response = await apiClient.patch(`/users/${id}`, data)
+    const response = await apiClient.patch(`/gym/users/${id}`, data)
     return response.data
   },
 
@@ -183,45 +183,45 @@ export const usersApi = {
 
   // Delete user
   delete: async (id: string): Promise<void> => {
-    await apiClient.delete(`/users/${id}`)
+    await apiClient.delete(`/gym/users/${id}`)
   },
 
   // Get user's branch assignments
   getBranches: async (userId: string): Promise<UserBranch[]> => {
-    const response = await apiClient.get(`/users/${userId}/branches`)
+    const response = await apiClient.get(`/gym/users/${userId}/branches`)
     return response.data
   },
 
   // Assign user to branch
   assignToBranch: async (userId: string, data: AssignBranchDto): Promise<UserBranch> => {
-    const response = await apiClient.post(`/users/${userId}/branches`, data)
+    const response = await apiClient.post(`/gym/users/${userId}/branches`, data)
     return response.data
   },
 
   // Update user's branch assignment
   updateBranchAssignment: async (
-    userId: string, 
-    branchId: string, 
+    userId: string,
+    branchId: string,
     data: { accessLevel: AccessLevel }
   ): Promise<UserBranch> => {
-    const response = await apiClient.put(`/users/${userId}/branches/${branchId}`, data)
+    const response = await apiClient.put(`/gym/users/${userId}/branches/${branchId}`, data)
     return response.data
   },
 
   // Remove user from branch
   removeFromBranch: async (userId: string, branchId: string): Promise<void> => {
-    await apiClient.delete(`/users/${userId}/branches/${branchId}`)
+    await apiClient.delete(`/gym/users/${userId}/branches/${branchId}`)
   },
 
   // Invite user to tenant (send invitation email)
   invite: async (data: { email: string; role: Role; tenantId: string; branchIds?: string[] }) => {
-    const response = await apiClient.post('/users/invite', data)
+    const response = await apiClient.post('/gym/users/invite', data)
     return response.data
   },
 
   // Accept invitation (for invited users)
   acceptInvite: async (token: string, data: { name: string; password: string }) => {
-    const response = await apiClient.post(`/users/accept-invite/${token}`, data)
+    const response = await apiClient.post(`/gym/users/accept-invite/${token}`, data)
     return response.data
   },
 }
