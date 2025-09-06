@@ -632,7 +632,12 @@ export class UsersService {
 
       // Add role filter if provided
       if (filters?.role) {
-        whereClause.role = filters.role;
+        // Handle CLIENT role filtering - CLIENT is a global role, not business role
+        if (filters.role === 'CLIENT') {
+          whereClause.globalRole = 'CLIENT';
+        } else {
+          whereClause.role = filters.role;
+        }
       }
 
       // Add search filter if provided
@@ -664,7 +669,7 @@ export class UsersService {
 
         if (accessibleBranchIds.length > 0) {
           // For members (CLIENT), filter by customers who have subscriptions in accessible branches
-          if (filters.role === 'CLIENT') {
+          if (filters.role === 'CLIENT' || whereClause.globalRole === 'CLIENT') {
             const membersInAccessibleBranches =
               await this.prisma.gymMemberSubscription.findMany({
                 where: {

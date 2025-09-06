@@ -71,6 +71,14 @@ export const usersApi = {
 
       if (storedUser && storedToken) {
         try {
+          // Check if storedUser is not empty before parsing
+          if (!storedUser || storedUser.trim() === '') {
+            console.warn('Empty user data in localStorage, clearing...');
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('auth_token');
+            throw new Error('Empty user data');
+          }
+
           const userData = JSON.parse(storedUser);
 
           // Map globalRole to role for frontend compatibility
@@ -122,7 +130,7 @@ export const usersApi = {
       // If API fails, fall back to stored data if available
       if (typeof window !== 'undefined') {
         const storedUser = localStorage.getItem('user_data');
-        if (storedUser) {
+        if (storedUser && storedUser.trim() !== '') {
           try {
             const userData = JSON.parse(storedUser);
 

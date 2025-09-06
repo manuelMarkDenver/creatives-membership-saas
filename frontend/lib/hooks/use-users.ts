@@ -69,8 +69,34 @@ export function useProfile() {
         const storedUser = localStorage.getItem('user_data');
         const storedToken = localStorage.getItem('auth_token');
 
+        // DEVELOPMENT BYPASS: Return default owner profile for development
+        const BYPASS_AUTH = process.env.NODE_ENV === 'development' &&
+          process.env.NEXT_PUBLIC_API_BYPASS_AUTH === 'true';
+        if (BYPASS_AUTH && !storedUser) {
+          console.log('🔧 Using development bypass profile');
+          return {
+            id: '315a31e8-8469-4f7c-9643-cf0e2ac0eeed',
+            email: 'owner@muscle-mania.com',
+            firstName: 'Juan',
+            lastName: 'Cruz',
+            name: 'Juan Cruz',
+            role: 'OWNER',
+            globalRole: 'OWNER',
+            tenantId: '79ccff05-1824-4673-a11d-3ca1a10ef812',
+            isActive: true
+          } as User;
+        }
+
         if (storedUser && storedToken) {
           try {
+            // Check if storedUser is not empty before parsing
+            if (!storedUser || storedUser.trim() === '') {
+              console.warn('Empty user data in localStorage, clearing...');
+              localStorage.removeItem('user_data');
+              localStorage.removeItem('auth_token');
+              throw new Error('Empty user data');
+            }
+
             const userData = JSON.parse(storedUser);
 
             // Map globalRole to role for frontend compatibility
@@ -100,9 +126,12 @@ export function useProfile() {
             localStorage.removeItem('auth_token');
           }
         }
+
+        // Fallback to API call if localStorage data is not available or valid
+        return usersApi.getProfile();
       }
 
-      // Fallback to API call if localStorage data is not available or valid
+      // Server-side fallback
       return usersApi.getProfile();
     },
     staleTime: 1 * 60 * 1000, // 1 minute - shorter cache for more accurate role detection

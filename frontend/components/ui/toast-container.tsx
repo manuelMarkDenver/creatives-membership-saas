@@ -2,8 +2,9 @@
 
 import dynamic from 'next/dynamic'
 
-const ToastContainer = dynamic(() => import('react-toastify').then(mod => ({ default: mod.ToastContainer })), {
-  ssr: false
+const ToastContainer = dynamic(() => import('react-toastify').then(mod => mod.ToastContainer), {
+  ssr: false,
+  loading: () => null
 })
 
 export function ClientToastContainer() {
