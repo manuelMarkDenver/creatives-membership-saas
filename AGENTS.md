@@ -158,11 +158,12 @@ cd frontend && npm run dev
 #### Global Roles (Platform-Level)
 - **SUPER_ADMIN**: Full platform access, all tenants, system administration
 - **OWNER**: Full tenant access, all branches, user management, billing
-- **MANAGER**: Branch-specific management, staff supervision, member management
-- **STAFF**: Limited operations, member check-in, basic member management
+- **MANAGER**: Branch-specific management, staff supervision, client management
+- **STAFF**: Limited operations, client check-in, basic client administration
+- **CLIENT**: End users/customers across all business types (gym members, coffee customers, e-commerce customers, etc.)
 
-#### Business Roles (Gym-Specific)
-- **GYM_MEMBER**: Basic member access, profile management
+#### Business Roles (Business-Specific)
+- **GYM_MEMBER**: Gym-specific client with access to gym features
 - **GYM_TRAINER**: Member training, workout plans, progress tracking
 - **GYM_FRONT_DESK**: Member check-in, basic administration
 - **GYM_MAINTENANCE**: Equipment maintenance, facility management
@@ -171,20 +172,20 @@ cd frontend && npm run dev
 - **Owner Access**: All branches within their tenant ✅
 - **Manager Access**: Assigned branches only (via GymUserBranch table) ✅
 - **Staff Access**: Assigned branches only (via GymUserBranch table) ✅
-- **Member Access**: Their own profile and assigned branches ✅
+- **Client Access**: Their own profile and assigned branches ✅
 
 #### RBAC Implementation Status
-- **Global Roles**: SUPER_ADMIN, OWNER, MANAGER, STAFF ✅
+- **Global Roles**: SUPER_ADMIN, OWNER, MANAGER, STAFF, CLIENT ✅
 - **Business Roles**: GYM_MEMBER, GYM_TRAINER, etc. ✅
 - **Branch Assignment**: GymUserBranch table ✅
 - **Owner All-Access**: Implemented in RBAC guard ✅
 - **Manager Branch Assignment**: Via GymUserBranch ✅
-- **Role Conflicts**: Resolved with clear separation ✅
+- **Role Conflicts**: Resolved with clean CLIENT role separation ✅
 
 #### User Creation Flow
-- **Automatic**: `POST /gym/members` creates User + GymMemberProfile
+- **Automatic**: `POST /gym/members` creates User (CLIENT role) + GymMemberProfile
 - **Manual**: `POST /users` creates business-agnostic users
-- **Role Assignment**: Global roles in User, business roles in profiles
+- **Role Assignment**: CLIENT global role for all end users, business-specific roles in profiles
 
 ## Current System Status
 
@@ -206,7 +207,7 @@ cd frontend && npm run dev
 - **State Management**: Efficient Zustand stores with React Query integration
 - **Database Schema**: Multi-tenant with proper foreign key relationships
 - **Production Deployment**: Railway + Vercel with automated CI/CD (₱250/month)
-- **Authentication System**: Enterprise-level RBAC with global + business roles
+- **Authentication System**: Enterprise-level RBAC with CLIENT global role + business roles
 - **SSR Compatibility**: Client components for third-party libraries
 - **Data Seeding**: 149+ realistic users with comprehensive test scenarios
 - **Data Integrity**: Database constraints, transaction safety, orphaned profile prevention

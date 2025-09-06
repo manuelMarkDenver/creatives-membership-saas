@@ -75,7 +75,7 @@ export class AuthGuard implements CanActivate {
             bypassUser = {
               id: targetUser.id,
               email: targetUser.email || bypassUserEmail,
-              role: targetUser.globalRole || 'GYM_MEMBER',
+              role: targetUser.globalRole || 'CLIENT',
               tenantId: targetUser.gymMemberProfile?.tenantId || null,
               branchAccess: targetUser.gymUserBranches.map((ub) => ({
                 branchId: ub.branchId,
@@ -85,7 +85,7 @@ export class AuthGuard implements CanActivate {
               })),
             };
             console.log(
-              `🔧 Bypassing auth as: ${targetUser.email} (${targetUser.globalRole || targetUser.gymMemberProfile?.role || 'GYM_MEMBER'}) - Tenant: ${targetUser.gymMemberProfile?.tenant?.name || 'None'}`,
+              `🔧 Bypassing auth as: ${targetUser.email} (${targetUser.globalRole || targetUser.gymMemberProfile?.role || 'CLIENT'}) - Tenant: ${targetUser.gymMemberProfile?.tenant?.name || 'None'}`,
             );
           } else {
             console.warn(

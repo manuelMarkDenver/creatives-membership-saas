@@ -229,7 +229,7 @@ export class MembershipPlansService {
     const membersWithPlan = await this.prisma.user.findFirst({
       where: {
         tenantId,
-        role: 'GYM_MEMBER',
+        role: 'CLIENT',
         businessData: {
           path: ['membership', 'planId'],
           equals: id,
@@ -262,7 +262,7 @@ export class MembershipPlansService {
       by: ['businessData'],
       where: {
         tenantId,
-        role: 'GYM_MEMBER',
+        role: 'CLIENT',
         businessData: {
           path: ['membership'],
           not: Prisma.DbNull,
@@ -307,7 +307,7 @@ export class MembershipPlansService {
       const memberCount = await this.prisma.user.count({
         where: {
           tenantId: plan.tenantId,
-          role: 'GYM_MEMBER',
+          role: 'CLIENT',
           businessData: {
             path: ['membership', 'planId'],
             equals: plan.id,

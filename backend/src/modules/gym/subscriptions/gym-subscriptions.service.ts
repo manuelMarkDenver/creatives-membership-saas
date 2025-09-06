@@ -130,7 +130,7 @@ export class GymSubscriptionsService {
       where: {
         id: memberId,
         tenantId,
-        role: 'GYM_MEMBER',
+        role: 'CLIENT',
       },
     });
 
@@ -365,7 +365,7 @@ export class GymSubscriptionsService {
           tenantId,
           // Only include gym members
           member: {
-            role: 'GYM_MEMBER',
+            role: 'CLIENT',
           },
         },
         _max: {
@@ -386,7 +386,7 @@ export class GymSubscriptionsService {
             tenantId,
             createdAt: group._max.createdAt,
             member: {
-              role: 'GYM_MEMBER',
+              role: 'CLIENT',
             },
           },
           select: {
@@ -453,7 +453,7 @@ export class GymSubscriptionsService {
           lte: targetDate,
         },
         member: {
-          role: 'GYM_MEMBER',
+          role: 'CLIENT',
           isActive: true,
           deletedAt: null,
         },
@@ -489,7 +489,7 @@ export class GymSubscriptionsService {
             lte: targetDate,
           },
           member: {
-            role: 'GYM_MEMBER',
+            role: 'CLIENT',
             isActive: true,
             deletedAt: null,
           },
@@ -536,7 +536,7 @@ export class GymSubscriptionsService {
             lte: targetDate,
           },
           member: {
-            role: 'GYM_MEMBER',
+            role: 'CLIENT',
             isActive: true,
             deletedAt: null,
           },

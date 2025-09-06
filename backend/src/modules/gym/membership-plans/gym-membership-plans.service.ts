@@ -203,7 +203,7 @@ export class GymMembershipPlansService {
         membershipPlanId: id,
         tenantId,
         member: {
-          role: 'GYM_MEMBER',
+          role: 'CLIENT',
         },
       },
     });
@@ -218,7 +218,7 @@ export class GymMembershipPlansService {
     const legacyMembersWithPlan = await this.prisma.user.findFirst({
       where: {
         tenantId,
-        role: 'GYM_MEMBER',
+        role: 'CLIENT',
         businessData: {
           path: ['membership', 'planId'],
           equals: id,
@@ -252,7 +252,7 @@ export class GymMembershipPlansService {
       where: {
         tenantId,
         member: {
-          role: 'GYM_MEMBER',
+          role: 'CLIENT',
         },
       },
       _count: {
@@ -265,7 +265,7 @@ export class GymMembershipPlansService {
       by: ['businessData'],
       where: {
         tenantId,
-        role: 'GYM_MEMBER',
+        role: 'CLIENT',
         businessData: {
           path: ['membership'],
           not: Prisma.DbNull,
