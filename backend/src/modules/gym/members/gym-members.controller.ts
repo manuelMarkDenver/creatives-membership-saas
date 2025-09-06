@@ -45,11 +45,11 @@ interface UpdateGymMemberDto {
   email?: string;
   phoneNumber?: string;
   dateOfBirth?: string;
-   address?: any;
-   emergencyContactName?: any;
-   emergencyContactPhone?: any;
-   emergencyContactRelation?: any;
-   isActive?: boolean;
+  address?: any;
+  emergencyContactName?: any;
+  emergencyContactPhone?: any;
+  emergencyContactRelation?: any;
+  isActive?: boolean;
 }
 
 @Controller('gym/members')
@@ -65,7 +65,7 @@ export class GymMembersController {
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   async createGymMember(
     @Body() data: CreateGymMemberDto,
-    @Req() req: RequestWithUser
+    @Req() req: RequestWithUser,
   ) {
     const tenantId =
       req.user?.tenantId || (req.headers['x-tenant-id'] as string);

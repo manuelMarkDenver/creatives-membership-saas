@@ -121,8 +121,8 @@ export class GymLocationsService {
           const inactiveMembers = members.filter(
             (ub) => !ub.user.isActive,
           ).length;
-          const staff = location.gymUserBranches.filter((ub) =>
-            ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
+          const staff = location.gymUserBranches.filter(
+            (ub) => ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
           ).length;
 
           return {

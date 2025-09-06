@@ -1,4 +1,14 @@
-import { Controller, Post, Body, Param, Put, Get, Delete, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  Put,
+  Get,
+  Delete,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { BranchesService } from '../../branches/branches.service';
 import {
   CreateBranchDto,
@@ -49,10 +59,7 @@ export class CoffeeOutletsController {
     @Param('outletId') outletId: string,
     @Body() updateOutletDto: UpdateBranchDto,
   ) {
-    return this.branchesService.updateBranch(
-      outletId,
-      updateOutletDto,
-    );
+    return this.branchesService.updateBranch(outletId, updateOutletDto);
   }
 
   @Get()
@@ -92,10 +99,7 @@ export class CoffeeOutletsController {
     @Param('outletId') outletId: string,
     @Body() assignUserDto: AssignUserToBranchDto,
   ) {
-    return this.branchesService.assignUserToBranch(
-      assignUserDto,
-      outletId,
-    );
+    return this.branchesService.assignUserToBranch(assignUserDto, outletId);
   }
 
   @Put(':outletId/staff/:userId')

@@ -73,7 +73,7 @@ export class GymMembersService {
       });
 
       this.logger.log(
-        `Created gym member: ${result.user.firstName} ${result.user.lastName} (${result.userId})`
+        `Created gym member: ${result.user.firstName} ${result.user.lastName} (${result.userId})`,
       );
       return result;
     } catch (error) {

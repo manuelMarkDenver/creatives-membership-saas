@@ -6,6 +6,7 @@ import {
   Query,
   Res,
   Req,
+  UseGuards,
   BadRequestException,
   InternalServerErrorException,
   UnauthorizedException,
@@ -13,6 +14,7 @@ import {
 import type { Response, Request } from 'express';
 import { SupabaseService } from '../supabase/supabase.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuthGuard } from './auth.guard';
 import * as bcrypt from 'bcrypt';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 
@@ -69,7 +71,7 @@ export class AuthController {
         JSON.stringify({
           userId: user.id,
           email: user.email,
-          role: user.role,
+          role: user.globalRole, // Use globalRole for consistency
           tenantId: user.tenantId,
           timestamp: Date.now(),
         }),
@@ -84,7 +86,8 @@ export class AuthController {
             name: `${user.firstName} ${user.lastName}`,
             firstName: user.firstName,
             lastName: user.lastName,
-            role: user.role,
+            role: user.globalRole || user.role, // Use globalRole if available, fallback to role
+            globalRole: user.globalRole, // Keep for compatibility
             tenantId: user.tenantId,
             tenant: user.tenant,
           },
@@ -245,91 +248,52 @@ export class AuthController {
   }
 
   /**
-   * Get current user info
-   * GET /auth/me?token=ACCESS_TOKEN or with x-bypass-auth header
-   */
+    * Get current user info
+    * GET /auth/me (requires Authorization header or x-bypass-auth header)
+    */
   @Get('me')
-  async getMe(@Query('token') token: string, @Req() request: Request) {
-    // Check for bypass auth header for local development
-    const bypassAuth =
-      request.headers['x-bypass-auth'] || request.headers['X-Bypass-Auth'];
+  @UseGuards(AuthGuard)
+  async getMe(@Req() request: Request) {
+    // The AuthGuard has already authenticated the user and attached it to the request
+    const authenticatedUser = (request as any).user;
 
-    if (bypassAuth) {
-      console.warn('⚠️  Auth bypassed for /auth/me endpoint');
-      // Return the Super Admin user for development
-      const superAdmin = await this.prisma.user.findUnique({
-        where: { email: 'admin@creatives-saas.com' },
-        include: { tenant: true },
-      });
-
-      if (superAdmin) {
-        // Super Admins should not have a tenantId assigned
-        // They have global access across all tenants
-        let effectiveTenantId = superAdmin.tenantId;
-        let effectiveTenant = superAdmin.tenant;
-
-        if (superAdmin.role === 'SUPER_ADMIN') {
-          // Super Admins should always have null tenantId for global access
-          effectiveTenantId = null;
-          effectiveTenant = null;
-        }
-
-        return {
-          success: true,
-          user: {
-            id: superAdmin.id,
-            email: superAdmin.email,
-            name:
-              `${superAdmin.firstName} ${superAdmin.lastName}` ||
-              `${superAdmin.firstName} ${superAdmin.lastName}`,
-            firstName: superAdmin.firstName,
-            lastName: superAdmin.lastName,
-            role: superAdmin.role,
-            tenantId: effectiveTenantId,
-            tenant: effectiveTenant,
-            created_at: superAdmin.createdAt,
-          },
-        };
-      }
-
-      // Fallback to mock user if Super Admin not found
-      return {
-        success: true,
-        user: {
-          id: 'dev-user-123',
-          email: 'dev@example.com',
-          name: 'Development User',
-          role: 'SUPER_ADMIN',
-          tenantId: null,
-          avatar_url: null,
-          provider: 'development',
-          created_at: new Date().toISOString(),
-        },
-      };
+    if (!authenticatedUser) {
+      throw new BadRequestException('User not authenticated');
     }
 
-    if (!token) {
-      throw new BadRequestException('Access token is required');
+    // Get the full user data from database
+    const user = await this.prisma.user.findUnique({
+      where: { id: authenticatedUser.id },
+      include: { tenant: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
     }
 
-    try {
-      const user = await this.supabaseService.verifyToken(token);
+    // Handle tenant logic for Super Admin
+    let effectiveTenantId = user.tenantId;
+    let effectiveTenant = user.tenant;
 
-      return {
-        success: true,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.user_metadata?.full_name || user.user_metadata?.name,
-          avatar_url: user.user_metadata?.avatar_url,
-          provider: user.app_metadata?.provider,
-          created_at: user.created_at,
-        },
-      };
-    } catch (error) {
-      throw new BadRequestException(
-        `User verification failed: ${error.message}`,
-      );
+    if (user.globalRole === 'SUPER_ADMIN') {
+      // Super Admins should always have null tenantId for global access
+      effectiveTenantId = null;
+      effectiveTenant = null;
     }
+
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.globalRole, // Return globalRole as role for frontend compatibility
+        tenantId: effectiveTenantId,
+        tenant: effectiveTenant,
+        created_at: user.createdAt,
+      },
+    };
   }
 }

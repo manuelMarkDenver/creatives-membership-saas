@@ -24,7 +24,7 @@ export class SeedService {
       await this.prisma.branch.deleteMany({});
       await this.prisma.businessUnit.deleteMany({});
       await this.prisma.user.deleteMany({
-        where: { role: { not: 'SUPER_ADMIN' } },
+        where: { globalRole: { not: 'SUPER_ADMIN' } },
       });
       await this.prisma.tenant.deleteMany({});
       await this.prisma.plan.deleteMany({});
@@ -63,7 +63,7 @@ export class SeedService {
         adminCount,
       ] = await Promise.all([
         this.prisma.tenant.count(),
-        this.prisma.user.count({ where: { role: 'CLIENT' } }),
+        this.prisma.user.count({ where: { globalRole: 'CLIENT' } }),
         this.prisma.plan.count(),
         this.prisma.membershipPlan.count(),
         this.prisma.user.count({

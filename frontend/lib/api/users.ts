@@ -68,25 +68,26 @@ export const usersApi = {
     if (typeof window !== 'undefined') {
       const storedUser = localStorage.getItem('user_data');
       const storedToken = localStorage.getItem('auth_token');
-      
+
       if (storedUser && storedToken) {
         try {
           const userData = JSON.parse(storedUser);
-          console.log('[DEBUG] Stored user data:', userData);
-          console.log('[DEBUG] userBranches in stored data:', userData.userBranches);
-          
+
+          // Map globalRole to role for frontend compatibility
+          if (userData.globalRole && !userData.role) {
+            userData.role = userData.globalRole;
+          }
+
           // Verify the data is not corrupted and has the required role field
           if (userData && userData.id && userData.email && userData.role) {
             // For OWNER role, userBranches might legitimately be empty/undefined
             // since owners typically have access to all branches without explicit assignments
             if (userData.role === 'OWNER' || userData.role === 'SUPER_ADMIN') {
-              console.log('[DEBUG] Owner/Super admin detected, userBranches not required');
               return userData;
             }
-            
+
             // If userBranches is missing for other roles, try to get fresh data
             if (!userData.userBranches) {
-              console.log('[DEBUG] userBranches missing for non-owner role, trying API call');
               // Fall through to API call
             } else {
               return userData;
@@ -100,45 +101,49 @@ export const usersApi = {
         }
       }
     }
-    
+
     // Fall back to API call if no valid localStorage data or userBranches missing for non-owners
     try {
-      console.log('[DEBUG] Calling /auth/me API for fresh user data');
       const response = await apiClient.get('/auth/me')
       const userData = response.data.user || response.data;
-      console.log('[DEBUG] Fresh user data from API:', userData);
-      console.log('[DEBUG] userBranches in API response:', userData.userBranches);
-      
+
+      // Map globalRole to role for frontend compatibility
+      if (userData.globalRole && !userData.role) {
+        userData.role = userData.globalRole;
+      }
+
       // Store fresh data from API
       if (typeof window !== 'undefined' && userData) {
         localStorage.setItem('user_data', JSON.stringify(userData));
       }
-      
+
       return userData
     } catch (apiError: any) {
-      console.warn('[DEBUG] /auth/me API call failed:', apiError);
-      
       // If API fails, fall back to stored data if available
       if (typeof window !== 'undefined') {
         const storedUser = localStorage.getItem('user_data');
         if (storedUser) {
           try {
             const userData = JSON.parse(storedUser);
-            console.log('[DEBUG] API failed, using stored user data as fallback:', userData);
-            
+
+            // Map globalRole to role for frontend compatibility
+            if (userData.globalRole && !userData.role) {
+              userData.role = userData.globalRole;
+            }
+
             // For OWNER/SUPER_ADMIN, missing userBranches is acceptable
             if (userData.role === 'OWNER' || userData.role === 'SUPER_ADMIN') {
               // Ensure userBranches is at least an empty array for consistent handling
               userData.userBranches = userData.userBranches || [];
             }
-            
+
             return userData;
           } catch (parseError) {
-            console.error('[DEBUG] Failed to parse stored data as fallback:', parseError);
+            console.error('Failed to parse stored data as fallback:', parseError);
           }
         }
       }
-      
+
       // Re-throw the API error if no fallback is available
       throw apiError;
     }

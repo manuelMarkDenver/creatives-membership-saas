@@ -84,40 +84,47 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-4 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/20 to-transparent -z-10" />
+
+      <div className="max-w-md w-full mx-4 animate-in fade-in-50 slide-in-from-bottom-4 duration-700">
         {/* Modern Logo Section */}
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center mb-4 shadow-lg">
-            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+          <div className="mx-auto w-20 h-20 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mb-6 shadow-xl transform hover:scale-105 transition-transform duration-300">
+            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg>
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-2">
             CreativeCore
           </h1>
-          <p className="mt-2 text-gray-600 text-sm">
+          <p className="text-slate-600 text-lg font-medium">
             Smart business management platform
           </p>
+          <p className="text-slate-500 text-sm mt-1">
+            Powering gyms, coffee shops & more
+          </p>
         </div>
-        
-        <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-          <CardHeader className="space-y-1 pb-6">
-            <CardTitle className="text-2xl font-semibold text-center text-gray-900">Welcome Back</CardTitle>
-            <CardDescription className="text-center text-gray-500">
+
+        <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-lg ring-1 ring-white/20">
+          <CardHeader className="space-y-1 pb-8 pt-8">
+            <CardTitle className="text-2xl font-bold text-center text-slate-900">Welcome Back</CardTitle>
+            <CardDescription className="text-center text-slate-600 text-base">
               Sign in to access your business dashboard
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <CardContent className="px-8 pb-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
+                <Alert variant="destructive" className="border-red-200 bg-red-50">
+                  <AlertDescription className="text-red-800">{error}</AlertDescription>
                 </Alert>
               )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email address</Label>
+
+              <div className="space-y-3">
+                <Label htmlFor="email" className="text-sm font-semibold text-slate-700">Email address</Label>
                 <Input
                   id="email"
                   name="email"
@@ -128,11 +135,12 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   disabled={isLoading}
+                  className="h-12 text-base !bg-white !text-slate-900 border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 transition-colors"
                 />
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+
+              <div className="space-y-3">
+                <Label htmlFor="password" className="text-sm font-semibold text-slate-700">Password</Label>
                 <Input
                   id="password"
                   name="password"
@@ -143,17 +151,18 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   disabled={isLoading}
+                  className="h-12 text-base !bg-white !text-slate-900 border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 transition-colors"
                 />
               </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-emerald-600 hover:bg-emerald-700" 
+
+              <Button
+                type="submit"
+                className="w-full h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-base shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Signing in...
                   </>
                 ) : (
@@ -161,75 +170,76 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
-            
+
             {/* Sample credentials for testing - DELETE BEFORE PRODUCTION */}
-            <div className="mt-6 p-3 sm:p-4 bg-yellow-50 border border-yellow-200 rounded-md max-h-80 sm:max-h-96 overflow-y-auto">
-              <p className="text-xs sm:text-sm font-semibold text-yellow-800 mb-3 flex items-center">
-                <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                <span className="leading-tight">DEV ONLY - Login Credentials (Remove before production):</span>
-              </p>
-              
-              <div className="space-y-3 text-xs">
+            <div className="mt-8 p-4 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl shadow-sm">
+              <div className="flex items-center mb-4">
+                <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-amber-800">DEV ONLY - Login Credentials</p>
+              </div>
+
+              <div className="space-y-4 text-sm">
                 {/* Super Admin */}
-                <div>
-                  <div className="font-medium text-purple-800 border-b pb-1 mb-2 text-xs sm:text-sm">🔧 Super Admin</div>
-                  <div className="pl-2 text-gray-700 bg-purple-50 p-2 rounded text-xs leading-relaxed">
+                <div className="bg-white/70 rounded-lg p-3 border border-purple-200">
+                  <div className="font-semibold text-purple-800 mb-2">🔧 Super Admin</div>
+                  <div className="text-slate-700 space-y-1">
                     <div><strong>Email:</strong> admin@creatives-saas.com</div>
                     <div><strong>Password:</strong> SuperAdmin123!</div>
                   </div>
                 </div>
 
                 {/* Muscle Mania - Beta Tester */}
-                <div>
-                  <div className="font-medium text-orange-800 border-b pb-1 mb-2 text-xs sm:text-sm">💪 Muscle Mania (Beta Tester)</div>
-                  <div className="pl-2 text-gray-700 space-y-1">
-                    <div className="bg-orange-50 p-2 rounded text-xs leading-relaxed">
-                      <div><strong>Owner:</strong> owner@muscle-mania.com</div>
-                      <div><strong>Password:</strong> MuscleManiaOwner123!</div>
+                <div className="bg-white/70 rounded-lg p-3 border border-orange-200">
+                  <div className="font-semibold text-orange-800 mb-2">💪 Muscle Mania (Beta Tester)</div>
+                  <div className="text-slate-700 space-y-2">
+                    <div className="bg-orange-50 p-2 rounded">
+                      <strong>Owner:</strong> owner@muscle-mania.com / MuscleManiaOwner123!
                     </div>
-                    <div className="bg-blue-50 p-2 rounded text-xs leading-relaxed">
-                      <div><strong>Managers:</strong></div>
-                      <div>• manager1@muscle-mania.com / Manager123!</div>
-                      <div>• manager2@muscle-mania.com / Manager223!</div>
-                      <div>• manager3@muscle-mania.com / Manager323!</div>
+                    <div className="bg-blue-50 p-2 rounded">
+                      <strong>Managers:</strong> manager@muscle-mania.com / Manager123!
                     </div>
-                    <div className="bg-gray-50 p-2 rounded text-xs leading-relaxed">
-                      <div><strong>Staff:</strong></div>
-                      <div>• staff11@muscle-mania.com / Staff1123!</div>
-                      <div>• staff21@muscle-mania.com / Staff2123!</div>
-                      <div>• staff31@muscle-mania.com / Staff3123!</div>
-                      <div className="text-gray-500">... and more (see seeder output)</div>
+                    <div className="bg-slate-50 p-2 rounded text-sm">
+                      <strong>Staff:</strong> staff11@muscle-mania.com / Staff1123! (and more)
                     </div>
                   </div>
                 </div>
-
 
                 {/* Sample Members */}
-                <div>
-                  <div className="font-medium text-indigo-800 border-b pb-1 mb-2 text-xs sm:text-sm">👥 Sample Members</div>
-                  <div className="pl-2 text-gray-700 bg-indigo-50 p-2 rounded text-xs leading-relaxed">
+                <div className="bg-white/70 rounded-lg p-3 border border-indigo-200">
+                  <div className="font-semibold text-indigo-800 mb-2">👥 Sample Members</div>
+                  <div className="text-slate-700">
                     <div><strong>Muscle Mania:</strong> john1b1@muscle-mania.com / Member123!</div>
-                    <div className="text-gray-500 mt-1"><em>(Many more available - check seeder output)</em></div>
+                    <div className="text-slate-500 text-xs mt-1">(Many more available - check seeder output)</div>
                   </div>
                 </div>
               </div>
-              
-              <div className="mt-3 pt-2 border-t border-yellow-300 text-xs text-yellow-700">
-                <strong>Branch Access:</strong><br/>
-                • <strong>Owner:</strong> Full access to all branches<br/>
-                • <strong>Manager:</strong> Access to assigned branch only<br/>
-                • <strong>Staff:</strong> Limited to assigned branch only<br/>
-                • <strong>Members:</strong> View own profile and branch data only
-              </div>
-              
-              <div className="mt-2 pt-2 border-t border-yellow-300 text-xs text-yellow-600">
-                <strong>💡 Testing Tip:</strong> Try logging in as different roles to see branch-based access control in action!
+
+              <div className="mt-4 pt-3 border-t border-amber-300 text-xs text-amber-700 space-y-2">
+                <div>
+                  <strong>Branch Access:</strong>
+                  <div className="ml-2 space-y-1">
+                    <div>• <strong>Owner:</strong> Full access to all branches</div>
+                    <div>• <strong>Manager:</strong> Access to assigned branch only</div>
+                    <div>• <strong>Staff:</strong> Limited to assigned branch only</div>
+                    <div>• <strong>Members:</strong> View own profile and branch data only</div>
+                  </div>
+                </div>
+                <div className="bg-amber-100 p-2 rounded text-amber-800">
+                  <strong>💡 Testing Tip:</strong> Try different roles to see branch-based access control!
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Footer */}
+        <div className="text-center mt-6 text-slate-500 text-sm">
+          <p>© 2024 CreativeCore. All rights reserved.</p>
+        </div>
       </div>
     </div>
   )

@@ -29,8 +29,8 @@ export function ExpiringMembersDebug({ className = '' }: ExpiringMembersDebugPro
   })
   
   const { data: membersData } = useUsersByTenant(
-    profile?.tenantId || '', 
-    { role: 'GYM_MEMBER' as Role }
+    profile?.tenantId || '',
+    { role: 'CLIENT' as Role }
   )
   
   if (!profile?.tenantId) {

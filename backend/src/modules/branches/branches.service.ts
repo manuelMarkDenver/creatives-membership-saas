@@ -116,8 +116,8 @@ export class BranchesService {
           const inactiveMembers = members.filter(
             (ub) => !ub.user.isActive,
           ).length;
-          const staff = branch.gymUserBranches.filter((ub) =>
-            ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
+          const staff = branch.gymUserBranches.filter(
+            (ub) => ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
           ).length;
 
           return {
@@ -175,8 +175,8 @@ export class BranchesService {
           const inactiveMembers = members.filter(
             (ub) => !ub.user.isActive,
           ).length;
-          const staff = branch.gymUserBranches.filter((ub) =>
-            ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
+          const staff = branch.gymUserBranches.filter(
+            (ub) => ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
           ).length;
 
           return {

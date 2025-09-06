@@ -37,7 +37,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     name: 'Dashboard',
     href: '/dashboard',
     icon: BarChart3,
-    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role, 'GYM_MEMBER' as Role],
+    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role, 'CLIENT' as Role],
     description: 'Overview and analytics'
   },
 
@@ -62,7 +62,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     name: 'My Membership',
     href: '/my-membership',
     icon: Calendar,
-    roles: ['GYM_MEMBER' as Role],
+    roles: ['CLIENT' as Role],
     description: 'Your membership details'
   },
 
@@ -111,7 +111,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     name: 'Settings',
     href: '/settings',
     icon: Settings,
-    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role, 'GYM_MEMBER' as Role],
+    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role, 'CLIENT' as Role],
     description: 'Account and preferences',
     isFutureFeature: true
   },
@@ -120,8 +120,8 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
 export function useRoleNavigation(userRole?: Role) {
   const navigation = useMemo(() => {
     if (!userRole) return []
-    
-    return NAVIGATION_ITEMS.filter(item => 
+
+    return NAVIGATION_ITEMS.filter(item =>
       item.roles.includes(userRole)
     )
   }, [userRole])
@@ -136,7 +136,7 @@ export function useRoleNavigation(userRole?: Role) {
         return '/members'
       case 'STAFF':
         return '/members'
-      case 'GYM_MEMBER':
+      case 'CLIENT':
         return '/my-membership'
       default:
         return '/dashboard'

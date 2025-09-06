@@ -36,8 +36,8 @@ export const gymMemberKeys = {
  */
 export function useGymMembersWithSubscriptions(tenantId: string, options?: { enabled?: boolean }) {
   const { data: members, isLoading: isLoadingMembers, error: membersError } = useUsersByTenant(
-    tenantId, 
-    { role: 'GYM_MEMBER' as Role }
+    tenantId,
+    { role: 'CLIENT' as Role }
   )
 
   return useQuery<GymMemberWithSubscriptions[]>({

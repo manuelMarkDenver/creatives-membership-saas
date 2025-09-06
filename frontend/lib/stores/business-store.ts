@@ -3,7 +3,7 @@ import { devtools, persist } from 'zustand/middleware'
 
 // Types for multi-business architecture
 export type BusinessType = 'gym' | 'coffee' | 'ecommerce'
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'STAFF' | 'GYM_MEMBER'
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'STAFF' | 'CLIENT'
 
 export interface BusinessContext {
   tenantId: string
@@ -95,7 +95,7 @@ export const useBusinessStore = create<BusinessStore>()(
           if (!user) return false
           
           const roleHierarchy: Record<UserRole, number> = {
-            'GYM_MEMBER': 1,
+            'CLIENT': 1,
             'STAFF': 2,
             'MANAGER': 3,
             'ADMIN': 4,

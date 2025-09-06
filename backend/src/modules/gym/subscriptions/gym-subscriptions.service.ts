@@ -286,18 +286,18 @@ export class GymSubscriptionsService {
         },
         include: {
           membershipPlan: true,
-        member: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phoneNumber: true,
-            photoUrl: true,
+          member: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phoneNumber: true,
+              photoUrl: true,
+            },
           },
+          tenant: true,
         },
-        tenant: true,
-      },
       });
 
     // Update user's businessData to remove payment history only
@@ -345,7 +345,6 @@ export class GymSubscriptionsService {
             id: true,
             firstName: true,
             lastName: true,
-
           },
         },
       },
@@ -498,17 +497,17 @@ export class GymSubscriptionsService {
           member: {
             select: {
               id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phoneNumber: true,
-            photoUrl: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phoneNumber: true,
+              photoUrl: true,
             },
           },
           membershipPlan: {
             select: {
               id: true,
-  
+
               type: true,
               price: true,
             },
@@ -516,7 +515,7 @@ export class GymSubscriptionsService {
           tenant: {
             select: {
               id: true,
-  
+
               category: true,
             },
           },
@@ -570,7 +569,8 @@ export class GymSubscriptionsService {
         endDate: subscription.endDate.toISOString(),
         price: subscription.price,
         daysUntilExpiry,
-        memberName: `${subscription.member.firstName} ${subscription.member.lastName}`.trim(),
+        memberName:
+          `${subscription.member.firstName} ${subscription.member.lastName}`.trim(),
         isExpired: daysUntilExpiry <= 0,
         urgency,
         customer: {
