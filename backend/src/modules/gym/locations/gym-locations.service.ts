@@ -115,7 +115,7 @@ export class GymLocationsService {
       .then((locations) => {
         return locations.map((location) => {
           const members = location.gymUserBranches.filter(
-            (ub) => ub.user.role === 'GYM_MEMBER',
+            (ub) => ub.user.role === 'CLIENT',
           );
           const activeMembers = members.filter((ub) => ub.user.isActive).length;
           const inactiveMembers = members.filter(

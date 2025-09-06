@@ -110,7 +110,7 @@ export class BranchesService {
       .then((branches) => {
         return branches.map((branch) => {
           const members = branch.gymUserBranches.filter(
-            (ub) => ub.user.role === 'GYM_MEMBER',
+            (ub) => ub.user.role === 'CLIENT',
           );
           const activeMembers = members.filter((ub) => ub.user.isActive).length;
           const inactiveMembers = members.filter(
@@ -169,7 +169,7 @@ export class BranchesService {
       .then((branches) => {
         return branches.map((branch) => {
           const members = branch.gymUserBranches.filter(
-            (ub) => ub.user.role === 'GYM_MEMBER',
+            (ub) => ub.user.role === 'CLIENT',
           );
           const activeMembers = members.filter((ub) => ub.user.isActive).length;
           const inactiveMembers = members.filter(

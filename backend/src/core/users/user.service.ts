@@ -663,8 +663,8 @@ export class UsersService {
           requestingUser?.gymUserBranches.map((ub) => ub.branchId) || [];
 
         if (accessibleBranchIds.length > 0) {
-          // For members (GYM_MEMBER), filter by customers who have subscriptions in accessible branches
-          if (filters.role === 'GYM_MEMBER') {
+          // For members (CLIENT), filter by customers who have subscriptions in accessible branches
+          if (filters.role === 'CLIENT') {
             const membersInAccessibleBranches =
               await this.prisma.gymMemberSubscription.findMany({
                 where: {

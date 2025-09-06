@@ -138,7 +138,6 @@ async function main() {
     owner: {
       firstName: 'Juan',
       lastName: 'Cruz',
-      name: 'Juan Cruz',
       email: 'owner@muscle-mania.com',
       password: 'MuscleManiaOwner123!',
     },
@@ -172,7 +171,7 @@ async function main() {
         password: hashedOwnerPassword,
         firstName: tenantInfo.owner.firstName,
         lastName: tenantInfo.owner.lastName,
-        role: Role.OWNER,
+        globalRole: Role.OWNER,
         isActive: true,
         tenant: {
           connect: { id: tenant.id }
@@ -334,7 +333,7 @@ async function main() {
           password: hashedManagerPassword,
           firstName: 'Maria',
           lastName: 'Rodriguez',
-          role: Role.MANAGER,
+          globalRole: Role.MANAGER,
           isActive: true,
           tenant: {
             connect: { id: tenant.id }
@@ -492,7 +491,7 @@ async function main() {
           password: hashedMemberPassword,
           firstName: memberInfo.firstName,
           lastName: memberInfo.lastName,
-          role: Role.GYM_MEMBER,
+          role: Role.CLIENT,
           isActive: isActive,
           tenant: {
             connect: { id: tenant.id }
@@ -509,8 +508,8 @@ async function main() {
           emergencyContactPhone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
           emergencyContactRelation: getRandomRelationship(),
           joinedDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000), // Random date within last year
-           medicalConditions: Math.random() > 0.8 ? 'None' : ['Asthma', 'Back Pain', 'Knee Issues', 'Shoulder Pain'][Math.floor(Math.random() * 4)],
-           fitnessGoals: ['Weight Loss', 'Muscle Gain', 'Fitness Maintenance', 'Strength Training', 'Endurance', 'Flexibility'][Math.floor(Math.random() * 6)],
+           medicalConditions: Math.random() > 0.8 ? 'None' : 'Asthma',
+           fitnessGoals: 'Weight Loss',
            ...(() => {
              const trainer = generateTrainerData();
              return {
@@ -623,7 +622,7 @@ async function main() {
      loginCredentials.push({
        email: memberInfo.email,
        password: memberInfo.password,
-       role: 'GYM_MEMBER',
+        role: 'CLIENT',
        name: member.firstName + ' ' + member.lastName
      });
    }
@@ -823,7 +822,7 @@ async function main() {
          password: hashedMemberPassword,
           firstName: memberInfo.firstName,
           lastName: memberInfo.lastName,
-         role: Role.GYM_MEMBER,
+          role: Role.CLIENT,
          isActive: isActive,
          tenant: {
            connect: { id: tenant.id }
@@ -955,7 +954,7 @@ async function main() {
     loginCredentials.push({
       email: memberInfo.email,
       password: memberInfo.password,
-      role: 'GYM_MEMBER',
+        role: 'CLIENT',
       name: member.firstName + ' ' + member.lastName
     });
   }
@@ -970,7 +969,7 @@ async function main() {
    SUPER_ADMIN: loginCredentials.filter(c => c.role === 'SUPER_ADMIN'),
    OWNER: loginCredentials.filter(c => c.role === 'OWNER'),
    MANAGER: loginCredentials.filter(c => c.role === 'MANAGER'),
-   GYM_MEMBER: loginCredentials.filter(c => c.role === 'GYM_MEMBER')
+    CLIENT: loginCredentials.filter(c => c.role === 'CLIENT')
  };
 
  // Display credentials

@@ -63,7 +63,7 @@ export class SeedService {
         adminCount,
       ] = await Promise.all([
         this.prisma.tenant.count(),
-        this.prisma.user.count({ where: { role: 'GYM_MEMBER' } }),
+        this.prisma.user.count({ where: { role: 'CLIENT' } }),
         this.prisma.plan.count(),
         this.prisma.membershipPlan.count(),
         this.prisma.user.count({

@@ -420,7 +420,7 @@ enum Role {
   OWNER
   MANAGER
   STAFF
-  GYM_MEMBER
+  CLIENT
 }
 
 // Business-specific role enums
