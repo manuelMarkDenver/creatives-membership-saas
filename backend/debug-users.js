@@ -8,10 +8,10 @@ async function main() {
     
     // Look for different roles
     const roles = ['SUPER_ADMIN', 'OWNER', 'MANAGER', 'STAFF'];
-    
+
     for (const role of roles) {
       const users = await prisma.user.findMany({
-        where: { role },
+        where: { globalRole: role },
         take: 1,
         include: {
           tenant: {
@@ -21,7 +21,7 @@ async function main() {
               category: true
             }
           },
-          userBranches: {
+          gymUserBranches: {
             include: {
               branch: {
                 select: {
@@ -48,13 +48,14 @@ async function main() {
           name: `${user.firstName} ${user.lastName}`,
           email: user.email,
           role: user.role,
+          globalRole: user.globalRole,
           tenantId: user.tenantId,
           tenantName: user.tenant?.name,
-          branchAccess: user.userBranches.length
+          branchAccess: user.gymUserBranches.length
         });
         
-        if (user.userBranches.length > 0) {
-          console.log('Branch Access:', user.userBranches.map(ub => ({
+        if (user.gymUserBranches.length > 0) {
+          console.log('Branch Access:', user.gymUserBranches.map(ub => ({
             branchId: ub.branchId,
             branchName: ub.branch.name,
             accessLevel: ub.accessLevel,

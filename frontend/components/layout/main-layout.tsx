@@ -19,6 +19,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle'
 import Link from 'next/link'
 import { useProfile } from '@/lib/hooks/use-users'
 import { useTenantContext } from '@/lib/providers/tenant-context'
+import { setTenantContext } from '@/lib/api'
 import { useRoleNavigation } from '@/lib/hooks/use-role-navigation'
 import { useSubscriptionStatus } from '@/lib/hooks/use-subscription'
 import { signOut } from '@/lib/auth/supabase'
@@ -41,6 +42,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Set tenant context when profile loads
+  useEffect(() => {
+    if (profile?.tenantId && !currentTenant) {
+      console.log('🔧 Setting tenant context from profile:', profile.tenantId)
+      setTenantContext(profile.tenantId)
+    }
+  }, [profile?.tenantId, currentTenant])
 
   // Get role-based navigation (must be called before any early returns to maintain hooks order)
   const { navigation } = useRoleNavigation(profile?.role)

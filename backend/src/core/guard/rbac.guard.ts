@@ -41,22 +41,12 @@ export class RBACGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-
-    // Skip RBAC if decorator is present
-    const skipRBAC = this.reflector.getAllAndOverride<boolean>('skipRBAC', [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-
-    if (skipRBAC) {
-      return true;
-    }
-
-    // Get user from request (set by AuthGuard)
     const user = request.user as AuthenticatedUser;
     if (!user) {
       throw new ForbiddenException('User not authenticated');
     }
+
+
 
     // Get tenant and branch context
     const tenantId =
@@ -69,7 +59,7 @@ export class RBACGuard implements CanActivate {
       request.headers?.['x-branch-id'];
 
     // Load user's full RBAC info if not already loaded
-    if (!user.branchAccess) {
+    if (!user.branchAccess || user.branchAccess.length === 0) {
       await this.loadUserRBACInfo(user);
     }
 
@@ -87,15 +77,23 @@ export class RBACGuard implements CanActivate {
       }
     }
 
-    // Check branch-level access
-    if (branchId) {
-      const requiredAccessLevel = this.reflector.getAllAndOverride<AccessLevel>(
-        'accessLevel',
-        [context.getHandler(), context.getClass()],
-      );
+    // Check access level (for both branch and tenant operations)
+    const requiredAccessLevel = this.reflector.getAllAndOverride<AccessLevel>(
+      'accessLevel',
+      [context.getHandler(), context.getClass()],
+    );
 
-      if (!this.hasBranchAccess(user, branchId, requiredAccessLevel)) {
-        throw new ForbiddenException('Insufficient branch access permissions');
+    if (requiredAccessLevel) {
+      if (branchId) {
+        // Branch-specific access check
+        if (!this.hasBranchAccess(user, branchId, requiredAccessLevel)) {
+          throw new ForbiddenException('Insufficient branch access permissions');
+        }
+      } else {
+        // Tenant-level access check based on global role
+        if (!this.hasTenantAccess(user, requiredAccessLevel)) {
+          throw new ForbiddenException('Insufficient tenant access permissions');
+        }
       }
     }
 
@@ -145,7 +143,7 @@ export class RBACGuard implements CanActivate {
     }
 
     // Use globalRole for platform-level permissions
-    user.role = dbUser.globalRole || 'CLIENT';
+    user.role = (dbUser.globalRole as Role) || Role.CLIENT;
     user.tenantId = dbUser.gymMemberProfile?.tenantId || null;
     user.branchAccess = dbUser.gymUserBranches.map((ub) => ({
       branchId: ub.branchId,
@@ -166,7 +164,46 @@ export class RBACGuard implements CanActivate {
       return true;
     }
 
+    // MANAGER has access to tenant-level operations
+    if (user.role === Role.MANAGER && requiredRoles.includes(Role.MANAGER)) {
+      return true;
+    }
+
+    // STAFF has access to tenant-level operations
+    if (user.role === Role.STAFF && requiredRoles.includes(Role.STAFF)) {
+      return true;
+    }
+
     return requiredRoles.includes(user.role);
+  }
+
+  private hasTenantAccess(user: AuthenticatedUser, requiredLevel: AccessLevel): boolean {
+    // SUPER_ADMIN has full access
+    if (user.role === Role.SUPER_ADMIN) {
+      return true;
+    }
+
+    // OWNER has full access to tenant operations
+    if (user.role === Role.OWNER) {
+      return true;
+    }
+
+    // MANAGER has manager-level access
+    if (user.role === Role.MANAGER) {
+      return this.accessLevelHierarchy(requiredLevel) <= this.accessLevelHierarchy(AccessLevel.MANAGER_ACCESS);
+    }
+
+    // STAFF has staff-level access
+    if (user.role === Role.STAFF) {
+      return this.accessLevelHierarchy(requiredLevel) <= this.accessLevelHierarchy(AccessLevel.STAFF_ACCESS);
+    }
+
+    // CLIENT has read-only access
+    if (user.role === Role.CLIENT) {
+      return this.accessLevelHierarchy(requiredLevel) <= this.accessLevelHierarchy(AccessLevel.READ_ONLY);
+    }
+
+    return false;
   }
 
   private hasBranchAccess(

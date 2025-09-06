@@ -680,44 +680,14 @@ export default function MembersPage() {
                         <th className="text-left p-3 text-sm font-medium text-gray-900">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {/* Payment history is now handled through transaction API */}
-                      {[] /* Temporarily disabled - payment history moved to transaction API */
-                        .map((transaction: any, index: number) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="p-3 text-sm">
-                            {new Date(transaction.date).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
-                          </td>
-                          <td className="p-3 text-sm font-medium text-green-600">
-                            ₱{transaction.amount}
-                          </td>
-                          <td className="p-3 text-sm">
-                            <Badge variant="outline" className="text-xs">
-                              {transaction.type || 'Payment'}
-                            </Badge>
-                          </td>
-                          <td className="p-3 text-sm text-purple-600">
-                            {transaction.planName || 'N/A'}
-                          </td>
-                          <td className="p-3 text-sm">
-                            <Badge variant="secondary" className="text-xs">
-                              {transaction.method || 'Cash'}
-                            </Badge>
-                          </td>
-                          <td className="p-3 text-sm">
-                            <Badge 
-                              variant={transaction.status === 'completed' ? 'default' : 'destructive'}
-                              className="text-xs"
-                            >
-                              {transaction.status || 'Completed'}
-                            </Badge>
+                      <tbody className="divide-y divide-gray-200">
+                        {/* Payment history is now handled through transaction API */}
+                        {/* Temporarily disabled - payment history moved to transaction API */}
+                        <tr>
+                          <td colSpan={5} className="p-4 text-center text-gray-500">
+                            Transaction history temporarily disabled
                           </td>
                         </tr>
-                      ))}
                     </tbody>
                   </table>
                 ) : (

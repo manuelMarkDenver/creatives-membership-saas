@@ -1,0 +1,1 @@
+SELECT u.id, u.email, u."globalRole", u."firstName", u."lastName", gmp."tenantId", gub."branchId", gub."accessLevel" FROM "User" u LEFT JOIN "GymMemberProfile" gmp ON u.id = gmp."userId" LEFT JOIN "GymUserBranch" gub ON u.id = gub."userId" WHERE u.email = 'owner@muscle-mania.com";
