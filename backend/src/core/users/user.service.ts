@@ -692,7 +692,7 @@ export class UsersService {
             }
           }
           // For staff/managers, show users who have branch assignments in accessible branches
-          else if (['MANAGER', 'STAFF', 'OWNER'].includes(filters.role || '')) {
+          else if (['MANAGER', 'STAFF'].includes(filters.role || '')) {
             const usersInAccessibleBranches =
               await this.prisma.gymUserBranch.findMany({
                 where: {
@@ -783,10 +783,17 @@ export class UsersService {
         take: limit,
       });
 
+      // Transform gymMemberSubscriptions to gymSubscriptions for frontend compatibility
+      const transformedUsers = users.map(user => ({
+        ...user,
+        gymSubscriptions: user.gymMemberSubscriptions,
+        gymMemberSubscriptions: undefined, // Remove the original field
+      }));
+
       this.logger.log(
         `Retrieved ${users.length} users for tenant ${tenant.name}`,
       );
-      return users;
+      return transformedUsers;
     } catch (error) {
       if (
         error instanceof BadRequestException ||

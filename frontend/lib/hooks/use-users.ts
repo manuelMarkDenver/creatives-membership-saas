@@ -74,7 +74,7 @@ export function useProfile() {
           process.env.NEXT_PUBLIC_API_BYPASS_AUTH === 'true';
         if (BYPASS_AUTH && !storedUser) {
           console.log('🔧 Using development bypass profile');
-          return {
+          const bypassUser = {
             id: '315a31e8-8469-4f7c-9643-cf0e2ac0eeed',
             email: 'owner@muscle-mania.com',
             firstName: 'Juan',
@@ -85,6 +85,10 @@ export function useProfile() {
             tenantId: '79ccff05-1824-4673-a11d-3ca1a10ef812',
             isActive: true
           } as User;
+
+          // Store bypass user data in localStorage for API client to use
+          localStorage.setItem('user_data', JSON.stringify(bypassUser));
+          return bypassUser;
         }
 
         if (storedUser && storedToken) {
