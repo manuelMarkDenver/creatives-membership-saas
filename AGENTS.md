@@ -32,10 +32,16 @@
 - [x] **CRUD Separation**: Users CRUD vs Gym CRUD operations
 - [x] **Multi-Role Users**: Users can be CLIENT + OWNER/MANAGER/STAFF without conflicts
 - [x] **Comprehensive RBAC Fixes**: Updated 15+ files, migrated schema, seeded CLIENT roles, resolved all compilation errors
+- [x] **API Endpoint Architecture**: Migrated from generic `/users` to specific `/gym/users` endpoints
+- [x] **Hook Naming Standardization**: All hooks properly named with "gym" prefixes (`use-gym-users`, `use-gym-members`, etc.)
+- [x] **Import Path Corrections**: Fixed all incorrect import paths across 6+ components
+- [x] **TypeScript Compatibility**: Resolved User interface compatibility issues
 
 ### 🔄 IN PROGRESS
 - [x] **Testing & Verification**: Backend build ✅, Frontend build ✅, Lint issues (MVP ignore), Tests need DI fixes
 - [x] **Database Seeding**: Updated with CLIENT roles for all users ✅
+- [x] **API Endpoint Migration**: Successfully migrated to `/gym/users` endpoints ✅
+- [x] **Endpoint Testing**: All new endpoints tested and working ✅
 - [ ] **MVP Launch Preparation**: End-to-end functionality verification, production testing
 
 ### ❌ PENDING
@@ -118,14 +124,14 @@ cd frontend && npm run dev
 - **Types**: Strict TypeScript configuration
 - **Performance**: Zustand stores eliminate re-render loops (< 3 renders per operation)
 - **SSR Compatibility**: Client components for third-party libraries (react-toastify)
-- **API Structure**: Business-specific endpoints (`/api/v1/gym/*`, `/api/v1/business-units/*`)
+- **API Structure**: Business-specific endpoints (`/api/v1/gym/users/*`, `/api/v1/gym/members/*`, `/api/v1/business-units/*`)
 
 ### General
 - **Linting**: ESLint with TypeScript rules (ignore during builds for MVP)
 - **Formatting**: Prettier (single quotes, trailing commas)
 - **No comments**: Avoid adding comments unless explicitly requested
 - **Security**: Never expose secrets, use environment variables
-- **API Structure**: Business-specific endpoints (`/api/v1/gym/*`, `/api/v1/business-units/*`)
+- **API Structure**: Business-specific endpoints (`/api/v1/gym/users/*`, `/api/v1/gym/members/*`, `/api/v1/business-units/*`)
 - **Database**: Multi-tenant with business units (shared schema, tenant isolation)
 - **Authentication**: JWT with role-based access control (SUPER_ADMIN, OWNER, MANAGER, STAFF, CLIENT)
 
@@ -187,8 +193,8 @@ cd frontend && npm run dev
 - **Role Conflicts**: Resolved with clean CLIENT role separation ✅
 
 #### User Creation Flow
-- **Automatic**: `POST /gym/members` creates User (CLIENT role) + GymMemberProfile
-- **Manual**: `POST /users` creates business-agnostic users
+- **Automatic**: `POST /api/v1/gym/members` creates User (CLIENT role) + GymMemberProfile
+- **Manual**: `POST /api/v1/gym/users` creates business-agnostic users
 - **Role Assignment**: CLIENT global role for all end users, business-specific roles in profiles
 
 #### Multi-Role User Support
@@ -207,13 +213,16 @@ cd frontend && npm run dev
 - **Authentication Security**: JWT with comprehensive RBAC (CLIENT global role + business roles)
 - **Production Deployment**: Railway backend + Vercel frontend (₱250/month total)
 - **Database**: 149+ seeded users with realistic gym membership scenarios
-- **API Architecture**: Business-specific endpoints (`/api/v1/gym/*`, `/api/v1/business-units/*`)
+- **API Architecture**: Business-specific endpoints (`/api/v1/gym/users/*`, `/api/v1/gym/members/*`, `/api/v1/business-units/*`)
 - **Data Integrity**: Automatic User + Profile creation, database constraints
 - **RBAC Implementation**: CLIENT role for multi-role users, conflict-free architecture
 
 ### 🔧 Technical Achievements
 - **Business Units Architecture**: Complete multi-tenant business unit management
 - **Performance Optimization**: Reduced re-renders from 20+ to < 3 per operation
+- **API Endpoint Migration**: Successfully migrated from `/users` to `/gym/users` endpoints
+- **Hook Standardization**: All hooks properly named with business-specific prefixes
+- **Import Path Corrections**: Fixed all incorrect import paths across components
 - **Gym-Specific APIs**: Complete overhaul to business-centric endpoints
 - **State Management**: Efficient Zustand stores with React Query integration
 - **Database Schema**: Multi-tenant with proper foreign key relationships
@@ -222,6 +231,30 @@ cd frontend && npm run dev
 - **SSR Compatibility**: Client components for third-party libraries
 - **Data Seeding**: 149+ realistic users with comprehensive test scenarios
 - **Data Integrity**: Database constraints, transaction safety, orphaned profile prevention
+- **Endpoint Testing**: All new API endpoints tested and verified working
+
+### 🔗 API Endpoint Migration Summary
+#### ✅ **Migration Completed**: `/users` → `/gym/users`
+- **Backend Controller**: `@Controller('users')` → `@Controller('gym/users')`
+- **Frontend API Calls**: Updated 14+ endpoint calls across 6 files
+- **Import Paths**: Fixed incorrect imports in 5 components
+- **TypeScript**: Resolved User interface compatibility issues
+- **Testing**: All endpoints verified working with proper data responses
+
+#### ✅ **Current API Structure**:
+```
+/api/v1/gym/users/*          # Gym staff/users management
+/api/v1/gym/members/*         # Gym member operations
+/api/v1/gym/subscriptions/*   # Gym subscription management
+/api/v1/business-units/*      # Multi-business unit management
+```
+
+#### ✅ **Future-Ready Architecture**:
+```
+/api/v1/coffee/customers/*    # Coffee customers (ready for Phase 4)
+/api/v1/ecommerce/customers/* # E-commerce customers (ready for Phase 4)
+/api/v1/admin/clients/*       # Super admin universal views (ready for Phase 4)
+```
 
 ### 📊 Business Metrics
 - **User Base**: 149+ seeded users across multiple gym tenants with realistic scenarios
@@ -266,6 +299,8 @@ cd frontend && npm run dev
 ### Phase 2: Gym MVP Testing & Launch (Current)
 - ✅ Backend build/lint/tests completed
 - ✅ Frontend build/lint/tests completed
+- ✅ API Endpoint Migration - All endpoints migrated to `/gym/users`
+- ✅ Endpoint Testing - All new endpoints tested and working
 - 🔄 End-to-End Testing - Manual verification of all flows
 - 🔄 Production Deployment - Push to Railway/Vercel
 - 🔄 User Onboarding - First 10 pilot gyms
@@ -299,7 +334,7 @@ cd frontend && npm run dev
 - **Super Admin**: `admin@creatives-saas.com` / `SuperAdmin123!`
 
 ### Current Architecture
-- **Backend**: NestJS with business-specific modules (`/api/v1/gym/*`, `/api/v1/business-units/*`)
+- **Backend**: NestJS with business-specific modules (`/api/v1/gym/users/*`, `/api/v1/gym/members/*`, `/api/v1/business-units/*`)
 - **Frontend**: Next.js with Zustand stores and React Query integration
 - **Database**: Multi-tenant PostgreSQL with business unit isolation
 - **Deployment**: Railway backend + Vercel frontend ($5/month total)
@@ -309,4 +344,4 @@ cd frontend && npm run dev
 - **Cross-Business User Management**: View and manage users regardless of their business context
 - **Business Profile Aggregation**: Display user information from respective business profiles (GymMemberProfile, CoffeeCustomerProfile, etc.)
 
-This comprehensive AGENTS.md provides complete context for any agent working on the Creatives SaaS platform, ensuring consistent development practices and understanding of the current Phase 1 completion status, Phase 2 roadmap, and multi-business architecture foundation.
+This comprehensive AGENTS.md provides complete context for any agent working on the Creatives SaaS platform, ensuring consistent development practices and understanding of the current Phase 1 completion status, Phase 2 API migration completion, and multi-business architecture foundation with specific endpoint structure.
