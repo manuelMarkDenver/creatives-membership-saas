@@ -364,20 +364,7 @@ export class UsersService {
         `Soft deleted user: ${deletedUser.firstName} ${deletedUser.lastName} (${id})`,
       );
 
-      // Create audit log for the deletion
-      await this.createAuditLog({
-        memberId: id,
-        action: 'ACCOUNT_DELETED',
-        reason: actionData?.reason || 'Administrative action',
-        notes: actionData?.notes || 'Member account soft deleted',
-        previousState: 'ACTIVE',
-        newState: 'DELETED',
-        performedBy: deletedBy,
-        metadata: {
-          deletedAt: deletedUser.deletedAt?.toISOString(),
-          deletedBy: deletedBy,
-        },
-      });
+      // Note: Audit logging for member operations is handled by GymMembersService
 
       return deletedUser;
     } catch (error) {
@@ -461,18 +448,7 @@ export class UsersService {
             },
           });
 
-          await this.createAuditLog({
-            memberId: id,
-            action: 'ACCOUNT_ACTIVATED',
-            reason: actionData?.reason || 'Account reactivation',
-            notes:
-              actionData?.notes ||
-              'Member account activated from inactive state',
-            previousState: 'INACTIVE',
-            newState: 'ACTIVE',
-            performedBy: performedBy,
-            metadata: { restoredAt: new Date().toISOString() },
-          });
+          // Note: Audit logging for member operations is handled by GymMembersService
 
           this.logger.log(
             `Activated inactive user: ${restoredUser.firstName} ${restoredUser.lastName} (${id})`,
@@ -506,17 +482,7 @@ export class UsersService {
           },
         });
 
-        await this.createAuditLog({
-          memberId: id,
-          action: 'ACCOUNT_RESTORED',
-          reason: actionData?.reason || 'Account restoration',
-          notes:
-            actionData?.notes || 'Member account restored from deleted state',
-          previousState: 'DELETED',
-          newState: 'ACTIVE',
-          performedBy: performedBy,
-          metadata: { restoredAt: new Date().toISOString() },
-        });
+        // Note: Audit logging for member operations is handled by GymMembersService
 
         this.logger.log(
           `Restored deleted user: ${restoredUser.firstName} ${restoredUser.lastName} (${id})`,
@@ -558,22 +524,7 @@ export class UsersService {
           });
         }
 
-        await this.createAuditLog({
-          memberId: id,
-          action: 'SUBSCRIPTION_RESTORED',
-          reason: actionData?.reason || 'Subscription restoration',
-          notes:
-            actionData?.notes ||
-            'Member subscription restored from cancelled state',
-          previousState: 'CANCELLED',
-          newState: 'ACTIVE',
-          performedBy: performedBy,
-          metadata: {
-            restoredAt: new Date().toISOString(),
-            subscriptionId: latestSubscription?.id,
-            subscriptionPlan: latestSubscription?.membershipPlan?.name,
-          },
-        });
+        // Note: Audit logging for member operations is handled by GymMembersService
 
         this.logger.log(
           `Restored cancelled user: ${restoredUser.firstName} ${restoredUser.lastName} (${id})`,

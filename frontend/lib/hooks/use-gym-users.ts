@@ -252,25 +252,22 @@ export function useSoftDeleteUser() {
   const { data: profile } = useProfile()
 
   return useMutation({
-    mutationFn: (id: string) => {
-      const updateData = {
-        isActive: false,
-        deletedAt: new Date().toISOString(),
-        deletedBy: profile?.id || 'unknown'
+    mutationFn: async (id: string) => {
+      const deleteData = {
+        reason: 'Administrative deletion',
+        notes: `Deleted by ${profile?.firstName} ${profile?.lastName} (${profile?.id})`
       }
-      return usersApi.update(id, updateData)
+      // Use the gym-members API for member deletion
+      const { membersApi } = await import('@/lib/api/gym-members')
+      return membersApi.deleteMember(id, deleteData)
     },
-    onSuccess: (updatedUser: User) => {
-      // Update cached user
-      queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser)
-      
+    onSuccess: (response: any) => {
+      // The gym-members API returns a different response structure
       // Invalidate all relevant queries for immediate refresh
       queryClient.invalidateQueries({ queryKey: userKeys.lists() })
-      queryClient.invalidateQueries({ 
-        queryKey: [...userKeys.all, 'tenant', updatedUser.tenantId] 
-      })
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'tenant'] })
       queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'branch'] })
-      
+
       // Also invalidate gym members queries for proper member list refresh
       queryClient.invalidateQueries({ queryKey: ['gym-members'] })
       queryClient.invalidateQueries({ queryKey: ['gym-subscriptions'] })

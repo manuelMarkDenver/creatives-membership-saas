@@ -33,7 +33,7 @@ export const branchesApi = {
   // Get branches for a specific tenant
   getByTenant: async (tenantId: string, params?: Omit<BranchQueryParams, 'tenantId'>) => {
     // Ensure tenantId is available via both query param and header for backend flexibility
-    const response = await apiClient.get('/branches', { 
+    const response = await apiClient.get('/branches', {
       params: { ...params },
       headers: { 'x-tenant-id': tenantId }
     })
