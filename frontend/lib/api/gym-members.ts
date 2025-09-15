@@ -129,14 +129,14 @@ export const membersApi = {
 
   // Get member status
   async getMemberStatus(memberId: string): Promise<any> {
-    const response = await apiClient.get(`/gym/users/${memberId}/status`)
+    const response = await apiClient.get(`/gym/members/${memberId}/status`)
     return response.data
   },
 
   // Get member history
   async getMemberHistory(memberId: string, params?: MemberHistoryQuery): Promise<MemberHistoryResponse> {
     try {
-      const response = await apiClient.get(`/gym/users/${memberId}/history`, { params })
+      const response = await apiClient.get(`/gym/members/${memberId}/history`, { params })
       return response.data
     } catch (error: any) {
       // If the endpoint doesn't exist (404), return empty history
@@ -153,14 +153,14 @@ export const membersApi = {
           }
         }
       }
-      
+
       throw error
     }
   },
 
   // Get action reasons
   async getActionReasons(): Promise<any> {
-    const response = await apiClient.get('/gym/users/action-reasons')
+    const response = await apiClient.get('/gym/members/action-reasons')
     return response.data
   }
 }
