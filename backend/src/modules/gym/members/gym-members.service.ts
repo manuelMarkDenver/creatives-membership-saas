@@ -418,6 +418,178 @@ export class GymMembersService {
     };
   }
 
+  async softDeleteMember(
+    memberId: string,
+    performedBy: string,
+    actionData?: { reason: string; notes?: string },
+  ) {
+    try {
+      // Validate user ID format
+      if (!this.isValidUUID(memberId)) {
+        throw new BadRequestException('Invalid member ID format');
+      }
+
+      // Check if member exists and is not already deleted
+      const existingMember = await this.prisma.user.findUnique({
+        where: { id: memberId },
+      });
+
+      if (!existingMember) {
+        throw new NotFoundException(`Member with ID '${memberId}' not found`);
+      }
+
+      if (existingMember.deletedAt) {
+        throw new BadRequestException('Member is already deleted');
+      }
+
+      // Soft delete the member
+      const deletedMember = await this.prisma.user.update({
+        where: { id: memberId },
+        data: {
+          isActive: false,
+          deletedAt: new Date(),
+          deletedBy: performedBy,
+          updatedAt: new Date(),
+        },
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              category: true,
+            },
+          },
+        },
+      });
+
+      this.logger.log(
+        `Soft deleted member: ${deletedMember.firstName} ${deletedMember.lastName} (${memberId})`,
+      );
+
+      // Create audit log for the deletion
+      await this.createAuditLog({
+        memberId,
+        action: 'ACCOUNT_DELETED',
+        reason: actionData?.reason || 'Administrative action',
+        notes: actionData?.notes || 'Member account soft deleted',
+        previousState: 'ACTIVE',
+        newState: 'DELETED',
+        performedBy,
+        metadata: {
+          deletedAt: deletedMember.deletedAt?.toISOString(),
+          deletedBy: performedBy,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Member deleted successfully',
+        member: deletedMember,
+      };
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to soft delete member ${memberId}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to delete member. Please try again.',
+      );
+    }
+  }
+
+  async restoreMember(
+    memberId: string,
+    performedBy: string,
+    actionData?: { reason: string; notes?: string },
+  ) {
+    try {
+      // Validate user ID format
+      if (!this.isValidUUID(memberId)) {
+        throw new BadRequestException('Invalid member ID format');
+      }
+
+      // Check if member exists and is deleted
+      const existingMember = await this.prisma.user.findUnique({
+        where: { id: memberId },
+      });
+
+      if (!existingMember) {
+        throw new NotFoundException(`Member with ID '${memberId}' not found`);
+      }
+
+      if (!existingMember.deletedAt) {
+        throw new BadRequestException('Member is not deleted');
+      }
+
+      // Restore the member
+      const restoredMember = await this.prisma.user.update({
+        where: { id: memberId },
+        data: {
+          isActive: true,
+          deletedAt: null,
+          deletedBy: null,
+          updatedAt: new Date(),
+        },
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              category: true,
+            },
+          },
+        },
+      });
+
+      this.logger.log(
+        `Restored member: ${restoredMember.firstName} ${restoredMember.lastName} (${memberId})`,
+      );
+
+      // Create audit log for the restoration
+      await this.createAuditLog({
+        memberId,
+        action: 'ACCOUNT_RESTORED',
+        reason: actionData?.reason || 'Administrative action',
+        notes: actionData?.notes || 'Member account restored',
+        previousState: 'DELETED',
+        newState: 'ACTIVE',
+        performedBy,
+        metadata: {
+          restoredAt: new Date().toISOString(),
+          restoredBy: performedBy,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Member restored successfully',
+        member: restoredMember,
+      };
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to restore member ${memberId}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to restore member. Please try again.',
+      );
+    }
+  }
+
   async getMemberWithStatus(memberId: string) {
     const member = await this.getMemberById(memberId);
     const state = await this.getMemberState(member);

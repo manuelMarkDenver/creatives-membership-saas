@@ -195,6 +195,54 @@ export class GymMembersController {
     );
   }
 
+  @Post(':id/soft-delete')
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  async softDeleteMember(
+    @Param('id') id: string,
+    @Body() body: { reason: string; notes?: string },
+    @Req() req: RequestWithUser,
+  ) {
+    const { reason, notes } = body;
+    const performedBy = req.user?.id;
+
+    if (!performedBy) {
+      throw new Error('User not authenticated');
+    }
+
+    if (!reason || reason.trim() === '') {
+      throw new Error('Reason is required for member deletion');
+    }
+
+    return this.gymMembersService.softDeleteMember(id, performedBy, {
+      reason: reason.trim(),
+      notes,
+    });
+  }
+
+  @Post(':id/restore')
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  async restoreMember(
+    @Param('id') id: string,
+    @Body() body: { reason: string; notes?: string },
+    @Req() req: RequestWithUser,
+  ) {
+    const { reason, notes } = body;
+    const performedBy = req.user?.id;
+
+    if (!performedBy) {
+      throw new Error('User not authenticated');
+    }
+
+    if (!reason || reason.trim() === '') {
+      throw new Error('Reason is required for member restoration');
+    }
+
+    return this.gymMembersService.restoreMember(id, performedBy, {
+      reason: reason.trim(),
+      notes,
+    });
+  }
+
   @Get(':id/status')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   async getMemberWithStatus(@Param('id') id: string) {
