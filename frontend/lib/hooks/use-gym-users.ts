@@ -75,14 +75,14 @@ export function useProfile() {
         if (BYPASS_AUTH && !storedUser) {
           console.log('🔧 Using development bypass profile');
           const bypassUser = {
-            id: '315a31e8-8469-4f7c-9643-cf0e2ac0eeed',
+            id: '00386588-101b-4653-83ff-77fb5677363a',
             email: 'owner@muscle-mania.com',
             firstName: 'Juan',
             lastName: 'Cruz',
             name: 'Juan Cruz',
             role: 'OWNER' as Role,
             globalRole: 'OWNER',
-            tenantId: '79ccff05-1824-4673-a11d-3ca1a10ef812',
+            tenantId: 'cc1d8a60-6215-4e9c-a921-365e5084526f',
             isActive: true,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()

@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useProfile, useUsersByTenant, userKeys } from '@/lib/hooks/use-gym-users'
 import { useSystemMemberStats } from '@/lib/hooks/use-stats'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
-import { useGymMembersWithSubscriptions, gymMemberKeys } from '@/lib/hooks/use-gym-members'
+import { gymMemberKeys } from '@/lib/hooks/use-gym-members'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -64,16 +64,10 @@ export default function MembersPage() {
 
   const isSuperAdmin = profile?.role === 'SUPER_ADMIN'
 
-  // Fetch data based on user role
+  // Fetch data based on user role - useUsersByTenant already returns complete gym member data with gymSubscriptions and membershipPlan
   const { data: membersData, isLoading: isLoadingTenantMembers, error: tenantMembersError, refetch: refetchTenantMembers } = useUsersByTenant(
     profile?.tenantId || '',
     { role: 'CLIENT' as Role }
-  )
-  
-  // For tenant users, fetch gym members with their subscription data
-  const { data: gymMembersData, isLoading: isLoadingGymMembers, error: gymMembersError } = useGymMembersWithSubscriptions(
-    profile?.tenantId || '',
-    { enabled: !isSuperAdmin && !!profile?.tenantId }
   )
 
   const { data: systemMemberStats, isLoading: isLoadingSystemMembers, error: systemMembersError } = useSystemMemberStats({
@@ -238,11 +232,11 @@ export default function MembersPage() {
   }
 
   // Determine data source based on user role
-  const isLoading = isSuperAdmin ? isLoadingSystemMembers : (isLoadingTenantMembers || isLoadingGymMembers)
-  const error = isSuperAdmin ? systemMembersError : (tenantMembersError || gymMembersError)
+  const isLoading = isSuperAdmin ? isLoadingSystemMembers : isLoadingTenantMembers
+  const error = isSuperAdmin ? systemMembersError : tenantMembersError
   const rawMembers = isSuperAdmin ? 
     (systemMemberStats?.members || []).filter(m => ['CLIENT', 'ECOM_CUSTOMER', 'COFFEE_CUSTOMER'].includes(m.role)) :
-    (gymMembersData || membersData || [])
+    (membersData || [])
   
   // Apply branch filtering to ensure consistency between stats and displayed members
   const allMembers = rawMembers.filter((member: MemberData) => {

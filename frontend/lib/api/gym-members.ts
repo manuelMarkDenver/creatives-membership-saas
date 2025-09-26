@@ -56,7 +56,7 @@ export interface MemberActionResponse {
 export const membersApi = {
   // Update member - use gym-specific endpoint for gym members
   async updateMember(memberId: string, data: any): Promise<MemberActionResponse> {
-    const response = await apiClient.patch(`/gym/members/${memberId}`, data)
+    const response = await apiClient.patch(`/gym/users/${memberId}`, data)
     return {
       success: true,
       message: 'Member updated successfully',

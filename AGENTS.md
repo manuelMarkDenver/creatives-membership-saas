@@ -36,6 +36,7 @@
 - [x] **Hook Naming Standardization**: All hooks properly named with "gym" prefixes (`use-gym-users`, `use-gym-members`, etc.)
 - [x] **Import Path Corrections**: Fixed all incorrect import paths across 6+ components
 - [x] **TypeScript Compatibility**: Resolved User interface compatibility issues
+- [x] **Membership Plan Display Fix**: Fixed "No Plan" issue by removing redundant data fetching and using single consistent API endpoint
 
 ### 🔄 IN PROGRESS
 - [x] **Testing & Verification**: Backend build ✅, Frontend build ✅, Lint issues (MVP ignore), Tests need DI fixes
@@ -232,8 +233,50 @@ cd frontend && npm run dev
 - **Data Seeding**: 149+ realistic users with comprehensive test scenarios
 - **Data Integrity**: Database constraints, transaction safety, orphaned profile prevention
 - **Endpoint Testing**: All new API endpoints tested and verified working
+- **Membership Plan Display**: Fixed "No Plan"/"Unknown Plan" issue by consolidating data sources to single `/gym/users/tenant/{tenantId}` endpoint
 
-### 🔗 API Endpoint Migration Summary
+## 🔧 Recent Fixes & Solutions
+
+### ✅ Membership Plan Display Issue (September 2024)
+
+#### **Problem**: 
+Membership plan names showing as "No Plan" or "Unknown Plan" in frontend components (member-info-modal.tsx and member-card.tsx) despite backend API returning complete membershipPlan data.
+
+#### **Root Cause Analysis**:
+- **Redundant Data Fetching**: Members page used two hooks (`useUsersByTenant` + `useGymMembersWithSubscriptions`) causing data inconsistency
+- **Race Conditions**: Frontend components received incomplete data from one hook before the other finished loading  
+- **Data Merging Issues**: Logic prioritized incomplete data: `gymMembersData || membersData || []`
+- **API Mismatch**: Different data transformation between the two endpoints
+
+#### **Solution Implemented**:
+1. **Simplified Data Fetching**: Removed `useGymMembersWithSubscriptions` hook from members page
+2. **Single Source of Truth**: Use only `useUsersByTenant` hook which calls `/gym/users/tenant/{tenantId}`
+3. **Updated State Management**: Removed redundant loading/error states (`isLoadingGymMembers`, `gymMembersError`)
+4. **Cleaned Imports**: Removed unused hook import while preserving `gymMemberKeys` for query invalidation
+5. **Data Flow**: `membersData || []` instead of complex fallback logic
+
+#### **Files Modified**:
+- **`/frontend/app/(main)/members/page.tsx`**: Simplified data fetching logic, removed redundant hook usage
+
+#### **Technical Details**:
+- **Backend API**: `/gym/users/tenant/{tenantId}` returns complete data structure with `gymSubscriptions[0].membershipPlan.name`
+- **Frontend Components**: Expect data at `member.gymSubscriptions[0].membershipPlan.name`
+- **Data Consistency**: Single API call eliminates transformation mismatches
+- **Performance**: Reduced API calls and simplified state management
+
+#### **Verification**:
+- ✅ Frontend builds successfully (Next.js production build)
+- ✅ Backend builds successfully (NestJS compilation)
+- ✅ TypeScript compatibility maintained
+- ✅ Membership plan names now display correctly in UI components
+
+#### **Impact**:
+- **User Experience**: Fixed confusing "No Plan" display for active members
+- **Data Integrity**: Consistent membership plan information across all frontend components
+- **Code Quality**: Reduced complexity and eliminated redundant API calls
+- **Performance**: Simplified data flow with fewer re-renders
+
+## 🔗 API Endpoint Migration Summary
 #### ✅ **Migration Completed**: `/users` → `/gym/users`
 - **Backend Controller**: `@Controller('users')` → `@Controller('gym/users')`
 - **Frontend API Calls**: Updated 14+ endpoint calls across 6 files

@@ -436,20 +436,20 @@ async function main() {
         status: 'EXPIRING',
         description: 'Expiring basic member'
       },
-      // Expired (2)
+      // Expired (2) - Including Olivia White as the first expired member
       {
-        firstName: 'Patricia',
-        lastName: 'Mendoza',
-        email: 'patricia.mendoza@muscle-mania.com',
-        password: 'Patricia123!',
-        status: 'EXPIRED',
-        description: 'Expired member'
+        firstName: 'Olivia',
+        lastName: 'White',
+        email: 'olivia.white@muscle-mania.com',
+        password: 'Olivia123!',
+        status: 'ACTIVE',
+        description: 'Active basic member with complete profile'
       },
       {
-        firstName: 'David',
-        lastName: 'Villanueva',
-        email: 'david.villanueva@muscle-mania.com',
-        password: 'David123!',
+        firstName: 'Amy',
+        lastName: 'Taylor',
+        email: 'amy.taylor@muscle-mania.com',
+        password: 'Amy123!',
         status: 'EXPIRED',
         description: 'Expired member'
       },
@@ -484,10 +484,17 @@ async function main() {
             firstName: memberInfo.firstName,
             lastName: memberInfo.lastName,
             globalRole: 'CLIENT', // Global role for end users
+            tenantId: tenant.id, // Set tenant context for gym members
           }
         });
 
-        // Create gym member profile
+        // Create gym member profile with comprehensive realistic data
+        const emergencyContactName = generateEmergencyContactName();
+        const trainerData = Math.random() > 0.5 ? {
+          name: ['Coach Mike Santos', 'Trainer Ana Reyes', 'PT Carlos Garcia', 'Elena Rodriguez'][Math.floor(Math.random() * 4)],
+          contact: `+63 9${17 + Math.floor(Math.random() * 3)}${Math.floor(Math.random() * 900000000) + 100000000}`.substring(0, 14)
+        } : null;
+        
         const gymProfile = await prisma.gymMemberProfile.create({
           data: {
             userId: member.id,
@@ -496,43 +503,67 @@ async function main() {
             status: memberInfo.status === 'DELETED' ? 'CANCELLED' :
                    memberInfo.status === 'EXPIRING' ? 'ACTIVE' :
                    memberInfo.status,
-            emergencyContactName: generateEmergencyContactName(),
+            
+            // Emergency Contact Information
+            emergencyContactName: emergencyContactName,
             emergencyContactPhone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
             emergencyContactRelation: getRandomRelationship(),
-            joinedDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000), // Random date within last year
-            medicalConditions: Math.random() > 0.8 ? ['None'] : ['Asthma', 'Back Pain', 'Knee Issues', 'Shoulder Pain'][Math.floor(Math.random() * 4)],
-            fitnessGoals: ['Weight Loss', 'Muscle Gain', 'Fitness Maintenance', 'Strength Training', 'Endurance', 'Flexibility'][Math.floor(Math.random() * 6)],
-            preferredTrainer: Math.random() > 0.7 ? 'Any Available' : null,
-            // Profile fields
+            
+            // Health & Medical Information
+            medicalConditions: Math.random() > 0.8 ? 'None' : ['Asthma', 'Back Pain', 'Knee Issues', 'Shoulder Pain', 'Heart Condition', 'Diabetes'][Math.floor(Math.random() * 6)],
+            fitnessGoals: ['Weight Loss', 'Muscle Gain', 'Fitness Maintenance', 'Strength Training', 'Endurance', 'Flexibility', 'Toning', 'Sports Performance'][Math.floor(Math.random() * 8)],
+            
+            // Trainer Information
+            preferredTrainer: trainerData ? trainerData.name : null,
+            trainerContactNumber: trainerData ? trainerData.contact : null,
+            
+            // Personal Details
             gender: i % 2 === 0 ? 'MALE' : 'FEMALE',
             height: i % 2 === 0 ? 165 + Math.floor(Math.random() * 20) : 155 + Math.floor(Math.random() * 15), // Males: 165-185cm, Females: 155-170cm
             weight: i % 2 === 0 ? 60 + Math.floor(Math.random() * 30) : 45 + Math.floor(Math.random() * 25), // Males: 60-90kg, Females: 45-70kg
-            allergies: ['None'],
-            lastVisit: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000), // Random within last 30 days
-            dateOfBirth: new Date(1990 + i, 0, 1),
-            totalVisits: Math.max(0, 50 - i * 5 + Math.floor(Math.random() * 20)), // Ensure non-negative, add randomness
+            dateOfBirth: new Date(1985 + Math.floor(Math.random() * 25), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1), // Age 20-40
+            
+            // Fitness & Activity Data
+            allergies: Math.random() > 0.9 ? ['Nuts', 'Shellfish', 'Dairy', 'Pollen'][Math.floor(Math.random() * 4)] : null,
+            lastVisit: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000), // Random within last week
+            totalVisits: Math.max(10, Math.floor(Math.random() * 200) + (i * 10)), // 10-200+ visits based on index
             fitnessLevel: ['Beginner', 'Intermediate', 'Advanced'][Math.floor(Math.random() * 3)],
-            notifications: {
-              email: Math.random() > 0.2, // 80% have email notifications
-              sms: Math.random() > 0.7, // 30% have SMS notifications
-              push: Math.random() > 0.3 // 70% have push notifications
-            },
-            favoriteEquipment: ['Weights', 'Cardio Machines', 'Yoga Mats', 'Treadmill', 'Dumbbells', 'Resistance Bands'][Math.floor(Math.random() * 6)],
-            averageVisitsPerWeek: Math.floor(Math.random() * 5) + 1, // 1-5 visits per week
-            preferredWorkoutTime: ['Morning', 'Afternoon', 'Evening', 'Night'][Math.floor(Math.random() * 4)],
-            // Past memberships history
+            averageVisitsPerWeek: Math.floor(Math.random() * 6) + 1, // 1-6 visits per week
+            
+            // Preferences
+            favoriteEquipment: ['Weights', 'Cardio Machines', 'Yoga Mats', 'Treadmill', 'Dumbbells', 'Resistance Bands', 'Kettlebells', 'Pull-up Bar'][Math.floor(Math.random() * 8)],
+            preferredWorkoutTime: ['Morning', 'Afternoon', 'Evening'][Math.floor(Math.random() * 3)],
+            
+            // Membership & Activity History
+            joinedDate: new Date(Date.now() - Math.random() * 2 * 365 * 24 * 60 * 60 * 1000), // Joined within last 2 years
             membershipHistory: [
               {
                 planName: 'Basic Monthly',
                 startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
                 endDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
                 status: 'COMPLETED'
-              }
+              },
+              ...(Math.random() > 0.5 ? [{
+                planName: 'Premium Monthly',
+                startDate: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
+                endDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                status: 'COMPLETED'
+              }] : [])
             ],
-            // Additional dynamic data
+            
+            // Notification Preferences
+            notifications: {
+              email: Math.random() > 0.1, // 90% have email notifications
+              sms: Math.random() > 0.6, // 40% have SMS notifications
+              push: Math.random() > 0.2 // 80% have push notifications
+            },
+            
+            // Additional Metadata
             profileMetadata: {
-              referralSource: ['Friend', 'Social Media', 'Website', 'Gym Advertisement', 'Word of Mouth'][Math.floor(Math.random() * 5)],
-              specialNotes: ['Regular member', 'VIP member', 'New member', 'Returning member', 'Fitness enthusiast'][Math.floor(Math.random() * 5)]
+              referralSource: ['Friend', 'Social Media', 'Website', 'Gym Advertisement', 'Word of Mouth', 'Corporate Wellness', 'Doctor Referral'][Math.floor(Math.random() * 7)],
+              specialNotes: Math.random() > 0.7 ? ['VIP member', 'Corporate member', 'Student discount', 'Senior discount', 'Family package'][Math.floor(Math.random() * 5)] : 'Regular member',
+              updatedAt: new Date().toISOString(),
+              updatedBy: 'system-seed'
             }
           }
         });
