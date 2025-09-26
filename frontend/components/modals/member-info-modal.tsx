@@ -111,6 +111,10 @@ export function MemberInfoModal({
 
   useEffect(() => {
     if (member && isOpen) {
+      console.log('🔍 Member Info Modal - Full member data:', member)
+      console.log('🔍 Member Info Modal - Gym subscriptions:', member.gymSubscriptions)
+      console.log('🔍 Member Info Modal - Gym profile:', member.gymMemberProfile)
+      
       const gymProfile = member.gymMemberProfile
 
       setFormData({
