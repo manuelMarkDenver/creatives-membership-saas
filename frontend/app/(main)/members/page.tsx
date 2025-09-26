@@ -479,8 +479,8 @@ export default function MembersPage() {
               <div className="space-y-2">
                 <Label>Current Plan</Label>
                 <div className="p-3 bg-gray-50 rounded-md">
-                  <p className="font-medium">{selectedMemberForAction.gymSubscriptions[0].membershipPlan?.name}</p>
-                  <p className="text-sm text-muted-foreground">₱{selectedMemberForAction.gymSubscriptions[0].price}</p>
+                  <p className="font-medium text-gray-900">{selectedMemberForAction.gymSubscriptions[0].membershipPlan?.name}</p>
+                  <p className="text-sm text-gray-700">₱{selectedMemberForAction.gymSubscriptions[0].price}</p>
                   <p className="text-xs text-red-600">Expired: {new Date(selectedMemberForAction.gymSubscriptions[0].endDate).toLocaleDateString()}</p>
                 </div>
               </div>
@@ -561,8 +561,8 @@ export default function MembersPage() {
               <div className="space-y-2">
                 <Label>Current Plan</Label>
                 <div className="p-3 bg-gray-50 rounded-md">
-                  <p className="font-medium">{selectedMemberForAction.gymSubscriptions[0].membershipPlan?.name}</p>
-                  <p className="text-sm text-muted-foreground">₱{selectedMemberForAction.gymSubscriptions[0].price}</p>
+                  <p className="font-medium text-gray-900">{selectedMemberForAction.gymSubscriptions[0].membershipPlan?.name}</p>
+                  <p className="text-sm text-gray-700">₱{selectedMemberForAction.gymSubscriptions[0].price}</p>
                   <p className="text-xs text-green-600">Valid until: {new Date(selectedMemberForAction.gymSubscriptions[0].endDate).toLocaleDateString()}</p>
                 </div>
               </div>
