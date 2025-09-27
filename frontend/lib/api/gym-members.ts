@@ -53,7 +53,26 @@ export interface MemberActionResponse {
   member?: any
 }
 
+export interface CreateGymMemberDto {
+  firstName: string
+  lastName: string
+  email?: string
+  phoneNumber?: string
+  dateOfBirth?: string
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+  emergencyContactRelation?: string
+  membershipPlanId?: string
+  paymentMethod?: string
+}
+
 export const membersApi = {
+  // Create gym member - creates both User and GymMemberProfile
+  async createGymMember(data: CreateGymMemberDto): Promise<any> {
+    const response = await apiClient.post('/gym/members', data)
+    return response.data
+  },
+
   // Update member - use gym-specific endpoint for gym members
   async updateMember(memberId: string, data: any): Promise<MemberActionResponse> {
     const response = await apiClient.patch(`/gym/users/${memberId}`, data)

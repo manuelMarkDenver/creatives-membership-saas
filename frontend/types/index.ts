@@ -320,14 +320,15 @@ export interface CreateTenantDto {
 }
 
 export interface CreateUserDto {
-  tenantId?: string
+  tenantId?: string // Used for header, not sent in body
   firstName: string
   lastName: string
   email?: string
   phoneNumber?: string
-  role: Role
+  globalRole?: Role // Changed from role to globalRole to match backend
   photoUrl?: string
   notes?: string
+  businessData?: any // Added to match backend DTO
 }
 
 export interface CreateBranchDto {

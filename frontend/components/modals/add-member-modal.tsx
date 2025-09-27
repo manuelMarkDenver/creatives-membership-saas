@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useMembershipPlans } from '@/lib/hooks/use-membership-plans'
-import { useProfile, useCreateUser } from '@/lib/hooks/use-gym-users'
+import { useProfile } from '@/lib/hooks/use-gym-users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -39,10 +39,11 @@ import {
 import { toast } from 'sonner'
 import { Role } from '@/types'
 import { formatPHP } from '@/lib/utils/currency'
-import { usersApi } from '@/lib/api'
+import { membersApi } from '@/lib/api/gym-members'
 import { gymSubscriptionsApi } from '@/lib/api/gym-subscriptions'
 import { gymMemberPhotosApi } from '@/lib/api/gym-member-photos'
 import PhotoUpload from '@/components/members/photo-upload'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 interface AddMemberModalProps {
   isOpen: boolean
@@ -56,7 +57,18 @@ export function AddMemberModal({
   onMemberAdded
 }: AddMemberModalProps) {
   const { data: profile } = useProfile()
-  const createUserMutation = useCreateUser()
+  const queryClient = useQueryClient()
+  
+  // Create gym member mutation (creates both User + GymMemberProfile)
+  const createGymMemberMutation = useMutation({
+    mutationFn: (data: any) => membersApi.createGymMember(data),
+    onSuccess: () => {
+      // Invalidate relevant queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['gym-members'] })
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    }
+  })
+  
   const [step, setStep] = useState<'basic' | 'membership' | 'summary'>('basic')
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
@@ -231,80 +243,40 @@ export function AddMemberModal({
       return
     }
 
-    // Prepare profile data for the new gym member
-    const profileData = {
-      emergencyContactName: formData.emergencyContactName || null,
-      emergencyContactPhone: formData.emergencyContactPhone || null,
-      emergencyContactRelation: formData.emergencyContactRelationship || null,
-      medicalConditions: null,
-      fitnessGoals: formData.fitnessGoals || null,
-      preferredTrainer: null,
-      // New column structure
-      dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth) : null,
-      gender: formData.gender || null,
-      height: formData.height ? parseInt(formData.height) : null,
-      weight: formData.weight ? parseInt(formData.weight) : null,
-      fitnessLevel: formData.fitnessLevel || null,
-      preferredWorkoutTime: formData.preferredWorkoutTime || null,
-      favoriteEquipment: formData.favoriteEquipment || null,
-      allergies: null,
-      notifications: {
-        email: true,
-        sms: true,
-        push: true
-      },
-      totalVisits: 0,
-      averageVisitsPerWeek: 0,
-      lastVisit: null,
-      // Keep membershipHistory for past memberships
-      membershipHistory: [],
-      profileMetadata: {
-        joinedDate: new Date().toISOString(),
-        referralSource: 'Direct',
-        specialNotes: ''
-      }
-    }
-
-    // Create the member using the mutation hook
-    createUserMutation.mutate({
-      email: formData.email.trim(),
+    // Prepare gym member data that matches the backend CreateGymMemberDto
+    const gymMemberData = {
       firstName: formData.firstName.trim(),
       lastName: formData.lastName.trim(),
-      role: 'CLIENT' as Role,
-      tenantId: profile?.tenantId!,
-    }, {
-      onSuccess: async (createdUser) => {
+      email: formData.email.trim() || undefined,
+      phoneNumber: formData.phoneNumber || undefined,
+      dateOfBirth: formData.dateOfBirth || undefined,
+      emergencyContactName: formData.emergencyContactName || undefined,
+      emergencyContactPhone: formData.emergencyContactPhone || undefined,
+      emergencyContactRelation: formData.emergencyContactRelationship || undefined,
+      membershipPlanId: formData.selectedPlanId,
+      paymentMethod: formData.paymentMethod
+    }
+
+    // Create the gym member (creates both User + GymMemberProfile + Subscription)
+    createGymMemberMutation.mutate(gymMemberData, {
+      onSuccess: async (createdGymMember) => {
         try {
-          // Create gym member profile
-          if (profileData.emergencyContactName || profileData.emergencyContactPhone || profileData.fitnessGoals) {
-            // Note: This would need a new API endpoint to create gym member profiles
-            // For now, we'll skip this step as the profile can be created later through the member info modal
-            console.log('Profile data prepared:', profileData)
-          }
-
-          // Create subscription for the new member
-          const subscriptionData = {
-            membershipPlanId: formData.selectedPlanId,
-            paymentMethod: formData.paymentMethod
-          }
-
-          await gymSubscriptionsApi.renewMembership(createdUser.id, subscriptionData)
+          console.log('✅ Gym member created successfully:', createdGymMember)
           
           // Upload photo if provided
           if (formData.photoFile) {
             try {
+              const userId = createdGymMember.userId || createdGymMember.user?.id
               console.log('🔍 Photo upload debug:', {
-                memberId: createdUser.id,
+                userId: userId,
                 memberName: `${formData.firstName} ${formData.lastName}`,
                 memberEmail: formData.email
               })
               
-              const result = await gymMemberPhotosApi.uploadPhoto(createdUser.id, formData.photoFile)
+              const result = await gymMemberPhotosApi.uploadPhoto(userId, formData.photoFile)
               
               if (result.success) {
                 console.log('✅ Photo uploaded successfully:', result.photoUrl)
-                // Photo uploaded successfully, no need for additional actions here
-                // The photo URL is already saved in the database by the backend
               } else {
                 throw new Error(result.message || 'Upload failed')
               }
@@ -314,20 +286,20 @@ export function AddMemberModal({
             }
           }
           
-          toast.success(`Member ${formData.firstName} ${formData.lastName} added successfully with active subscription!`)
+          toast.success(`Member ${formData.firstName} ${formData.lastName} added successfully!`)
           onMemberAdded?.()
           handleClose()
-        } catch (subscriptionError) {
-          console.error('Error creating subscription:', subscriptionError)
-          // User was created but subscription failed - still show success but with warning
+        } catch (postCreationError) {
+          console.error('Error in post-creation steps:', postCreationError)
+          // Member was created successfully, just post-creation steps failed
           toast.success(`Member ${formData.firstName} ${formData.lastName} added successfully!`)
-          toast.error('Note: Subscription setup failed. Please create subscription manually.')
+          toast.error('Note: Some additional setup failed, but member was created.')
           onMemberAdded?.()
           handleClose()
         }
       },
       onError: (error: any) => {
-        console.error('Error creating member:', error)
+        console.error('Error creating gym member:', error)
         toast.error('Failed to add member')
       }
     })
@@ -681,24 +653,24 @@ export function AddMemberModal({
 
               {/* Plan Summary */}
               {selectedPlan && formData.membershipStartDate && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-900 mb-3">Membership Summary</h4>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-3">Membership Summary</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-blue-700">Plan:</span>
-                      <span className="font-medium">{selectedPlan.name}</span>
+                      <span className="text-blue-700 dark:text-blue-300">Plan:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{selectedPlan.name}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-blue-700">Duration:</span>
-                      <span>{selectedPlan.duration} days</span>
+                      <span className="text-blue-700 dark:text-blue-300">Duration:</span>
+                      <span className="text-gray-900 dark:text-gray-100">{selectedPlan.duration} days</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-blue-700">Start Date:</span>
-                      <span>{new Date(formData.membershipStartDate).toLocaleDateString()}</span>
+                      <span className="text-blue-700 dark:text-blue-300">Start Date:</span>
+                      <span className="text-gray-900 dark:text-gray-100">{new Date(formData.membershipStartDate).toLocaleDateString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-blue-700">End Date:</span>
-                      <span>{calculateEndDate() ? new Date(calculateEndDate()).toLocaleDateString() : 'N/A'}</span>
+                      <span className="text-blue-700 dark:text-blue-300">End Date:</span>
+                      <span className="text-gray-900 dark:text-gray-100">{calculateEndDate() ? new Date(calculateEndDate()).toLocaleDateString() : 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -733,8 +705,8 @@ export function AddMemberModal({
           {step === 'summary' && (
             <div className="space-y-6">
               {/* Member Summary */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-4">New Member Summary</h4>
+              <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4">New Member Summary</h4>
                 
                 <div className="flex items-start gap-4">
                   {formData.photoPreviewUrl && (
@@ -746,7 +718,7 @@ export function AddMemberModal({
                   )}
                   <div className="flex-1 space-y-3">
                     <div>
-                      <h5 className="font-medium">{formData.firstName} {formData.lastName}</h5>
+                      <h5 className="font-medium text-gray-900 dark:text-gray-100">{formData.firstName} {formData.lastName}</h5>
                       <p className="text-sm text-muted-foreground">{formData.email}</p>
                       {formData.phoneNumber && (
                         <p className="text-sm text-muted-foreground">{formData.phoneNumber}</p>
@@ -754,39 +726,39 @@ export function AddMemberModal({
                     </div>
                     
                     {selectedPlan && (
-                      <div className="bg-white border rounded p-3">
+                      <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <CreditCard className="h-4 w-4 text-blue-600" />
-                          <span className="font-medium text-blue-900">Membership Plan</span>
+                          <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          <span className="font-medium text-blue-900 dark:text-blue-100">Membership Plan</span>
                         </div>
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between">
-                            <span>Plan:</span>
-                            <span className="font-medium">{selectedPlan.name}</span>
+                            <span className="text-gray-700 dark:text-gray-300">Plan:</span>
+                            <span className="font-medium text-gray-900 dark:text-gray-100">{selectedPlan.name}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Period:</span>
-                            <span>
+                            <span className="text-gray-700 dark:text-gray-300">Period:</span>
+                            <span className="text-gray-900 dark:text-gray-100">
                               {new Date(formData.membershipStartDate).toLocaleDateString()} - {' '}
                               {calculateEndDate() ? new Date(calculateEndDate()).toLocaleDateString() : 'N/A'}
                             </span>
                           </div>
                           <div className="flex justify-between font-medium">
-                            <span>Amount:</span>
-                            <span className="text-green-600">{formatPHP(parseFloat(formData.paymentAmount))}</span>
+                            <span className="text-gray-700 dark:text-gray-300">Amount:</span>
+                            <span className="text-green-600 dark:text-green-400">{formatPHP(parseFloat(formData.paymentAmount))}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Payment:</span>
-                            <span>{formData.paymentMethod}</span>
+                            <span className="text-gray-700 dark:text-gray-300">Payment:</span>
+                            <span className="text-gray-900 dark:text-gray-100">{formData.paymentMethod}</span>
                           </div>
                         </div>
                       </div>
                     )}
                     
                     {(formData.sendWelcomeEmail || formData.createAccountForMember) && (
-                      <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                        <h6 className="font-medium text-blue-900 mb-2">Additional Actions</h6>
-                        <div className="space-y-1 text-sm text-blue-700">
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3">
+                        <h6 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Additional Actions</h6>
+                        <div className="space-y-1 text-sm text-blue-700 dark:text-blue-300">
                           {formData.sendWelcomeEmail && (
                             <div className="flex items-center gap-2">
                               <Check className="h-3 w-3" />
@@ -819,7 +791,7 @@ export function AddMemberModal({
               )}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleClose} disabled={createUserMutation.isPending}>
+              <Button variant="outline" onClick={handleClose} disabled={createGymMemberMutation.isPending}>
                 Cancel
               </Button>
               {step !== 'summary' ? (
@@ -832,9 +804,9 @@ export function AddMemberModal({
               ) : (
                 <Button 
                   onClick={handleSubmit}
-                  disabled={createUserMutation.isPending}
+                  disabled={createGymMemberMutation.isPending}
                 >
-                  {createUserMutation.isPending ? 'Adding Member...' : 'Add Member'}
+                  {createGymMemberMutation.isPending ? 'Adding Member...' : 'Add Member'}
                 </Button>
               )}
             </div>
