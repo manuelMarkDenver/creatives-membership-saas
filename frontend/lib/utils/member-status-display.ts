@@ -70,22 +70,30 @@ export const getMemberStatusDisplay = (status: string): StatusDisplay => {
       
       
     case 'SUSPENDED':
-    case 'INACTIVE':
       return {
-        label: 'Account Inactive',
+        label: 'Account Suspended',
         color: 'gray',
         description: 'Account temporarily disabled',
         icon: '💤',
         buttonVariant: 'secondary'
       }
+      
+    case 'NO_SUBSCRIPTION':
+      return {
+        label: 'No Membership',
+        color: 'gray',
+        description: 'No active subscription found',
+        icon: '❓',
+        buttonVariant: 'secondary'
+      }
     
     default:
-      // For any unknown status, treat as inactive
+      // For any unknown status, treat as no subscription
       return {
-        label: 'Inactive',
+        label: 'No Membership',
         color: 'gray',
         description: 'Account needs attention',
-        icon: '💤',
+        icon: '❓',
         buttonVariant: 'secondary'
       }
   }
@@ -208,7 +216,7 @@ export const getAvailableActions = (
       })
       break
 
-    case 'INACTIVE':
+    case 'NO_SUBSCRIPTION':
       actions.push({
         label: 'Start Membership',
         action: 'renew',

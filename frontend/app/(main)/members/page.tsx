@@ -365,7 +365,7 @@ export default function MembersPage() {
                 <span>Showing:</span>
                 {searchTerm && (
                 <Badge variant="secondary" className="text-xs">
-                  Search: &quot;{searchTerm}&quot;
+                  Search: "{searchTerm}"
                 </Badge>
                 )}
                 {memberStatusFilter !== 'all' && (

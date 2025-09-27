@@ -82,7 +82,7 @@ export default function MembershipPlansPage() {
       <div className="text-center py-16">
         <div className="text-6xl mb-4">🚫</div>
         <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-        <p className="text-muted-foreground">You don&apos;t have permission to manage membership plans.</p>
+        <p className="text-muted-foreground">You don't have permission to manage membership plans.</p>
       </div>
     )
   }

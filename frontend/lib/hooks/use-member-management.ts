@@ -50,10 +50,9 @@ export interface MemberWithStatus {
   lastName: string
   email: string
   phoneNumber?: string
-  isActive: boolean
   deletedAt?: string
   // businessData removed - using separate profile tables
-  currentStatus: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'DELETED' | 'INACTIVE'
+  currentStatus: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'DELETED' | 'NO_SUBSCRIPTION'
   subscription?: {
     id: string
     status: string

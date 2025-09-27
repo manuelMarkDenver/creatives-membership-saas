@@ -83,7 +83,6 @@ export function useProfile() {
             role: 'OWNER' as Role,
             globalRole: 'OWNER',
             tenantId: 'cc1d8a60-6215-4e9c-a921-365e5084526f',
-            isActive: true,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           } as User;
@@ -357,7 +356,6 @@ export function useActivateUser() {
   return useMutation({
     mutationFn: (id: string) => {
       const updateData = {
-        isActive: true,
         deletedAt: undefined,
         deletedBy: undefined
       }
@@ -384,7 +382,9 @@ export function useDeactivateUser() {
   return useMutation({
     mutationFn: (id: string) => {
       const updateData = {
-        isActive: false
+        // Note: User deactivation is now handled by soft delete
+        deletedAt: new Date().toISOString(),
+        deletedBy: 'system'
       }
       return usersApi.update(id, updateData)
     },
@@ -409,7 +409,6 @@ export function useRestoreUser() {
   return useMutation({
     mutationFn: (id: string) => {
       const updateData = {
-        isActive: true,
         deletedAt: undefined,
         deletedBy: undefined
       }

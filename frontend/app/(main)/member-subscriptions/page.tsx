@@ -77,7 +77,7 @@ export default function MemberSubscriptionsPage() {
         <CreditCard className="mx-auto h-16 w-16 text-gray-400" />
         <h3 className="mt-2 text-lg font-medium text-gray-900">Access Denied</h3>
         <p className="mt-1 text-sm text-gray-500">
-          You don&apos;t have permission to view membership plans.
+          You don't have permission to view membership plans.
         </p>
       </div>
     )
