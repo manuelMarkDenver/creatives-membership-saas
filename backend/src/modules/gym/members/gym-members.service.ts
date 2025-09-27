@@ -35,7 +35,21 @@ export class GymMembersService {
         throw new BadRequestException('Last name is required');
       }
 
-      // Create user and gym member profile in a transaction
+      // Get the first active branch for this tenant (since each tenant typically has one main branch)
+      const branch = await this.prisma.branch.findFirst({
+        where: {
+          tenantId: tenantId,
+          isActive: true,
+        },
+      });
+
+      if (!branch) {
+        throw new BadRequestException(
+          'No active branch found for this tenant. Please create a branch first.',
+        );
+      }
+
+      // Create user, gym member profile, branch assignment, and optionally subscription in a transaction
       const result = await this.prisma.$transaction(async (tx) => {
         // 1. Create the user
         const user = await tx.user.create({
@@ -44,6 +58,8 @@ export class GymMembersService {
             lastName: data.lastName.trim(),
             email: data.email?.trim().toLowerCase() || null,
             phoneNumber: data.phoneNumber?.trim() || null,
+            globalRole: 'CLIENT',
+            tenantId: tenantId,
           },
         });
 
@@ -60,6 +76,75 @@ export class GymMembersService {
             dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
             joinedDate: new Date(),
           },
+        });
+
+        // 3. Create branch assignment for the gym member
+        await tx.gymUserBranch.create({
+          data: {
+            userId: user.id,
+            branchId: branch.id,
+            tenantId: tenantId,
+            accessLevel: 'READ_ONLY', // Standard gym member access
+          },
+        });
+
+        // 4. Create subscription if membershipPlanId is provided
+        let subscription: any = null;
+        if (data.membershipPlanId) {
+          const membershipPlan = await tx.membershipPlan.findUnique({
+            where: { id: data.membershipPlanId },
+          });
+
+          if (!membershipPlan) {
+            throw new BadRequestException(
+              `Membership plan with ID ${data.membershipPlanId} not found`,
+            );
+          }
+
+          const startDate = new Date();
+          const endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + membershipPlan.duration);
+
+          subscription = await tx.gymMemberSubscription.create({
+            data: {
+              tenantId: tenantId,
+              memberId: user.id,
+              membershipPlanId: data.membershipPlanId,
+              branchId: branch.id,
+              status: 'ACTIVE',
+              startDate: startDate,
+              endDate: endDate,
+              price: membershipPlan.price,
+              currency: 'PHP',
+              autoRenew: false,
+            },
+          });
+
+          // 5. Create payment transaction if subscription was created
+          if (subscription && data.paymentMethod) {
+            await tx.customerTransaction.create({
+              data: {
+                tenantId: tenantId,
+                customerId: user.id,
+                businessType: 'gym',
+                transactionCategory: 'membership',
+                amount: membershipPlan.price,
+                currency: 'PHP',
+                netAmount: membershipPlan.price,
+                paymentMethod: data.paymentMethod.toLowerCase(),
+                transactionType: 'PAYMENT',
+                status: 'COMPLETED',
+                description: `Initial payment for ${membershipPlan.name} membership`,
+                processedBy: user.id, // Self-processed for new member signup
+                createdAt: startDate,
+              },
+            });
+          }
+        }
+
+        // Return the gym profile with related data
+        const fullGymProfile = await tx.gymMemberProfile.findUnique({
+          where: { id: gymProfile.id },
           include: {
             user: true,
             tenant: {
@@ -72,11 +157,18 @@ export class GymMembersService {
           },
         });
 
-        return gymProfile;
+        return {
+          ...fullGymProfile,
+          subscription,
+          branch: {
+            id: branch.id,
+            name: branch.name,
+          },
+        };
       });
 
       this.logger.log(
-        `Created gym member: ${result.user.firstName} ${result.user.lastName} (${result.userId})`,
+        `Created gym member: ${result.user?.firstName || 'Unknown'} ${result.user?.lastName || 'User'} (${result.userId}) with subscription: ${!!result.subscription}`,
       );
       return result;
     } catch (error) {

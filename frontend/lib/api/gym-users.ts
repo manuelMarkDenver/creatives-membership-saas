@@ -2,14 +2,15 @@ import { apiClient } from './client'
 import { User, UserBranch, Role, AccessLevel } from '@/types'
 
 export interface CreateUserDto {
-  email: string
   firstName: string
   lastName: string
-  password?: string
-  role: Role
-  tenantId: string
-  branchIds?: string[]
-  accessLevel?: AccessLevel
+  email?: string
+  phoneNumber?: string
+  globalRole?: Role
+  photoUrl?: string
+  notes?: string
+  businessData?: any
+  tenantId?: string // Used for header, not sent in body
 }
 
 export interface UpdateUserDto {
@@ -159,9 +160,12 @@ export const usersApi = {
 
   // Create user
   create: async (data: CreateUserDto): Promise<User> => {
-    const response = await apiClient.post('/gym/users', data, {
+    // Extract tenantId for header and remove it from request body
+    const { tenantId, ...requestBody } = data
+    
+    const response = await apiClient.post('/gym/users', requestBody, {
       headers: {
-        'x-tenant-id': data.tenantId
+        'x-tenant-id': tenantId
       }
     })
     return response.data
