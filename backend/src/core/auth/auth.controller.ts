@@ -61,8 +61,8 @@ export class AuthController {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      // Check if user is active
-      if (!user.isActive) {
+      // Check if user is deleted
+      if (user.deletedAt) {
         throw new UnauthorizedException('Account is deactivated');
       }
 

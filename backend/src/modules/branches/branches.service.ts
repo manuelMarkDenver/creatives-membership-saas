@@ -97,7 +97,7 @@ export class BranchesService {
                 select: {
                   id: true,
                   role: true,
-                  isActive: true,
+                  deletedAt: true,
                 },
               },
             },
@@ -112,9 +112,9 @@ export class BranchesService {
           const members = branch.gymUserBranches.filter(
             (ub) => ub.user.role === 'CLIENT',
           );
-          const activeMembers = members.filter((ub) => ub.user.isActive).length;
-          const inactiveMembers = members.filter(
-            (ub) => !ub.user.isActive,
+          const activeMembers = members.filter((ub) => !ub.user.deletedAt).length;
+          const deletedMembers = members.filter(
+            (ub) => ub.user.deletedAt,
           ).length;
           const staff = branch.gymUserBranches.filter(
             (ub) => ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
@@ -125,7 +125,7 @@ export class BranchesService {
             _count: {
               gymUserBranches: members.length,
               activeMembers,
-              inactiveMembers,
+              deletedMembers,
               staff,
             },
             gymUserBranches: undefined, // Remove detailed gymUserBranches from response
@@ -156,7 +156,7 @@ export class BranchesService {
                 select: {
                   id: true,
                   role: true,
-                  isActive: true,
+                  deletedAt: true,
                 },
               },
             },
@@ -171,9 +171,9 @@ export class BranchesService {
           const members = branch.gymUserBranches.filter(
             (ub) => ub.user.role === 'CLIENT',
           );
-          const activeMembers = members.filter((ub) => ub.user.isActive).length;
-          const inactiveMembers = members.filter(
-            (ub) => !ub.user.isActive,
+          const activeMembers = members.filter((ub) => !ub.user.deletedAt).length;
+          const deletedMembers = members.filter(
+            (ub) => ub.user.deletedAt,
           ).length;
           const staff = branch.gymUserBranches.filter(
             (ub) => ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
@@ -184,7 +184,7 @@ export class BranchesService {
             _count: {
               gymUserBranches: members.length,
               activeMembers,
-              inactiveMembers,
+              deletedMembers,
               staff,
             },
             gymUserBranches: undefined, // Remove detailed gymUserBranches from response

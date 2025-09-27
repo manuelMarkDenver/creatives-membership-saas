@@ -50,7 +50,6 @@ export class UserBranchesService {
               lastName: true,
               email: true,
               role: true,
-              isActive: true,
             },
           },
           branch: {
@@ -182,7 +181,6 @@ export class UserBranchesService {
               email: true,
               phoneNumber: true,
               role: true,
-              isActive: true,
               createdAt: true,
             },
           },

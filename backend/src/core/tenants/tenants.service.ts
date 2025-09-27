@@ -91,7 +91,6 @@ export class TenantsService {
             email: data.ownerEmail,
             phoneNumber: data.ownerPhoneNumber,
             role: Role.OWNER,
-            isActive: true,
           },
         });
 

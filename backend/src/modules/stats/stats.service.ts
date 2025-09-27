@@ -100,7 +100,6 @@ export class StatsService {
         id: branch.id,
         name: branch.name,
         address: branch.address,
-        isActive: branch.isActive,
         createdAt: branch.createdAt,
         tenant: branch.tenant,
         memberCount: branch._count.gymUserBranches,
@@ -157,7 +156,7 @@ export class StatsService {
       branches: branchStats,
       summary: {
         totalBranches: branchStats.length,
-        activeBranches: branchStats.filter((b) => b.isActive).length,
+        activeBranches: branchStats.length, // All branches are active (soft delete is used for removal)
         totalMembers: branchStats.reduce((sum, b) => sum + b.memberCount, 0),
         subscriptionBreakdown: subscriptionStatusBreakdown,
         byCategory,
@@ -201,7 +200,7 @@ export class StatsService {
       name: `${user.firstName} ${user.lastName}`,
       email: user.email,
       role: user.role || 'CLIENT',
-      isActive: user.isActive,
+      deletedAt: user.deletedAt,
       createdAt: user.createdAt,
       tenant: user.tenant,
       branches: user.gymUserBranches.map((ub) => ub.branch),
@@ -239,8 +238,8 @@ export class StatsService {
     // Get activity stats
     const activityStats = {
       totalUsers: memberStats.length,
-      activeUsers: memberStats.filter((u) => u.isActive).length,
-      inactiveUsers: memberStats.filter((u) => !u.isActive).length,
+      activeUsers: memberStats.filter((u) => !u.deletedAt).length,
+      deletedUsers: memberStats.filter((u) => u.deletedAt).length,
     };
 
     return {
@@ -250,12 +249,12 @@ export class StatsService {
         byRole: Object.entries(byRole).map(([role, users]) => ({
           role,
           count: users.length,
-          active: users.filter((u) => u.isActive).length,
+          active: users.filter((u) => !u.deletedAt).length,
         })),
         byCategory: Object.entries(byCategory).map(([category, users]) => ({
           category,
           count: users.length,
-          active: users.filter((u) => u.isActive).length,
+          active: users.filter((u) => !u.deletedAt).length,
         })),
       },
     };
@@ -300,7 +299,7 @@ export class StatsService {
       name: `${user.firstName} ${user.lastName}`,
       email: user.email,
       role: user.role || 'CLIENT',
-      isActive: user.isActive,
+      deletedAt: user.deletedAt,
       createdAt: user.createdAt,
       tenant: user.tenant,
       branches: user.gymUserBranches.map((ub) => ub.branch),
@@ -338,8 +337,8 @@ export class StatsService {
     // Get activity stats
     const activityStats = {
       totalStaff: staffStats.length,
-      activeStaff: staffStats.filter((u) => u.isActive).length,
-      inactiveStaff: staffStats.filter((u) => !u.isActive).length,
+      activeStaff: staffStats.filter((u) => !u.deletedAt).length,
+      deletedStaff: staffStats.filter((u) => u.deletedAt).length,
     };
 
     return {
@@ -349,12 +348,12 @@ export class StatsService {
         byRole: Object.entries(byRole).map(([role, users]) => ({
           role,
           count: users.length,
-          active: users.filter((u) => u.isActive).length,
+          active: users.filter((u) => !u.deletedAt).length,
         })),
         byCategory: Object.entries(byCategory).map(([category, users]) => ({
           category,
           count: users.length,
-          active: users.filter((u) => u.isActive).length,
+          active: users.filter((u) => !u.deletedAt).length,
         })),
       },
     };
@@ -513,7 +512,6 @@ export class StatsService {
       id: branch.id,
       name: branch.name,
       address: branch.address,
-      isActive: branch.isActive,
       memberCount: branch._count.gymUserBranches,
       subscription: branch.subscriptions[0] || null,
     }));

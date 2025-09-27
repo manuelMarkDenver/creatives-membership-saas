@@ -134,7 +134,6 @@ model User {
   role                   Role?   // Platform-level roles (SUPER_ADMIN, OWNER, MANAGER, STAFF)
   globalRole             Role?   // Platform-level roles (SUPER_ADMIN, OWNER, MANAGER, STAFF) - keeping for compatibility
   tenantId               String? // Current tenant context
-  isActive               Boolean                 @default(true)
   businessData           Json?
   deletedAt              DateTime?
   deletedBy              String?

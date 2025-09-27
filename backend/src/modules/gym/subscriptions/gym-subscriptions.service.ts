@@ -77,39 +77,43 @@ export class GymSubscriptionsService {
     processedBy: string,
     paymentMethod: string = 'cash',
   ) {
-    // Check for existing renewal on the same day to prevent duplicates
-    const today = new Date();
-    const startOfDay = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-    );
-    const endOfDay = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-      23,
-      59,
-      59,
-      999,
-    );
-
-    const existingTodayRenewal =
-      await this.prisma.gymMemberSubscription.findFirst({
-        where: {
-          memberId: memberId,
-          tenantId,
-          createdAt: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
+    // Check for duplicate active subscriptions to prevent conflicts
+    // Allow renewals for expired subscriptions or short-term memberships
+    const existingActiveSubscription = await this.prisma.gymMemberSubscription.findFirst({
+      where: {
+        memberId: memberId,
+        tenantId,
+        status: GymMemberSubscriptionStatus.ACTIVE,
+        endDate: {
+          gt: new Date(), // Still valid in the future
         },
-      });
+      },
+      include: {
+        membershipPlan: true,
+      },
+    });
 
-    if (existingTodayRenewal) {
-      throw new BadRequestException(
-        'A membership renewal has already been processed for this member today. Please wait until tomorrow to process another renewal.',
-      );
+    // Only prevent renewal if there's an active subscription with significant time remaining
+    // Allow renewal for day passes or subscriptions ending within 24 hours
+    if (existingActiveSubscription) {
+      const now = new Date();
+      const timeRemaining = existingActiveSubscription.endDate.getTime() - now.getTime();
+      const hoursRemaining = timeRemaining / (1000 * 60 * 60);
+      
+      // Allow renewal if:
+      // 1. Less than 24 hours remaining on current subscription
+      // 2. Current plan is a day pass (duration <= 1 day)
+      // 3. It's the same plan (renewal/extension)
+      const isDayPass = existingActiveSubscription.membershipPlan.duration <= 1;
+      const isSamePlan = existingActiveSubscription.membershipPlanId === membershipPlanId;
+      const isExpiringSoon = hoursRemaining <= 24;
+      
+      if (!isDayPass && !isExpiringSoon && !isSamePlan) {
+        const remainingDays = Math.ceil(hoursRemaining / 24);
+        throw new BadRequestException(
+          `Member still has an active subscription with ${remainingDays} day(s) remaining. Cannot create overlapping subscriptions.`,
+        );
+      }
     }
 
     // Get the membership plan
@@ -453,7 +457,6 @@ export class GymSubscriptionsService {
         },
         member: {
           role: 'CLIENT',
-          isActive: true,
           deletedAt: null,
         },
       },
@@ -489,7 +492,6 @@ export class GymSubscriptionsService {
           },
           member: {
             role: 'CLIENT',
-            isActive: true,
             deletedAt: null,
           },
         },
@@ -507,7 +509,7 @@ export class GymSubscriptionsService {
           membershipPlan: {
             select: {
               id: true,
-
+              name: true,
               type: true,
               price: true,
             },
@@ -515,7 +517,7 @@ export class GymSubscriptionsService {
           tenant: {
             select: {
               id: true,
-
+              name: true,
               category: true,
             },
           },
@@ -536,7 +538,6 @@ export class GymSubscriptionsService {
           },
           member: {
             role: 'CLIENT',
-            isActive: true,
             deletedAt: null,
           },
         },

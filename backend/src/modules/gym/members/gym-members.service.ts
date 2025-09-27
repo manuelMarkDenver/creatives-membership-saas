@@ -128,8 +128,8 @@ export class GymMembersService {
     // Check subscription status
     const activeSubscription = member.gymMemberSubscriptions?.[0];
     if (!activeSubscription) {
-      // No subscription - determine if inactive or cancelled based on isActive flag
-      return !member.isActive ? 'INACTIVE' : 'CANCELLED';
+      // No subscription - member has no active membership
+      return 'NO_SUBSCRIPTION';
     }
 
     // Check if subscription is cancelled
@@ -144,11 +144,7 @@ export class GymMembersService {
       return 'EXPIRED';
     }
 
-    // Member has active subscription - check if account is active
-    if (!member.isActive) {
-      return 'INACTIVE';
-    }
-
+    // Member has active subscription
     return 'ACTIVE';
   }
 
@@ -181,22 +177,21 @@ export class GymMembersService {
     const member = await this.getMemberById(memberId);
     const currentState = await this.getMemberState(member);
 
-    // Validate current state - can only activate cancelled, expired, or inactive members
+    // Validate current state - can only activate cancelled, expired, or no subscription members
     if (
       currentState !== 'CANCELLED' &&
       currentState !== 'EXPIRED' &&
-      currentState !== 'INACTIVE'
+      currentState !== 'NO_SUBSCRIPTION'
     ) {
       throw new BadRequestException(
-        `Cannot activate member in ${currentState} state. Member must be cancelled, expired, or inactive.`,
+        `Cannot activate member in ${currentState} state. Member must be cancelled, expired, or have no subscription.`,
       );
     }
 
-    // Update member status
+    // Update member timestamp
     const updatedMember = await this.prisma.user.update({
       where: { id: memberId },
       data: {
-        isActive: true,
         updatedAt: new Date(),
       },
     });
@@ -294,39 +289,43 @@ export class GymMembersService {
     const member = await this.getMemberById(memberId);
     const currentState = await this.getMemberState(member);
 
-    // Check for existing renewal on the same day to prevent duplicates
-    const today = new Date();
-    const startOfDay = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-    );
-    const endOfDay = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-      23,
-      59,
-      59,
-      999,
-    );
-
-    const existingTodayRenewal =
-      await this.prisma.gymMemberSubscription.findFirst({
-        where: {
-          memberId: memberId,
-          tenantId: member.tenantId!,
-          createdAt: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
+    // Check for duplicate active subscriptions to prevent conflicts
+    // Allow renewals for expired subscriptions or short-term memberships
+    const existingActiveSubscription = await this.prisma.gymMemberSubscription.findFirst({
+      where: {
+        memberId: memberId,
+        tenantId: member.tenantId!,
+        status: 'ACTIVE',
+        endDate: {
+          gt: new Date(), // Still valid in the future
         },
-      });
+      },
+      include: {
+        membershipPlan: true,
+      },
+    });
 
-    if (existingTodayRenewal) {
-      throw new BadRequestException(
-        'A membership renewal has already been processed for this member today. Please wait until tomorrow to process another renewal.',
-      );
+    // Only prevent renewal if there's an active subscription with significant time remaining
+    // Allow renewal for day passes or subscriptions ending within 24 hours
+    if (existingActiveSubscription) {
+      const now = new Date();
+      const timeRemaining = existingActiveSubscription.endDate.getTime() - now.getTime();
+      const hoursRemaining = timeRemaining / (1000 * 60 * 60);
+      
+      // Allow renewal if:
+      // 1. Less than 24 hours remaining on current subscription
+      // 2. Current plan is a day pass (duration <= 1 day)
+      // 3. It's the same plan (renewal/extension)
+      const isDayPass = existingActiveSubscription.membershipPlan.duration <= 1;
+      const isSamePlan = existingActiveSubscription.membershipPlanId === planId;
+      const isExpiringSoon = hoursRemaining <= 24;
+      
+      if (!isDayPass && !isExpiringSoon && !isSamePlan) {
+        const remainingDays = Math.ceil(hoursRemaining / 24);
+        throw new BadRequestException(
+          `Member still has an active subscription with ${remainingDays} day(s) remaining. Cannot create overlapping subscriptions.`,
+        );
+      }
     }
 
     // Get the membership plan
@@ -383,11 +382,10 @@ export class GymMembersService {
       },
     });
 
-    // Update member to active if not already
+    // Update member timestamp
     await this.prisma.user.update({
       where: { id: memberId },
       data: {
-        isActive: true,
         updatedAt: new Date(),
       },
     });
@@ -446,7 +444,6 @@ export class GymMembersService {
       const deletedMember = await this.prisma.user.update({
         where: { id: memberId },
         data: {
-          isActive: false,
           deletedAt: new Date(),
           deletedBy: performedBy,
           updatedAt: new Date(),
@@ -532,7 +529,6 @@ export class GymMembersService {
       const restoredMember = await this.prisma.user.update({
         where: { id: memberId },
         data: {
-          isActive: true,
           deletedAt: null,
           deletedBy: null,
           updatedAt: new Date(),
@@ -603,7 +599,6 @@ export class GymMembersService {
       lastName: member.lastName,
       email: member.email,
       phoneNumber: member.phoneNumber,
-      isActive: member.isActive,
       currentState: state,
       subscription: subscription,
     };
@@ -759,7 +754,6 @@ export class GymMembersService {
       const users = await this.prisma.user.findMany({
         where: {
           tenantId,
-          isActive: true,
           // Query JSON field: businessData.endDate <= targetDate
           AND: [
             {
@@ -895,7 +889,6 @@ export class GymMembersService {
         // Exclude subscriptions for deleted users
         member: {
           deletedAt: null,
-          isActive: true, // Only active users
         },
       };
 
@@ -911,7 +904,6 @@ export class GymMembersService {
                   select: {
                     id: true,
                     name: true,
-                    isActive: true,
                   },
                 },
               },
@@ -1002,7 +994,6 @@ export class GymMembersService {
                     id: true,
                     name: true,
                     address: true,
-                    isActive: true,
                   },
                 },
               },
@@ -1021,10 +1012,9 @@ export class GymMembersService {
         endDate: {
           lte: targetDate, // Show subscriptions expiring within the window (including those that just expired)
         },
-        // Exclude subscriptions for deleted/inactive users
+        // Exclude subscriptions for deleted users
         member: {
           deletedAt: null,
-          isActive: true,
         },
       };
 
@@ -1036,7 +1026,7 @@ export class GymMembersService {
 
           // If tenant is specified, get available branches for filtering
           availableBranches = await this.prisma.branch.findMany({
-            where: { tenantId: filters.tenantId, isActive: true },
+          where: { tenantId: filters.tenantId },
             select: { id: true, name: true, address: true },
           });
         } else {
@@ -1056,7 +1046,7 @@ export class GymMembersService {
 
         // Get all branches in the tenant for branch filtering dropdown
         availableBranches = await this.prisma.branch.findMany({
-          where: { tenantId: filters.userTenantId, isActive: true },
+          where: { tenantId: filters.userTenantId },
           select: { id: true, name: true, address: true },
         });
 
@@ -1118,10 +1108,9 @@ export class GymMembersService {
         }));
       }
 
-      // Add filter to exclude deleted and inactive users from the where clause
+      // Add filter to exclude deleted users from the where clause
       whereClause.member = {
         deletedAt: null,
-        isActive: true, // Only active users should appear in expiring list
       };
 
       this.logger.debug(
