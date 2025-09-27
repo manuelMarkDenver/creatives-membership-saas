@@ -470,7 +470,7 @@ async function main() {
         password: 'Mark123!',
         status: 'DELETED',
         description: 'Deleted member'
-      }
+      },
     ];
     
     for (let i = 0; i < specificMembers.length; i++) {
@@ -502,6 +502,7 @@ async function main() {
             role: 'GYM_MEMBER', // Business-specific role
             status: memberInfo.status === 'DELETED' ? 'CANCELLED' :
                    memberInfo.status === 'EXPIRING' ? 'ACTIVE' :
+                   memberInfo.status === 'NO_SUBSCRIPTION' ? 'NO_SUBSCRIPTION' :
                    memberInfo.status,
             
             // Emergency Contact Information
@@ -568,78 +569,80 @@ async function main() {
           }
         });
       
-      // Create gym member subscription based on status
-      let subscriptionStatus;
-      let startDate = new Date();
-      let endDate = new Date();
-      // Use different plans for variety - Basic Monthly is at index 1
-      let membershipPlan = createdPlans[1 + (i % 2)]; // Alternate between Basic Monthly and Premium Monthly
-      
-      switch (memberInfo.status) {
-        case 'ACTIVE':
-          subscriptionStatus = 'ACTIVE';
-          startDate.setMonth(startDate.getMonth() - 1); // Started 1 month ago
-          endDate.setMonth(endDate.getMonth() + 2); // Ends in 2 months
-          break;
-        case 'CANCELLED':
-          subscriptionStatus = 'CANCELLED';
-          startDate.setMonth(startDate.getMonth() - 2); // Started 2 months ago
-          endDate.setMonth(endDate.getMonth() - 1); // Ended 1 month ago
-          break;
-        case 'EXPIRING':
-          subscriptionStatus = 'ACTIVE';
-          startDate.setMonth(startDate.getMonth() - 1); // Started 1 month ago
-          endDate.setDate(endDate.getDate() + 3); // Expires in 3 days
-          break;
-        case 'EXPIRED':
-          subscriptionStatus = 'EXPIRED';
-          startDate.setMonth(startDate.getMonth() - 3); // Started 3 months ago
-          endDate.setMonth(endDate.getMonth() - 1); // Expired 1 month ago
-          break;
-        case 'DELETED':
-          subscriptionStatus = 'CANCELLED';
-          startDate.setMonth(startDate.getMonth() - 4); // Started 4 months ago
-          endDate.setMonth(endDate.getMonth() - 2); // Ended 2 months ago
-          break;
-        default:
-          subscriptionStatus = 'ACTIVE';
-      }
-      
-      const gymMemberSubscription = await prisma.gymMemberSubscription.create({
-        data: {
-          tenantId: tenant.id,
-          memberId: member.id,
-          membershipPlanId: membershipPlan.id,
-          branchId: branch.id,
-          status: subscriptionStatus,
-          startDate: startDate,
-          endDate: endDate,
-          price: membershipPlan.price,
-          currency: 'PHP',
-          autoRenew: memberInfo.status === 'ACTIVE'
+      // Create gym member subscription based on status (skip for NO_SUBSCRIPTION)
+      if (memberInfo.status !== 'NO_SUBSCRIPTION') {
+        let subscriptionStatus;
+        let startDate = new Date();
+        let endDate = new Date();
+        // Use different plans for variety - Basic Monthly is at index 1
+        let membershipPlan = createdPlans[1 + (i % 2)]; // Alternate between Basic Monthly and Premium Monthly
+        
+        switch (memberInfo.status) {
+          case 'ACTIVE':
+            subscriptionStatus = 'ACTIVE';
+            startDate.setMonth(startDate.getMonth() - 1); // Started 1 month ago
+            endDate.setMonth(endDate.getMonth() + 2); // Ends in 2 months
+            break;
+          case 'CANCELLED':
+            subscriptionStatus = 'CANCELLED';
+            startDate.setMonth(startDate.getMonth() - 2); // Started 2 months ago
+            endDate.setMonth(endDate.getMonth() - 1); // Ended 1 month ago
+            break;
+          case 'EXPIRING':
+            subscriptionStatus = 'ACTIVE';
+            startDate.setMonth(startDate.getMonth() - 1); // Started 1 month ago
+            endDate.setDate(endDate.getDate() + 3); // Expires in 3 days
+            break;
+          case 'EXPIRED':
+            subscriptionStatus = 'EXPIRED';
+            startDate.setMonth(startDate.getMonth() - 3); // Started 3 months ago
+            endDate.setMonth(endDate.getMonth() - 1); // Expired 1 month ago
+            break;
+          case 'DELETED':
+            subscriptionStatus = 'CANCELLED';
+            startDate.setMonth(startDate.getMonth() - 4); // Started 4 months ago
+            endDate.setMonth(endDate.getMonth() - 2); // Ended 2 months ago
+            break;
+          default:
+            subscriptionStatus = 'ACTIVE';
         }
-      });
+        
+        const gymMemberSubscription = await prisma.gymMemberSubscription.create({
+          data: {
+            tenantId: tenant.id,
+            memberId: member.id,
+            membershipPlanId: membershipPlan.id,
+            branchId: branch.id,
+            status: subscriptionStatus,
+            startDate: startDate,
+            endDate: endDate,
+            price: membershipPlan.price,
+            currency: 'PHP',
+            autoRenew: memberInfo.status === 'ACTIVE'
+          }
+        });
+        
+        // Create payment transaction
+        await prisma.customerTransaction.create({
+          data: {
+            tenantId: tenant.id,
+            customerId: member.id,
+            businessType: 'gym',
+            transactionCategory: 'membership',
+            amount: membershipPlan.price,
+            currency: 'PHP',
+            netAmount: membershipPlan.price,
+            paymentMethod: 'card',
+            transactionType: 'PAYMENT',
+            status: 'COMPLETED',
+            description: `Payment for ${membershipPlan.name} membership`,
+            processedBy: owner.id,
+            createdAt: startDate
+          }
+        });
+      } // End of subscription creation block
       
-      // Create payment transaction
-      await prisma.customerTransaction.create({
-        data: {
-          tenantId: tenant.id,
-          customerId: member.id,
-          businessType: 'gym',
-          transactionCategory: 'membership',
-          amount: membershipPlan.price,
-          currency: 'PHP',
-          netAmount: membershipPlan.price,
-          paymentMethod: 'card',
-          transactionType: 'PAYMENT',
-          status: 'COMPLETED',
-          description: `Payment for ${membershipPlan.name} membership`,
-          processedBy: owner.id,
-          createdAt: startDate
-        }
-      });
-      
-      // Create GymUserBranch relationship
+      // Create GymUserBranch relationship (for all members)
       await prisma.gymUserBranch.create({
         data: {
           userId: member.id,

@@ -138,8 +138,10 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
   // Members are either ACTIVE, EXPIRED, EXPIRING, CANCELLED, NO_SUBSCRIPTION, or DELETED
   // The isActive field has been removed from the User model
 
-  // Only show as expired if user is active and subscription is active but expired
-  if (isExpired && subscriptionStatus === 'ACTIVE') {
+  // Show as expired if:
+  // 1. Subscription is marked as EXPIRED in the database, OR
+  // 2. Subscription is ACTIVE but past the end date
+  if (subscriptionStatus === 'EXPIRED' || (isExpired && subscriptionStatus === 'ACTIVE')) {
     const daysOverdue = subscriptionEndDate 
       ? Math.ceil((currentDate.getTime() - subscriptionEndDate.getTime()) / (1000 * 60 * 60 * 24))
       : 0
@@ -148,7 +150,7 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
       canAccessFacilities: false,
       displayStatus: 'EXPIRED' as const,
       primaryIssue: daysOverdue > 0 ? `Expired ${daysOverdue} days ago` : 'Subscription expired',
-      statusColor: 'orange' as const,
+      statusColor: 'red' as const,
       statusIcon: 'clock' as const
     }
     

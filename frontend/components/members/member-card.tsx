@@ -318,8 +318,8 @@ export function MemberCard({
                  return `${baseClasses} bg-orange-700 dark:bg-orange-400 text-white dark:text-black border-orange-700 dark:border-orange-400 hover:bg-orange-800 dark:hover:bg-orange-500 hover:border-orange-800 dark:hover:border-orange-500 hover:shadow-md`
                case 'DELETED':
                  return `${baseClasses} bg-red-700 dark:bg-red-400 text-white dark:text-black border-red-700 dark:border-red-400 hover:bg-red-800 dark:hover:bg-red-500 hover:border-red-800 dark:hover:border-red-500 hover:shadow-md`
-               case 'EXPIRED':
-                 return `${baseClasses} bg-yellow-700 dark:bg-yellow-400 text-black dark:text-black border-yellow-700 dark:border-yellow-400 hover:bg-yellow-800 dark:hover:bg-yellow-500 hover:border-yellow-800 dark:hover:border-yellow-500 hover:shadow-md`
+              case 'EXPIRED':
+                return `${baseClasses} bg-red-700 dark:bg-red-400 text-white dark:text-black border-red-700 dark:border-red-400 hover:bg-red-800 dark:hover:bg-red-500 hover:border-red-800 dark:hover:border-red-500 hover:shadow-md`
                case 'EXPIRING':
                  return `${baseClasses} bg-amber-700 dark:bg-amber-400 text-white dark:text-black border-amber-700 dark:border-amber-400 hover:bg-amber-800 dark:hover:bg-amber-500 hover:border-amber-800 dark:hover:border-500 hover:shadow-md`
                case 'NO_SUBSCRIPTION':
