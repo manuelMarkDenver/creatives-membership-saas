@@ -521,6 +521,7 @@ enum GymMemberSubscriptionStatus {
   CANCELLED
   EXPIRED
   PENDING_ACTIVATION
+  NO_SUBSCRIPTION
 }
 
 enum MemberAuditAction {

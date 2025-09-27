@@ -556,6 +556,11 @@ export class UsersService {
         // Handle CLIENT role filtering - CLIENT is a global role, not business role
         if (filters.role === 'CLIENT') {
           whereClause.globalRole = 'CLIENT';
+          // Only show CLIENTs who have at least one gym membership subscription
+          // This excludes prospects/leads who have no subscription history
+          whereClause.gymMemberSubscriptions = {
+            some: {} // Has at least one subscription record
+          };
         } else {
           whereClause.role = filters.role;
         }

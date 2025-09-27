@@ -52,7 +52,7 @@ export const getMemberStatusDisplay = (status: string): StatusDisplay => {
     case 'EXPIRED':
       return {
         label: 'Membership Expired',
-        color: 'yellow',
+        color: 'red',
         description: 'Needs renewal to continue access',
         icon: '⏰',
         buttonVariant: 'secondary'
