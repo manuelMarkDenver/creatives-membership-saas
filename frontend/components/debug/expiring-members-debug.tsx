@@ -57,7 +57,6 @@ export function ExpiringMembersDebug({ className = '' }: ExpiringMembersDebugPro
     
     return {
       name: member.name || `${member.firstName} ${member.lastName}`.trim() || member.email,
-      isActive: member.isActive,
       isDeleted: Boolean(member.deletedAt),
       subscriptionStatus: subscription?.status || 'NONE',
       subscriptionEndDate: subscription?.endDate || 'N/A',
@@ -146,8 +145,7 @@ export function ExpiringMembersDebug({ className = '' }: ExpiringMembersDebugPro
                     <div className="font-medium">{member.name}</div>
                     <div className="text-muted-foreground">
                       Status: {member.subscriptionStatus} | 
-                      End: {member.subscriptionEndDate} | 
-                      Active: {member.isActive ? 'Yes' : 'No'}
+                      End: {member.subscriptionEndDate}
                       {member.isDeleted && ' | DELETED'}
                     </div>
                   </div>

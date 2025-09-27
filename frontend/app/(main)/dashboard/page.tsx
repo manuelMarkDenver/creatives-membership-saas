@@ -237,7 +237,7 @@ function OwnerDashboard() {
     return sum + activeSubscriptions.reduce((subSum: number, sub: any) => subSum + (sub.plan?.price || 0), 0)
   }, 0)
 
-  const activeBranches = branches.filter((branch: any) => branch.isActive).length
+  const activeBranches = branches.length // All branches are active (soft delete is used)
 
   // Prepare owner dashboard stats
   const ownerStats: StatItem[] = [
@@ -276,7 +276,7 @@ function OwnerDashboard() {
           Owner Dashboard
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground">
-          Welcome back, {profile?.firstName}! Here&apos;s your business overview.
+          Welcome back, {profile?.firstName}! Here's your business overview.
         </p>
       </div>
 
@@ -307,8 +307,8 @@ function OwnerDashboard() {
                     <p className="text-sm text-muted-foreground">{branch.address || 'No address set'}</p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge variant={branch.isActive ? "default" : "secondary"}>
-                      {branch.isActive ? "Active" : "Inactive"}
+                    <Badge variant="default">
+                      Active
                     </Badge>
                   </div>
                 </div>

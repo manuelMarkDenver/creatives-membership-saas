@@ -162,8 +162,8 @@ export default function CreateTenantForm({
               
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <p className="text-sm text-blue-700">
-                  <strong>Note:</strong> This will create the owner&apos;s account automatically. 
-                  They&apos;ll be assigned as the owner with full access to their gym tenant.
+                  <strong>Note:</strong> This will create the owner's account automatically. 
+                  They'll be assigned as the owner with full access to their gym tenant.
                 </p>
               </div>
 

@@ -11,8 +11,8 @@ export function enhanceBranchWithMockData(branch: Branch): Branch {
 
   // Generate member counts based on seeded random
   const totalMembers = Math.floor(seed * 3) + Math.floor(Math.random() * 50) + 20
-  const activeMembers = Math.floor(totalMembers * 0.7) + Math.floor(Math.random() * 10)
-  const inactiveMembers = totalMembers - activeMembers
+  const activeMembers = Math.floor(totalMembers * 0.9) + Math.floor(Math.random() * 5)
+  const deletedMembers = Math.max(0, totalMembers - activeMembers)
   const staff = Math.floor(seed / 10) + Math.floor(Math.random() * 8) + 3
 
   return {
@@ -21,7 +21,7 @@ export function enhanceBranchWithMockData(branch: Branch): Branch {
       ...branch._count,
       userBranches: totalMembers,
       activeMembers: activeMembers,
-      inactiveMembers: inactiveMembers,
+      deletedMembers: deletedMembers,
       staff: staff
     }
   }
@@ -46,7 +46,6 @@ export function createMockBranches(count: number = 3): Branch[] {
       address: '123 Main Street, Manila, Philippines',
       phoneNumber: '+63 2 8123 4567',
       email: 'downtown@fitnesscenter.ph',
-      isActive: true,
       createdAt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
       updatedAt: new Date().toISOString(),
       _count: { userBranches: 0 }
@@ -58,7 +57,6 @@ export function createMockBranches(count: number = 3): Branch[] {
       address: '456 Ayala Avenue, Makati, Philippines',
       phoneNumber: '+63 2 8234 5678',
       email: 'makati@fitnesscenter.ph',
-      isActive: true,
       createdAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
       updatedAt: new Date().toISOString(),
       _count: { userBranches: 0 }
@@ -70,7 +68,6 @@ export function createMockBranches(count: number = 3): Branch[] {
       address: '789 EDSA, Quezon City, Philippines',
       phoneNumber: '+63 2 8345 6789',
       email: 'qc@fitnesscenter.ph',
-      isActive: false,
       createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
       updatedAt: new Date().toISOString(),
       _count: { userBranches: 0 }

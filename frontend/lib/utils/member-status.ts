@@ -29,7 +29,6 @@ export interface MemberData {
   firstName?: string
   lastName?: string
   email: string
-  isActive: boolean
   deletedAt?: string | null
   gymSubscriptions?: Array<{
     id: string
@@ -136,8 +135,8 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
     return result
   }
 
-  // Note: We don't check member.isActive here because INACTIVE status has been removed
   // Members are either ACTIVE, EXPIRED, EXPIRING, CANCELLED, NO_SUBSCRIPTION, or DELETED
+  // The isActive field has been removed from the User model
 
   // Only show as expired if user is active and subscription is active but expired
   if (isExpired && subscriptionStatus === 'ACTIVE') {
@@ -291,8 +290,8 @@ export function filterMembersByStatus(
  * This matches the backend logic that includes BOTH expiring AND recently expired members
  */
 export function isMemberConsideredExpiring(member: MemberData, daysBefore: number = 7): boolean {
-  // Must have active account and not be deleted
-  if (!member.isActive || member.deletedAt) {
+  // Must not be deleted
+  if (member.deletedAt) {
     return false
   }
   

@@ -68,7 +68,7 @@ export default function LocationsPage() {
 
   const stats = {
     total: locations.length,
-    active: locations.filter((l: Location) => l.isActive !== false).length,
+    active: locations.length, // All locations are considered active (soft delete is used)
     totalMembers: locations.reduce((sum: number, location: Location) => sum + (location._count?.userBranches || 0), 0),
     totalStaff: locations.reduce((sum: number, location: Location) => sum + (location._count?.staff || 0), 0)
   }
@@ -266,8 +266,8 @@ export default function LocationsPage() {
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
                       <div className="flex flex-col items-end gap-2">
-                        <Badge variant={location.isActive ? "default" : "secondary"} className="mb-1">
-                          {location.isActive ? 'ACTIVE' : 'INACTIVE'}
+                        <Badge variant="default" className="mb-1">
+                          ACTIVE
                         </Badge>
                         
                         {/* Member/staff info */}
@@ -411,7 +411,7 @@ export default function LocationsPage() {
               Delete Location
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{selectedLocation?.name}&quot;? This action cannot be undone.
+              Are you sure you want to delete "{selectedLocation?.name}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 

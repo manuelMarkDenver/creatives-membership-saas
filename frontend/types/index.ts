@@ -51,7 +51,6 @@ export enum AccessLevel {
 
 export enum CustomerSubscriptionStatus {
   ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
   SUSPENDED = 'SUSPENDED',
   CANCELLED = 'CANCELLED',
   EXPIRED = 'EXPIRED',
@@ -104,7 +103,6 @@ export interface Branch {
   address?: string
   phoneNumber?: string
   email?: string
-  isActive: boolean
   branchData?: any // JSON field for business-specific data
   createdAt: string
   updatedAt: string
@@ -112,7 +110,7 @@ export interface Branch {
   _count?: {
     userBranches: number
     activeMembers?: number
-    inactiveMembers?: number
+    deletedMembers?: number
     staff?: number
   }
 }
@@ -129,7 +127,6 @@ export interface User {
   email?: string
   phoneNumber?: string
   role: Role
-  isActive: boolean
   photoUrl?: string // Member photo URL
   notes?: string
   deletedAt?: string
@@ -182,7 +179,6 @@ export interface MembershipPlan {
   duration: number // Duration in days
   type: MembershipType
   benefits?: any[] // JSON array of benefits
-  isActive: boolean
   createdAt: string
   updatedAt: string
 }
@@ -330,7 +326,6 @@ export interface CreateUserDto {
   email?: string
   phoneNumber?: string
   role: Role
-  isActive?: boolean
   photoUrl?: string
   notes?: string
 }
@@ -341,6 +336,5 @@ export interface CreateBranchDto {
   address?: string
   phoneNumber?: string
   email?: string
-  isActive?: boolean
   branchData?: any
 }

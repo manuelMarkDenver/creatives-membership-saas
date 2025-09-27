@@ -38,7 +38,13 @@ export default function TenantsPage() {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null)
   const [overrideValue, setOverrideValue] = useState(0)
 
-  // Check if user has Super Admin access
+  // All hooks must be called before any conditional returns
+  const { data: tenantsData, isLoading } = useTenants()
+  const createTenant = useCreateTenant()
+  const deleteTenant = useDeleteTenant()
+  const updateOverride = useUpdateFreeBranchOverride()
+
+  // Check if user has Super Admin access (after hooks)
   if (!profile || profile.role !== 'SUPER_ADMIN') {
     return (
       <div className="text-center py-12">
@@ -48,11 +54,6 @@ export default function TenantsPage() {
       </div>
     )
   }
-
-  const { data: tenantsData, isLoading } = useTenants()
-  const createTenant = useCreateTenant()
-  const deleteTenant = useDeleteTenant()
-  const updateOverride = useUpdateFreeBranchOverride()
 
   const tenants = tenantsData || []
 
