@@ -102,7 +102,7 @@ export class GymLocationsService {
                 select: {
                   id: true,
                   role: true,
-                  isActive: true,
+                  deletedAt: true,
                 },
               },
             },
@@ -117,9 +117,9 @@ export class GymLocationsService {
           const members = location.gymUserBranches.filter(
             (ub) => ub.user.role === 'CLIENT',
           );
-          const activeMembers = members.filter((ub) => ub.user.isActive).length;
-          const inactiveMembers = members.filter(
-            (ub) => !ub.user.isActive,
+          const activeMembers = members.filter((ub) => !ub.user.deletedAt).length;
+          const deletedMembers = members.filter(
+            (ub) => ub.user.deletedAt,
           ).length;
           const staff = location.gymUserBranches.filter(
             (ub) => ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
@@ -130,7 +130,7 @@ export class GymLocationsService {
             _count: {
               gymUserBranches: members.length,
               activeMembers,
-              inactiveMembers,
+              deletedMembers,
               staff,
             },
             gymUserBranches: undefined, // Remove detailed gymUserBranches from response

@@ -344,7 +344,6 @@ export class UsersService {
       const deletedUser = await this.prisma.user.update({
         where: { id },
         data: {
-          isActive: false,
           deletedAt: new Date(),
           deletedBy,
           updatedAt: new Date(),
@@ -428,33 +427,6 @@ export class UsersService {
 
       // Check if user needs restoration
       if (!isDeleted && !isCancelled) {
-        // Check if user is simply inactive
-        if (!existingUser.isActive) {
-          // User is just inactive - activate them
-          const restoredUser = await this.prisma.user.update({
-            where: { id },
-            data: {
-              isActive: true,
-              updatedAt: new Date(),
-            },
-            include: {
-              tenant: {
-                select: {
-                  id: true,
-                  name: true,
-                  category: true,
-                },
-              },
-            },
-          });
-
-          // Note: Audit logging for member operations is handled by GymMembersService
-
-          this.logger.log(
-            `Activated inactive user: ${restoredUser.firstName} ${restoredUser.lastName} (${id})`,
-          );
-          return restoredUser;
-        }
 
         throw new BadRequestException(
           'User does not require restoration - already active and not deleted or cancelled',
@@ -466,7 +438,6 @@ export class UsersService {
         const restoredUser = await this.prisma.user.update({
           where: { id },
           data: {
-            isActive: true,
             deletedAt: null,
             deletedBy: null,
             updatedAt: new Date(),
@@ -496,7 +467,6 @@ export class UsersService {
         const restoredUser = await this.prisma.user.update({
           where: { id },
           data: {
-            isActive: true,
             updatedAt: new Date(),
           },
           include: {
