@@ -2,20 +2,34 @@
 
 ## Project Overview
 **Multi-Business SaaS Platform** supporting gyms → coffee shops → e-commerce
-- **Current Status**: RBAC Complete - Ready for Testing & MVP Launch ✅
+- **Current Status**: Gym Management System - Feature Development & Testing ✅
 - **Architecture**: Multi-tenant with business units for scalability
 - **Business Model**: SaaS subscriptions with paid mode toggle per tenant (₱399/month per business unit)
-- **Current Focus**: Testing, verification, and gym MVP launch preparation
+- **Current Focus**: Gym membership plans, user management, and core gym operations
 - **Mobile Strategy**: React Native apps (₱1.5M-2.5M setup + ₱150K-200K/month)
 - **Pricing**: ₱399/month per business unit, ₱3,999/year (save 2 months)
+- **Last Updated**: September 28, 2024
 
-## ⚠️ Important Agent Rules
+## ⚠️ Important Agent Rules & Development Guidelines
+
+### 🤖 Agent Behavior Rules
 - **ALWAYS ASK BEFORE MAKING CHANGES**: Never modify files, run commands, or make schema changes without explicit user approval first
 - **CONFIRM UNDERSTANDING**: Ask clarifying questions if the request is ambiguous
 - **EXPLAIN CHANGES**: When proposing changes, clearly explain what will be modified and why
 - **PRESERVE USER CONTROL**: The user must approve every change to maintain their ability to follow along
 - **LOCAL DEVELOPMENT**: User runs backend at 5000 and frontend at 3000 - Agent doesn't need to run unless rebuilding
 - **FILE CHANGE INDICATION**: Use **bold** or *italics* for file changes to distinguish from thinking
+- **NO CONSOLE LOG SPAM**: Remove debug console logs after fixing issues - keep code clean
+- **CONSISTENT QUERY KEYS**: Always match React Query keys between hooks and mutations for proper cache invalidation
+
+### 🏗️ Code Quality Rules
+- **SOLID, DRY, YAGNI Principles**: Always implement best programming practices
+- **Schema Updates**: Every modification in schema MUST update the seeder and run the seeder to maintain data consistency
+- **Port Consistency**: Always run frontend on 3000 and backend on 5000 for local development. No other ports (3001, 5001, etc.)
+- **Build Verification**: Check functionality by building Next.js or Nest.js using their build scripts
+- **Error Handling**: Implement graceful error handling with user-friendly messages
+- **React Query**: Properly handle cache invalidation, loading states, and error states
+- **TypeScript**: Maintain strict typing and resolve compilation errors
 
 ## 🚨 Critical Issues & Safeguards Tracker
 
@@ -37,12 +51,21 @@
 - [x] **Import Path Corrections**: Fixed all incorrect import paths across 6+ components
 - [x] **TypeScript Compatibility**: Resolved User interface compatibility issues
 - [x] **Membership Plan Display Fix**: Fixed "No Plan" issue by removing redundant data fetching and using single consistent API endpoint
+- [x] **Gym Membership Plans CRUD**: Complete create, read, update, delete operations for membership plans
+- [x] **Plan Status Toggle**: Working activate/deactivate functionality with proper cache invalidation
+- [x] **Soft Delete System**: Plans are soft-deleted (moved to trash) with custom reasons and member validation
+- [x] **React Query Cache Issues**: Fixed query key mismatches causing stale data display
+- [x] **Error Handling**: Graceful error messages for conflicts (e.g., deleting plans with active members)
 
 ### 🔄 IN PROGRESS
 - [x] **Testing & Verification**: Backend build ✅, Frontend build ✅, Lint issues (MVP ignore), Tests need DI fixes
 - [x] **Database Seeding**: Updated with CLIENT roles for all users ✅
 - [x] **API Endpoint Migration**: Successfully migrated to `/gym/users` endpoints ✅
 - [x] **Endpoint Testing**: All new endpoints tested and working ✅
+- [x] **Gym Membership Plans**: Full CRUD operations implemented and tested ✅
+- [ ] **Member Subscription Management**: Create, assign, and manage member subscriptions to plans
+- [ ] **Payment Integration**: Handle membership payments and renewals
+- [ ] **Gym Analytics Dashboard**: Key metrics and reporting for gym owners
 - [ ] **MVP Launch Preparation**: End-to-end functionality verification, production testing
 
 ### ❌ PENDING
@@ -204,7 +227,39 @@ cd frontend && npm run dev
 - **Implementation**: Single login, separate contexts for admin vs member features
 - **No Conflicts**: Clean role separation prevents permission issues
 
-## Current System Status
+## 📊 Current System Status & Features
+
+### 🏋️ Gym Management Features (Active Development)
+
+#### ✅ **Membership Plans Management**
+- **Full CRUD Operations**: Create, read, update, delete membership plans
+- **Plan Status Toggle**: Activate/deactivate plans with real-time UI updates
+- **Soft Delete System**: Plans moved to trash (not permanently deleted) with custom reasons
+- **Member Validation**: Prevents deletion of plans with active subscriptions
+- **Rich Plan Data**: Name, description, price (₱), duration (days), type, benefits array
+- **Plan Types**: DAY_PASS, WEEKLY, MONTHLY, QUARTERLY, SEMI_ANNUAL, ANNUAL, UNLIMITED, STUDENT, SENIOR, CORPORATE
+- **Member Count Tracking**: Shows active subscribers per plan
+- **React Query Integration**: Optimistic updates and cache management
+
+#### ✅ **User & Member Management**
+- **Multi-Role System**: Global roles (OWNER, MANAGER, STAFF, CLIENT) + Business roles (GYM_MEMBER)
+- **Automatic User Creation**: Creates User + GymMemberProfile atomically
+- **Branch Assignment**: Staff and managers assigned to specific gym branches
+- **Member Profiles**: Complete gym member information with emergency contacts, medical conditions, fitness goals
+- **Photo Management**: Main profile photo + additional photos array
+- **Subscription Tracking**: Active memberships and plan assignments
+
+#### ✅ **Business Units & Multi-Location**
+- **Multi-Tenant Architecture**: Support for multiple gym chains under one platform
+- **Branch Management**: Multiple locations per gym business
+- **Paid Mode Toggle**: Subscription enforcement per tenant (₱399/month)
+- **Staff Access Control**: Branch-specific permissions for managers and staff
+
+#### ✅ **Authentication & Security**
+- **JWT-Based Auth**: Secure token-based authentication
+- **Role-Based Access Control (RBAC)**: Comprehensive permission system
+- **Session Management**: Automatic token cleanup and renewal
+- **Data Isolation**: Tenant-based data segregation
 
 ### ✅ Phase 1 Complete - Business Units & Performance Optimization
 - **Business Units CRUD**: Complete multi-location management with paid mode toggle
@@ -236,6 +291,35 @@ cd frontend && npm run dev
 - **Membership Plan Display**: Fixed "No Plan"/"Unknown Plan" issue by consolidating data sources to single `/gym/users/tenant/{tenantId}` endpoint
 
 ## 🔧 Recent Fixes & Solutions
+
+### ✅ Gym Membership Plans CRUD Implementation (September 28, 2024)
+
+#### **Features Implemented**:
+1. **Complete CRUD Operations**: Create, read, update, delete gym membership plans
+2. **Plan Status Management**: Toggle active/inactive status with proper UI feedback
+3. **Soft Delete System**: Plans moved to trash with custom deletion reasons
+4. **Member Protection**: Prevents deletion of plans with active subscriptions
+5. **React Query Integration**: Proper cache invalidation and optimistic updates
+
+#### **Technical Fixes**:
+1. **Backend Service Issues**: Fixed `toggleStatus` method with proper UUID validation and safe benefits parsing
+2. **React Query Cache Mismatch**: Resolved query key inconsistencies causing stale data (`membership-plans-v4` → `membership-plans`)
+3. **Frontend Error Handling**: Added graceful error messages for 409 conflicts (plans with active members)
+4. **Soft Delete Endpoint**: Migrated from legacy DELETE to proper POST `/soft-delete` with structured data
+5. **Database Query Optimization**: Direct Prisma queries instead of problematic `findOne` calls
+6. **Benefits Data Structure**: Handle both string and object formats from different data sources
+
+#### **Files Modified**:
+- **Backend**: `gym-membership-plans.service.ts`, `gym-membership-plans.controller.ts`
+- **Frontend**: `membership-plans.ts` (API), `use-membership-plans.ts` (hooks), `page.tsx` (UI)
+- **Database**: Proper soft delete fields and member subscription validation
+
+#### **User Experience Improvements**:
+- **Smart Delete Modal**: Shows warning and disables delete for plans with active members
+- **Custom Delete Reasons**: Optional reason field for audit trail
+- **Toast Notifications**: Clear success/error messages with appropriate durations
+- **Real-time Updates**: Immediate UI updates after plan status changes
+- **Clean UI States**: Hide irrelevant fields when actions are disabled
 
 ### ✅ Membership Plan Display Issue (September 2024)
 
@@ -339,16 +423,17 @@ Membership plan names showing as "No Plan" or "Unknown Plan" in frontend compone
 - Production deployment on Railway + Vercel
 - Authentication system with comprehensive RBAC
 
-### Phase 2: Gym MVP Testing & Launch (Current)
+### Phase 2: Gym Core Features Development (Current)
 - ✅ Backend build/lint/tests completed
 - ✅ Frontend build/lint/tests completed
 - ✅ API Endpoint Migration - All endpoints migrated to `/gym/users`
 - ✅ Endpoint Testing - All new endpoints tested and working
-- 🔄 End-to-End Testing - Manual verification of all flows
-- 🔄 Production Deployment - Push to Railway/Vercel
-- 🔄 User Onboarding - First 10 pilot gyms
-- 🔄 Feedback Collection - Validate business model
-- 🔄 Free MVP launch to Philippine gym market
+- ✅ Gym Membership Plans - Complete CRUD with soft delete and status toggle
+- 🔄 Member Subscription Management - Assign plans to members, track renewals
+- 🔄 Payment Integration - Handle membership fees and payment tracking
+- 🔄 Gym Analytics - Dashboard with key metrics and reporting
+- 🔄 End-to-End Testing - Manual verification of complete gym workflows
+- 🔄 Production Deployment - Push enhanced features to Railway/Vercel
 
 ### Phase 3: Traction Building + Mobile Planning
 - User acquisition and market validation
