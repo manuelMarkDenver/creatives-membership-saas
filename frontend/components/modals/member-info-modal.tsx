@@ -699,7 +699,7 @@ export function MemberInfoModal({
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-purple-600">
-                    {member.gymSubscriptions?.[0]?.membershipPlan?.name || 'No Plan'}
+                    {member.gymSubscriptions?.[0]?.gymMembershipPlan?.name || 'No Plan'}
                   </span>
                   <Badge variant={member.gymSubscriptions?.[0]?.status === 'EXPIRED' ? "destructive" : "default"}>
                     {member.gymSubscriptions?.[0]?.status === 'EXPIRED' ? 'Expired' : 'Active'}
@@ -715,7 +715,7 @@ export function MemberInfoModal({
                   </div>
                   <div>
                     <span className="text-muted-foreground">Type:</span>
-                    <span className="ml-2">{member.gymSubscriptions?.[0]?.membershipPlan?.type || 'N/A'}</span>
+                    <span className="ml-2">{member.gymSubscriptions?.[0]?.gymMembershipPlan?.type || 'N/A'}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Start:</span>

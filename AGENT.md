@@ -46,6 +46,12 @@
    - ✅ **Status Indicators**: Clear active/inactive badges and member counts
    - ✅ **Mobile-First Stats**: Clean overview without problematic average price
 
+5. **Plan Creation Fix** ✅ (Sep 28, 2025)
+   - ✅ **Fixed DTO Validation**: Separated request DTO from internal DTO
+   - ✅ **TenantId Handling**: Proper multi-tenant security with user context
+   - ✅ **API Validation**: Resolved "tenantId should not exist" error
+   - ✅ **Controller Updates**: Both gym and regular membership plan controllers fixed
+
 ---
 
 ## 📊 Current Module Status
@@ -137,6 +143,7 @@ formatPHPWithUnits(1500000) // → ₱1.5M
 - ~~Edit modal not opening~~ → **FIXED**
 - ~~Currency formatting inconsistencies~~ → **FIXED**
 - ~~Backend TypeScript compilation errors~~ → **FIXED**
+- ~~Plan creation validation error~~ → **FIXED** (Sep 28, 2025)
 
 ---
 

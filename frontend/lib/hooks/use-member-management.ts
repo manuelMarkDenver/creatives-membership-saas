@@ -58,7 +58,7 @@ export interface MemberWithStatus {
     status: string
     startDate: string
     endDate: string
-    membershipPlan: {
+    gymMembershipPlan: {
       id: string
       name: string
       price: number
@@ -132,8 +132,8 @@ const memberManagementApi = {
   },
 
   // Renew member subscription
-  renewMemberSubscription: async (memberId: string, membershipPlanId: string): Promise<{ success: boolean; message: string }> => {
-    const response = await apiClient.post(`/members/${memberId}/renew`, { membershipPlanId })
+  renewMemberSubscription: async (memberId: string, gymMembershipPlanId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post(`/members/${memberId}/renew`, { gymMembershipPlanId })
     return response.data
   },
 }
@@ -239,8 +239,8 @@ export function useRenewMemberSubscription() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: ({ memberId, membershipPlanId }: { memberId: string; membershipPlanId: string }) =>
-      memberManagementApi.renewMemberSubscription(memberId, membershipPlanId),
+    mutationFn: ({ memberId, gymMembershipPlanId }: { memberId: string; gymMembershipPlanId: string }) =>
+      memberManagementApi.renewMemberSubscription(memberId, gymMembershipPlanId),
     onSuccess: (data, { memberId }) => {
       // Invalidate member status
       queryClient.invalidateQueries({ queryKey: memberManagementKeys.status(memberId) })

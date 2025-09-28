@@ -75,7 +75,10 @@ export default function MembersPage() {
   })
 
   // Fetch membership plans for the current tenant
-  const { data: membershipPlans = [] } = useActiveMembershipPlans()
+  const { data: membershipPlans } = useActiveMembershipPlans()
+  
+  // Ensure membershipPlans is always an array
+  const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
   
   // Get backend gym subscription stats for current tenant (non-super admin only)
   const { data: gymSubscriptionStats, error: subscriptionStatsError } = useGymSubscriptionStats({
@@ -130,7 +133,7 @@ export default function MembersPage() {
       return
     }
 
-    const selectedPlan = membershipPlans.find(plan => plan.id === selectedPlanId)
+    const selectedPlan = safeMembershipPlans.find(plan => plan.id === selectedPlanId)
     if (!selectedPlan) {
       toast.error('Selected plan not found')
       return
@@ -140,7 +143,7 @@ export default function MembersPage() {
     
     renewMembershipMutation.mutate({
       memberId: selectedMemberForAction.id,
-      data: { membershipPlanId: selectedPlanId }
+      data: { gymMembershipPlanId: selectedPlanId }
     }, {
       onSuccess: async (result) => {
         toast.success(`Membership renewed successfully for ${memberName}!`, {
@@ -479,7 +482,7 @@ export default function MembersPage() {
               <div className="space-y-2">
                 <Label>Current Plan</Label>
                 <div className="p-3 bg-gray-50 rounded-md">
-                  <p className="font-medium text-gray-900">{selectedMemberForAction.gymSubscriptions[0].membershipPlan?.name}</p>
+                  <p className="font-medium text-gray-900">{selectedMemberForAction.gymSubscriptions[0].gymMembershipPlan?.name}</p>
                   <p className="text-sm text-gray-700">₱{selectedMemberForAction.gymSubscriptions[0].price}</p>
                   <p className="text-xs text-red-600">Expired: {new Date(selectedMemberForAction.gymSubscriptions[0].endDate).toLocaleDateString()}</p>
                 </div>
@@ -493,10 +496,10 @@ export default function MembersPage() {
                   <SelectValue placeholder="Select a membership plan" />
                 </SelectTrigger>
                 <SelectContent>
-                  {membershipPlans.length === 0 ? (
+                  {safeMembershipPlans.length === 0 ? (
                     <SelectItem value="no-plans" disabled>No membership plans available</SelectItem>
                   ) : (
-                    membershipPlans.map((plan) => (
+                    safeMembershipPlans.map((plan) => (
                       <SelectItem key={plan.id} value={plan.id}>
                         {plan.name} - ₱{plan.price} ({plan.duration} days)
                       </SelectItem>
@@ -509,13 +512,13 @@ export default function MembersPage() {
             {selectedPlanId && (
               <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                 <p className="text-sm text-green-800">
-                  <strong>Selected Plan:</strong> {membershipPlans.find(p => p.id === selectedPlanId)?.name}
+                  <strong>Selected Plan:</strong> {safeMembershipPlans.find(p => p.id === selectedPlanId)?.name}
                 </p>
                 <p className="text-sm text-green-700">
-                  Price: ₱{membershipPlans.find(p => p.id === selectedPlanId)?.price}
+                  Price: ₱{safeMembershipPlans.find(p => p.id === selectedPlanId)?.price}
                 </p>
                 <p className="text-sm text-green-700">
-                  Duration: {membershipPlans.find(p => p.id === selectedPlanId)?.duration} days
+                  Duration: {safeMembershipPlans.find(p => p.id === selectedPlanId)?.duration} days
                 </p>
               </div>
             )}
@@ -561,7 +564,7 @@ export default function MembersPage() {
               <div className="space-y-2">
                 <Label>Current Plan</Label>
                 <div className="p-3 bg-gray-50 rounded-md">
-                  <p className="font-medium text-gray-900">{selectedMemberForAction.gymSubscriptions[0].membershipPlan?.name}</p>
+                  <p className="font-medium text-gray-900">{selectedMemberForAction.gymSubscriptions[0].gymMembershipPlan?.name}</p>
                   <p className="text-sm text-gray-700">₱{selectedMemberForAction.gymSubscriptions[0].price}</p>
                   <p className="text-xs text-green-600">Valid until: {new Date(selectedMemberForAction.gymSubscriptions[0].endDate).toLocaleDateString()}</p>
                 </div>
@@ -651,7 +654,7 @@ export default function MembersPage() {
                   <p className="text-sm text-muted-foreground">{selectedMemberForTransactions?.email}</p>
                   {selectedMemberForTransactions.gymSubscriptions?.[0] && (
                     <p className="text-xs text-purple-600 font-medium">
-                      Current Plan: {selectedMemberForTransactions.gymSubscriptions[0].membershipPlan?.name} - ₱{selectedMemberForTransactions.gymSubscriptions[0].price}
+                      Current Plan: {selectedMemberForTransactions.gymSubscriptions[0].gymMembershipPlan?.name} - ₱{selectedMemberForTransactions.gymSubscriptions[0].price}
                     </p>
                   )}
                 </div>

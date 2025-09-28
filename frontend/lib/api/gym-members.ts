@@ -6,7 +6,7 @@ export interface MemberActionRequest {
 }
 
 export interface MemberRenewRequest {
-  membershipPlanId: string
+  gymMembershipPlanId: string
 }
 
 export interface MemberHistoryQuery {
@@ -62,7 +62,7 @@ export interface CreateGymMemberDto {
   emergencyContactName?: string
   emergencyContactPhone?: string
   emergencyContactRelation?: string
-  membershipPlanId?: string
+  gymMembershipPlanId?: string
   paymentMethod?: string
 }
 

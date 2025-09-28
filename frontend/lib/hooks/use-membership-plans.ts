@@ -18,8 +18,18 @@ export const useMembershipPlans = () => {
   return useQuery({
     queryKey: ['membership-plans'],
     queryFn: async () => {
-      const response = await getMembershipPlans()
-      return response.success ? response.data : []
+      try {
+        const response = await getMembershipPlans()
+        return response.success ? response.data : []
+      } catch (error) {
+        console.error('Failed to fetch membership plans:', error)
+        return []
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error) => {
+      // Retry up to 3 times for network errors
+      return failureCount < 3
     }
   })
 }

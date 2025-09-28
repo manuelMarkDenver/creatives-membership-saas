@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 
 export interface GymMemberSubscriptionRenewalData {
-  membershipPlanId: string
+  gymMembershipPlanId: string
   paymentMethod: string
 }
 
@@ -15,13 +15,13 @@ export interface GymSubscriptionResponse {
   subscription?: {
     id: string
     customerId: string
-    membershipPlanId: string
+    gymMembershipPlanId: string
     status: string
     startDate: string
     endDate: string
     price: number
     currency: string
-    membershipPlan: {
+    gymMembershipPlan: {
       id: string
       name: string
       price: number

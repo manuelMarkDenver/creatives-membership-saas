@@ -15,13 +15,13 @@ export interface GymMember {
 export interface GymSubscription {
   id: string
   customerId: string
-  membershipPlanId: string
+  gymMembershipPlanId: string
   status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING'
   startDate: string
   endDate: string
   price: number
   currency: string
-  membershipPlan: {
+  gymMembershipPlan: {
     id: string
     name: string
     price: number
@@ -68,7 +68,7 @@ interface GymSubscriptionsStore {
   loadCurrentSubscription: (memberId: string) => Promise<void>
   loadMemberTransactions: (memberId: string) => Promise<void>
   loadSubscriptionHistory: (memberId: string) => Promise<void>
-  renewMembership: (memberId: string, membershipPlanId: string, paymentMethod: string) => Promise<GymSubscriptionResponse | null>
+  renewMembership: (memberId: string, gymMembershipPlanId: string, paymentMethod: string) => Promise<GymSubscriptionResponse | null>
   cancelMembership: (memberId: string, reason?: string, notes?: string) => Promise<GymSubscriptionResponse | null>
   
   // Getters
@@ -132,13 +132,13 @@ export const useGymSubscriptionsStore = create<GymSubscriptionsStore>()(
             const transformedSubscription: GymSubscription = {
               id: response.subscription.id,
               customerId: response.subscription.customerId,
-              membershipPlanId: response.subscription.membershipPlanId,
+              gymMembershipPlanId: response.subscription.gymMembershipPlanId,
               status: response.subscription.status as 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING',
               startDate: response.subscription.startDate,
               endDate: response.subscription.endDate,
               price: response.subscription.price,
               currency: response.subscription.currency,
-              membershipPlan: response.subscription.membershipPlan,
+              gymMembershipPlan: response.subscription.gymMembershipPlan,
               customer: {
                 id: response.subscription.customer.id,
                 firstName: response.subscription.customer.firstName,
@@ -195,13 +195,13 @@ export const useGymSubscriptionsStore = create<GymSubscriptionsStore>()(
           const transformedHistory: GymSubscription[] = historyResponse.map(response => ({
             id: response.subscription?.id || '',
             customerId: response.subscription?.customerId || '',
-            membershipPlanId: response.subscription?.membershipPlanId || '',
+            gymMembershipPlanId: response.subscription?.gymMembershipPlanId || '',
             status: (response.subscription?.status as 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING') || 'PENDING',
             startDate: response.subscription?.startDate || '',
             endDate: response.subscription?.endDate || '',
             price: response.subscription?.price || 0,
             currency: response.subscription?.currency || '',
-            membershipPlan: response.subscription?.membershipPlan || {
+            gymMembershipPlan: response.subscription?.gymMembershipPlan || {
               id: '',
               name: '',
               price: 0,
@@ -232,11 +232,11 @@ export const useGymSubscriptionsStore = create<GymSubscriptionsStore>()(
       },
       
       // Renew membership
-      renewMembership: async (memberId: string, membershipPlanId: string, paymentMethod: string) => {
+      renewMembership: async (memberId: string, gymMembershipPlanId: string, paymentMethod: string) => {
         set({ isProcessingRenewal: true, renewalError: null })
         try {
           const response = await gymSubscriptionsApi.renewMembership(memberId, {
-            membershipPlanId,
+            gymMembershipPlanId,
             paymentMethod
           })
           

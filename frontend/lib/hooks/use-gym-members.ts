@@ -65,12 +65,12 @@ export function useGymMembersWithSubscriptions(tenantId: string, options?: { ena
               createdAt: sub.createdAt,
               price: sub.price,
               currency: sub.currency,
-              membershipPlan: sub.membershipPlan ? {
-                id: sub.membershipPlan.id,
-                name: sub.membershipPlan.name,
-                price: sub.membershipPlan.price,
-                duration: sub.membershipPlan.duration,
-                type: sub.membershipPlan.type,
+              gymMembershipPlan: sub.gymMembershipPlan ? {
+                id: sub.gymMembershipPlan.id,
+                name: sub.gymMembershipPlan.name,
+                price: sub.gymMembershipPlan.price,
+                duration: sub.gymMembershipPlan.duration,
+                type: sub.gymMembershipPlan.type,
               } : undefined
             }))
 

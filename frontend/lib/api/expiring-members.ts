@@ -3,7 +3,7 @@ import { apiClient } from './client'
 export interface ExpiringMember {
   id: string
   customerId: string
-  membershipPlanId: string
+  gymMembershipPlanId: string
   tenantId: string
   branchId?: string
   status: string
@@ -22,7 +22,7 @@ export interface ExpiringMember {
     phoneNumber?: string
     photoUrl?: string
   }
-  membershipPlan: {
+  gymMembershipPlan: {
     id: string
     name: string
     type: string
