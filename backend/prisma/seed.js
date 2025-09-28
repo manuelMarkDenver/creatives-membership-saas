@@ -684,6 +684,120 @@ async function main() {
   } else {
     console.log(`⏭️  Tenant already exists: ${tenantInfo.name}`);
   }
+  
+  // Always ensure GymMembershipPlan data exists for the tenant
+  const tenant = await prisma.tenant.findUnique({
+    where: { slug: tenantInfo.slug },
+    include: { gymMembershipPlans: true }
+  });
+  
+  if (!tenant) {
+    throw new Error('Tenant not found after creation check');
+  }
+  
+  // Check if gym membership plans exist for this tenant
+  if (tenant.gymMembershipPlans.length === 0) {
+    console.log(`🏋️ Creating gym membership plans for ${tenant.name}...`);
+    const gymMembershipPlans = [
+      {
+        name: 'Day Pass',
+        description: 'Single day gym access',
+        price: 150,
+        duration: 1,
+        type: 'DAY_PASS',
+        benefits: {
+          features: [
+            'Full gym access for 1 day',
+            'Use of all equipment',
+            'Locker access'
+          ]
+        }
+      },
+      {
+        name: 'Basic Monthly',
+        description: 'Standard monthly membership',
+        price: 1200,
+        duration: 30,
+        type: 'MONTHLY',
+        benefits: {
+          features: [
+            'Unlimited gym access',
+            'Group classes included',
+            'Locker access',
+            'Fitness assessment'
+          ]
+        }
+      },
+      {
+        name: 'Premium Monthly',
+        description: 'Premium monthly membership with PT sessions',
+        price: 2500,
+        duration: 30,
+        type: 'MONTHLY',
+        benefits: {
+          features: [
+            'Unlimited gym access',
+            'Group classes included',
+            '2 Personal Training sessions',
+            'Nutrition consultation',
+            'Towel service',
+            'Guest passes (2 per month)'
+          ]
+        }
+      },
+      {
+        name: 'Annual Basic',
+        description: 'Basic annual membership - save 2 months!',
+        price: 12000,
+        duration: 365,
+        type: 'ANNUAL',
+        benefits: {
+          features: [
+            'Unlimited gym access',
+            'Group classes included',
+            'Locker access',
+            'Quarterly fitness assessment',
+            '2 months free!'
+          ]
+        }
+      },
+      {
+        name: 'Student Monthly',
+        description: 'Discounted membership for students',
+        price: 800,
+        duration: 30,
+        type: 'STUDENT',
+        benefits: {
+          features: [
+            'Unlimited gym access',
+            'Group classes included',
+            'Student discount',
+            'Study area access'
+          ]
+        }
+      }
+    ];
+    
+    const createdGymPlans = [];
+    for (const planData of gymMembershipPlans) {
+       const gymPlan = await prisma.gymMembershipPlan.create({
+         data: {
+           tenantId: tenant.id,
+           name: planData.name,
+           description: planData.description,
+           price: planData.price,
+           duration: planData.duration,
+           type: planData.type,
+           benefits: planData.benefits,
+           isActive: true
+         }
+       });
+      createdGymPlans.push(gymPlan);
+      console.log(`✅ Created gym membership plan: ${gymPlan.name} (₱${gymPlan.price})`);
+    }
+  } else {
+    console.log(`⏭️  Gym membership plans already exist for ${tenant.name} (${tenant.gymMembershipPlans.length} plans)`);
+  }
 
   console.log('🎉 Simplified database seeding completed!');
   console.log('\n📋 Login Credentials:');
