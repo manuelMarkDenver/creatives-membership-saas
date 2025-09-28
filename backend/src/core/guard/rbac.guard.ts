@@ -142,8 +142,8 @@ export class RBACGuard implements CanActivate {
       throw new NotFoundException('User not found');
     }
 
-    // Use globalRole for platform-level permissions
-    user.role = (dbUser.globalRole as Role) || Role.CLIENT;
+    // Use role for platform-level permissions
+    user.role = (dbUser.role as Role) || Role.CLIENT;
     user.tenantId = dbUser.gymMemberProfile?.tenantId || null;
     user.branchAccess = dbUser.gymUserBranches.map((ub) => ({
       branchId: ub.branchId,

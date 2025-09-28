@@ -25,7 +25,8 @@ export class AuthGuard implements CanActivate {
 
       // Check for specific user email in bypass header
       const bypassUserEmail =
-        request.headers['x-bypass-user'] || request.headers['X-Bypass-User'];
+        request.headers['x-bypass-user'] || request.headers['X-Bypass-User'] ||
+        request.headers['x-bypass-auth'] || request.headers['X-Bypass-Auth'];
 
       let bypassUser: AuthenticatedUser;
 
@@ -43,7 +44,7 @@ export class AuthGuard implements CanActivate {
           bypassUser = {
             id: targetUser.id,
             email: targetUser.email || bypassUserEmail,
-            role: (targetUser.globalRole as Role) || Role.CLIENT,
+            role: (targetUser.role as Role) || Role.CLIENT,
             tenantId: targetUser.gymMemberProfile?.tenantId || null,
             branchAccess: targetUser.gymUserBranches.map((ub) => ({
               branchId: ub.branchId,
@@ -52,7 +53,7 @@ export class AuthGuard implements CanActivate {
               isPrimary: ub.isPrimary,
             })),
           };
-          console.log(`🔧 Bypass auth successful for: ${targetUser.email} (${targetUser.globalRole})`);
+          console.log(`🔧 Bypass auth successful for: ${targetUser.email} (${targetUser.role})`);
         } else {
           throw new UnauthorizedException(`Bypass user not found: ${bypassUserEmail}`);
         }
@@ -71,7 +72,7 @@ export class AuthGuard implements CanActivate {
           bypassUser = {
             id: ownerUser.id,
             email: ownerUser.email || 'owner@muscle-mania.com',
-            role: (ownerUser.globalRole as Role) || Role.OWNER,
+            role: (ownerUser.role as Role) || Role.OWNER,
             tenantId: ownerUser.gymMemberProfile?.tenantId || null,
             branchAccess: ownerUser.gymUserBranches.map((ub) => ({
               branchId: ub.branchId,
@@ -114,7 +115,7 @@ export class AuthGuard implements CanActivate {
       const authenticatedUser: AuthenticatedUser = {
         id: targetUser.id,
         email: targetUser.email || 'owner@muscle-mania.com',
-        role: (targetUser.globalRole as Role) || Role.OWNER,
+        role: (targetUser.role as Role) || Role.OWNER,
         tenantId: targetUser.gymMemberProfile?.tenantId || null,
         branchAccess: targetUser.gymUserBranches.map((ub) => ({
           branchId: ub.branchId,

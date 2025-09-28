@@ -57,7 +57,7 @@ async function main() {
         password: hashedPassword,
         firstName: 'Super',
         lastName: 'Admin',
-        globalRole: 'SUPER_ADMIN',
+        role: 'SUPER_ADMIN',
       },
     });
     
@@ -159,13 +159,13 @@ async function main() {
     
     // Create owner
     const hashedOwnerPassword = await bcrypt.hash(tenantInfo.owner.password, 12);
-      const owner = await prisma.user.create({
+        const owner = await prisma.user.create({
         data: {
           email: tenantInfo.owner.email,
           password: hashedOwnerPassword,
           firstName: tenantInfo.owner.firstName,
           lastName: tenantInfo.owner.lastName,
-          globalRole: 'OWNER',
+          role: 'OWNER',
           tenantId: tenant.id, // Set tenant context for owner
         }
       });
@@ -347,7 +347,7 @@ async function main() {
           password: hashedManagerPassword,
           firstName: 'Manager',
           lastName: 'Cruz',
-          globalRole: 'MANAGER',
+          role: 'MANAGER',
           tenantId: tenant.id, // Set tenant context for manager
         }
       });
@@ -497,7 +497,7 @@ async function main() {
             password: hashedMemberPassword,
             firstName: memberInfo.firstName,
             lastName: memberInfo.lastName,
-            globalRole: 'CLIENT', // Global role for end users
+            role: 'CLIENT', // Global role for end users
             tenantId: tenant.id, // Set tenant context for gym members
           }
         });

@@ -402,6 +402,23 @@ export function useDeactivateUser() {
   })
 }
 
+// Change user password mutation
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async ({ currentPassword, newPassword }: {
+      currentPassword: string;
+      newPassword: string;
+    }) => {
+      const { apiClient } = await import('../api/client')
+      const response = await apiClient.post('/auth/change-password', {
+        currentPassword,
+        newPassword,
+      })
+      return response.data
+    },
+  })
+}
+
 // Restore deleted user mutation
 export function useRestoreUser() {
   const queryClient = useQueryClient()

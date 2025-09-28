@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenants, useSystemStats } from '@/lib/hooks/use-tenants'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
@@ -8,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CollapsibleStatsOverview, type StatItem } from '@/components/ui/collapsible-stats-overview'
-import { Building2, Users, MapPin, Crown, TrendingUp, Activity, Plus, Globe } from 'lucide-react'
+import ChangePasswordModal from '@/components/modals/change-password-modal'
+import { Building2, Users, MapPin, Crown, TrendingUp, Activity, Plus, Globe, Key } from 'lucide-react'
 import Link from 'next/link'
 
 function SuperAdminDashboard() {
@@ -217,6 +219,7 @@ function SuperAdminDashboard() {
 }
 
 function OwnerDashboard() {
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const { data: profile } = useProfile()
   const { data: branchesData, isLoading: branchesLoading } = useBranchesByTenant(
     profile?.tenantId || ''
@@ -271,14 +274,24 @@ function OwnerDashboard() {
   return (
     <div className="space-y-4">
       {/* Header - Mobile Optimized */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-          <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-          Owner Dashboard
-        </h1>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          Welcome back, {profile?.firstName}! Here's your business overview.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
+            Owner Dashboard
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Welcome back, {profile?.firstName}! Here's your business overview.
+          </p>
+        </div>
+        <Button 
+          onClick={() => setChangePasswordOpen(true)}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          <Key className="w-4 h-4 mr-2" />
+          Change Password
+        </Button>
       </div>
 
       {/* Mobile-First Stats Overview */}
@@ -318,20 +331,37 @@ function OwnerDashboard() {
           </CardContent>
         </Card>
       )}
+      
+      {/* Change Password Modal */}
+      <ChangePasswordModal 
+        open={changePasswordOpen} 
+        onOpenChange={setChangePasswordOpen} 
+      />
     </div>
   )
 }
 
 function DefaultDashboard() {
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const { data: profile } = useProfile()
   
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome, {profile?.firstName}!
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome, {profile?.firstName}!
+          </p>
+        </div>
+        <Button 
+          onClick={() => setChangePasswordOpen(true)}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          <Key className="w-4 h-4 mr-2" />
+          Change Password
+        </Button>
       </div>
 
       <Card>
@@ -345,6 +375,12 @@ function DefaultDashboard() {
           <p>Here you can view analytics and reports based on your access level.</p>
         </CardContent>
       </Card>
+      
+      {/* Change Password Modal */}
+      <ChangePasswordModal 
+        open={changePasswordOpen} 
+        onOpenChange={setChangePasswordOpen} 
+      />
     </div>
   )
 }
