@@ -6,7 +6,6 @@ const BYPASS_AUTH = process.env.NODE_ENV === 'production'
   ? false
   : process.env.NEXT_PUBLIC_API_BYPASS_AUTH === 'true'
 
-console.log('🔧 API Client initialized - BYPASS_AUTH:', BYPASS_AUTH, 'NODE_ENV:', process.env.NODE_ENV, 'BYPASS_ENV:', process.env.NEXT_PUBLIC_API_BYPASS_AUTH)
 
 if (!API_URL) {
   throw new Error('NEXT_PUBLIC_API_URL is not defined')
@@ -36,25 +35,19 @@ apiClient.interceptors.request.use(
     let useBypass = false;
     let storedUser = null;
 
-    console.log('🔧 API Request:', config.url, 'BYPASS_AUTH:', BYPASS_AUTH);
-
     // Only check for stored auth on client side
     if (typeof window !== 'undefined') {
       try {
         const userData = localStorage.getItem('user_data');
         if (userData) {
           storedUser = JSON.parse(userData);
-          console.log('🔧 Found stored user:', storedUser?.email);
         }
         const storedToken = localStorage.getItem('auth_token');
-
-        console.log('🔧 Stored token exists:', !!storedToken);
 
         // Use bypass auth when BYPASS_AUTH is enabled (development mode)
         if (BYPASS_AUTH) {
           useBypass = true;
           config.headers['x-bypass-auth'] = 'true';
-          console.log('🔧 Using bypass auth for:', config.url);
         } else if (storedToken) {
           // Use real authentication token
           config.headers.Authorization = `Bearer ${storedToken}`;
@@ -101,20 +94,14 @@ apiClient.interceptors.request.use(
     // Add tenant header if available
     if (tenantId) {
       config.headers['x-tenant-id'] = tenantId;
-      console.log('🔧 Adding tenant header:', tenantId);
-    } else {
-      console.log('🔧 No tenant ID available');
     }
 
     // For bypass auth with specific user (if we have stored user email)
     if (useBypass) {
       if (storedUser?.email) {
         config.headers['x-bypass-user'] = storedUser.email;
-        console.log('🔧 Using stored user for bypass:', storedUser.email);
       } else {
-        // Default to owner for bypass auth
         config.headers['x-bypass-user'] = 'owner@muscle-mania.com';
-        console.log('🔧 Using default owner for bypass auth');
       }
     }
 
