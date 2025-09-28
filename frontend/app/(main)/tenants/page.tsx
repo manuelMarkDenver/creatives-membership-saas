@@ -655,18 +655,33 @@ export default function TenantsPage() {
                         className="border-amber-300 text-amber-700 hover:bg-amber-100"
                         onClick={async () => {
                           if (!selectedTenant) return
+                          console.log('Reset password clicked for tenant:', selectedTenant.id)
                           try {
                             const result = await resetOwnerPassword.mutateAsync(selectedTenant.id)
+                            console.log('Reset password result:', result)
+                            
+                            // Show the password prominently
                             toast.success(
-                              `Password reset for ${result.ownerEmail}! New password: ${result.tempPassword}`,
+                              `🔑 Password Reset Successful!`,
                               {
-                                duration: 15000,
-                                description: 'Please save this password and provide it to the tenant owner.'
+                                duration: 20000, // 20 seconds to give time to copy
+                                description: `Owner: ${result.ownerEmail}\nNew Password: ${result.tempPassword}\n\nPlease copy this password and share it securely with the tenant owner.`,
+                                action: {
+                                  label: 'Copy Password',
+                                  onClick: () => {
+                                    navigator.clipboard.writeText(result.tempPassword)
+                                    toast.success('Password copied to clipboard!')
+                                  }
+                                }
                               }
                             )
+                            
+                            // Also show an alert as backup
+                            alert(`PASSWORD RESET SUCCESSFUL\n\nOwner: ${result.ownerEmail}\nNew Password: ${result.tempPassword}\n\nPlease copy this password and provide it to the tenant owner.`)
+                            
                           } catch (error) {
                             console.error('Failed to reset password:', error)
-                            toast.error('Failed to reset owner password')
+                            toast.error('Failed to reset owner password: ' + (error as Error).message)
                           }
                         }}
                       >

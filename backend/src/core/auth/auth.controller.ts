@@ -27,6 +27,16 @@ class LoginDto {
   password: string;
 }
 
+class ChangePasswordDto {
+  @IsString()
+  @MinLength(6)
+  currentPassword: string;
+
+  @IsString()
+  @MinLength(8, { message: 'New password must be at least 8 characters long' })
+  newPassword: string;
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -295,5 +305,67 @@ export class AuthController {
         created_at: user.createdAt,
       },
     };
+  }
+
+  /**
+   * Change user password
+   * POST /auth/change-password
+   */
+  @Post('change-password')
+  @UseGuards(AuthGuard)
+  async changePassword(
+    @Req() request: Request,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    const authenticatedUser = (request as any).user;
+    const { currentPassword, newPassword } = changePasswordDto;
+
+    if (!authenticatedUser) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+
+    try {
+      // Get the user with password field
+      const user = await this.prisma.user.findUnique({
+        where: { id: authenticatedUser.id },
+      });
+
+      if (!user || !user.password) {
+        throw new UnauthorizedException('User not found or invalid account');
+      }
+
+      // Verify current password
+      const isCurrentPasswordValid = await bcrypt.compare(
+        currentPassword,
+        user.password,
+      );
+
+      if (!isCurrentPasswordValid) {
+        throw new UnauthorizedException('Current password is incorrect');
+      }
+
+      // Hash new password
+      const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+
+      // Update password in database
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedNewPassword,
+          updatedAt: new Date(),
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Password changed successfully',
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      console.error('Password change error:', error);
+      throw new InternalServerErrorException('Failed to change password');
+    }
   }
 }
