@@ -20,13 +20,6 @@ export interface MembershipPlan {
   }
 }
 
-export interface TenantPlanGroup {
-  id: string
-  tenantId: string
-  tenantName: string
-  tenantCategory: string
-  plans: MembershipPlan[]
-}
 
 export interface CreateMembershipPlanData {
   name: string
@@ -48,57 +41,52 @@ export interface UpdateMembershipPlanData {
   isActive?: boolean
 }
 
-// Get all membership plans for the current tenant
+// Get all gym membership plans for the current tenant
 export const getMembershipPlans = async (): Promise<ApiResponse<MembershipPlan[]>> => {
-  return fetchApi('/membership-plans')
+  return fetchApi('/gym/membership-plans')
 }
 
-// Get active membership plans for the current tenant
+// Get active gym membership plans for the current tenant
 export const getActiveMembershipPlans = async (): Promise<ApiResponse<MembershipPlan[]>> => {
-  return fetchApi('/membership-plans/active')
+  return fetchApi('/gym/membership-plans/active')
 }
 
-// Get all membership plans across all tenants (Super Admin only)
-export const getAllTenantMembershipPlans = async (): Promise<ApiResponse<TenantPlanGroup[]>> => {
-  return fetchApi('/membership-plans/system/all')
-}
-
-// Get membership plan statistics for the current tenant
+// Get gym membership plan statistics for the current tenant
 export const getMembershipPlanStats = async (): Promise<ApiResponse<any>> => {
-  return fetchApi('/membership-plans/stats')
+  return fetchApi('/gym/membership-plans/stats')
 }
 
-// Get a specific membership plan
+// Get a specific gym membership plan
 export const getMembershipPlan = async (id: string): Promise<ApiResponse<MembershipPlan>> => {
-  return fetchApi(`/membership-plans/${id}`)
+  return fetchApi(`/gym/membership-plans/${id}`)
 }
 
-// Create a new membership plan
+// Create a new gym membership plan
 export const createMembershipPlan = async (data: CreateMembershipPlanData): Promise<ApiResponse<MembershipPlan>> => {
-  return fetchApi('/membership-plans', {
+  return fetchApi('/gym/membership-plans', {
     method: 'POST',
     body: JSON.stringify(data)
   })
 }
 
-// Update a membership plan
+// Update a gym membership plan
 export const updateMembershipPlan = async (id: string, data: UpdateMembershipPlanData): Promise<ApiResponse<MembershipPlan>> => {
-  return fetchApi(`/membership-plans/${id}`, {
+  return fetchApi(`/gym/membership-plans/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data)
   })
 }
 
-// Toggle membership plan status (active/inactive)
+// Toggle gym membership plan status (active/inactive)
 export const toggleMembershipPlanStatus = async (id: string): Promise<ApiResponse<MembershipPlan>> => {
-  return fetchApi(`/membership-plans/${id}/toggle-status`, {
+  return fetchApi(`/gym/membership-plans/${id}/toggle-status`, {
     method: 'PATCH'
   })
 }
 
-// Delete a membership plan
+// Delete a gym membership plan
 export const deleteMembershipPlan = async (id: string): Promise<ApiResponse<void>> => {
-  return fetchApi(`/membership-plans/${id}`, {
+  return fetchApi(`/gym/membership-plans/${id}`, {
     method: 'DELETE'
   })
 }

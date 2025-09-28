@@ -3,6 +3,7 @@
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenants, useSystemStats } from '@/lib/hooks/use-tenants'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
+import { formatPHPCompact } from '@/lib/utils/currency'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -66,7 +67,7 @@ function SuperAdminDashboard() {
     {
       key: 'revenue',
       label: 'Revenue',
-      value: `₱${(stats.totalRevenue / 100).toFixed(0)}`,
+      value: formatPHPCompact(stats.totalRevenue / 100),
       icon: TrendingUp,
       color: 'text-indigo-700 dark:text-indigo-400',
       description: 'All time earnings'

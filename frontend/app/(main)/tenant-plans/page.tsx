@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenants } from '@/lib/hooks/use-tenants'
-import { useAllTenantMembershipPlans } from '@/lib/hooks/use-membership-plans'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -88,7 +87,9 @@ const mockTenantPlans = [
 export default function TenantPlansPage() {
   const { data: profile } = useProfile()
   const { data: tenantsData, isLoading: tenantsLoading } = useTenants()
-  const { data: tenantPlans, isLoading: plansLoading } = useAllTenantMembershipPlans()
+  // Using mock data for now since this is a super admin feature not yet fully implemented
+  const tenantPlans = mockTenantPlans
+  const plansLoading = false
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTenant, setSelectedTenant] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
@@ -109,8 +110,8 @@ export default function TenantPlansPage() {
   }
 
   // Flatten all plans from all tenants for display
-  const allPlans = (tenantPlans || []).flatMap(tenant => 
-    tenant.plans.map(plan => ({
+  const allPlans = (tenantPlans || []).flatMap((tenant: any) => 
+    tenant.plans.map((plan: any) => ({
       ...plan,
       tenantId: tenant.tenantId,
       tenantName: tenant.tenantName,
@@ -292,7 +293,7 @@ export default function TenantPlansPage() {
                       
                       {/* Benefits */}
                       <div className="flex flex-wrap gap-1">
-                        {(plan.benefits || []).slice(0, 3).map((benefit, index) => (
+                        {(plan.benefits || []).slice(0, 3).map((benefit: string, index: number) => (
                           <Badge key={index} variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
                             {benefit}
                           </Badge>

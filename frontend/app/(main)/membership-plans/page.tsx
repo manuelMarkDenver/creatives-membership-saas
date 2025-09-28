@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useProfile } from '@/lib/hooks/use-gym-users'
-import { useActiveMembershipPlans, useCreateMembershipPlan, useUpdateMembershipPlan, useDeleteMembershipPlan } from '@/lib/hooks/use-membership-plans'
+import { useMembershipPlans, useCreateMembershipPlan, useUpdateMembershipPlan, useDeleteMembershipPlan, useToggleMembershipPlanStatus } from '@/lib/hooks/use-membership-plans'
+import { formatPHPCompact } from '@/lib/utils/currency'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,8 +12,7 @@ import { CollapsibleStatsOverview, type StatItem } from '@/components/ui/collaps
 import { 
   CreditCard, 
   Search, 
-  Plus, 
-  DollarSign,
+  Plus,
   Calendar,
   Star,
   MoreHorizontal,
@@ -56,14 +56,16 @@ const membershipTypes = [
 
 export default function MembershipPlansPage() {
   const { data: profile } = useProfile()
-  const { data: membershipPlans = [], isLoading, error } = useActiveMembershipPlans()
+  const { data: membershipPlans = [], isLoading, error } = useMembershipPlans()
   const createMembershipPlanMutation = useCreateMembershipPlan()
   const updateMembershipPlanMutation = useUpdateMembershipPlan()
   const deleteMembershipPlanMutation = useDeleteMembershipPlan()
+  const toggleMembershipPlanStatusMutation = useToggleMembershipPlanStatus()
   
   
   const [searchTerm, setSearchTerm] = useState('')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<any>(null)
   const [formData, setFormData] = useState({
@@ -98,8 +100,7 @@ export default function MembershipPlansPage() {
     total: membershipPlans.length,
     active: membershipPlans.filter(p => p.isActive).length,
     inactive: membershipPlans.filter(p => !p.isActive).length,
-    totalMembers: membershipPlans.reduce((sum, plan) => sum + (plan.memberCount || 0), 0),
-    avgPrice: membershipPlans.length > 0 ? membershipPlans.reduce((sum, plan) => sum + plan.price, 0) / membershipPlans.length : 0
+    totalMembers: membershipPlans.reduce((sum, plan) => sum + (plan.memberCount || 0), 0)
   }
 
   // Prepare stats for mobile-first layout
@@ -135,14 +136,6 @@ export default function MembershipPlansPage() {
       icon: Users,
       color: 'text-blue-700 dark:text-blue-400',
       description: 'Total subscribers'
-    },
-    {
-      key: 'avgPrice',
-      label: 'Avg Price',
-      value: `₱${Math.round(stats.avgPrice)}`,
-      icon: DollarSign,
-      color: 'text-purple-700 dark:text-purple-400',
-      description: 'Average plan price'
     }
   ]
 
@@ -154,35 +147,170 @@ export default function MembershipPlansPage() {
   ]
 
   const handleCreatePlan = async () => {
-    // TODO: Implement API call to create membership plan
-    console.log('Creating plan:', formData)
-    setCreateDialogOpen(false)
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      duration: '',
-      type: 'MONTHLY',
-      benefits: [''],
-      isActive: true
-    })
+    try {
+      // Validate required fields
+      if (!formData.name.trim()) {
+        toast.error('Plan name is required')
+        return
+      }
+      if (!formData.price || parseFloat(formData.price) <= 0) {
+        toast.error('Plan price must be greater than 0')
+        return
+      }
+      if (!formData.duration || parseInt(formData.duration) <= 0) {
+        toast.error('Plan duration must be greater than 0 days')
+        return
+      }
+
+      // Filter out empty benefits
+      const validBenefits = formData.benefits.filter(benefit => benefit.trim() !== '')
+
+      const planData = {
+        name: formData.name.trim(),
+        description: formData.description.trim() || undefined,
+        price: parseFloat(formData.price),
+        duration: parseInt(formData.duration),
+        type: formData.type,
+        benefits: validBenefits.length > 0 ? validBenefits : undefined,
+        isActive: formData.isActive
+      }
+
+      const response = await createMembershipPlanMutation.mutateAsync(planData)
+      
+      if (response.success) {
+        toast.success('Membership plan created successfully')
+        setCreateDialogOpen(false)
+        setFormData({
+          name: '',
+          description: '',
+          price: '',
+          duration: '',
+          type: 'MONTHLY',
+          benefits: [''],
+          isActive: true
+        })
+      } else {
+        toast.error(response.message || 'Failed to create membership plan')
+      }
+    } catch (error: any) {
+      console.error('Error creating membership plan:', error)
+      toast.error(error.response?.data?.message || 'Failed to create membership plan')
+    }
+  }
+
+  const handleEditPlan = async () => {
+    if (!selectedPlan) return
+    
+    try {
+      // Validate required fields
+      if (!formData.name.trim()) {
+        toast.error('Plan name is required')
+        return
+      }
+      if (!formData.price || parseFloat(formData.price) <= 0) {
+        toast.error('Plan price must be greater than 0')
+        return
+      }
+      if (!formData.duration || parseInt(formData.duration) <= 0) {
+        toast.error('Plan duration must be greater than 0 days')
+        return
+      }
+
+      // Filter out empty benefits
+      const validBenefits = formData.benefits.filter(benefit => benefit.trim() !== '')
+
+      const planData = {
+        name: formData.name.trim(),
+        description: formData.description.trim() || undefined,
+        price: parseFloat(formData.price),
+        duration: parseInt(formData.duration),
+        type: formData.type,
+        benefits: validBenefits.length > 0 ? validBenefits : undefined,
+        isActive: formData.isActive
+      }
+
+      const response = await updateMembershipPlanMutation.mutateAsync({ 
+        id: selectedPlan.id, 
+        data: planData 
+      })
+      
+      if (response.success) {
+        toast.success('Membership plan updated successfully')
+        setEditDialogOpen(false)
+        setSelectedPlan(null)
+        setFormData({
+          name: '',
+          description: '',
+          price: '',
+          duration: '',
+          type: 'MONTHLY',
+          benefits: [''],
+          isActive: true
+        })
+      } else {
+        toast.error(response.message || 'Failed to update membership plan')
+      }
+    } catch (error: any) {
+      console.error('Error updating membership plan:', error)
+      toast.error(error.response?.data?.message || 'Failed to update membership plan')
+    }
   }
 
   const handleDeletePlan = async () => {
-    // TODO: Implement API call to delete membership plan
-    console.log('Deleting plan:', selectedPlan?.id)
-    setDeleteDialogOpen(false)
-    setSelectedPlan(null)
+    if (!selectedPlan) return
+    
+    try {
+      const response = await deleteMembershipPlanMutation.mutateAsync(selectedPlan.id)
+      
+      if (response.success) {
+        toast.success('Membership plan deleted successfully')
+      } else {
+        toast.error(response.message || 'Failed to delete membership plan')
+      }
+    } catch (error: any) {
+      console.error('Error deleting membership plan:', error)
+      const errorMessage = error.response?.data?.message || 'Failed to delete membership plan'
+      toast.error(errorMessage)
+    } finally {
+      setDeleteDialogOpen(false)
+      setSelectedPlan(null)
+    }
   }
 
-  const togglePlanStatus = (planId: string) => {
-    // TODO: Implement API call to toggle plan status
-    console.log('Toggling status for plan:', planId)
+  const togglePlanStatus = async (planId: string) => {
+    try {
+      const response = await toggleMembershipPlanStatusMutation.mutateAsync(planId)
+      
+      if (response.success) {
+        const plan = membershipPlans.find(p => p.id === planId)
+        const newStatus = plan?.isActive ? 'deactivated' : 'activated'
+        toast.success(`Membership plan ${newStatus} successfully`)
+      } else {
+        toast.error(response.message || 'Failed to toggle plan status')
+      }
+    } catch (error: any) {
+      console.error('Error toggling plan status:', error)
+      toast.error(error.response?.data?.message || 'Failed to toggle plan status')
+    }
   }
 
   const openDeleteDialog = (plan: any) => {
     setSelectedPlan(plan)
     setDeleteDialogOpen(true)
+  }
+
+  const openEditDialog = (plan: any) => {
+    setSelectedPlan(plan)
+    setFormData({
+      name: plan.name,
+      description: plan.description || '',
+      price: plan.price.toString(),
+      duration: plan.duration.toString(),
+      type: plan.type,
+      benefits: Array.isArray(plan.benefits) ? plan.benefits : [''],
+      isActive: plan.isActive
+    })
+    setEditDialogOpen(true)
   }
 
   const addBenefit = () => {
@@ -295,7 +423,7 @@ export default function MembershipPlansPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditDialog(plan)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Plan
                           </DropdownMenuItem>
@@ -372,7 +500,7 @@ export default function MembershipPlansPage() {
                     {/* Price and Stats */}
                     <div className="flex items-end justify-between">
                       <div>
-                        <div className="text-3xl font-bold text-green-600">₱{plan.price}</div>
+                        <div className="text-3xl font-bold text-green-600">{formatPHPCompact(plan.price)}</div>
                         <p className="text-sm text-muted-foreground">
                           {plan.duration === 1 ? 'per day' : `per ${plan.duration} days`}
                         </p>
@@ -446,15 +574,19 @@ export default function MembershipPlansPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="price">Price (₱) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData({...formData, price: e.target.value})}
-                  placeholder="1200"
-                  required
-                />
+                <Label htmlFor="price">Price (Philippine Peso) *</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₱</span>
+                  <Input
+                    id="price"
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({...formData, price: e.target.value})}
+                    placeholder="1,200"
+                    className="pl-8"
+                    required
+                  />
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="duration">Duration (days) *</Label>
@@ -528,6 +660,163 @@ export default function MembershipPlansPage() {
             >
               <Plus className="w-4 h-4 mr-2" />
               Create Plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Plan Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-blue-500" />
+              Edit Membership Plan
+            </DialogTitle>
+            <DialogDescription>
+              Update the details of "{selectedPlan?.name}".
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4 max-h-96 overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Plan Name *</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  placeholder="e.g., Premium Monthly"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-type">Plan Type *</Label>
+                <select
+                  id="edit-type"
+                  value={formData.type}
+                  onChange={(e) => setFormData({...formData, type: e.target.value})}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800"
+                >
+                  {membershipTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                placeholder="Brief description of this membership plan"
+                rows={2}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-price">Price (Philippine Peso) *</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₱</span>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({...formData, price: e.target.value})}
+                    placeholder="1,200"
+                    className="pl-8"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-duration">Duration (days) *</Label>
+                <Input
+                  id="edit-duration"
+                  type="number"
+                  value={formData.duration}
+                  onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                  placeholder="30"
+                  required
+                />
+              </div>
+            </div>
+            
+            {/* Benefits */}
+            <div className="grid gap-2">
+              <Label>Benefits</Label>
+              {formData.benefits.map((benefit, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    value={benefit}
+                    onChange={(e) => updateBenefit(index, e.target.value)}
+                    placeholder="e.g., Unlimited gym access"
+                  />
+                  {formData.benefits.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeBenefit(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addBenefit}
+                className="w-fit"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Benefit
+              </Button>
+            </div>
+
+            {/* Active Status */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="edit-active"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <Label htmlFor="edit-active">Plan is active</Label>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setEditDialogOpen(false)
+                setSelectedPlan(null)
+                setFormData({
+                  name: '',
+                  description: '',
+                  price: '',
+                  duration: '',
+                  type: 'MONTHLY',
+                  benefits: [''],
+                  isActive: true
+                })
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleEditPlan}
+              disabled={!formData.name || !formData.price || !formData.duration}
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Update Plan
             </Button>
           </DialogFooter>
         </DialogContent>
