@@ -86,8 +86,10 @@
 ### ✅ **COMPLETED & FUNCTIONAL**
 - **Membership Plans** - Full CRUD with Philippine peso formatting
 - **Dashboard** - System overview with proper currency display
-- **Authentication** - Login/logout functionality
+- **Authentication** - Login/logout functionality + **FIXED role field issues**
+- **Tenant Owner Management** - Password reset and owner access working
 - **Multi-tenant Architecture** - Tenant isolation and role-based access
+- **Member Access** - Owners can view their tenant's gym members
 
 ### 🔨 **IN PROGRESS / TO BE REVIEWED**
 - **Members Management** - Existing functionality needs review
@@ -171,6 +173,9 @@ formatPHPWithUnits(1500000) // → ₱1.5M
 - ~~Currency formatting inconsistencies~~ → **FIXED**
 - ~~Backend TypeScript compilation errors~~ → **FIXED**
 - ~~Plan creation validation error~~ → **FIXED** (Sep 28, 2025)
+- ~~Tenant owner password reset not working~~ → **FIXED** (Sep 28, 2025)
+- ~~Role field mismatch in authentication~~ → **FIXED** (Sep 28, 2025)
+- ~~Can't see gym members as tenant owner~~ → **FIXED** (Sep 28, 2025)
 
 ---
 
@@ -221,5 +226,6 @@ formatPHPWithUnits(1500000) // → ₱1.5M
 
 ---
 
-*Last Updated: September 28, 2025*
-*Status: Membership Plans Module - ✅ COMPLETED*
+*Last Updated: September 28, 2025 - 23:05 UTC*
+*Status: Authentication & Tenant Management - ✅ COMPLETED*
+*Recent Fix: Role field mismatch resolved, password reset working, member access restored*
