@@ -17,7 +17,7 @@ import {
 // Get all membership plans for current tenant
 export const useMembershipPlans = () => {
   const queryResult = useQuery({
-    queryKey: ['membership-plans-v4'], // Completely fresh cache key
+    queryKey: ['membership-plans'],
     queryFn: async () => {
       try {
         const response = await getMembershipPlans()
@@ -137,7 +137,6 @@ export const useCreateMembershipPlan = () => {
       return response
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['membership-plans-v4'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
     }
   })
@@ -151,7 +150,6 @@ export const useUpdateMembershipPlan = () => {
     mutationFn: ({ id, data }: { id: string; data: UpdateMembershipPlanData }) => 
       updateMembershipPlan(id, data),
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ['membership-plans-v4'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans', id] })
     }
@@ -168,7 +166,6 @@ export const useToggleMembershipPlanStatus = () => {
       return response
     },
     onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['membership-plans-v4'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans', id] })
     }
@@ -185,7 +182,6 @@ export const useDeleteMembershipPlan = () => {
       return response
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['membership-plans-v4'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
     }
   })
