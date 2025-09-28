@@ -375,6 +375,8 @@ export class GymMembershipPlansService {
     deleteDto: SoftDeleteGymMembershipPlanDto,
   ) {
     try {
+      this.logger.log(`Starting softDelete for plan ${id}, tenant ${tenantId}, deletedBy ${deletedBy}`);
+      
       if (!this.isValidUUID(id)) {
         throw new BadRequestException('Invalid plan ID format');
       }
@@ -383,39 +385,66 @@ export class GymMembershipPlansService {
         throw new BadRequestException('Invalid user ID format');
       }
 
-      // Verify the plan exists and is not already deleted
-      const existingPlan = await this.findOne(id, tenantId, false);
-
-      if (existingPlan.data.isDeleted) {
-        throw new BadRequestException('Membership plan is already deleted');
+      // Direct query to avoid issues with findOne method
+      const existingPlan = await this.prisma.gymMembershipPlan.findFirst({
+        where: { id, tenantId, deletedAt: null },
+        select: { id: true, name: true, isActive: true }
+      });
+      
+      if (!existingPlan) {
+        throw new NotFoundException('Gym membership plan not found');
       }
+      
+      this.logger.log(`Found plan to delete: ${existingPlan.name}`);
+      
+      // Plan is guaranteed to not be deleted due to our query above
 
       // Check if any active subscriptions are using this plan
-      const activeSubscriptions = await this.prisma.gymMemberSubscription.findFirst({
+      this.logger.log(`Checking for active subscriptions for plan ${id}`);
+      
+      const activeSubscriptionsCount = await this.prisma.gymMemberSubscription.count({
         where: {
           gymMembershipPlanId: id,
           tenantId,
           status: 'ACTIVE',
           cancelledAt: null,
-        },
-        include: {
-          member: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
-        },
+        }
       });
 
-      if (activeSubscriptions) {
+      this.logger.log(`Found ${activeSubscriptionsCount} active subscriptions for plan ${id}`);
+
+      if (activeSubscriptionsCount > 0) {
+        // Get the first active subscription for error message
+        const activeSubscription = await this.prisma.gymMemberSubscription.findFirst({
+          where: {
+            gymMembershipPlanId: id,
+            tenantId,
+            status: 'ACTIVE',
+            cancelledAt: null,
+          },
+          include: {
+            member: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        });
+        
+        const memberInfo = activeSubscription?.member 
+          ? `${activeSubscription.member.firstName} ${activeSubscription.member.lastName} (${activeSubscription.member.email})`
+          : 'Unknown member';
+          
         throw new ConflictException(
-          `Cannot delete gym membership plan that has active subscriptions. Member: ${activeSubscriptions.member.firstName} ${activeSubscriptions.member.lastName} (${activeSubscriptions.member.email}) has an active subscription using this plan.`,
+          `Cannot delete gym membership plan that has active subscriptions. Member: ${memberInfo} has an active subscription using this plan.`,
         );
       }
 
       // Soft delete the plan
+      this.logger.log(`Performing soft delete for plan ${id}`);
+      
       const deletedPlan = await this.prisma.gymMembershipPlan.update({
         where: { id },
         data: {
@@ -447,17 +476,33 @@ export class GymMembershipPlansService {
         `Soft deleted gym membership plan: ${deletedPlan.name} (${id}) by user ${deletedBy}`,
       );
 
-      return {
+      // Safe benefits parsing
+      let parsedBenefits = [];
+      if (deletedPlan.benefits) {
+        try {
+          if (typeof deletedPlan.benefits === 'string') {
+            parsedBenefits = JSON.parse(deletedPlan.benefits);
+          } else if (typeof deletedPlan.benefits === 'object') {
+            parsedBenefits = deletedPlan.benefits;
+          }
+        } catch (parseError) {
+          this.logger.warn(`Failed to parse benefits for deleted plan ${id}:`, parseError);
+          parsedBenefits = [];
+        }
+      }
+
+      const result = {
         success: true,
         message: 'Membership plan deleted successfully',
         data: {
           ...deletedPlan,
-          benefits: deletedPlan.benefits
-            ? JSON.parse(deletedPlan.benefits as string)
-            : [],
+          benefits: parsedBenefits,
           isDeleted: true,
         },
       };
+      
+      this.logger.log(`Soft delete completed successfully for plan ${id}`);
+      return result;
     } catch (error) {
       if (
         error instanceof BadRequestException ||

@@ -84,9 +84,13 @@ export const toggleMembershipPlanStatus = async (id: string): Promise<ApiRespons
   })
 }
 
-// Delete a gym membership plan
-export const deleteMembershipPlan = async (id: string): Promise<ApiResponse<void>> => {
-  return fetchApi(`/gym/membership-plans/${id}`, {
-    method: 'DELETE'
+// Delete a gym membership plan (soft delete)
+export const deleteMembershipPlan = async (id: string, reason?: string): Promise<ApiResponse<void>> => {
+  return fetchApi(`/gym/membership-plans/${id}/soft-delete`, {
+    method: 'POST',
+    body: JSON.stringify({
+      reason: reason || 'Deleted by user',
+      notes: 'Soft deleted via frontend interface'
+    })
   })
 }
