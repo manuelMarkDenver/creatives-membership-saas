@@ -10,8 +10,10 @@ import { useUpdateFreeBranchOverride } from '@/lib/hooks/use-subscription'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenantContext } from '@/lib/providers/tenant-context'
 import { Tenant } from '@/types'
-import { MoreHorizontal, Plus, Edit, Trash2, Crown, Gift, LogIn, ExternalLink } from 'lucide-react'
+import { MoreHorizontal, Plus, Edit, Trash2, Crown, Gift, LogIn, ExternalLink, Building2, User, Palette, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Separator } from '@/components/ui/separator'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,9 +32,23 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import CreateTenantForm from '@/components/forms/create-tenant-form'
 import { CreateTenantFormData } from '@/lib/schemas/tenant-schema'
 import { toast } from 'sonner'
+
+const businessCategories = [
+  { value: 'GYM', label: 'Gym & Fitness' },
+  { value: 'COFFEE_SHOP', label: 'Coffee Shop' },
+  { value: 'ECOMMERCE', label: 'E-commerce' },
+  { value: 'OTHER', label: 'Other' },
+]
 
 export default function TenantsPage() {
   const { data: profile } = useProfile()
@@ -43,7 +59,20 @@ export default function TenantsPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null)
   const [overrideValue, setOverrideValue] = useState(0)
-  const [editFormData, setEditFormData] = useState({ name: '', description: '' })
+  const [editFormData, setEditFormData] = useState({
+    // Basic Information
+    name: '',
+    description: '',
+    address: '',
+    phoneNumber: '',
+    email: '',
+    websiteUrl: '',
+    category: '',
+    // Branding
+    logoUrl: '',
+    primaryColor: '',
+    secondaryColor: ''
+  })
 
   // All hooks must be called before any conditional returns
   const { data: tenantsData, isLoading } = useTenants()
@@ -102,8 +131,18 @@ export default function TenantsPage() {
   const openEditDialog = (tenant: Tenant) => {
     setSelectedTenant(tenant)
     setEditFormData({
+      // Basic Information
       name: tenant.name,
-      description: tenant.description || ''
+      description: tenant.description || '',
+      address: tenant.address || '',
+      phoneNumber: tenant.phoneNumber || '',
+      email: tenant.email || '',
+      websiteUrl: tenant.websiteUrl || '',
+      category: tenant.category || 'GYM',
+      // Branding
+      logoUrl: tenant.logoUrl || '',
+      primaryColor: tenant.primaryColor || '',
+      secondaryColor: tenant.secondaryColor || ''
     })
     setEditDialogOpen(true)
   }
@@ -112,12 +151,22 @@ export default function TenantsPage() {
     if (!selectedTenant) return
     
     try {
+      const updateData = {
+        name: editFormData.name.trim(),
+        description: editFormData.description.trim() || undefined,
+        address: editFormData.address.trim() || undefined,
+        phoneNumber: editFormData.phoneNumber.trim() || undefined,
+        email: editFormData.email.trim() || undefined,
+        websiteUrl: editFormData.websiteUrl.trim() || undefined,
+        category: editFormData.category,
+        logoUrl: editFormData.logoUrl.trim() || undefined,
+        primaryColor: editFormData.primaryColor.trim() || undefined,
+        secondaryColor: editFormData.secondaryColor.trim() || undefined
+      }
+      
       await updateTenant.mutateAsync({
         id: selectedTenant.id,
-        data: {
-          name: editFormData.name.trim(),
-          description: editFormData.description.trim() || undefined,
-        }
+        data: updateData
       })
       toast.success(`Updated tenant: ${editFormData.name}`)
       setEditDialogOpen(false)
@@ -337,37 +386,161 @@ export default function TenantsPage() {
 
       {/* Edit Tenant Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5 text-blue-500" />
               Edit Tenant Details
             </DialogTitle>
             <DialogDescription>
-              Update the basic information for {selectedTenant?.name}.
+              Update the complete details for {selectedTenant?.name}.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">Tenant Name *</Label>
-              <Input
-                id="edit-name"
-                value={editFormData.name}
-                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                placeholder="Enter tenant name"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={editFormData.description}
-                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                placeholder="Enter tenant description"
-                rows={3}
-              />
-            </div>
+          <div className="py-4">
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="branding">Branding</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="basic" className="space-y-6 mt-6">
+                <div className="grid gap-6">
+                  {/* Name */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-name">Tenant Name *</Label>
+                    <Input
+                      id="edit-name"
+                      placeholder="Enter tenant name"
+                      value={editFormData.name}
+                      onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-description">Description</Label>
+                    <Textarea
+                      id="edit-description"
+                      placeholder="Enter tenant description"
+                      value={editFormData.description}
+                      onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                      className="min-h-[100px] resize-none"
+                    />
+                  </div>
+
+                  {/* Address */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-address">Address</Label>
+                    <Input
+                      id="edit-address"
+                      placeholder="Enter business address"
+                      value={editFormData.address}
+                      onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Phone and Email */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-phoneNumber">Phone Number</Label>
+                      <Input
+                        id="edit-phoneNumber"
+                        placeholder="Enter phone number"
+                        value={editFormData.phoneNumber}
+                        onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-email">Email</Label>
+                      <Input
+                        id="edit-email"
+                        type="email"
+                        placeholder="Enter email address"
+                        value={editFormData.email}
+                        onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Website and Category */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-websiteUrl">Website URL</Label>
+                      <Input
+                        id="edit-websiteUrl"
+                        placeholder="https://example.com"
+                        value={editFormData.websiteUrl}
+                        onChange={(e) => setEditFormData({ ...editFormData, websiteUrl: e.target.value })}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-category">Business Category *</Label>
+                      <Select
+                        value={editFormData.category}
+                        onValueChange={(value) => setEditFormData({ ...editFormData, category: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {businessCategories.map((category) => (
+                            <SelectItem key={category.value} value={category.value}>
+                              {category.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="branding" className="space-y-6 mt-6">
+                <div className="grid gap-6">
+                  {/* Logo URL */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-logoUrl">Logo URL</Label>
+                    <Input
+                      id="edit-logoUrl"
+                      placeholder="https://example.com/logo.png"
+                      value={editFormData.logoUrl}
+                      onChange={(e) => setEditFormData({ ...editFormData, logoUrl: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Colors */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-primaryColor">Primary Color</Label>
+                      <Input
+                        id="edit-primaryColor"
+                        placeholder="#000000"
+                        value={editFormData.primaryColor}
+                        onChange={(e) => setEditFormData({ ...editFormData, primaryColor: e.target.value })}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-secondaryColor">Secondary Color</Label>
+                      <Input
+                        id="edit-secondaryColor"
+                        placeholder="#ffffff"
+                        value={editFormData.secondaryColor}
+                        onChange={(e) => setEditFormData({ ...editFormData, secondaryColor: e.target.value })}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <DialogFooter className="gap-2">
