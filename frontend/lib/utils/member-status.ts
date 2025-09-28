@@ -29,7 +29,14 @@ export interface MemberData {
   firstName?: string
   lastName?: string
   email: string
-  deletedAt?: string | null
+  deletedAt?: string | null  // Keep for backwards compatibility
+  gymMemberProfile?: {
+    id: string
+    deletedAt?: string | null
+    deletedBy?: string | null
+    deletionReason?: string | null
+    deletionNotes?: string | null
+  } | null
   gymSubscriptions?: Array<{
     id: string
     status: string
@@ -47,13 +54,13 @@ export interface MemberData {
  */
 export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus {
 
-  // Check if user account is deleted (soft delete)
-  const isDeleted = Boolean(member.deletedAt)
-  if (isDeleted) {
+  // Check if gym member is deleted at gym level (gym-specific soft delete)
+  const isGymDeleted = Boolean(member.gymMemberProfile?.deletedAt)
+  if (isGymDeleted) {
     return {
       canAccessFacilities: false,
       displayStatus: 'DELETED',
-      primaryIssue: 'Account deleted',
+      primaryIssue: 'Member deleted from gym',
       statusColor: 'gray',
       statusIcon: 'trash'
     }
@@ -266,11 +273,11 @@ export function filterMembersByStatus(
         
       case 'expired':
         // Show members who are truly expired (their display status is EXPIRED)
-        return status.displayStatus === 'EXPIRED' && !Boolean(member.deletedAt)
+        return status.displayStatus === 'EXPIRED' && !Boolean(member.gymMemberProfile?.deletedAt)
         
       case 'expiring':
         // Show members who are expiring (their display status is EXPIRING)
-        return status.displayStatus === 'EXPIRING' && !Boolean(member.deletedAt)
+        return status.displayStatus === 'EXPIRING' && !Boolean(member.gymMemberProfile?.deletedAt)
         
       case 'cancelled':
         return status.displayStatus === 'CANCELLED'
@@ -292,8 +299,8 @@ export function filterMembersByStatus(
  * This matches the backend logic that includes BOTH expiring AND recently expired members
  */
 export function isMemberConsideredExpiring(member: MemberData, daysBefore: number = 7): boolean {
-  // Must not be deleted
-  if (member.deletedAt) {
+  // Must not be deleted at gym level
+  if (member.gymMemberProfile?.deletedAt) {
     return false
   }
   

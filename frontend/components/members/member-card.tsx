@@ -102,8 +102,8 @@ export function MemberCard({
   const isExpired = subscription && new Date(subscription.endDate) < new Date()
   const daysRemaining = subscription ? Math.ceil((new Date(subscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null
   
-  // Check if member is deleted
-  const isDeleted = Boolean(member.deletedAt)
+  // Check if member is deleted at gym level (gym-specific soft delete)
+  const isDeleted = Boolean(member.gymMemberProfile?.deletedAt)
 
   // These handlers are no longer used - actions go through MemberActionsModal
   const handleActivateMember = async () => {

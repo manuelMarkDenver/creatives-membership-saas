@@ -251,6 +251,7 @@ export interface GymMemberProfile {
    medicalConditions?: string
   fitnessGoals?: string
   preferredTrainer?: string
+  trainerContactNumber?: string
   // Profile fields
   gender?: string
   height?: number
@@ -267,6 +268,11 @@ export interface GymMemberProfile {
   // Historical data
   membershipHistory?: any // JSON field for past memberships
   profileMetadata?: any // JSON field for additional dynamic data
+  // Gym-level soft deletion fields
+  deletedAt?: string
+  deletedBy?: string
+  deletionReason?: string
+  deletionNotes?: string
   createdAt: string
   updatedAt: string
 }

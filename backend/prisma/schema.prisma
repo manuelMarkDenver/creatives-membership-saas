@@ -210,6 +210,12 @@ model GymUserBranch {
    membershipHistory  Json? // Past memberships, achievements, etc.
    profileMetadata    Json? // For any additional dynamic data
 
+   // Gym-level soft deletion
+   deletedAt         DateTime?
+   deletedBy         String?
+   deletionReason    String?
+   deletionNotes     String?
+
    createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
