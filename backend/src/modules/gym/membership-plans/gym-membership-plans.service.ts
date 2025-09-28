@@ -298,41 +298,74 @@ export class GymMembershipPlansService {
   }
 
   async toggleStatus(id: string, tenantId: string) {
-    const plan = await this.findOne(id, tenantId);
+    try {
+      this.logger.log(`Starting toggleStatus for plan ${id}, tenant ${tenantId}`);
+      
+      if (!this.isValidUUID(id)) {
+        throw new BadRequestException('Invalid plan ID format');
+      }
 
-    if (plan.data.isDeleted) {
-      throw new BadRequestException('Cannot toggle status of a deleted membership plan');
-    }
+      // Direct database query to avoid issues with findOne
+      const existingPlan = await this.prisma.gymMembershipPlan.findFirst({
+        where: { id, tenantId, deletedAt: null },
+        select: { id: true, name: true, isActive: true }
+      });
 
-    const updatedPlan = await this.prisma.gymMembershipPlan.update({
-      where: { id },
-      data: { 
-        isActive: !plan.data.isActive,
-        updatedAt: new Date(),
-      },
-      include: {
-        tenant: {
-          select: {
-            id: true,
-            name: true,
+      if (!existingPlan) {
+        throw new NotFoundException('Gym membership plan not found');
+      }
+
+      this.logger.log(`Found plan: ${existingPlan.name}, current status: ${existingPlan.isActive}`);
+
+      const updatedPlan = await this.prisma.gymMembershipPlan.update({
+        where: { id },
+        data: { 
+          isActive: !existingPlan.isActive,
+          updatedAt: new Date(),
+        },
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    this.logger.log(
-      `Toggled status for gym membership plan: ${updatedPlan.name} (${id}) to ${updatedPlan.isActive ? 'active' : 'inactive'}`,
-    );
+      this.logger.log(
+        `Toggled status for gym membership plan: ${updatedPlan.name} (${id}) to ${updatedPlan.isActive ? 'active' : 'inactive'}`,
+      );
 
-    return {
-      success: true,
-      data: {
-        ...updatedPlan,
-        benefits: updatedPlan.benefits
-          ? JSON.parse(updatedPlan.benefits as string)
-          : [],
-      },
-    };
+      const result = {
+        success: true,
+        data: {
+          ...updatedPlan,
+          benefits: updatedPlan.benefits || [],
+          memberCount: 0, // We'll add this back later if needed
+          isDeleted: false,
+        },
+      };
+
+      this.logger.log(`Toggle status completed successfully for plan ${id}`);
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Failed to toggle status for gym membership plan ${id}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      
+      throw new InternalServerErrorException(
+        'Failed to toggle membership plan status. Please try again.',
+      );
+    }
   }
 
   async softDelete(
