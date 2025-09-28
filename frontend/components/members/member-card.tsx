@@ -231,7 +231,7 @@ export function MemberCard({
             <div className="space-y-2 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg min-h-[60px] sm:min-h-[70px]">
               <div className="flex items-center gap-3 text-sm">
                 <span className="font-semibold text-purple-700 dark:text-purple-400">
-                  {subscription.membershipPlan?.name || 'Unknown Plan'}
+                  {subscription.gymMembershipPlan?.name || 'Unknown Plan'}
                 </span>
                 <span className="font-bold text-green-700 dark:text-green-400">
                   ₱{subscription.price?.toLocaleString() || '0'}

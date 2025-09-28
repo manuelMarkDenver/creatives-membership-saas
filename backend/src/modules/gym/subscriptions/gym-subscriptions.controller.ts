@@ -150,7 +150,7 @@ export class GymSubscriptionsController {
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   renewMembership(
     @Param('memberId') memberId: string,
-    @Body() renewDto: { membershipPlanId: string; paymentMethod?: string },
+    @Body() renewDto: { gymMembershipPlanId: string; paymentMethod?: string },
     @Req() req: RequestWithUser,
   ) {
     // Get authenticated user info
@@ -168,7 +168,7 @@ export class GymSubscriptionsController {
 
     return this.gymSubscriptionsService.renewMembership(
       memberId,
-      renewDto.membershipPlanId,
+      renewDto.gymMembershipPlanId,
       tenantId,
       userId,
       renewDto.paymentMethod || 'cash',

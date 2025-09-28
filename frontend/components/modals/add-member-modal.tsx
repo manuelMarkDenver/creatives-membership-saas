@@ -113,8 +113,11 @@ export function AddMemberModal({
   })
 
   const { data: membershipPlans, isLoading: plansLoading } = useMembershipPlans()
+  
+  // Ensure membershipPlans is always an array
+  const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
 
-  const selectedPlan = membershipPlans?.find((plan: any) => plan.id === formData.selectedPlanId)
+  const selectedPlan = safeMembershipPlans.find((plan: any) => plan.id === formData.selectedPlanId)
 
   const calculateEndDate = () => {
     if (!selectedPlan || !formData.membershipStartDate) return ''
@@ -253,7 +256,7 @@ export function AddMemberModal({
       emergencyContactName: formData.emergencyContactName || undefined,
       emergencyContactPhone: formData.emergencyContactPhone || undefined,
       emergencyContactRelation: formData.emergencyContactRelationship || undefined,
-      membershipPlanId: formData.selectedPlanId,
+      gymMembershipPlanId: formData.selectedPlanId,
       paymentMethod: formData.paymentMethod
     }
 
@@ -340,7 +343,7 @@ export function AddMemberModal({
   // Auto-fill payment amount when plan is selected
   const handlePlanChange = (planId: string) => {
     handleInputChange('selectedPlanId', planId)
-    const plan = membershipPlans?.find((p: any) => p.id === planId)
+    const plan = safeMembershipPlans.find((p: any) => p.id === planId)
     if (plan) {
       handleInputChange('paymentAmount', plan.price.toString())
     }
@@ -579,7 +582,7 @@ export function AddMemberModal({
                   <SelectContent>
                     {plansLoading ? (
                       <div className="p-2 text-sm text-muted-foreground">Loading plans...</div>
-                    ) : membershipPlans?.filter((plan: any) => plan.isActive).map((plan: any) => (
+                    ) : safeMembershipPlans.filter((plan: any) => plan.isActive).map((plan: any) => (
                       <SelectItem key={plan.id} value={plan.id}>
                         <div className="flex items-center justify-between w-full">
                           <span>{plan.name}</span>

@@ -122,7 +122,7 @@ export function DeleteMemberModal({
                 <div className="flex items-center gap-4 mt-1">
                   <p className="text-xs text-purple-600 font-medium flex items-center gap-1">
                     <CreditCard className="h-3 w-3" />
-                    {subscription.membershipPlan?.name || 'N/A'}
+                    {subscription.gymMembershipPlan?.name || 'N/A'}
                   </p>
                   <p className="text-xs text-blue-600 flex items-center gap-1">
                     <Calendar className="h-3 w-3" />

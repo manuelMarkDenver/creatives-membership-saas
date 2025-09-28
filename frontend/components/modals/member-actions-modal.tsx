@@ -115,7 +115,10 @@ export function MemberActionsModal({
   // Fetch member data and action reasons
   const { data: memberData, isLoading: memberLoading } = useMemberStatus(memberId)
   const { data: actionReasons, isLoading: reasonsLoading } = useActionReasons()
-  const { data: membershipPlans = [] } = useActiveMembershipPlans()
+  const { data: membershipPlans } = useActiveMembershipPlans()
+  
+  // Ensure membershipPlans is always an array
+  const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
 
   // Mutation hooks
   const activateMutation = useActivateMember()
@@ -192,7 +195,7 @@ export function MemberActionsModal({
         case 'renew':
           await renewMutation.mutateAsync({
             memberId,
-            data: { membershipPlanId: selectedPlanId }
+            data: { gymMembershipPlanId: selectedPlanId }
           })
           toast.success(`Successfully renewed ${memberName}'s membership`)
           break
@@ -283,11 +286,11 @@ export function MemberActionsModal({
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
                       <span className="text-muted-foreground">Plan:</span>
-                      <p className="font-medium">{memberData.subscription.membershipPlan.name}</p>
+                      <p className="font-medium">{memberData.subscription.gymMembershipPlan.name}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Price:</span>
-                      <p className="font-medium text-green-600">₱{memberData.subscription.membershipPlan.price}</p>
+                      <p className="font-medium text-green-600">₱{memberData.subscription.gymMembershipPlan.price}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Start:</span>
@@ -312,12 +315,12 @@ export function MemberActionsModal({
                   <SelectValue placeholder="Choose a membership plan" />
                 </SelectTrigger>
                 <SelectContent>
-                  {membershipPlans.length === 0 ? (
+                  {safeMembershipPlans.length === 0 ? (
                     <SelectItem value="no-plans" disabled>
                       No membership plans available
                     </SelectItem>
                   ) : (
-                    membershipPlans.map((plan: any) => (
+                    safeMembershipPlans.map((plan: any) => (
                       <SelectItem key={plan.id} value={plan.id}>
                         {plan.name} - ₱{plan.price} ({plan.duration} days)
                       </SelectItem>
@@ -329,7 +332,7 @@ export function MemberActionsModal({
               {selectedPlanId && (
                 <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
                   {(() => {
-                    const selectedPlan = membershipPlans.find((p: any) => p.id === selectedPlanId)
+                    const selectedPlan = safeMembershipPlans.find((p: any) => p.id === selectedPlanId)
                     if (!selectedPlan) return null
                     
                     const startDate = new Date()

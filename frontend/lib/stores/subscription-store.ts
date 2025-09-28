@@ -7,7 +7,7 @@ export type MemberStatus = 'ACTIVE' | 'EXPIRING' | 'EXPIRED' | 'CANCELLED'
 export interface CustomerSubscription {
   id: string
   customerId: string
-  membershipPlanId: string
+  gymMembershipPlanId: string
   status: SubscriptionStatus
   startDate: string
   endDate: string

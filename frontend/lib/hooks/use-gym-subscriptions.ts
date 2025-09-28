@@ -12,7 +12,7 @@ export interface GymSubscriptionStats {
 export interface GymSubscription {
   id: string
   customerId: string
-  membershipPlanId: string
+  gymMembershipPlanId: string
   status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'SUSPENDED' | 'INACTIVE' | 'PENDING_ACTIVATION'
   startDate: string
   endDate: string
@@ -27,7 +27,7 @@ export interface GymSubscription {
     email: string
     photoUrl?: string
   }
-  membershipPlan: {
+  gymMembershipPlan: {
     id: string
     name: string
     price: number
@@ -129,14 +129,14 @@ export function useRenewGymMembership() {
   return useMutation({
     mutationFn: ({
       memberId,
-      membershipPlanId,
+      gymMembershipPlanId,
       paymentMethod
     }: {
       memberId: string
-      membershipPlanId: string
+      gymMembershipPlanId: string
       paymentMethod?: string
     }) => gymSubscriptionsApi.renewMembership(memberId, {
-      membershipPlanId,
+      gymMembershipPlanId,
       paymentMethod: paymentMethod || 'cash'
     }),
     onSuccess: (_, { memberId }) => {

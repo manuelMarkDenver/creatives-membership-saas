@@ -62,8 +62,8 @@ export function MemberRenewalModal({
       
       // If member had a previous plan, select it by default
       const latestSubscription = member?.gymSubscriptions?.[0]
-      if (latestSubscription?.membershipPlan?.id) {
-        setSelectedPlanId(latestSubscription.membershipPlan.id)
+      if (latestSubscription?.gymMembershipPlan?.id) {
+        setSelectedPlanId(latestSubscription.gymMembershipPlan.id)
       }
     }
   }, [isOpen, member])
@@ -93,7 +93,7 @@ export function MemberRenewalModal({
     renewMemberMutation.mutate({
       memberId: member.id,
       data: {
-        membershipPlanId: selectedPlanId
+        gymMembershipPlanId: selectedPlanId
       }
     }, {
       onSuccess: () => {

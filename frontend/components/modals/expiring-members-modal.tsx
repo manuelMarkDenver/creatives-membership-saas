@@ -83,7 +83,10 @@ export function ExpiringMembersModal({
   const refreshMutation = useRefreshExpiringMembers()
   
   // Get membership plans for renewal
-  const { data: membershipPlans = [], isLoading: plansLoading } = useActiveMembershipPlans()
+  const { data: membershipPlans, isLoading: plansLoading } = useActiveMembershipPlans()
+  
+  // Ensure membershipPlans is always an array
+  const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
   
   // Renewal mutation
   const renewMembershipMutation = useRenewMemberSubscription()
@@ -130,7 +133,7 @@ export function ExpiringMembersModal({
       return
     }
 
-    const selectedPlan = membershipPlans.find(plan => plan.id === selectedPlanId)
+    const selectedPlan = safeMembershipPlans.find(plan => plan.id === selectedPlanId)
     if (!selectedPlan) {
       toast.error('Selected plan not found')
       return
@@ -140,7 +143,7 @@ export function ExpiringMembersModal({
     
     renewMembershipMutation.mutate({
       memberId: selectedMemberForRenewal.customerId,
-      membershipPlanId: selectedPlanId
+      gymMembershipPlanId: selectedPlanId
     }, {
       onSuccess: async (result) => {
         toast.success(`Membership renewed successfully for ${memberName}!`, {
@@ -184,7 +187,7 @@ export function ExpiringMembersModal({
     return (
       member.memberName.toLowerCase().includes(searchLower) ||
       member.customer?.email?.toLowerCase().includes(searchLower) ||
-      member.membershipPlan.name.toLowerCase().includes(searchLower) ||
+      member.gymMembershipPlan.name.toLowerCase().includes(searchLower) ||
       member.tenant.name.toLowerCase().includes(searchLower) ||
       (member.branch?.name && member.branch.name.toLowerCase().includes(searchLower))
     )
@@ -438,7 +441,7 @@ export function ExpiringMembersModal({
               <div className="space-y-2">
                 <Label>Current Plan</Label>
                 <div className="p-3 bg-gray-50 rounded-md">
-                  <p className="font-medium">{selectedMemberForRenewal.membershipPlan?.name}</p>
+                  <p className="font-medium">{selectedMemberForRenewal.gymMembershipPlan?.name}</p>
                   <p className="text-sm text-muted-foreground">₱{selectedMemberForRenewal.price.toLocaleString()}</p>
                   <p className="text-xs text-red-600">Expired: {new Date(selectedMemberForRenewal.endDate).toLocaleDateString()}</p>
                 </div>
@@ -452,10 +455,10 @@ export function ExpiringMembersModal({
                   <SelectValue placeholder="Select a membership plan" />
                 </SelectTrigger>
                 <SelectContent>
-                  {membershipPlans.length === 0 ? (
+                  {safeMembershipPlans.length === 0 ? (
                     <SelectItem value="no-plans" disabled>No membership plans available</SelectItem>
                   ) : (
-                    membershipPlans.map((plan) => (
+                    safeMembershipPlans.map((plan) => (
                       <SelectItem key={plan.id} value={plan.id}>
                         {plan.name} - ₱{plan.price.toLocaleString()} ({plan.duration} days)
                       </SelectItem>
@@ -468,13 +471,13 @@ export function ExpiringMembersModal({
             {selectedPlanId && (
               <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                 <p className="text-sm text-green-800">
-                  <strong>Selected Plan:</strong> {membershipPlans.find(p => p.id === selectedPlanId)?.name}
+                  <strong>Selected Plan:</strong> {safeMembershipPlans.find(p => p.id === selectedPlanId)?.name}
                 </p>
                 <p className="text-sm text-green-700">
-                  Price: ₱{membershipPlans.find(p => p.id === selectedPlanId)?.price.toLocaleString()}
+                  Price: ₱{safeMembershipPlans.find(p => p.id === selectedPlanId)?.price.toLocaleString()}
                 </p>
                 <p className="text-sm text-green-700">
-                  Duration: {membershipPlans.find(p => p.id === selectedPlanId)?.duration} days
+                  Duration: {safeMembershipPlans.find(p => p.id === selectedPlanId)?.duration} days
                 </p>
               </div>
             )}
@@ -619,7 +622,7 @@ function MemberCard({ member, showTenant = false, compact = false, onRenewClick 
           {/* Plan, Price, Branch, and Tenant Info */}
           <div className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 ${compact ? 'text-xs' : 'text-sm'} text-gray-600 dark:text-gray-400`}>
             <span className="font-medium text-purple-600 dark:text-purple-400">
-              {member.membershipPlan.name}
+              {member.gymMembershipPlan.name}
             </span>
             <span className="text-green-600 dark:text-green-400 font-medium">
               ₱{member.price.toLocaleString()}

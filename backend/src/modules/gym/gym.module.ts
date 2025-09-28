@@ -11,11 +11,5 @@ import { GymMembersModule } from './members/gym-members.module';
     GymLocationsModule,
     GymMembersModule,
   ],
-  exports: [
-    GymSubscriptionsModule,
-    GymMembershipPlansModule,
-    GymLocationsModule,
-    GymMembersModule,
-  ],
 })
 export class GymModule {}

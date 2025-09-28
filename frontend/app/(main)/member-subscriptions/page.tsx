@@ -38,12 +38,15 @@ export default function MemberSubscriptionsPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
 
   const { data: membershipPlans, isLoading, error, refetch } = useMembershipPlans()
+  
+  // Ensure membershipPlans is always an array
+  const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
 
-  const filteredPlans = membershipPlans?.filter((plan: any) => 
+  const filteredPlans = safeMembershipPlans.filter((plan: any) => 
     plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     plan.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     plan.type.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || []
+  )
 
   const handleCreatePlan = () => {
     setSelectedPlan(null)
@@ -112,7 +115,7 @@ export default function MemberSubscriptionsPage() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{membershipPlans?.length || 0}</div>
+            <div className="text-2xl font-bold">{safeMembershipPlans.length}</div>
             <p className="text-xs text-muted-foreground">Available membership plans</p>
           </CardContent>
         </Card>
@@ -123,7 +126,7 @@ export default function MemberSubscriptionsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {membershipPlans?.filter(p => p.isActive).length || 0}
+              {safeMembershipPlans.filter(p => p.isActive).length}
             </div>
             <p className="text-xs text-muted-foreground">Currently available</p>
           </CardContent>
@@ -135,8 +138,8 @@ export default function MemberSubscriptionsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {membershipPlans && membershipPlans.length > 0 
-                ? formatPHP(Math.min(...membershipPlans.map((p: any) => Number(p.price))))
+              {safeMembershipPlans.length > 0 
+                ? formatPHP(Math.min(...safeMembershipPlans.map((p: any) => Number(p.price))))
                 : '₱0'
               }
             </div>
@@ -150,8 +153,8 @@ export default function MemberSubscriptionsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">
-              {membershipPlans && membershipPlans.length > 0 
-                ? formatPHP(Math.max(...membershipPlans.map((p: any) => Number(p.price))))
+              {safeMembershipPlans.length > 0 
+                ? formatPHP(Math.max(...safeMembershipPlans.map((p: any) => Number(p.price))))
                 : '₱0'
               }
             </div>

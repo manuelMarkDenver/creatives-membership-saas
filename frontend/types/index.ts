@@ -146,7 +146,7 @@ export interface User {
     createdAt?: string
     price?: number
     currency?: string
-    membershipPlan?: {
+    gymMembershipPlan?: {
       id: string
       name: string
       price: number
@@ -188,7 +188,7 @@ export interface CustomerSubscription {
   tenantId: string
   branchId?: string
   customerId: string
-  membershipPlanId: string
+  gymMembershipPlanId: string
   status: CustomerSubscriptionStatus
   startDate: string
   endDate: string
@@ -205,7 +205,7 @@ export interface CustomerSubscription {
   tenant?: Tenant
   branch?: Branch
   customer?: User
-  membershipPlan?: MembershipPlan
+  gymMembershipPlan?: MembershipPlan
 }
 
 // Authentication

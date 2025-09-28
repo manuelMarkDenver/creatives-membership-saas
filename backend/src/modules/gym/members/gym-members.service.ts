@@ -90,14 +90,14 @@ export class GymMembersService {
 
         // 4. Create subscription if membershipPlanId is provided
         let subscription: any = null;
-        if (data.membershipPlanId) {
-          const membershipPlan = await tx.membershipPlan.findUnique({
-            where: { id: data.membershipPlanId },
+        if (data.gymMembershipPlanId) {
+          const membershipPlan = await tx.gymMembershipPlan.findUnique({
+            where: { id: data.gymMembershipPlanId },
           });
 
           if (!membershipPlan) {
             throw new BadRequestException(
-              `Membership plan with ID ${data.membershipPlanId} not found`,
+              `Membership plan with ID ${data.gymMembershipPlanId} not found`,
             );
           }
 
@@ -109,7 +109,7 @@ export class GymMembersService {
             data: {
               tenantId: tenantId,
               memberId: user.id,
-              membershipPlanId: data.membershipPlanId,
+              gymMembershipPlanId: data.gymMembershipPlanId,
               branchId: branch.id,
               status: 'ACTIVE',
               startDate: startDate,
@@ -247,7 +247,7 @@ export class GymMembersService {
         gymMemberProfile: true,
         gymMemberSubscriptions: {
           include: {
-            membershipPlan: true,
+            gymMembershipPlan: true,
           },
           orderBy: { createdAt: 'desc' },
           take: 1,
@@ -394,7 +394,7 @@ export class GymMembersService {
         },
       },
       include: {
-        membershipPlan: true,
+        gymMembershipPlan: true,
       },
     });
 
@@ -409,8 +409,8 @@ export class GymMembersService {
       // 1. Less than 24 hours remaining on current subscription
       // 2. Current plan is a day pass (duration <= 1 day)
       // 3. It's the same plan (renewal/extension)
-      const isDayPass = existingActiveSubscription.membershipPlan.duration <= 1;
-      const isSamePlan = existingActiveSubscription.membershipPlanId === planId;
+      const isDayPass = existingActiveSubscription.gymMembershipPlan.duration <= 1;
+      const isSamePlan = existingActiveSubscription.gymMembershipPlanId === planId;
       const isExpiringSoon = hoursRemaining <= 24;
       
       if (!isDayPass && !isExpiringSoon && !isSamePlan) {
@@ -422,7 +422,7 @@ export class GymMembersService {
     }
 
     // Get the membership plan
-    const membershipPlan = await this.prisma.membershipPlan.findUnique({
+    const membershipPlan = await this.prisma.gymMembershipPlan.findUnique({
       where: { id: planId },
     });
 
@@ -466,7 +466,7 @@ export class GymMembersService {
       data: {
         tenantId: member.tenantId!,
         memberId: memberId,
-        membershipPlanId: planId,
+        gymMembershipPlanId: planId,
         status: 'ACTIVE',
         startDate,
         endDate,
@@ -1312,7 +1312,7 @@ export class GymMembersService {
                 photoUrl: true,
               },
             },
-            membershipPlan: {
+            gymMembershipPlan: {
               select: {
                 id: true,
                 name: true,

@@ -56,7 +56,10 @@ const membershipTypes = [
 
 export default function MembershipPlansPage() {
   const { data: profile } = useProfile()
-  const { data: membershipPlans = [], isLoading, error } = useMembershipPlans()
+  const { data: membershipPlans, isLoading, error } = useMembershipPlans()
+  
+  // Ensure membershipPlans is always an array
+  const safeMembers = Array.isArray(membershipPlans) ? membershipPlans : []
   const createMembershipPlanMutation = useCreateMembershipPlan()
   const updateMembershipPlanMutation = useUpdateMembershipPlan()
   const deleteMembershipPlanMutation = useDeleteMembershipPlan()
@@ -90,17 +93,17 @@ export default function MembershipPlansPage() {
   }
 
   // Filter plans based on search term
-  const filteredPlans = membershipPlans.filter((plan) =>
+  const filteredPlans = safeMembers.filter((plan) =>
     plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     plan.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     plan.type.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const stats = {
-    total: membershipPlans.length,
-    active: membershipPlans.filter(p => p.isActive).length,
-    inactive: membershipPlans.filter(p => !p.isActive).length,
-    totalMembers: membershipPlans.reduce((sum, plan) => sum + (plan.memberCount || 0), 0)
+    total: safeMembers.length,
+    active: safeMembers.filter(p => p.isActive).length,
+    inactive: safeMembers.filter(p => !p.isActive).length,
+    totalMembers: safeMembers.reduce((sum, plan) => sum + (plan.memberCount || 0), 0)
   }
 
   // Prepare stats for mobile-first layout
@@ -282,7 +285,7 @@ export default function MembershipPlansPage() {
       const response = await toggleMembershipPlanStatusMutation.mutateAsync(planId)
       
       if (response.success) {
-        const plan = membershipPlans.find(p => p.id === planId)
+        const plan = safeMembers.find(p => p.id === planId)
         const newStatus = plan?.isActive ? 'deactivated' : 'activated'
         toast.success(`Membership plan ${newStatus} successfully`)
       } else {
@@ -307,7 +310,15 @@ export default function MembershipPlansPage() {
       price: plan.price.toString(),
       duration: plan.duration.toString(),
       type: plan.type,
-      benefits: Array.isArray(plan.benefits) ? plan.benefits : [''],
+      benefits: (() => {
+        // Handle different benefit formats from API
+        if (typeof plan.benefits === 'object' && plan.benefits && 'features' in plan.benefits) {
+          return Array.isArray(plan.benefits.features) ? plan.benefits.features : ['']
+        } else if (Array.isArray(plan.benefits)) {
+          return plan.benefits
+        }
+        return ['']
+      })(),
       isActive: plan.isActive
     })
     setEditDialogOpen(true)
@@ -460,9 +471,12 @@ export default function MembershipPlansPage() {
                     <div className="mb-4">
                       <div className="flex flex-wrap gap-1">
                         {(() => {
-                          // Safe handling for benefits - it might come as string or array
+                          // Safe handling for benefits - it might come as object with features, string, or array
                           let benefits: string[] = []
-                          if (typeof plan.benefits === 'string') {
+                          if (typeof plan.benefits === 'object' && plan.benefits && 'features' in plan.benefits) {
+                            // Handle API response format: { features: [...] }
+                            benefits = Array.isArray(plan.benefits.features) ? plan.benefits.features : []
+                          } else if (typeof plan.benefits === 'string') {
                             try {
                               benefits = JSON.parse(plan.benefits)
                             } catch {
@@ -479,7 +493,10 @@ export default function MembershipPlansPage() {
                         })()}
                         {(() => {
                           let benefits: string[] = []
-                          if (typeof plan.benefits === 'string') {
+                          if (typeof plan.benefits === 'object' && plan.benefits && 'features' in plan.benefits) {
+                            // Handle API response format: { features: [...] }
+                            benefits = Array.isArray(plan.benefits.features) ? plan.benefits.features : []
+                          } else if (typeof plan.benefits === 'string') {
                             try {
                               benefits = JSON.parse(plan.benefits)
                             } catch {

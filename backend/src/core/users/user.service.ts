@@ -401,7 +401,7 @@ export class UsersService {
         include: {
           gymMemberSubscriptions: {
             include: {
-              membershipPlan: true,
+              gymMembershipPlan: true,
             },
             orderBy: { createdAt: 'desc' },
             take: 1,
@@ -683,7 +683,7 @@ export class UsersService {
           gymMemberProfile: true,
           gymMemberSubscriptions: {
             include: {
-              membershipPlan: {
+              gymMembershipPlan: {
                 select: {
                   id: true,
                   name: true,

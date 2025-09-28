@@ -1,18 +1,17 @@
 import {
   IsString,
   IsOptional,
-  IsDecimal,
   IsNumber,
   IsInt,
   IsEnum,
   IsBoolean,
-  IsUUID,
   Min,
 } from 'class-validator';
 import { MembershipType } from '@prisma/client';
 import { Type } from 'class-transformer';
 
-export class CreateMembershipPlanDto {
+// DTO for frontend requests (without tenantId or soft delete fields)
+export class CreateGymMembershipPlanRequestDto {
   @IsString()
   name: string;
 
@@ -37,12 +36,15 @@ export class CreateMembershipPlanDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
-
-  // tenantId is set by the controller
-  tenantId?: string;
 }
 
-export class UpdateMembershipPlanDto {
+// DTO for internal use (with tenantId)
+export class CreateGymMembershipPlanDto extends CreateGymMembershipPlanRequestDto {
+  tenantId: string;
+}
+
+// DTO for update requests
+export class UpdateGymMembershipPlanRequestDto {
   @IsOptional()
   @IsString()
   name?: string;
@@ -71,4 +73,24 @@ export class UpdateMembershipPlanDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+}
+
+// DTO for soft delete requests
+export class SoftDeleteGymMembershipPlanDto {
+  @IsString()
+  reason: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+// DTO for restore requests
+export class RestoreGymMembershipPlanDto {
+  @IsString()
+  reason: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

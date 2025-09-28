@@ -24,7 +24,7 @@ export class GymSubscriptionsService {
         tenantId,
       },
       include: {
-        membershipPlan: true,
+        gymMembershipPlan: true,
         member: {
           select: {
             id: true,
@@ -51,7 +51,7 @@ export class GymSubscriptionsService {
         tenantId,
       },
       include: {
-        membershipPlan: {
+        gymMembershipPlan: {
           select: {
             id: true,
 
@@ -72,7 +72,7 @@ export class GymSubscriptionsService {
    */
   async renewMembership(
     memberId: string,
-    membershipPlanId: string,
+    gymMembershipPlanId: string,
     tenantId: string,
     processedBy: string,
     paymentMethod: string = 'cash',
@@ -89,7 +89,7 @@ export class GymSubscriptionsService {
         },
       },
       include: {
-        membershipPlan: true,
+        gymMembershipPlan: true,
       },
     });
 
@@ -104,8 +104,8 @@ export class GymSubscriptionsService {
       // 1. Less than 24 hours remaining on current subscription
       // 2. Current plan is a day pass (duration <= 1 day)
       // 3. It's the same plan (renewal/extension)
-      const isDayPass = existingActiveSubscription.membershipPlan.duration <= 1;
-      const isSamePlan = existingActiveSubscription.membershipPlanId === membershipPlanId;
+      const isDayPass = existingActiveSubscription.gymMembershipPlan.duration <= 1;
+      const isSamePlan = existingActiveSubscription.gymMembershipPlanId === gymMembershipPlanId;
       const isExpiringSoon = hoursRemaining <= 24;
       
       if (!isDayPass && !isExpiringSoon && !isSamePlan) {
@@ -117,9 +117,9 @@ export class GymSubscriptionsService {
     }
 
     // Get the membership plan
-    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+    const membershipPlan = await this.prisma.gymMembershipPlan.findFirst({
       where: {
-        id: membershipPlanId,
+        id: gymMembershipPlanId,
         tenantId,
         isActive: true,
       },
@@ -174,7 +174,7 @@ export class GymSubscriptionsService {
       data: {
         memberId: memberId,
         tenantId,
-        membershipPlanId,
+        gymMembershipPlanId,
         status: GymMemberSubscriptionStatus.ACTIVE,
         startDate,
         endDate,
@@ -183,7 +183,7 @@ export class GymSubscriptionsService {
         autoRenew: true,
       },
       include: {
-        membershipPlan: true,
+        gymMembershipPlan: true,
         member: {
           select: {
             id: true,
@@ -289,7 +289,7 @@ export class GymSubscriptionsService {
           autoRenew: false,
         },
         include: {
-          membershipPlan: true,
+          gymMembershipPlan: true,
           member: {
             select: {
               id: true,
@@ -506,7 +506,7 @@ export class GymSubscriptionsService {
               photoUrl: true,
             },
           },
-          membershipPlan: {
+          gymMembershipPlan: {
             select: {
               id: true,
               name: true,
@@ -563,7 +563,7 @@ export class GymSubscriptionsService {
       return {
         id: subscription.id,
         customerId: subscription.memberId,
-        membershipPlanId: subscription.membershipPlanId,
+        gymMembershipPlanId: subscription.gymMembershipPlanId,
         tenantId: subscription.tenantId,
         status: subscription.status,
         startDate: subscription.startDate.toISOString(),
@@ -582,7 +582,7 @@ export class GymSubscriptionsService {
           phoneNumber: subscription.member.phoneNumber,
           photoUrl: subscription.member.photoUrl,
         },
-        membershipPlan: subscription.membershipPlan,
+        gymMembershipPlan: subscription.gymMembershipPlan,
         tenant: subscription.tenant,
       };
     });

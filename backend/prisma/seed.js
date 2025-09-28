@@ -188,20 +188,22 @@ async function main() {
       name: owner.name || owner.firstName + ' ' + owner.lastName
     });
     
-    // Create membership plans for this tenant
-    console.log(`🏋️ Creating membership plans for ${tenant.name}...`);
-    const membershipPlans = [
+    // Create gym membership plans for this tenant using new GymMembershipPlan table
+    console.log(`🏋️ Creating gym membership plans for ${tenant.name}...`);
+    const gymMembershipPlans = [
       {
         name: 'Day Pass',
         description: 'Single day gym access',
         price: 150,
         duration: 1,
         type: 'DAY_PASS',
-        benefits: JSON.stringify([
-          'Full gym access for 1 day',
-          'Use of all equipment',
-          'Locker access'
-        ])
+        benefits: {
+          features: [
+            'Full gym access for 1 day',
+            'Use of all equipment',
+            'Locker access'
+          ]
+        }
       },
       {
         name: 'Basic Monthly',
@@ -209,12 +211,14 @@ async function main() {
         price: 1200,
         duration: 30,
         type: 'MONTHLY',
-        benefits: JSON.stringify([
-          'Unlimited gym access',
-          'Group classes included',
-          'Locker access',
-          'Fitness assessment'
-        ])
+        benefits: {
+          features: [
+            'Unlimited gym access',
+            'Group classes included',
+            'Locker access',
+            'Fitness assessment'
+          ]
+        }
       },
       {
         name: 'Premium Monthly',
@@ -222,14 +226,16 @@ async function main() {
         price: 2500,
         duration: 30,
         type: 'MONTHLY',
-        benefits: JSON.stringify([
-          'Unlimited gym access',
-          'Group classes included',
-          '2 Personal Training sessions',
-          'Nutrition consultation',
-          'Towel service',
-          'Guest passes (2 per month)'
-        ])
+        benefits: {
+          features: [
+            'Unlimited gym access',
+            'Group classes included',
+            '2 Personal Training sessions',
+            'Nutrition consultation',
+            'Towel service',
+            'Guest passes (2 per month)'
+          ]
+        }
       },
       {
         name: 'Annual Basic',
@@ -237,13 +243,15 @@ async function main() {
         price: 12000,
         duration: 365,
         type: 'ANNUAL',
-        benefits: JSON.stringify([
-          'Unlimited gym access',
-          'Group classes included',
-          'Locker access',
-          'Quarterly fitness assessment',
-          '2 months free!'
-        ])
+        benefits: {
+          features: [
+            'Unlimited gym access',
+            'Group classes included',
+            'Locker access',
+            'Quarterly fitness assessment',
+            '2 months free!'
+          ]
+        }
       },
       {
         name: 'Student Monthly',
@@ -251,27 +259,33 @@ async function main() {
         price: 800,
         duration: 30,
         type: 'STUDENT',
-        benefits: JSON.stringify([
-          'Unlimited gym access',
-          'Group classes included',
-          'Student discount',
-          'Study area access'
-        ])
+        benefits: {
+          features: [
+            'Unlimited gym access',
+            'Group classes included',
+            'Student discount',
+            'Study area access'
+          ]
+        }
       }
     ];
     
-    const createdPlans = [];
-    for (const planData of membershipPlans) {
-       const plan = await prisma.membershipPlan.create({
+    const createdGymPlans = [];
+    for (const planData of gymMembershipPlans) {
+       const gymPlan = await prisma.gymMembershipPlan.create({
          data: {
-           ...planData,
-           tenant: {
-             connect: { id: tenant.id }
-           }
+           tenantId: tenant.id,
+           name: planData.name,
+           description: planData.description,
+           price: planData.price,
+           duration: planData.duration,
+           type: planData.type,
+           benefits: planData.benefits,
+           isActive: true
          }
        });
-      createdPlans.push(plan);
-      console.log(`✅ Created membership plan: ${plan.name} (₱${plan.price})`);
+      createdGymPlans.push(gymPlan);
+      console.log(`✅ Created gym membership plan: ${gymPlan.name} (₱${gymPlan.price})`);
     }
     
     // Create only Manggahan branch
@@ -580,8 +594,8 @@ async function main() {
         let subscriptionStatus;
         let startDate = new Date();
         let endDate = new Date();
-        // Use different plans for variety - Basic Monthly is at index 1
-        let membershipPlan = createdPlans[1 + (i % 2)]; // Alternate between Basic Monthly and Premium Monthly
+        // Use different gym plans for variety - Basic Monthly is at index 1
+        let gymMembershipPlan = createdGymPlans[1 + (i % 2)]; // Alternate between Basic Monthly and Premium Monthly
         
         switch (memberInfo.status) {
           case 'ACTIVE':
@@ -617,12 +631,12 @@ async function main() {
           data: {
             tenantId: tenant.id,
             memberId: member.id,
-            membershipPlanId: membershipPlan.id,
+            gymMembershipPlanId: gymMembershipPlan.id, // Gym-specific plan ID
             branchId: branch.id,
             status: subscriptionStatus,
             startDate: startDate,
             endDate: endDate,
-            price: membershipPlan.price,
+            price: gymMembershipPlan.price,
             currency: 'PHP',
             autoRenew: memberInfo.status === 'ACTIVE'
           }
@@ -635,13 +649,13 @@ async function main() {
             customerId: member.id,
             businessType: 'gym',
             transactionCategory: 'membership',
-            amount: membershipPlan.price,
+            amount: gymMembershipPlan.price,
             currency: 'PHP',
-            netAmount: membershipPlan.price,
+            netAmount: gymMembershipPlan.price,
             paymentMethod: 'card',
             transactionType: 'PAYMENT',
             status: 'COMPLETED',
-            description: `Payment for ${membershipPlan.name} membership`,
+            description: `Payment for ${gymMembershipPlan.name} membership`,
             processedBy: owner.id,
             createdAt: startDate
           }
