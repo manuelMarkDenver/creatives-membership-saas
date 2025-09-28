@@ -22,7 +22,8 @@ import {
   Trash2,
   Eye,
   EyeOff,
-  Users
+  Users,
+  AlertCircle
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -89,6 +90,7 @@ export default function MembershipPlansPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<any>(null)
+  const [deleteReason, setDeleteReason] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -281,7 +283,10 @@ export default function MembershipPlansPage() {
     if (!selectedPlan) return
     
     try {
-      const response = await deleteMembershipPlanMutation.mutateAsync(selectedPlan.id)
+      const response = await deleteMembershipPlanMutation.mutateAsync({ 
+        id: selectedPlan.id, 
+        reason: deleteReason.trim() || undefined 
+      })
       
       if (response.success) {
         toast.success('Membership plan deleted successfully')
@@ -290,11 +295,26 @@ export default function MembershipPlansPage() {
       }
     } catch (error: any) {
       console.error('Error deleting membership plan:', error)
-      const errorMessage = error.response?.data?.message || 'Failed to delete membership plan'
-      toast.error(errorMessage)
+      
+      // Handle different types of errors gracefully
+      let errorMessage = 'Failed to delete membership plan'
+      
+      if (error.response?.status === 409) {
+        // Conflict - usually means there are active subscriptions
+        errorMessage = error.response.data?.message || 'Cannot delete this plan because it has active members using it'
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      toast.error(errorMessage, {
+        duration: 6000, // Show longer for error messages
+      })
     } finally {
       setDeleteDialogOpen(false)
       setSelectedPlan(null)
+      setDeleteReason('')
     }
   }
 
@@ -317,6 +337,7 @@ export default function MembershipPlansPage() {
 
   const openDeleteDialog = (plan: any) => {
     setSelectedPlan(plan)
+    setDeleteReason('')
     setDeleteDialogOpen(true)
   }
 
@@ -867,21 +888,43 @@ export default function MembershipPlansPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <Trash2 className="h-5 w-5" />
               Delete Membership Plan
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{selectedPlan?.name}"? This action cannot be undone.
-              {selectedPlan?.memberCount > 0 && (
-                <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
-                  <strong>Warning:</strong> This plan currently has {selectedPlan.memberCount} active members.
-                </div>
-              )}
+              Are you sure you want to delete "{selectedPlan?.name}"?
+              <br />This plan will be moved to trash and can be restored later.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="space-y-4">
+            {selectedPlan?.memberCount > 0 && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
+                  <AlertCircle className="h-4 w-4" />
+                  <strong>Cannot Delete</strong>
+                </div>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  This plan has {selectedPlan.memberCount} active member{selectedPlan.memberCount > 1 ? 's' : ''}. 
+                  You must cancel or transfer their subscriptions before deleting this plan.
+                </p>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="delete-reason">Reason for deletion (optional)</Label>
+              <Textarea
+                id="delete-reason"
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="e.g., No longer offered, Replaced by new plan..."
+                rows={3}
+              />
+            </div>
+          </div>
 
           <DialogFooter className="gap-2">
             <Button 
@@ -889,6 +932,7 @@ export default function MembershipPlansPage() {
               onClick={() => {
                 setDeleteDialogOpen(false)
                 setSelectedPlan(null)
+                setDeleteReason('')
               }}
             >
               Cancel
@@ -896,9 +940,10 @@ export default function MembershipPlansPage() {
             <Button 
               variant="destructive"
               onClick={handleDeletePlan}
+              disabled={selectedPlan?.memberCount > 0}
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Delete Plan
+              {selectedPlan?.memberCount > 0 ? 'Cannot Delete' : 'Move to Trash'}
             </Button>
           </DialogFooter>
         </DialogContent>

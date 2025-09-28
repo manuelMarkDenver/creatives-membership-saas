@@ -177,8 +177,8 @@ export const useDeleteMembershipPlan = () => {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: async (id: string) => {
-      const response = await deleteMembershipPlan(id)
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      const response = await deleteMembershipPlan(id, reason)
       return response
     },
     onSuccess: () => {
