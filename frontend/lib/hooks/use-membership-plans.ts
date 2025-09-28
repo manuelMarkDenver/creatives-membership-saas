@@ -1,5 +1,6 @@
+import React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { 
+import {
   getMembershipPlans,
   getActiveMembershipPlans,
   getMembershipPlanStats,
@@ -15,23 +16,129 @@ import {
 
 // Get all membership plans for current tenant
 export const useMembershipPlans = () => {
-  return useQuery({
-    queryKey: ['membership-plans'],
+  const queryResult = useQuery({
+    queryKey: ['membership-plans-v4'], // Completely fresh cache key
     queryFn: async () => {
       try {
+        console.log('🔄 Fetching membership plans...')
         const response = await getMembershipPlans()
-        return response.success ? response.data : []
+        console.log('📥 Membership plans response:', response)
+        console.log('📥 Raw response data:', response?.data)
+        console.log('📥 Response success:', response?.success)
+        
+        // Ensure we extract the actual data array from the API response
+        let result
+        if (response && (response.success === true || response.success === 'true')) {
+          // Handle nested response structure: response.data.data
+          if (Array.isArray(response.data?.data)) {
+            result = response.data.data
+            console.log('✅ Using response.data.data (nested success path):', result)
+          } else if (Array.isArray(response.data)) {
+            result = response.data
+            console.log('✅ Using response.data (direct success path):', result)
+          } else {
+            result = []
+            console.log('⚠️ Success response but no valid data array found')
+          }
+        } else if (response && Array.isArray(response)) {
+          result = response
+          console.log('✅ Using direct response (array path):', result)
+        } else {
+          result = []
+          console.log('⚠️ Using empty array fallback')
+        }
+        
+        console.log('✅ Final result being returned:', result, 'Type:', typeof result, 'IsArray:', Array.isArray(result), 'Length:', result.length)
+        
+        // Force the return with explicit logging
+        const finalResult = [...result] // Create new array reference
+        console.log('🚀 Spreading result for React Query:', finalResult)
+        return finalResult
       } catch (error) {
-        console.error('Failed to fetch membership plans:', error)
+        console.error('❌ Failed to fetch membership plans:', error)
         return []
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: (failureCount, error) => {
-      // Retry up to 3 times for network errors
-      return failureCount < 3
-    }
+    staleTime: 0, // Always refetch
+    gcTime: 0, // Don't cache
+    cacheTime: 0, // Legacy cache time
+    retry: false, // Disable retry for debugging
+    refetchOnWindowFocus: false, // Disable to avoid confusion during debugging
+    refetchOnMount: true,
+    refetchInterval: false
   })
+  
+  // More detailed debugging
+  console.log('🎯 Hook detailed debug:', {
+    'queryResult.data': queryResult.data,
+    'queryResult.data type': typeof queryResult.data,
+    'queryResult.data isArray': Array.isArray(queryResult.data),
+    'queryResult.data length': queryResult.data?.length,
+    'queryResult.data JSON': JSON.stringify(queryResult.data),
+    'queryResult.status': queryResult.status,
+    'queryResult.isLoading': queryResult.isLoading,
+    'queryResult.isFetching': queryResult.isFetching,
+    'queryResult.isSuccess': queryResult.isSuccess,
+    'queryResult.error': queryResult.error,
+    'queryResult.dataUpdatedAt': queryResult.dataUpdatedAt,
+    'entire queryResult': queryResult
+  })
+  
+  return queryResult
+}
+
+// TEMPORARY: Bypass React Query entirely for debugging
+export const useMembershipPlansBypass = () => {
+  const [data, setData] = React.useState([])
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [error, setError] = React.useState(null)
+  
+  React.useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true)
+      setError(null)
+      try {
+        console.log('🚀 BYPASS: Fetching directly...')
+        const response = await getMembershipPlans()
+        console.log('🚀 BYPASS: Response:', response)
+        
+        if (response && (response.success === true || response.success === 'true')) {
+          // Handle nested response structure: response.data.data
+          if (Array.isArray(response.data?.data)) {
+            setData(response.data.data)
+            console.log('🚀 BYPASS: Setting data from nested structure:', response.data.data)
+          } else if (Array.isArray(response.data)) {
+            setData(response.data)
+            console.log('🚀 BYPASS: Setting data from direct structure:', response.data)
+          } else {
+            setData([])
+            console.log('🚀 BYPASS: Success response but no valid data array')
+          }
+        } else {
+          // Debug why the condition failed
+          console.log('🚀 BYPASS: Condition check failed:')
+          console.log('  - response exists:', !!response)
+          console.log('  - response.success:', response?.success, typeof response?.success)
+          console.log('  - response.success === true:', response?.success === true)
+          console.log('  - response.data is array:', Array.isArray(response?.data))
+          console.log('  - response.data:', response?.data)
+          
+          setData([])
+          console.log('🚀 BYPASS: No valid data, setting empty array')
+        }
+      } catch (err) {
+        console.error('🚀 BYPASS: Error:', err)
+        setError(err)
+        setData([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchData()
+  }, [])
+  
+  return { data, isLoading, error, refetch: () => {} }
 }
 
 // Get active membership plans for current tenant

@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useProfile } from '@/lib/hooks/use-gym-users'
-import { useMembershipPlans, useCreateMembershipPlan, useUpdateMembershipPlan, useDeleteMembershipPlan, useToggleMembershipPlanStatus } from '@/lib/hooks/use-membership-plans'
+import { useMembershipPlans, useMembershipPlansBypass, useCreateMembershipPlan, useUpdateMembershipPlan, useDeleteMembershipPlan, useToggleMembershipPlanStatus } from '@/lib/hooks/use-membership-plans'
+import { getMembershipPlans } from '@/lib/api/membership-plans'
 import { formatPHPCompact } from '@/lib/utils/currency'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -56,10 +58,64 @@ const membershipTypes = [
 
 export default function MembershipPlansPage() {
   const { data: profile } = useProfile()
-  const { data: membershipPlans, isLoading, error } = useMembershipPlans()
+  const queryClient = useQueryClient()
+  const queryResult = useMembershipPlans()
+  const { data: membershipPlans, isLoading, error, status, fetchStatus, refetch } = queryResult
   
-  // Ensure membershipPlans is always an array
-  const safeMembers = Array.isArray(membershipPlans) ? membershipPlans : []
+  // Direct API test to bypass React Query
+  const [directApiData, setDirectApiData] = useState<any>(null)
+  
+  useEffect(() => {
+    const testDirectApi = async () => {
+      try {
+        console.log('🚀 Testing direct API call...')
+        const response = await getMembershipPlans()
+        console.log('📦 Direct API response:', response)
+        setDirectApiData(response)
+      } catch (error) {
+        console.error('❌ Direct API error:', error)
+        setDirectApiData({ error: error })
+      }
+    }
+    
+    testDirectApi()
+  }, [])
+  
+  // Ensure membershipPlans is always an array - more robust checking
+  const safeMembers = (() => {
+    // First try React Query data
+    if (Array.isArray(membershipPlans) && membershipPlans.length > 0) {
+      return membershipPlans
+    }
+    
+    // Fallback to direct API data if React Query failed
+    if (directApiData && directApiData.success && Array.isArray(directApiData.data)) {
+      console.log('🔄 Using direct API data as fallback:', directApiData.data)
+      return directApiData.data
+    }
+    
+    if (membershipPlans && typeof membershipPlans === 'object' && 'length' in membershipPlans) {
+      return Array.from(membershipPlans as ArrayLike<any>)
+    }
+    
+    return []
+  })()
+  
+  // Debug logging
+  console.log('🔍 Debug - Membership Plans Data:', {
+    queryResult,
+    membershipPlans,
+    safeMembers,
+    isLoading,
+    error,
+    status,
+    fetchStatus,
+    safeMembersLength: safeMembers.length,
+    rawDataType: typeof membershipPlans,
+    isArray: Array.isArray(membershipPlans),
+    membershipPlansKeys: membershipPlans && typeof membershipPlans === 'object' ? Object.keys(membershipPlans) : null,
+    directApiData
+  })
   const createMembershipPlanMutation = useCreateMembershipPlan()
   const updateMembershipPlanMutation = useUpdateMembershipPlan()
   const deleteMembershipPlanMutation = useDeleteMembershipPlan()
@@ -352,10 +408,25 @@ export default function MembershipPlansPage() {
             Manage your gym membership plans and pricing
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Plan
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => {
+            console.log('🔄 Manual refetch...')
+            refetch()
+          }}>
+            Refresh
+          </Button>
+          <Button variant="outline" onClick={async () => {
+            console.log('🧹 Clearing all cache...')
+            await queryClient.clear()
+            window.location.reload()
+          }}>
+            Clear Cache
+          </Button>
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Plan
+          </Button>
+        </div>
       </div>
 
       {/* Mobile-First Stats Overview */}
