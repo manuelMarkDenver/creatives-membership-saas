@@ -252,7 +252,7 @@ export function MemberInfoModal({
         favoriteEquipment: formData.favoriteEquipment || null,
         averageVisitsPerWeek: 0, // Will be updated by system
         preferredWorkoutTime: formData.preferredWorkoutTime || null,
-        membershipHistory: [], // Keep as empty array for now
+        membershipHistory: {}, // Use empty object instead of array
         profileMetadata: {
           updatedAt: new Date().toISOString(),
           updatedBy: 'admin'
