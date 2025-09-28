@@ -46,7 +46,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // Set tenant context when profile loads
   useEffect(() => {
     if (profile?.tenantId && !currentTenant) {
-      console.log('🔧 Setting tenant context from profile:', profile.tenantId)
       setTenantContext(profile.tenantId)
     }
   }, [profile?.tenantId, currentTenant])
