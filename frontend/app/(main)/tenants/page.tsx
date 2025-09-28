@@ -5,11 +5,13 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
-import { useTenants, useCreateTenant, useDeleteTenant } from '@/lib/hooks/use-tenants'
+import { useTenants, useCreateTenant, useDeleteTenant, useUpdateTenant } from '@/lib/hooks/use-tenants'
 import { useUpdateFreeBranchOverride } from '@/lib/hooks/use-subscription'
 import { useProfile } from '@/lib/hooks/use-gym-users'
+import { useTenantContext } from '@/lib/providers/tenant-context'
 import { Tenant } from '@/types'
-import { MoreHorizontal, Plus, Edit, Trash2, Crown, Gift } from 'lucide-react'
+import { MoreHorizontal, Plus, Edit, Trash2, Crown, Gift, LogIn, ExternalLink } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,22 +29,28 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import CreateTenantForm from '@/components/forms/create-tenant-form'
 import { CreateTenantFormData } from '@/lib/schemas/tenant-schema'
 import { toast } from 'sonner'
 
 export default function TenantsPage() {
   const { data: profile } = useProfile()
+  const { setCurrentTenant } = useTenantContext()
+  const router = useRouter()
   const [createFormOpen, setCreateFormOpen] = useState(false)
   const [overrideDialogOpen, setOverrideDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null)
   const [overrideValue, setOverrideValue] = useState(0)
+  const [editFormData, setEditFormData] = useState({ name: '', description: '' })
 
   // All hooks must be called before any conditional returns
   const { data: tenantsData, isLoading } = useTenants()
   const createTenant = useCreateTenant()
   const deleteTenant = useDeleteTenant()
   const updateOverride = useUpdateFreeBranchOverride()
+  const updateTenant = useUpdateTenant()
 
   // Check if user has Super Admin access (after hooks)
   if (!profile || profile.role !== 'SUPER_ADMIN') {
@@ -89,6 +97,43 @@ export default function TenantsPage() {
     setSelectedTenant(tenant)
     setOverrideValue(tenant.freeBranchOverride || 0)
     setOverrideDialogOpen(true)
+  }
+
+  const openEditDialog = (tenant: Tenant) => {
+    setSelectedTenant(tenant)
+    setEditFormData({
+      name: tenant.name,
+      description: tenant.description || ''
+    })
+    setEditDialogOpen(true)
+  }
+
+  const handleUpdateTenant = async () => {
+    if (!selectedTenant) return
+    
+    try {
+      await updateTenant.mutateAsync({
+        id: selectedTenant.id,
+        data: {
+          name: editFormData.name.trim(),
+          description: editFormData.description.trim() || undefined,
+        }
+      })
+      toast.success(`Updated tenant: ${editFormData.name}`)
+      setEditDialogOpen(false)
+      setSelectedTenant(null)
+    } catch (error) {
+      console.error('Failed to update tenant:', error)
+      toast.error('Failed to update tenant details')
+    }
+  }
+
+  const handleAccessTenant = (tenant: Tenant) => {
+    // Switch to the tenant context
+    setCurrentTenant(tenant)
+    toast.success(`Switched to ${tenant.name}. You can now manage this tenant.`)
+    // Navigate to the tenant's dashboard
+    router.push('/dashboard')
   }
 
   const handleDelete = async (id: string) => {
@@ -169,13 +214,17 @@ export default function TenantsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleAccessTenant(tenant)}>
+                <LogIn className="mr-2 h-4 w-4" />
+                Access Tenant
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openEditDialog(tenant)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Details
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openOverrideDialog(tenant)}>
                 <Gift className="mr-2 h-4 w-4" />
                 Free Branch Override
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Details
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleDelete(tenant.id)}
@@ -279,6 +328,70 @@ export default function TenantsPage() {
                 <>
                   <Gift className="w-4 h-4 mr-2" />
                   Update Override
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Tenant Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-blue-500" />
+              Edit Tenant Details
+            </DialogTitle>
+            <DialogDescription>
+              Update the basic information for {selectedTenant?.name}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Tenant Name *</Label>
+              <Input
+                id="edit-name"
+                value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                placeholder="Enter tenant name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                placeholder="Enter tenant description"
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setEditDialogOpen(false)}
+              disabled={updateTenant.isPending}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdateTenant}
+              disabled={updateTenant.isPending || !editFormData.name.trim()}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {updateTenant.isPending ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Update Tenant
                 </>
               )}
             </Button>

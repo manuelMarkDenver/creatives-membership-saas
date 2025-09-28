@@ -96,9 +96,12 @@ export default function TenantSwitcher() {
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="flex items-center gap-2 px-2 py-1.5">
+        <DropdownMenuItem 
+          onSelect={() => window.location.href = '/tenants'}
+          className="flex items-center gap-2 px-2 py-1.5"
+        >
           <Plus className="h-4 w-4" />
-          <span>Create tenant</span>
+          <span>Manage Tenants</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
