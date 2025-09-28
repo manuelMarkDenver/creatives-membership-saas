@@ -97,3 +97,62 @@ export function useDeleteTenant() {
     },
   })
 }
+
+// Get tenant owner details
+export function useTenantOwner(tenantId: string) {
+  return useQuery({
+    queryKey: ['tenant-owner', tenantId],
+    queryFn: async () => {
+      console.log('Fetching owner data for tenant:', tenantId)
+      const { apiClient } = await import('../api/client')
+      console.log('API client baseURL:', apiClient.defaults.baseURL)
+      const url = `/tenants/${tenantId}/owner`
+      console.log('Making request to:', url)
+      const response = await apiClient.get(url)
+      console.log('Owner data response:', response.data)
+      return response.data
+    },
+    enabled: !!tenantId,
+  })
+}
+
+// Update tenant owner mutation
+export function useUpdateTenantOwner() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ tenantId, data }: { 
+      tenantId: string; 
+      data: {
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+        phoneNumber?: string;
+      } 
+    }) => {
+      console.log('Updating owner data for tenant:', tenantId, 'with data:', data)
+      const { apiClient } = await import('../api/client')
+      console.log('API client baseURL for update:', apiClient.defaults.baseURL)
+      const url = `/tenants/${tenantId}/owner`
+      console.log('Making PUT request to:', url)
+      const response = await apiClient.put(url, data)
+      console.log('Owner update response:', response.data)
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tenantKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: ['tenant-owner'] })
+    },
+  })
+}
+
+// Reset tenant owner password mutation
+export function useResetTenantOwnerPassword() {
+  return useMutation({
+    mutationFn: async (tenantId: string) => {
+      const { apiClient } = await import('../api/client')
+      const response = await apiClient.post(`/tenants/${tenantId}/owner/reset-password`)
+      return response.data
+    },
+  })
+}

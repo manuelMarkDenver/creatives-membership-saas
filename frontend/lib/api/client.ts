@@ -1,14 +1,23 @@
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!
+// Get API URL from environment with fallback for development
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
 // SECURITY: Bypass auth should NEVER be enabled in production
 const BYPASS_AUTH = process.env.NODE_ENV === 'production'
   ? false
   : process.env.NEXT_PUBLIC_API_BYPASS_AUTH === 'true'
 
+console.log('API Client Configuration:')
+console.log('process.env.NODE_ENV:', process.env.NODE_ENV)
+console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
+console.log('NEXT_PUBLIC_API_BYPASS_AUTH:', process.env.NEXT_PUBLIC_API_BYPASS_AUTH)
+console.log('Final API_URL:', API_URL)
+console.log('BYPASS_AUTH:', BYPASS_AUTH)
 
-if (!API_URL) {
-  throw new Error('NEXT_PUBLIC_API_URL is not defined')
+if (!API_URL || API_URL === 'undefined') {
+  console.error('NEXT_PUBLIC_API_URL is not defined or is undefined!')
+  console.log('Available environment variables:', Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC')))
+  throw new Error('NEXT_PUBLIC_API_URL is not defined. Please check your .env.local file.')
 }
 
 // Create axios instance
@@ -19,6 +28,8 @@ export const apiClient = axios.create({
   },
   timeout: 10000,
 })
+
+console.log('Created API client with baseURL:', apiClient.defaults.baseURL)
 
 // Tenant context for API calls
 let currentTenantId: string | null = null
@@ -101,7 +112,8 @@ apiClient.interceptors.request.use(
       if (storedUser?.email) {
         config.headers['x-bypass-user'] = storedUser.email;
       } else {
-        config.headers['x-bypass-user'] = 'owner@muscle-mania.com';
+        // Use super admin email for tenant management and general admin functions
+        config.headers['x-bypass-user'] = 'admin@creatives-saas.com';
       }
     }
 
