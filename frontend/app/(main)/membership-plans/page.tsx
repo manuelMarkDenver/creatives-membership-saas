@@ -914,16 +914,18 @@ export default function MembershipPlansPage() {
               </div>
             )}
             
-            <div className="space-y-2">
-              <Label htmlFor="delete-reason">Reason for deletion (optional)</Label>
-              <Textarea
-                id="delete-reason"
-                value={deleteReason}
-                onChange={(e) => setDeleteReason(e.target.value)}
-                placeholder="e.g., No longer offered, Replaced by new plan..."
-                rows={3}
-              />
-            </div>
+            {selectedPlan?.memberCount === 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="delete-reason">Reason for deletion (optional)</Label>
+                <Textarea
+                  id="delete-reason"
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder="e.g., No longer offered, Replaced by new plan..."
+                  rows={3}
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2">
