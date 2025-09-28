@@ -251,10 +251,10 @@ export function useSoftDeleteUser() {
   const { data: profile } = useProfile()
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, reason, notes }: { id: string; reason: string; notes?: string }) => {
       const deleteData = {
-        reason: 'Administrative deletion',
-        notes: `Deleted by ${profile?.firstName} ${profile?.lastName} (${profile?.id})`
+        reason: reason || 'Administrative deletion',
+        notes: notes || `Deleted by ${profile?.firstName} ${profile?.lastName} (${profile?.id})`
       }
       // Use the gym-members API for member deletion
       const { membersApi } = await import('@/lib/api/gym-members')

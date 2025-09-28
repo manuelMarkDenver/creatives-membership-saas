@@ -69,7 +69,11 @@ export function DeleteMemberModal({
     setIsSubmitting(true)
     
     try {
-      await softDeleteMutation.mutateAsync(member.id)
+      await softDeleteMutation.mutateAsync({
+        id: member.id,
+        reason: reason.trim(),
+        notes: notes.trim() || undefined
+      })
       toast.success(`${memberName} has been removed successfully`)
       onDeleteComplete()
       onClose()
