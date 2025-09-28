@@ -13,6 +13,7 @@ import { BusinessCategory, Role, AccessLevel } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import slugify from 'slugify';
 import { SubscriptionsService } from '../../modules/subscriptions/subscriptions.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class TenantsService {
@@ -82,7 +83,11 @@ export class TenantsService {
           },
         });
 
-        // 2. Create the owner user
+        // 2. Generate temporary password for owner
+        const tempPassword = this.generateTemporaryPassword();
+        const hashedPassword = await bcrypt.hash(tempPassword, 12);
+
+        // 3. Create the owner user
         const owner = await tx.user.create({
           data: {
             tenantId: tenant.id,
@@ -90,11 +95,12 @@ export class TenantsService {
             lastName: data.ownerLastName,
             email: data.ownerEmail,
             phoneNumber: data.ownerPhoneNumber,
+            password: hashedPassword,
             role: Role.OWNER,
           },
         });
 
-        // 3. Create the first trial branch (Main Branch)
+        // 4. Create the first trial branch (Main Branch)
         const branch = await tx.branch.create({
           data: {
             tenantId: tenant.id,
@@ -106,7 +112,7 @@ export class TenantsService {
           },
         });
 
-        // 4. Assign the owner to the branch with full access
+        // 5. Assign the owner to the branch with full access
         await tx.gymUserBranch.create({
           data: {
             userId: owner.id,
@@ -117,7 +123,7 @@ export class TenantsService {
           },
         });
 
-        // 5. Create a trial subscription for the branch
+        // 6. Create a trial subscription for the branch
         // Get the trial plan
         const trialPlan = await tx.plan.findUnique({
           where: { name: 'Free Trial' },
@@ -146,9 +152,12 @@ export class TenantsService {
         this.logger.log(
           `Created complete tenant setup: ${tenant.name} (${tenant.id}) with owner ${owner.email} and trial branch`,
         );
+        this.logger.log(
+          `Temporary password for ${owner.email}: ${tempPassword}`,
+        );
 
-        // Return tenant with all created relationships
-        return await tx.tenant.findUnique({
+        // Return tenant with all created relationships plus temporary password
+        const result = await tx.tenant.findUnique({
           where: { id: tenant.id },
           include: {
             users: {
@@ -165,6 +174,12 @@ export class TenantsService {
             },
           },
         });
+
+        // Add temporary password to response for super admin
+        return {
+          ...result,
+          tempPassword,
+        };
       } catch (error) {
         if (
           error instanceof BadRequestException ||
@@ -455,6 +470,213 @@ export class TenantsService {
   }
 
   /**
+   * Update tenant owner details
+   */
+  async updateTenantOwner(
+    tenantId: string,
+    ownerData: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phoneNumber?: string;
+    },
+  ) {
+    try {
+      if (!this.isValidUUID(tenantId)) {
+        throw new BadRequestException('Invalid tenant ID format');
+      }
+
+      // Check if tenant exists
+      const existingTenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        include: {
+          users: {
+            where: { role: Role.OWNER },
+          },
+        },
+      });
+
+      if (!existingTenant) {
+        throw new NotFoundException(`Tenant with ID '${tenantId}' not found`);
+      }
+
+      // Find the owner user
+      const owner = existingTenant.users.find((user) => user.role === Role.OWNER);
+      if (!owner) {
+        throw new NotFoundException(`Owner not found for tenant '${tenantId}'`);
+      }
+
+      // Check if new email already exists (if email is being changed)
+      if (ownerData.email && ownerData.email !== owner.email) {
+        const existingUser = await this.prisma.user.findUnique({
+          where: { email: ownerData.email },
+        });
+        if (existingUser) {
+          throw new ConflictException(
+            `A user with email "${ownerData.email}" already exists.`,
+          );
+        }
+      }
+
+      // Update owner details
+      const updatedOwner = await this.prisma.user.update({
+        where: { id: owner.id },
+        data: {
+          ...(ownerData.firstName && { firstName: ownerData.firstName.trim() }),
+          ...(ownerData.lastName && { lastName: ownerData.lastName.trim() }),
+          ...(ownerData.email && { email: ownerData.email.trim() }),
+          ...(ownerData.phoneNumber && { phoneNumber: ownerData.phoneNumber.trim() }),
+        },
+      });
+
+      this.logger.log(
+        `Updated owner details for tenant ${existingTenant.name}: ${updatedOwner.email}`,
+      );
+      return updatedOwner;
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to update tenant owner: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to update tenant owner. Please try again.',
+      );
+    }
+  }
+
+  /**
+   * Generate new password for tenant owner
+   */
+  async resetTenantOwnerPassword(tenantId: string) {
+    try {
+      if (!this.isValidUUID(tenantId)) {
+        throw new BadRequestException('Invalid tenant ID format');
+      }
+
+      // Check if tenant exists and get owner
+      const existingTenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        include: {
+          users: {
+            where: { role: Role.OWNER },
+          },
+        },
+      });
+
+      if (!existingTenant) {
+        throw new NotFoundException(`Tenant with ID '${tenantId}' not found`);
+      }
+
+      const owner = existingTenant.users.find((user) => user.role === Role.OWNER);
+      if (!owner) {
+        throw new NotFoundException(`Owner not found for tenant '${tenantId}'`);
+      }
+
+      // Generate new temporary password
+      const tempPassword = this.generateTemporaryPassword();
+      const hashedPassword = await bcrypt.hash(tempPassword, 12);
+
+      // Update owner's password
+      await this.prisma.user.update({
+        where: { id: owner.id },
+        data: { password: hashedPassword },
+      });
+
+      this.logger.log(
+        `Reset password for tenant owner: ${owner.email} (Tenant: ${existingTenant.name})`,
+      );
+      this.logger.log(
+        `New temporary password for ${owner.email}: ${tempPassword}`,
+      );
+
+      return {
+        ownerEmail: owner.email,
+        tempPassword,
+        tenantName: existingTenant.name,
+      };
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to reset tenant owner password: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to reset owner password. Please try again.',
+      );
+    }
+  }
+
+  /**
+   * Get tenant owner details
+   */
+  async getTenantOwner(tenantId: string) {
+    try {
+      if (!this.isValidUUID(tenantId)) {
+        throw new BadRequestException('Invalid tenant ID format');
+      }
+
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        include: {
+          users: {
+            where: { role: Role.OWNER },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phoneNumber: true,
+              role: true,
+              createdAt: true,
+              // Don't include password for security
+            },
+          },
+        },
+      });
+
+      if (!tenant) {
+        throw new NotFoundException(`Tenant with ID '${tenantId}' not found`);
+      }
+
+      const owner = tenant.users.find((user) => user.role === Role.OWNER);
+      if (!owner) {
+        throw new NotFoundException(`Owner not found for tenant '${tenantId}'`);
+      }
+
+      return owner;
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to get tenant owner: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to retrieve owner details. Please try again.',
+      );
+    }
+  }
+
+  /**
    * Super admin method to update tenant's free branch override
    */
   async updateFreeBranchOverride(tenantId: string, override: number) {
@@ -598,6 +820,33 @@ export class TenantsService {
         'Failed to retrieve system statistics. Please try again.',
       );
     }
+  }
+
+  /**
+   * Generate a temporary password for new tenant owners
+   */
+  private generateTemporaryPassword(): string {
+    // Generate a secure 12-character password with mixed case, numbers, and symbols
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const symbols = '!@#$%^&*';
+    
+    // Ensure at least one character from each category
+    let password = '';
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+    
+    // Fill remaining positions with random characters from all categories
+    const allChars = uppercase + lowercase + numbers + symbols;
+    for (let i = 4; i < 12; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password to randomize positions
+    return password.split('').sort(() => Math.random() - 0.5).join('');
   }
 
   // Helper method to validate UUID format

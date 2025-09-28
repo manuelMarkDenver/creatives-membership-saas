@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
-import { useTenants, useCreateTenant, useDeleteTenant, useUpdateTenant } from '@/lib/hooks/use-tenants'
+import { useTenants, useCreateTenant, useDeleteTenant, useUpdateTenant, useTenantOwner, useUpdateTenantOwner, useResetTenantOwnerPassword } from '@/lib/hooks/use-tenants'
 import { useUpdateFreeBranchOverride } from '@/lib/hooks/use-subscription'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenantContext } from '@/lib/providers/tenant-context'
@@ -71,7 +71,14 @@ export default function TenantsPage() {
     // Branding
     logoUrl: '',
     primaryColor: '',
-    secondaryColor: ''
+    secondaryColor: '',
+    // Owner Details
+    ownerFirstName: '',
+    ownerLastName: '',
+    ownerEmail: '',
+    ownerPhoneNumber: '',
+    // Settings
+    freeBranchOverride: 0
   })
 
   // All hooks must be called before any conditional returns
@@ -80,6 +87,25 @@ export default function TenantsPage() {
   const deleteTenant = useDeleteTenant()
   const updateOverride = useUpdateFreeBranchOverride()
   const updateTenant = useUpdateTenant()
+  const updateTenantOwner = useUpdateTenantOwner()
+  const resetOwnerPassword = useResetTenantOwnerPassword()
+  const { data: ownerData } = useTenantOwner(selectedTenant?.id || '')
+
+  // Update form when owner data loads
+  useEffect(() => {
+    if (ownerData && selectedTenant) {
+      console.log('Loading owner data into form:', ownerData)
+      setEditFormData(prev => ({
+        ...prev,
+        ownerFirstName: ownerData.firstName || '',
+        ownerLastName: ownerData.lastName || '',
+        ownerEmail: ownerData.email || '',
+        ownerPhoneNumber: ownerData.phoneNumber || ''
+      }))
+    } else if (selectedTenant && !ownerData) {
+      console.log('Selected tenant but no owner data yet:', selectedTenant.id)
+    }
+  }, [ownerData, selectedTenant])
 
   // Check if user has Super Admin access (after hooks)
   if (!profile || profile.role !== 'SUPER_ADMIN') {
@@ -96,8 +122,20 @@ export default function TenantsPage() {
 
   const handleCreateTenant = async (data: CreateTenantFormData) => {
     try {
-      await createTenant.mutateAsync(data)
-      toast.success('Tenant created successfully! Owner account and trial branch have been set up.')
+      const result = await createTenant.mutateAsync(data)
+      
+      // Show success message with temporary password if available
+      if ((result as any)?.tempPassword) {
+        toast.success(
+          `Tenant created successfully! Owner login: ${data.ownerEmail} | Temporary password: ${(result as any).tempPassword}`,
+          { 
+            duration: 10000, // 10 seconds to give time to copy
+            description: 'Please save these credentials and provide them to the tenant owner.'
+          }
+        )
+      } else {
+        toast.success('Tenant created successfully! Owner account and trial branch have been set up.')
+      }
     } catch (error) {
       console.error('Failed to create tenant:', error)
       toast.error('Failed to create tenant. Please try again.')
@@ -128,8 +166,12 @@ export default function TenantsPage() {
     setOverrideDialogOpen(true)
   }
 
-  const openEditDialog = (tenant: Tenant) => {
+  const openEditDialog = async (tenant: Tenant) => {
     setSelectedTenant(tenant)
+    
+    // Get owner details will be available via the hook when dialog opens
+    // The useTenantOwner hook will automatically fetch when selectedTenant is set
+    
     setEditFormData({
       // Basic Information
       name: tenant.name,
@@ -142,7 +184,14 @@ export default function TenantsPage() {
       // Branding
       logoUrl: tenant.logoUrl || '',
       primaryColor: tenant.primaryColor || '',
-      secondaryColor: tenant.secondaryColor || ''
+      secondaryColor: tenant.secondaryColor || '',
+      // Owner Details - will be updated when ownerData loads
+      ownerFirstName: ownerData?.firstName || '',
+      ownerLastName: ownerData?.lastName || '',
+      ownerEmail: ownerData?.email || '',
+      ownerPhoneNumber: ownerData?.phoneNumber || '',
+      // Settings
+      freeBranchOverride: tenant.freeBranchOverride || 0
     })
     setEditDialogOpen(true)
   }
@@ -151,7 +200,7 @@ export default function TenantsPage() {
     if (!selectedTenant) return
     
     try {
-      const updateData = {
+      const tenantUpdateData = {
         name: editFormData.name.trim(),
         description: editFormData.description.trim() || undefined,
         address: editFormData.address.trim() || undefined,
@@ -161,13 +210,44 @@ export default function TenantsPage() {
         category: editFormData.category,
         logoUrl: editFormData.logoUrl.trim() || undefined,
         primaryColor: editFormData.primaryColor.trim() || undefined,
-        secondaryColor: editFormData.secondaryColor.trim() || undefined
+        secondaryColor: editFormData.secondaryColor.trim() || undefined,
+        freeBranchOverride: editFormData.freeBranchOverride
       }
       
+      // Update tenant information
       await updateTenant.mutateAsync({
         id: selectedTenant.id,
-        data: updateData
+        data: tenantUpdateData
       })
+      
+      // Update owner information if any fields are filled
+      const ownerUpdateData = {
+        firstName: editFormData.ownerFirstName.trim(),
+        lastName: editFormData.ownerLastName.trim(),
+        email: editFormData.ownerEmail.trim(),
+        phoneNumber: editFormData.ownerPhoneNumber.trim() || undefined
+      }
+      
+      // Update owner if any required fields are provided
+      if (ownerUpdateData.firstName || ownerUpdateData.lastName || ownerUpdateData.email) {
+        console.log('Attempting to update owner with data:', ownerUpdateData)
+        console.log('Tenant ID:', selectedTenant.id)
+        try {
+          const result = await updateTenantOwner.mutateAsync({
+            tenantId: selectedTenant.id,
+            data: ownerUpdateData
+          })
+          console.log('Owner details updated successfully:', result)
+          toast.success('Owner details updated successfully!')
+        } catch (ownerError) {
+          console.error('Failed to update owner details:', ownerError)
+          toast.error('Failed to update owner details: ' + (ownerError as Error).message)
+          return // Exit early if owner update fails
+        }
+      } else {
+        console.log('No owner data to update (all fields empty)')
+      }
+      
       toast.success(`Updated tenant: ${editFormData.name}`)
       setEditDialogOpen(false)
       setSelectedTenant(null)
@@ -399,8 +479,10 @@ export default function TenantsPage() {
           
           <div className="py-4">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="owner">Owner</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
                 <TabsTrigger value="branding">Branding</TabsTrigger>
               </TabsList>
               
@@ -497,6 +579,133 @@ export default function TenantsPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="owner" className="space-y-6 mt-6">
+                <div className="grid gap-6">
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <p className="text-sm text-green-700">
+                      <strong>Owner Account:</strong> These are the details for the tenant owner who can log in to manage their business.
+                    </p>
+                  </div>
+
+                  {/* Owner Name */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-ownerFirstName">Owner First Name *</Label>
+                      <Input
+                        id="edit-ownerFirstName"
+                        placeholder="Enter first name"
+                        value={editFormData.ownerFirstName}
+                        onChange={(e) => setEditFormData({ ...editFormData, ownerFirstName: e.target.value })}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-ownerLastName">Owner Last Name *</Label>
+                      <Input
+                        id="edit-ownerLastName"
+                        placeholder="Enter last name"
+                        value={editFormData.ownerLastName}
+                        onChange={(e) => setEditFormData({ ...editFormData, ownerLastName: e.target.value })}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Owner Contact */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-ownerEmail">Owner Email *</Label>
+                    <Input
+                      id="edit-ownerEmail"
+                      type="email"
+                      placeholder="Enter owner email address"
+                      value={editFormData.ownerEmail}
+                      onChange={(e) => setEditFormData({ ...editFormData, ownerEmail: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-ownerPhoneNumber">Owner Phone Number</Label>
+                    <Input
+                      id="edit-ownerPhoneNumber"
+                      placeholder="Enter owner phone number"
+                      value={editFormData.ownerPhoneNumber}
+                      onChange={(e) => setEditFormData({ ...editFormData, ownerPhoneNumber: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Password Reset Section */}
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-medium text-amber-800">Password Management</h4>
+                        <p className="text-xs text-amber-600 mt-1">
+                          Generate a new temporary password for the tenant owner
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                        onClick={async () => {
+                          if (!selectedTenant) return
+                          try {
+                            const result = await resetOwnerPassword.mutateAsync(selectedTenant.id)
+                            toast.success(
+                              `Password reset for ${result.ownerEmail}! New password: ${result.tempPassword}`,
+                              {
+                                duration: 15000,
+                                description: 'Please save this password and provide it to the tenant owner.'
+                              }
+                            )
+                          } catch (error) {
+                            console.error('Failed to reset password:', error)
+                            toast.error('Failed to reset owner password')
+                          }
+                        }}
+                      >
+                        Reset Password
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="settings" className="space-y-6 mt-6">
+                <div className="grid gap-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Crown className="h-4 w-4 text-amber-500" />
+                    <h3 className="text-sm font-medium">Super Admin Settings</h3>
+                  </div>
+
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <p className="text-sm text-amber-700">
+                      <strong>Free Branch Override:</strong> Grant additional free branches for proof of concept. 
+                      Default is 1 trial branch. Set to 0 for standard trial only.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-freeBranchOverride">Additional Free Branches</Label>
+                    <Input
+                      id="edit-freeBranchOverride"
+                      type="number"
+                      min="0"
+                      max="10"
+                      placeholder="0"
+                      value={editFormData.freeBranchOverride}
+                      onChange={(e) => setEditFormData({ ...editFormData, freeBranchOverride: parseInt(e.target.value) || 0 })}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Total free branches: {1 + editFormData.freeBranchOverride} (1 standard + {editFormData.freeBranchOverride} override)
+                    </p>
                   </div>
                 </div>
               </TabsContent>

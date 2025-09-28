@@ -477,7 +477,7 @@ export class GymMembershipPlansService {
       );
 
       // Safe benefits parsing
-      let parsedBenefits = [];
+      let parsedBenefits: any = [];
       if (deletedPlan.benefits) {
         try {
           if (typeof deletedPlan.benefits === 'string') {

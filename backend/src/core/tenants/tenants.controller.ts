@@ -74,4 +74,30 @@ export class TenantsController {
   ) {
     return this.tenantsService.updateFreeBranchOverride(id, body.override);
   }
+
+  @Get(':id/owner')
+  @RequiredRoles(Role.SUPER_ADMIN)
+  async getTenantOwner(@Param('id') id: string) {
+    return this.tenantsService.getTenantOwner(id);
+  }
+
+  @Put(':id/owner')
+  @RequiredRoles(Role.SUPER_ADMIN)
+  async updateTenantOwner(
+    @Param('id') id: string,
+    @Body() ownerData: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phoneNumber?: string;
+    },
+  ) {
+    return this.tenantsService.updateTenantOwner(id, ownerData);
+  }
+
+  @Post(':id/owner/reset-password')
+  @RequiredRoles(Role.SUPER_ADMIN)
+  async resetTenantOwnerPassword(@Param('id') id: string) {
+    return this.tenantsService.resetTenantOwnerPassword(id);
+  }
 }
