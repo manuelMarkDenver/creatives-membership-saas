@@ -2,6 +2,7 @@ import {
   IsString,
   IsOptional,
   IsDecimal,
+  IsNumber,
   IsInt,
   IsEnum,
   IsBoolean,
@@ -19,7 +20,7 @@ export class CreateMembershipPlanDto {
   @IsString()
   description?: string;
 
-  @IsDecimal()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Type(() => Number)
   price: number;
 
@@ -37,8 +38,8 @@ export class CreateMembershipPlanDto {
   @IsBoolean()
   isActive?: boolean;
 
-  @IsUUID()
-  tenantId: string;
+  // tenantId is set by the controller
+  tenantId?: string;
 }
 
 export class UpdateMembershipPlanDto {
@@ -51,7 +52,7 @@ export class UpdateMembershipPlanDto {
   description?: string;
 
   @IsOptional()
-  @IsDecimal()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Type(() => Number)
   price?: number;
 

@@ -21,7 +21,7 @@ export class MembershipPlansService {
       const existingPlan = await this.prisma.membershipPlan.findUnique({
         where: {
           tenantId_name: {
-            tenantId: createDto.tenantId,
+            tenantId: createDto.tenantId!,
             name: createDto.name,
           },
         },
@@ -44,7 +44,13 @@ export class MembershipPlansService {
 
       const createdPlan = await this.prisma.membershipPlan.create({
         data: {
-          ...createDto,
+          name: createDto.name,
+          description: createDto.description,
+          price: createDto.price,
+          duration: createDto.duration,
+          type: createDto.type,
+          isActive: createDto.isActive ?? true,
+          tenantId: createDto.tenantId!,
           benefits: createDto.benefits
             ? JSON.stringify(createDto.benefits)
             : undefined,
@@ -225,21 +231,29 @@ export class MembershipPlansService {
     // Verify the plan exists and belongs to the tenant
     await this.findOne(id, tenantId);
 
-    // Check if any members are using this plan (from User businessData)
-    const membersWithPlan = await this.prisma.user.findFirst({
+    // Check if any members have active subscriptions using this plan
+    const activeSubscriptions = await this.prisma.gymMemberSubscription.findFirst({
       where: {
+        membershipPlanId: id,
         tenantId,
-        role: 'CLIENT',
-        businessData: {
-          path: ['membership', 'planId'],
-          equals: id,
+        status: 'ACTIVE',
+        // Exclude cancelled subscriptions
+        cancelledAt: null,
+      },
+      include: {
+        member: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
         },
       },
     });
 
-    if (membersWithPlan) {
+    if (activeSubscriptions) {
       throw new ConflictException(
-        'Cannot delete membership plan that is currently in use by members',
+        `Cannot delete membership plan that has active subscriptions. Member: ${activeSubscriptions.member.firstName} ${activeSubscriptions.member.lastName} (${activeSubscriptions.member.email}) has an active subscription using this plan.`,
       );
     }
 
@@ -257,19 +271,22 @@ export class MembershipPlansService {
       }),
     ]);
 
-    // Get usage stats by checking User businessData
-    const membershipUsage = await this.prisma.user.groupBy({
-      by: ['businessData'],
+    // Get usage stats by checking active subscriptions
+    const activeSubscriptionsCount = await this.prisma.gymMemberSubscription.count({
       where: {
         tenantId,
-        role: 'CLIENT',
-        businessData: {
-          path: ['membership'],
-          not: Prisma.DbNull,
-        },
+        status: 'ACTIVE',
+        cancelledAt: null,
       },
-      _count: {
-        id: true,
+    });
+
+    // Get unique members with active subscriptions
+    const uniqueMembers = await this.prisma.gymMemberSubscription.groupBy({
+      by: ['memberId'],
+      where: {
+        tenantId,
+        status: 'ACTIVE',
+        cancelledAt: null,
       },
     });
 
@@ -277,7 +294,8 @@ export class MembershipPlansService {
       total,
       active,
       inactive,
-      usageCount: membershipUsage.length,
+      activeSubscriptions: activeSubscriptionsCount,
+      uniqueMembers: uniqueMembers.length,
     };
   }
 
@@ -303,17 +321,28 @@ export class MembershipPlansService {
     const tenantGroups = new Map();
 
     for (const plan of plans) {
-      // Count members using this specific plan
-      const memberCount = await this.prisma.user.count({
+      // Count active subscriptions using this specific plan
+      const activeSubscriptionsCount = await this.prisma.gymMemberSubscription.count({
         where: {
+          membershipPlanId: plan.id,
           tenantId: plan.tenantId,
-          role: 'CLIENT',
-          businessData: {
-            path: ['membership', 'planId'],
-            equals: plan.id,
-          },
+          status: 'ACTIVE',
+          cancelledAt: null,
         },
       });
+      
+      // Get unique members with active subscriptions for this plan
+      const uniqueMembers = await this.prisma.gymMemberSubscription.groupBy({
+        by: ['memberId'],
+        where: {
+          membershipPlanId: plan.id,
+          tenantId: plan.tenantId,
+          status: 'ACTIVE',
+          cancelledAt: null,
+        },
+      });
+      
+      const memberCount = uniqueMembers.length;
 
       const planWithMemberCount = {
         ...plan,

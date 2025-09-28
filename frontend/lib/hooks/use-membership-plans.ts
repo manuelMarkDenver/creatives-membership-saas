@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   getMembershipPlans,
   getActiveMembershipPlans,
-  getAllTenantMembershipPlans,
   getMembershipPlanStats,
   getMembershipPlan,
   createMembershipPlan,
@@ -11,8 +10,7 @@ import {
   deleteMembershipPlan,
   type CreateMembershipPlanData,
   type UpdateMembershipPlanData,
-  type MembershipPlan,
-  type TenantPlanGroup
+  type MembershipPlan
 } from '../api/membership-plans'
 
 // Get all membership plans for current tenant
@@ -72,16 +70,6 @@ export const useActiveMembershipPlans = () => {
   })
 }
 
-// Get all tenant membership plans (Super Admin only)
-export const useAllTenantMembershipPlans = () => {
-  return useQuery({
-    queryKey: ['membership-plans', 'all-tenants'],
-    queryFn: async () => {
-      const response = await getAllTenantMembershipPlans()
-      return response.success ? response.data : []
-    }
-  })
-}
 
 // Get membership plan statistics for current tenant
 export const useMembershipPlanStats = () => {
@@ -111,7 +99,10 @@ export const useCreateMembershipPlan = () => {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: (data: CreateMembershipPlanData) => createMembershipPlan(data),
+    mutationFn: async (data: CreateMembershipPlanData) => {
+      const response = await createMembershipPlan(data)
+      return response
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
     }
@@ -137,7 +128,10 @@ export const useToggleMembershipPlanStatus = () => {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: (id: string) => toggleMembershipPlanStatus(id),
+    mutationFn: async (id: string) => {
+      const response = await toggleMembershipPlanStatus(id)
+      return response
+    },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans', id] })
@@ -150,7 +144,10 @@ export const useDeleteMembershipPlan = () => {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: (id: string) => deleteMembershipPlan(id),
+    mutationFn: async (id: string) => {
+      const response = await deleteMembershipPlan(id)
+      return response
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
     }

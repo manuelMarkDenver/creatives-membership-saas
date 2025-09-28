@@ -21,7 +21,7 @@ export class GymMembershipPlansService {
       const existingPlan = await this.prisma.membershipPlan.findUnique({
         where: {
           tenantId_name: {
-            tenantId: createDto.tenantId,
+            tenantId: createDto.tenantId!,
             name: createDto.name,
           },
         },
@@ -35,7 +35,7 @@ export class GymMembershipPlansService {
 
       // Verify tenant exists and is a gym business
       const tenant = await this.prisma.tenant.findUnique({
-        where: { id: createDto.tenantId },
+        where: { id: createDto.tenantId! },
       });
 
       if (!tenant) {
@@ -47,9 +47,15 @@ export class GymMembershipPlansService {
       //   throw new ForbiddenException('This endpoint is only for gym businesses');
       // }
 
-      return await this.prisma.membershipPlan.create({
+      const createdPlan = await this.prisma.membershipPlan.create({
         data: {
-          ...createDto,
+          name: createDto.name,
+          description: createDto.description,
+          price: createDto.price,
+          duration: createDto.duration,
+          type: createDto.type,
+          isActive: createDto.isActive ?? true,
+          tenantId: createDto.tenantId!,
           benefits: createDto.benefits
             ? JSON.stringify(createDto.benefits)
             : undefined,
@@ -63,6 +69,13 @@ export class GymMembershipPlansService {
           },
         },
       });
+
+      return {
+        ...createdPlan,
+        benefits: createdPlan.benefits
+          ? JSON.parse(createdPlan.benefits as string)
+          : [],
+      };
     } catch (error) {
       if (
         error instanceof ConflictException ||
@@ -76,7 +89,7 @@ export class GymMembershipPlansService {
 
   async findAllByTenant(tenantId: string) {
     // TODO: Add business type validation
-    return this.prisma.membershipPlan.findMany({
+    const plans = await this.prisma.membershipPlan.findMany({
       where: { tenantId },
       orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
       include: {
@@ -88,10 +101,66 @@ export class GymMembershipPlansService {
         },
       },
     });
+
+    // Get member counts for each plan from both modern subscriptions and legacy users
+    const planIds = plans.map(plan => plan.id);
+    
+    // Count from modern gym member subscriptions
+    const modernSubscriptionCounts = await this.prisma.gymMemberSubscription.groupBy({
+      by: ['membershipPlanId'],
+      where: {
+        membershipPlanId: { in: planIds },
+        tenantId,
+        status: 'ACTIVE',
+        cancelledAt: null,
+      },
+      _count: {
+        membershipPlanId: true,
+      },
+    });
+
+    // Count from legacy user businessData (for backward compatibility)
+    const usersWithMemberships = await this.prisma.user.findMany({
+      where: {
+        tenantId,
+        role: 'CLIENT',
+        businessData: {
+          path: ['membership'],
+          not: Prisma.DbNull,
+        },
+      },
+      select: {
+        businessData: true,
+      },
+    });
+
+    // Create a map of plan ID to member count
+    const memberCountMap = new Map<string, number>();
+    
+    // Add modern subscription counts
+    modernSubscriptionCounts.forEach((count) => {
+      memberCountMap.set(count.membershipPlanId, count._count.membershipPlanId);
+    });
+    
+    // Add legacy user counts
+    usersWithMemberships.forEach((user) => {
+      const membership = user.businessData as any;
+      if (membership?.membership?.planId && planIds.includes(membership.membership.planId)) {
+        const planId = membership.membership.planId;
+        const currentCount = memberCountMap.get(planId) || 0;
+        memberCountMap.set(planId, currentCount + 1);
+      }
+    });
+
+    return plans.map((plan) => ({
+      ...plan,
+      benefits: plan.benefits ? JSON.parse(plan.benefits as string) : [],
+      memberCount: memberCountMap.get(plan.id) || 0,
+    }));
   }
 
   async findAllActive(tenantId: string) {
-    return this.prisma.membershipPlan.findMany({
+    const plans = await this.prisma.membershipPlan.findMany({
       where: {
         tenantId,
         isActive: true,
@@ -106,6 +175,58 @@ export class GymMembershipPlansService {
         },
       },
     });
+
+    // Get member counts for each plan
+    const planIds = plans.map(plan => plan.id);
+    
+    // Count from modern gym member subscriptions
+    const modernSubscriptionCounts = await this.prisma.gymMemberSubscription.groupBy({
+      by: ['membershipPlanId'],
+      where: {
+        membershipPlanId: { in: planIds },
+        tenantId,
+        status: 'ACTIVE',
+        cancelledAt: null,
+      },
+      _count: {
+        membershipPlanId: true,
+      },
+    });
+
+    // Count from legacy user businessData
+    const usersWithMemberships = await this.prisma.user.findMany({
+      where: {
+        tenantId,
+        role: 'CLIENT',
+        businessData: {
+          path: ['membership'],
+          not: Prisma.DbNull,
+        },
+      },
+      select: {
+        businessData: true,
+      },
+    });
+
+    // Create member count map
+    const memberCountMap = new Map<string, number>();
+    modernSubscriptionCounts.forEach((count) => {
+      memberCountMap.set(count.membershipPlanId, count._count.membershipPlanId);
+    });
+    usersWithMemberships.forEach((user) => {
+      const membership = user.businessData as any;
+      if (membership?.membership?.planId && planIds.includes(membership.membership.planId)) {
+        const planId = membership.membership.planId;
+        const currentCount = memberCountMap.get(planId) || 0;
+        memberCountMap.set(planId, currentCount + 1);
+      }
+    });
+
+    return plans.map((plan) => ({
+      ...plan,
+      benefits: plan.benefits ? JSON.parse(plan.benefits as string) : [],
+      memberCount: memberCountMap.get(plan.id) || 0,
+    }));
   }
 
   async findOne(id: string, tenantId: string) {
@@ -128,7 +249,10 @@ export class GymMembershipPlansService {
       throw new NotFoundException('Gym membership plan not found');
     }
 
-    return plan;
+    return {
+      ...plan,
+      benefits: plan.benefits ? JSON.parse(plan.benefits as string) : [],
+    };
   }
 
   async update(
@@ -157,7 +281,7 @@ export class GymMembershipPlansService {
       }
     }
 
-    return this.prisma.membershipPlan.update({
+    const updatedPlan = await this.prisma.membershipPlan.update({
       where: { id },
       data: {
         ...updateDto,
@@ -174,12 +298,19 @@ export class GymMembershipPlansService {
         },
       },
     });
+
+    return {
+      ...updatedPlan,
+      benefits: updatedPlan.benefits
+        ? JSON.parse(updatedPlan.benefits as string)
+        : [],
+    };
   }
 
   async toggleStatus(id: string, tenantId: string) {
     const plan = await this.findOne(id, tenantId);
 
-    return this.prisma.membershipPlan.update({
+    const updatedPlan = await this.prisma.membershipPlan.update({
       where: { id },
       data: { isActive: !plan.isActive },
       include: {
@@ -191,44 +322,42 @@ export class GymMembershipPlansService {
         },
       },
     });
+
+    return {
+      ...updatedPlan,
+      benefits: updatedPlan.benefits
+        ? JSON.parse(updatedPlan.benefits as string)
+        : [],
+    };
   }
 
   async remove(id: string, tenantId: string) {
     // Verify the plan exists and belongs to the gym tenant
     await this.findOne(id, tenantId);
 
-    // Check if any gym members are using this plan (from GymMemberSubscription table)
-    const membersWithPlan = await this.prisma.gymMemberSubscription.findFirst({
+    // Check if any gym members have active subscriptions using this plan
+    const activeSubscriptions = await this.prisma.gymMemberSubscription.findFirst({
       where: {
         membershipPlanId: id,
         tenantId,
+        status: 'ACTIVE',
+        // Exclude cancelled subscriptions
+        cancelledAt: null,
+      },
+      include: {
         member: {
-          role: 'CLIENT',
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
         },
       },
     });
 
-    if (membersWithPlan) {
+    if (activeSubscriptions) {
       throw new ConflictException(
-        'Cannot delete gym membership plan that is currently in use by members',
-      );
-    }
-
-    // Also check legacy businessData for backward compatibility
-    const legacyMembersWithPlan = await this.prisma.user.findFirst({
-      where: {
-        tenantId,
-        role: 'CLIENT',
-        businessData: {
-          path: ['membership', 'planId'],
-          equals: id,
-        },
-      },
-    });
-
-    if (legacyMembersWithPlan) {
-      throw new ConflictException(
-        'Cannot delete gym membership plan that is currently in use by members (legacy)',
+        `Cannot delete gym membership plan that has active subscriptions. Member: ${activeSubscriptions.member.firstName} ${activeSubscriptions.member.lastName} (${activeSubscriptions.member.email}) has an active subscription using this plan.`,
       );
     }
 
