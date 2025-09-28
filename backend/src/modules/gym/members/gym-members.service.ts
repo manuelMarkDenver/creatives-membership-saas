@@ -212,8 +212,8 @@ export class GymMembersService {
   // ========================================
 
   async getMemberState(member: any): Promise<string> {
-    // Check if deleted (has deletedAt timestamp)
-    if (member.deletedAt) {
+    // Check if deleted at gym level (has gymMemberProfile.deletedAt timestamp)
+    if (member.gymMemberProfile?.deletedAt) {
       return 'DELETED';
     }
 
@@ -244,6 +244,7 @@ export class GymMembersService {
     const member = await this.prisma.user.findUnique({
       where: { id: memberId },
       include: {
+        gymMemberProfile: true,
         gymMemberSubscriptions: {
           include: {
             membershipPlan: true,
@@ -519,28 +520,11 @@ export class GymMembersService {
         throw new BadRequestException('Invalid member ID format');
       }
 
-      // Check if member exists and is not already deleted
+      // Check if member exists and is not already deleted at gym level
       const existingMember = await this.prisma.user.findUnique({
         where: { id: memberId },
-      });
-
-      if (!existingMember) {
-        throw new NotFoundException(`Member with ID '${memberId}' not found`);
-      }
-
-      if (existingMember.deletedAt) {
-        throw new BadRequestException('Member is already deleted');
-      }
-
-      // Soft delete the member
-      const deletedMember = await this.prisma.user.update({
-        where: { id: memberId },
-        data: {
-          deletedAt: new Date(),
-          deletedBy: performedBy,
-          updatedAt: new Date(),
-        },
         include: {
+          gymMemberProfile: true,
           tenant: {
             select: {
               id: true,
@@ -551,8 +535,40 @@ export class GymMembersService {
         },
       });
 
+      if (!existingMember) {
+        throw new NotFoundException(`Member with ID '${memberId}' not found`);
+      }
+
+      if (!existingMember.gymMemberProfile) {
+        throw new NotFoundException('Gym member profile not found');
+      }
+
+      if (existingMember.gymMemberProfile.deletedAt) {
+        throw new BadRequestException('Member is already deleted from gym');
+      }
+
+      // Soft delete at gym level (GymMemberProfile)
+      const updatedGymProfile = await this.prisma.gymMemberProfile.update({
+        where: { userId: memberId },
+        data: {
+          deletedAt: new Date(),
+          deletedBy: performedBy,
+          deletionReason: actionData?.reason || 'Administrative action',
+          deletionNotes: actionData?.notes || 'Member account soft deleted from gym',
+          updatedAt: new Date(),
+        },
+      });
+
+      // Update user timestamp (keep user record active)
+      await this.prisma.user.update({
+        where: { id: memberId },
+        data: {
+          updatedAt: new Date(),
+        },
+      });
+
       this.logger.log(
-        `Soft deleted member: ${deletedMember.firstName} ${deletedMember.lastName} (${memberId})`,
+        `Gym-level soft deleted member: ${existingMember.firstName} ${existingMember.lastName} (${memberId})`,
       );
 
       // Create audit log for the deletion
@@ -560,20 +576,22 @@ export class GymMembersService {
         memberId,
         action: 'ACCOUNT_DELETED',
         reason: actionData?.reason || 'Administrative action',
-        notes: actionData?.notes || 'Member account soft deleted',
+        notes: actionData?.notes || 'Member account soft deleted from gym',
         previousState: 'ACTIVE',
         newState: 'DELETED',
         performedBy,
         metadata: {
-          deletedAt: deletedMember.deletedAt?.toISOString(),
+          deletedAt: updatedGymProfile.deletedAt?.toISOString(),
           deletedBy: performedBy,
+          deletionLevel: 'gym',
+          gymProfileId: updatedGymProfile.id,
         },
       });
 
       return {
         success: true,
-        message: 'Member deleted successfully',
-        member: deletedMember,
+        message: 'Member deleted successfully from gym',
+        member: existingMember,
       };
     } catch (error) {
       if (
@@ -604,28 +622,11 @@ export class GymMembersService {
         throw new BadRequestException('Invalid member ID format');
       }
 
-      // Check if member exists and is deleted
+      // Check if member exists and is deleted at gym level
       const existingMember = await this.prisma.user.findUnique({
         where: { id: memberId },
-      });
-
-      if (!existingMember) {
-        throw new NotFoundException(`Member with ID '${memberId}' not found`);
-      }
-
-      if (!existingMember.deletedAt) {
-        throw new BadRequestException('Member is not deleted');
-      }
-
-      // Restore the member
-      const restoredMember = await this.prisma.user.update({
-        where: { id: memberId },
-        data: {
-          deletedAt: null,
-          deletedBy: null,
-          updatedAt: new Date(),
-        },
         include: {
+          gymMemberProfile: true,
           tenant: {
             select: {
               id: true,
@@ -636,8 +637,40 @@ export class GymMembersService {
         },
       });
 
+      if (!existingMember) {
+        throw new NotFoundException(`Member with ID '${memberId}' not found`);
+      }
+
+      if (!existingMember.gymMemberProfile) {
+        throw new NotFoundException('Gym member profile not found');
+      }
+
+      if (!existingMember.gymMemberProfile.deletedAt) {
+        throw new BadRequestException('Member is not deleted from gym');
+      }
+
+      // Restore the member at gym level
+      const restoredGymProfile = await this.prisma.gymMemberProfile.update({
+        where: { userId: memberId },
+        data: {
+          deletedAt: null,
+          deletedBy: null,
+          deletionReason: null,
+          deletionNotes: null,
+          updatedAt: new Date(),
+        },
+      });
+
+      // Update user timestamp
+      await this.prisma.user.update({
+        where: { id: memberId },
+        data: {
+          updatedAt: new Date(),
+        },
+      });
+
       this.logger.log(
-        `Restored member: ${restoredMember.firstName} ${restoredMember.lastName} (${memberId})`,
+        `Gym-level restored member: ${existingMember.firstName} ${existingMember.lastName} (${memberId})`,
       );
 
       // Create audit log for the restoration
@@ -657,8 +690,8 @@ export class GymMembersService {
 
       return {
         success: true,
-        message: 'Member restored successfully',
-        member: restoredMember,
+        message: 'Member restored successfully from gym',
+        member: existingMember,
       };
     } catch (error) {
       if (
@@ -978,9 +1011,11 @@ export class GymMembersService {
         endDate: {
           lte: targetDate, // Show subscriptions expiring within the window (including those that just expired)
         },
-        // Exclude subscriptions for deleted users
+        // Exclude subscriptions for gym-deleted members
         member: {
-          deletedAt: null,
+          gymMemberProfile: {
+            deletedAt: null,
+          },
         },
       };
 
@@ -1104,9 +1139,11 @@ export class GymMembersService {
         endDate: {
           lte: targetDate, // Show subscriptions expiring within the window (including those that just expired)
         },
-        // Exclude subscriptions for deleted users
+        // Exclude subscriptions for gym-deleted members
         member: {
-          deletedAt: null,
+          gymMemberProfile: {
+            deletedAt: null,
+          },
         },
       };
 
@@ -1200,9 +1237,11 @@ export class GymMembersService {
         }));
       }
 
-      // Add filter to exclude deleted users from the where clause
+      // Add filter to exclude gym-deleted members from the where clause
       whereClause.member = {
-        deletedAt: null,
+        gymMemberProfile: {
+          deletedAt: null,
+        },
       };
 
       this.logger.debug(

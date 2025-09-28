@@ -505,6 +505,12 @@ async function main() {
                    memberInfo.status === 'NO_SUBSCRIPTION' ? 'NO_SUBSCRIPTION' :
                    memberInfo.status,
             
+            // Gym-level soft deletion for DELETED members
+            deletedAt: memberInfo.status === 'DELETED' ? new Date() : null,
+            deletedBy: memberInfo.status === 'DELETED' ? owner.id : null,
+            deletionReason: memberInfo.status === 'DELETED' ? 'Violation of gym policies' : null,
+            deletionNotes: memberInfo.status === 'DELETED' ? 'Member was found using inappropriate language and disrupting other members' : null,
+            
             // Emergency Contact Information
             emergencyContactName: emergencyContactName,
             emergencyContactPhone: `+63 9${Math.floor(Math.random() * 900000000) + 100000000}`,
