@@ -137,6 +137,7 @@ export const useCreateMembershipPlan = () => {
       return response
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['membership-plans-v4'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
     }
   })
@@ -150,6 +151,7 @@ export const useUpdateMembershipPlan = () => {
     mutationFn: ({ id, data }: { id: string; data: UpdateMembershipPlanData }) => 
       updateMembershipPlan(id, data),
     onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['membership-plans-v4'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans', id] })
     }
@@ -166,6 +168,7 @@ export const useToggleMembershipPlanStatus = () => {
       return response
     },
     onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['membership-plans-v4'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans', id] })
     }
@@ -182,6 +185,7 @@ export const useDeleteMembershipPlan = () => {
       return response
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['membership-plans-v4'] })
       queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
     }
   })
