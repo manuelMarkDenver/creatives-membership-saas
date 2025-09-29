@@ -47,7 +47,7 @@ import {
 } from 'lucide-react'
 import { useExpiringMembersOverview, useRefreshExpiringMembers } from '@/lib/hooks/use-expiring-members'
 import type { ExpiringMembersFilters, ExpiringMember } from '@/lib/api/expiring-members'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
 import { useRenewMemberSubscription } from '@/lib/hooks/use-member-management'
 
@@ -146,8 +146,8 @@ export function ExpiringMembersModal({
       gymMembershipPlanId: selectedPlanId
     }, {
       onSuccess: async (result) => {
-        toast.success(`Membership renewed successfully for ${memberName}!`, {
-          description: result.message
+        toast.success(`Membership renewed successfully for ${memberName}!\n${result.message}`, {
+          autoClose: 5000
         })
         
         // Refresh expiring members data to show updated status
@@ -159,8 +159,8 @@ export function ExpiringMembersModal({
         const errorMessage = error && typeof error === 'object' && 'response' in error 
           ? (error.response as { data?: { message?: string } })?.data?.message 
           : 'Please try again.'
-        toast.error('Failed to renew membership', {
-          description: errorMessage || 'Please try again.'
+        toast.error(`Failed to renew membership\n${errorMessage || 'Please try again.'}`, {
+          autoClose: 5000
         })
       }
     })

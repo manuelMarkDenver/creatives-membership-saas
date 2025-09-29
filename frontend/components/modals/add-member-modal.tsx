@@ -36,7 +36,7 @@ import {
   CreditCard,
   X
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 import { Role } from '@/types'
 import { formatPHP } from '@/lib/utils/currency'
 import { membersApi } from '@/lib/api/gym-members'

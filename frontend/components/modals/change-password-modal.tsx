@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useChangePassword } from '@/lib/hooks/use-gym-users'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 import { Eye, EyeOff, Key, Lock } from 'lucide-react'
 
 interface ChangePasswordModalProps {
@@ -77,8 +77,8 @@ export default function ChangePasswordModal({
         newPassword,
       })
 
-      toast.success('Password changed successfully!', {
-        description: 'Your password has been updated. Please remember to use your new password for future logins.'
+      toast.success('Password changed successfully!\nYour password has been updated. Please remember to use your new password for future logins.', {
+        autoClose: 5000
       })
       
       onOpenChange(false)

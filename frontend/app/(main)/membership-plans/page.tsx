@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 
 
 const membershipTypes = [
@@ -309,7 +309,7 @@ export default function MembershipPlansPage() {
       }
       
       toast.error(errorMessage, {
-        duration: 6000, // Show longer for error messages
+        autoClose: 6000, // Show longer for error messages
       })
     } finally {
       setDeleteDialogOpen(false)

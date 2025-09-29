@@ -26,7 +26,7 @@ import {
   User,
   XCircle
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 import { formatPHP } from '@/lib/utils/currency'
 
 interface MemberCancellationModalProps {

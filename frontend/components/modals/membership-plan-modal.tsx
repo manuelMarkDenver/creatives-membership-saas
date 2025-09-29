@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { X, Plus } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 
 interface MembershipPlanModalProps {
   isOpen: boolean
