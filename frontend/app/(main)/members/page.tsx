@@ -19,7 +19,8 @@ import {
   Calendar,
   Building,
   Globe,
-  Receipt
+  Receipt,
+  AlertTriangle
 } from 'lucide-react'
 import {
   Dialog,
@@ -36,6 +37,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { User, Role } from '@/types'
 import { MemberInfoModal } from '@/components/modals/member-info-modal'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
+import { MembershipPlansRequiredModal } from '@/components/modals/membership-plans-required-modal'
 import { MemberCard } from '@/components/members/member-card'
 import { StatsOverview } from '@/components/members/stats-overview'
 import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-gym-member-actions'
@@ -61,6 +63,7 @@ export default function MembersPage() {
   const [cancellationNotes, setCancellationNotes] = useState('')
   const [showTransactionModal, setShowTransactionModal] = useState(false)
   const [selectedMemberForTransactions, setSelectedMemberForTransactions] = useState<User | null>(null)
+  const [showPlansRequiredModal, setShowPlansRequiredModal] = useState(false)
 
   const isSuperAdmin = profile?.role === 'SUPER_ADMIN'
 
@@ -75,7 +78,7 @@ export default function MembersPage() {
   })
 
   // Fetch membership plans for the current tenant
-  const { data: membershipPlans } = useActiveMembershipPlans()
+  const { data: membershipPlans, isLoading: isLoadingPlans, error: plansError } = useActiveMembershipPlans()
   
   // Ensure membershipPlans is always an array
   const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
@@ -301,13 +304,31 @@ export default function MembersPage() {
         {!isSuperAdmin && (
           <Button 
             onClick={() => {
-              setShowAddMemberModal(true)
+              if (safeMembershipPlans.length === 0) {
+                setShowPlansRequiredModal(true)
+              } else {
+                setShowAddMemberModal(true)
+              }
             }}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 w-full sm:w-auto"
+            className={`shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 w-full sm:w-auto ${
+              safeMembershipPlans.length === 0 
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white' 
+                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
+            }`}
             size="lg"
+            title={safeMembershipPlans.length === 0 ? 'Create membership plans first' : 'Add a new member'}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Member
+            {safeMembershipPlans.length === 0 ? (
+              <>
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Create Plans First
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Member
+              </>
+            )}
           </Button>
         )}
       </div>
@@ -462,6 +483,13 @@ export default function MembersPage() {
           await refreshMembersData()
           setShowAddMemberModal(false)
         }}
+      />
+
+      {/* Membership Plans Required Modal */}
+      <MembershipPlansRequiredModal
+        open={showPlansRequiredModal}
+        onOpenChange={setShowPlansRequiredModal}
+        tenantName={profile?.tenant?.name || 'your gym'}
       />
 
       {/* Membership Renewal Modal */}

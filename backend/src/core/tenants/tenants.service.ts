@@ -823,6 +823,151 @@ export class TenantsService {
   }
 
   /**
+   * Mark tenant onboarding as completed
+   */
+  async markOnboardingComplete(tenantId: string) {
+    try {
+      if (!this.isValidUUID(tenantId)) {
+        throw new BadRequestException('Invalid tenant ID format');
+      }
+
+      const updatedTenant = await this.prisma.tenant.update({
+        where: { id: tenantId },
+        data: { 
+          onboardingCompletedAt: new Date(),
+          updatedAt: new Date()
+        },
+      });
+
+      this.logger.log(
+        `Marked onboarding complete for tenant: ${updatedTenant.name} (${updatedTenant.id})`,
+      );
+      return updatedTenant;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to mark onboarding complete: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to update onboarding status. Please try again.',
+      );
+    }
+  }
+
+  /**
+   * Mark owner password as changed (used when owner updates from temp password)
+   */
+  async markOwnerPasswordChanged(tenantId: string) {
+    try {
+      if (!this.isValidUUID(tenantId)) {
+        throw new BadRequestException('Invalid tenant ID format');
+      }
+
+      const updatedTenant = await this.prisma.tenant.update({
+        where: { id: tenantId },
+        data: { 
+          ownerPasswordChanged: true,
+          updatedAt: new Date()
+        },
+      });
+
+      this.logger.log(
+        `Marked owner password changed for tenant: ${updatedTenant.name} (${updatedTenant.id})`,
+      );
+      return updatedTenant;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to mark owner password changed: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to update password status. Please try again.',
+      );
+    }
+  }
+
+  /**
+   * Check if tenant needs onboarding
+   */
+  async getTenantOnboardingStatus(tenantId: string) {
+    try {
+      if (!this.isValidUUID(tenantId)) {
+        throw new BadRequestException('Invalid tenant ID format');
+      }
+
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          name: true,
+          onboardingCompletedAt: true,
+          ownerPasswordChanged: true,
+          // Check if tenant has membership plans
+          gymMembershipPlans: {
+            where: { deletedAt: null },
+            take: 1,
+            select: { id: true }
+          },
+          // Check if tenant has members
+          users: {
+            where: { role: 'CLIENT', deletedAt: null },
+            take: 1,
+            select: { id: true }
+          }
+        },
+      });
+
+      if (!tenant) {
+        throw new NotFoundException(`Tenant with ID '${tenantId}' not found`);
+      }
+
+      const hasMembers = tenant.users.length > 0;
+      const hasMembershipPlans = tenant.gymMembershipPlans.length > 0;
+      const isOnboardingComplete = !!tenant.onboardingCompletedAt;
+      const hasChangedPassword = tenant.ownerPasswordChanged;
+
+      return {
+        tenantId,
+        tenantName: tenant.name,
+        isOnboardingComplete,
+        hasChangedPassword,
+        hasMembershipPlans,
+        hasMembers,
+        onboardingCompletedAt: tenant.onboardingCompletedAt,
+        // Suggest next steps if not complete
+        nextSteps: !isOnboardingComplete ? [
+          !hasChangedPassword ? 'Change temporary password' : null,
+          !hasMembershipPlans ? 'Create membership plans' : null,
+          !hasMembers ? 'Add first members' : null
+        ].filter(Boolean) : []
+      };
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to get tenant onboarding status: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to retrieve onboarding status. Please try again.',
+      );
+    }
+  }
+
+  /**
    * Generate a temporary password for new tenant owners
    */
   private generateTemporaryPassword(): string {
