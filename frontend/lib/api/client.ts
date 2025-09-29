@@ -7,16 +7,8 @@ const BYPASS_AUTH = process.env.NODE_ENV === 'production'
   ? false
   : process.env.NEXT_PUBLIC_API_BYPASS_AUTH === 'true'
 
-console.log('API Client Configuration:')
-console.log('process.env.NODE_ENV:', process.env.NODE_ENV)
-console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
-console.log('NEXT_PUBLIC_API_BYPASS_AUTH:', process.env.NEXT_PUBLIC_API_BYPASS_AUTH)
-console.log('Final API_URL:', API_URL)
-console.log('BYPASS_AUTH:', BYPASS_AUTH)
 
 if (!API_URL || API_URL === 'undefined') {
-  console.error('NEXT_PUBLIC_API_URL is not defined or is undefined!')
-  console.log('Available environment variables:', Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC')))
   throw new Error('NEXT_PUBLIC_API_URL is not defined. Please check your .env.local file.')
 }
 
@@ -29,7 +21,6 @@ export const apiClient = axios.create({
   timeout: 10000,
 })
 
-console.log('Created API client with baseURL:', apiClient.defaults.baseURL)
 
 // Tenant context for API calls
 let currentTenantId: string | null = null
@@ -74,7 +65,6 @@ apiClient.interceptors.request.use(
               config.headers['x-bypass-auth'] = 'true';
             }
           } catch (error) {
-            console.warn('Failed to get Supabase session:', error);
             if (BYPASS_AUTH) {
               useBypass = true;
               config.headers['x-bypass-auth'] = 'true';
@@ -82,7 +72,6 @@ apiClient.interceptors.request.use(
           }
         }
       } catch (error) {
-        console.warn('Failed to process auth:', error);
         if (BYPASS_AUTH) {
           useBypass = true;
           config.headers['x-bypass-auth'] = 'true';

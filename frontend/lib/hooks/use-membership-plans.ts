@@ -22,13 +22,14 @@ export const useMembershipPlans = () => {
       try {
         const response = await getMembershipPlans()
         
-        // Handle nested response structure: response.data.data or response.data
+        // Handle nested response structure
         let result
-        if (response && (response.success === true || response.success === 'true')) {
-          if (Array.isArray(response.data?.data)) {
-            result = response.data.data
-          } else if (Array.isArray(response.data)) {
-            result = response.data
+        if (response && (response as any).success === true) {
+          const responseData = (response as any).data
+          if (Array.isArray(responseData?.data)) {
+            result = responseData.data
+          } else if (Array.isArray(responseData)) {
+            result = responseData
           } else {
             result = []
           }
@@ -40,13 +41,11 @@ export const useMembershipPlans = () => {
         
         return [...result]
       } catch (error) {
-        console.error('Failed to fetch membership plans:', error)
         return []
       }
     },
     staleTime: 0, // Always refetch
     gcTime: 0, // Don't cache
-    cacheTime: 0, // Legacy cache time
     retry: false, // Disable retry for debugging
     refetchOnWindowFocus: false, // Disable to avoid confusion during debugging
     refetchOnMount: true,
@@ -64,42 +63,19 @@ export const useActiveMembershipPlans = () => {
     queryFn: async () => {
       try {
         const response = await getActiveMembershipPlans()
-        return response.success ? response.data : []
+        if (response.success && Array.isArray(response.data)) {
+          return response.data
+        }
+        // Return empty array if API call succeeds but no data
+        return []
       } catch (error) {
-        console.warn('API not available, using fallback mock data:', error)
-        // Fallback mock data when API is not available
-        return [
-          {
-            id: 'mock-1',
-            tenantId: 'tenant-1',
-            name: 'Day Pass',
-            description: 'Single day gym access',
-            price: 150,
-            duration: 1,
-            type: 'DAY_PASS',
-            benefits: ['Full gym access for 1 day', 'Use of all equipment', 'Locker access'],
-            isActive: true,
-            memberCount: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          {
-            id: 'mock-2',
-            tenantId: 'tenant-1', 
-            name: 'Student Monthly',
-            description: 'Discounted membership for students',
-            price: 800,
-            duration: 30,
-            type: 'STUDENT',
-            benefits: ['Unlimited gym access', 'Group classes included', 'Student discount'],
-            isActive: true,
-            memberCount: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ]
+        // Return empty array when API fails - this allows proper UX flow
+        // for new tenants who haven't created plans yet
+        return []
       }
-    }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   })
 }
 

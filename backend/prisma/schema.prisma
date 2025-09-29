@@ -23,6 +23,8 @@ model Tenant {
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   freeBranchOverride     Int                     @default(0)
+  onboardingCompletedAt  DateTime?               // When tenant completed initial setup
+  ownerPasswordChanged   Boolean                 @default(false) // Track if owner changed from temp password
   paidModeEnabled        Boolean                 @default(false) // Global paid mode toggle
   freeUnitsLimit         Int                     @default(1) // How many free units allowed
   trialDurationDays      Int                     @default(28) // Default trial duration

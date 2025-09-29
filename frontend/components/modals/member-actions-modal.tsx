@@ -205,8 +205,8 @@ export function MemberActionsModal({
       onClose()
     } catch (error: any) {
       console.error(`${actionType} failed:`, error)
-      toast.error(`Failed to ${actionType} member`, {
-        description: error?.response?.data?.message || 'Please try again.'
+      toast.error(`Failed to ${actionType} member\n${error?.response?.data?.message || 'Please try again.'}`, {
+        autoClose: 5000
       })
     }
   }

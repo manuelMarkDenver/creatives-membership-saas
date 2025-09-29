@@ -100,4 +100,23 @@ export class TenantsController {
   async resetTenantOwnerPassword(@Param('id') id: string) {
     return this.tenantsService.resetTenantOwnerPassword(id);
   }
+
+  // Onboarding endpoints - accessible by owners for their own tenant
+  @Get(':id/onboarding-status')
+  @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER)
+  async getOnboardingStatus(@Param('id') id: string) {
+    return this.tenantsService.getTenantOnboardingStatus(id);
+  }
+
+  @Post(':id/complete-onboarding')
+  @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER)
+  async completeOnboarding(@Param('id') id: string) {
+    return this.tenantsService.markOnboardingComplete(id);
+  }
+
+  @Post(':id/mark-password-changed')
+  @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER)
+  async markPasswordChanged(@Param('id') id: string) {
+    return this.tenantsService.markOwnerPasswordChanged(id);
+  }
 }
