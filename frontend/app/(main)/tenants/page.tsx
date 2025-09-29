@@ -10,7 +10,7 @@ import { useUpdateFreeBranchOverride } from '@/lib/hooks/use-subscription'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenantContext } from '@/lib/providers/tenant-context'
 import { Tenant } from '@/types'
-import { MoreHorizontal, Plus, Edit, Trash2, Crown, Gift, LogIn, ExternalLink, Building2, User, Palette, Settings } from 'lucide-react'
+import { MoreHorizontal, Plus, Edit, Trash2, Crown, Gift, LogIn, ExternalLink, Building2, User, Palette, Settings, Copy, CheckCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/select'
 import CreateTenantForm from '@/components/forms/create-tenant-form'
 import { CreateTenantFormData } from '@/lib/schemas/tenant-schema'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 
 const businessCategories = [
   { value: 'GYM', label: 'Gym & Fitness' },
@@ -57,6 +57,8 @@ export default function TenantsPage() {
   const [createFormOpen, setCreateFormOpen] = useState(false)
   const [overrideDialogOpen, setOverrideDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [passwordResetModalOpen, setPasswordResetModalOpen] = useState(false)
+  const [passwordResetData, setPasswordResetData] = useState<{ownerEmail: string, tempPassword: string, tenantName: string} | null>(null)
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null)
   const [overrideValue, setOverrideValue] = useState(0)
   const [editFormData, setEditFormData] = useState({
@@ -94,7 +96,6 @@ export default function TenantsPage() {
   // Update form when owner data loads
   useEffect(() => {
     if (ownerData && selectedTenant) {
-      console.log('Loading owner data into form:', ownerData)
       setEditFormData(prev => ({
         ...prev,
         ownerFirstName: ownerData.firstName || '',
@@ -102,8 +103,6 @@ export default function TenantsPage() {
         ownerEmail: ownerData.email || '',
         ownerPhoneNumber: ownerData.phoneNumber || ''
       }))
-    } else if (selectedTenant && !ownerData) {
-      console.log('Selected tenant but no owner data yet:', selectedTenant.id)
     }
   }, [ownerData, selectedTenant])
 
@@ -120,24 +119,44 @@ export default function TenantsPage() {
 
   const tenants = tenantsData || []
 
+  // Copy to clipboard function
+  const copyToClipboard = async (text: string, type: string = 'Text') => {
+    try {
+      await navigator.clipboard.writeText(text)
+      // Toast notifications are now handled by the calling component
+      return true
+    } catch (error) {
+      toast.error('Failed to copy to clipboard')
+      return false
+    }
+  }
+
   const handleCreateTenant = async (data: CreateTenantFormData) => {
     try {
       const result = await createTenant.mutateAsync(data)
       
       // Show success message with temporary password if available
       if ((result as any)?.tempPassword) {
-        toast.success(
-          `Tenant created successfully! Owner login: ${data.ownerEmail} | Temporary password: ${(result as any).tempPassword}`,
-          { 
-            duration: 10000, // 10 seconds to give time to copy
-            description: 'Please save these credentials and provide them to the tenant owner.'
-          }
-        )
+        const tempPassword = (result as any).tempPassword
+        const ownerEmail = data.ownerEmail
+        const tenantName = data.name
+        
+        // Set password reset data and open the modern modal
+        setPasswordResetData({
+          ownerEmail,
+          tempPassword,
+          tenantName
+        })
+        setPasswordResetModalOpen(true)
+        
+        // Show simple success toast
+        toast.success(`🎉 Tenant "${tenantName}" created successfully!\nOwner account and trial branch have been set up.`, {
+          autoClose: 5000
+        })
       } else {
         toast.success('Tenant created successfully! Owner account and trial branch have been set up.')
       }
     } catch (error) {
-      console.error('Failed to create tenant:', error)
       toast.error('Failed to create tenant. Please try again.')
       throw error
     }
@@ -155,7 +174,6 @@ export default function TenantsPage() {
       setOverrideDialogOpen(false)
       setSelectedTenant(null)
     } catch (error) {
-      console.error('Failed to update override:', error)
       toast.error('Failed to update free branch override')
     }
   }
@@ -230,29 +248,22 @@ export default function TenantsPage() {
       
       // Update owner if any required fields are provided
       if (ownerUpdateData.firstName || ownerUpdateData.lastName || ownerUpdateData.email) {
-        console.log('Attempting to update owner with data:', ownerUpdateData)
-        console.log('Tenant ID:', selectedTenant.id)
         try {
-          const result = await updateTenantOwner.mutateAsync({
+          await updateTenantOwner.mutateAsync({
             tenantId: selectedTenant.id,
             data: ownerUpdateData
           })
-          console.log('Owner details updated successfully:', result)
           toast.success('Owner details updated successfully!')
         } catch (ownerError) {
-          console.error('Failed to update owner details:', ownerError)
           toast.error('Failed to update owner details: ' + (ownerError as Error).message)
           return // Exit early if owner update fails
         }
-      } else {
-        console.log('No owner data to update (all fields empty)')
       }
       
       toast.success(`Updated tenant: ${editFormData.name}`)
       setEditDialogOpen(false)
       setSelectedTenant(null)
     } catch (error) {
-      console.error('Failed to update tenant:', error)
       toast.error('Failed to update tenant details')
     }
   }
@@ -269,9 +280,9 @@ export default function TenantsPage() {
     if (confirm('Are you sure you want to delete this tenant?')) {
       try {
         await deleteTenant.mutateAsync(id)
-      } catch (error) {
-        console.error('Failed to delete tenant:', error)
-      }
+    } catch (error) {
+      toast.error('Failed to delete tenant')
+    }
     }
   }
 
@@ -653,39 +664,33 @@ export default function TenantsPage() {
                         variant="outline"
                         size="sm"
                         className="border-amber-300 text-amber-700 hover:bg-amber-100"
-                        onClick={async () => {
-                          if (!selectedTenant) return
-                          console.log('Reset password clicked for tenant:', selectedTenant.id)
+                          onClick={async () => {
+                          if (!selectedTenant) {
+                            toast.error('No tenant selected')
+                            return
+                          }
+                          
                           try {
                             const result = await resetOwnerPassword.mutateAsync(selectedTenant.id)
-                            console.log('Reset password result:', result)
                             
-                            // Show the password prominently
-                            toast.success(
-                              `🔑 Password Reset Successful!`,
-                              {
-                                duration: 20000, // 20 seconds to give time to copy
-                                description: `Owner: ${result.ownerEmail}\nNew Password: ${result.tempPassword}\n\nPlease copy this password and share it securely with the tenant owner.`,
-                                action: {
-                                  label: 'Copy Password',
-                                  onClick: () => {
-                                    navigator.clipboard.writeText(result.tempPassword)
-                                    toast.success('Password copied to clipboard!')
-                                  }
-                                }
-                              }
-                            )
-                            
-                            // Also show an alert as backup
-                            alert(`PASSWORD RESET SUCCESSFUL\n\nOwner: ${result.ownerEmail}\nNew Password: ${result.tempPassword}\n\nPlease copy this password and provide it to the tenant owner.`)
-                            
+                            if (result && result.ownerEmail && result.tempPassword) {
+                              setPasswordResetData(result)
+                              setPasswordResetModalOpen(true)
+                              
+                              // Show success toast
+                        toast.success(`🔑 Password reset successfully!\nNew temporary password generated for ${result.ownerEmail}`, {
+                          autoClose: 4000
+                        })
+                            } else {
+                              toast.error('Invalid response from server')
+                            }
                           } catch (error) {
-                            console.error('Failed to reset password:', error)
                             toast.error('Failed to reset owner password: ' + (error as Error).message)
                           }
                         }}
+                        disabled={resetOwnerPassword.isPending}
                       >
-                        Reset Password
+                        {resetOwnerPassword.isPending ? 'Resetting...' : 'Reset Password'}
                       </Button>
                     </div>
                   </div>
@@ -791,6 +796,135 @@ export default function TenantsPage() {
                   Update Tenant
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modern Password Reset Modal */}
+      <Dialog open={passwordResetModalOpen} onOpenChange={setPasswordResetModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-700">
+              <CheckCheck className="h-5 w-5" />
+              Password Reset Successful
+            </DialogTitle>
+            <DialogDescription>
+              The tenant owner's password has been successfully reset. Please share these credentials securely.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {passwordResetData && (
+            <div className="space-y-4 py-4">
+              {/* Tenant Info */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Tenant: {passwordResetData.tenantName}</p>
+              </div>
+              
+              {/* Owner Email */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">Owner Email</Label>
+                <div className="flex items-center space-x-2 p-3 bg-muted/50 border rounded-lg">
+                  <code className="flex-1 text-sm font-mono text-foreground bg-background px-2 py-1 rounded border">
+                    {passwordResetData.ownerEmail}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 p-0 border-2 hover:bg-blue-100 dark:hover:bg-blue-800 hover:text-blue-800 dark:hover:text-blue-200 hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
+                    onClick={async (e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      try {
+                        await navigator.clipboard.writeText(passwordResetData.ownerEmail)
+                        toast.success('📧 Email copied!\nOwner email address copied to clipboard', {
+                          autoClose: 2000
+                        })
+                      } catch (error) {
+                        toast.error('Failed to copy email')
+                      }
+                    }}
+                    title="Copy Email"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* New Password */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">New Temporary Password</Label>
+                <div className="flex items-center space-x-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+                  <code className="flex-1 text-sm font-mono text-foreground bg-background px-2 py-1 rounded border font-bold">
+                    {passwordResetData.tempPassword}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 p-0 border-2 bg-amber-100 dark:bg-amber-800 hover:bg-amber-200 dark:hover:bg-amber-700 border-amber-300 dark:border-amber-600 text-amber-800 dark:text-amber-200 hover:text-amber-900 dark:hover:text-amber-100 transition-colors"
+                    onClick={async (e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      try {
+                        await navigator.clipboard.writeText(passwordResetData.tempPassword)
+                        toast.success('🔑 Password copied!\nTemporary password copied to clipboard', {
+                          autoClose: 2000
+                        })
+                      } catch (error) {
+                        toast.error('Failed to copy password')
+                      }
+                    }}
+                    title="Copy Password"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Security Note */}
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-700">
+                <div className="flex items-start space-x-2">
+                  <div className="text-amber-600 dark:text-amber-400 mt-0.5">🔐</div>
+                  <div>
+                    <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">Security Note</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                      The owner should change this password after their first login. Share this information through secure channels only.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPasswordResetModalOpen(false)
+                setPasswordResetData(null)
+              }}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={async (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                if (passwordResetData) {
+                  try {
+                    await navigator.clipboard.writeText(passwordResetData.tempPassword)
+                    toast.success('🔑 Password copied!\nTemporary password copied to clipboard - share it securely!', {
+                      autoClose: 3000
+                    })
+                  } catch (error) {
+                    toast.error('Failed to copy password')
+                  }
+                }
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy Password
             </Button>
           </DialogFooter>
         </DialogContent>

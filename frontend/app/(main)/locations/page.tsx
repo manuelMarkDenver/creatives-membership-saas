@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Location } from '@/types'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 
 export default function LocationsPage() {
   const { data: profile } = useProfile()

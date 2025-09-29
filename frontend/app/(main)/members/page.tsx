@@ -39,7 +39,7 @@ import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MemberCard } from '@/components/members/member-card'
 import { StatsOverview } from '@/components/members/stats-overview'
 import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-gym-member-actions'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 import { filterMembersByStatus, calculateMemberStats, type MemberData } from '@/lib/utils/member-status'
 import { useExpiringMembersCount } from '@/lib/hooks/use-expiring-members'
 import { useGymSubscriptionStats } from '@/lib/hooks/use-gym-subscriptions'
@@ -146,8 +146,8 @@ export default function MembersPage() {
       data: { gymMembershipPlanId: selectedPlanId }
     }, {
       onSuccess: async (result) => {
-        toast.success(`Membership renewed successfully for ${memberName}!`, {
-          description: result.message
+        toast.success(`Membership renewed successfully for ${memberName}!\n${result.message}`, {
+          autoClose: 5000
         })
         
         // Refresh members data to show updated status
@@ -161,8 +161,8 @@ export default function MembersPage() {
         const errorMessage = error && typeof error === 'object' && 'response' in error 
           ? (error.response as { data?: { message?: string } })?.data?.message 
           : 'Please try again.'
-        toast.error('Failed to renew membership', {
-          description: errorMessage || 'Please try again.'
+        toast.error(`Failed to renew membership\n${errorMessage || 'Please try again.'}`, {
+          autoClose: 5000
         })
       }
     })
@@ -181,8 +181,8 @@ export default function MembersPage() {
       data: { reason: cancellationReason || 'No reason specified', notes: cancellationNotes }
     }, {
       onSuccess: async (result) => {
-        toast.success(`Membership cancelled successfully for ${memberName}`, {
-          description: result.message
+        toast.success(`Membership cancelled successfully for ${memberName}\n${result.message}`, {
+          autoClose: 5000
         })
         
         // Refresh members data to show updated status
@@ -197,8 +197,8 @@ export default function MembersPage() {
         const errorMessage = error && typeof error === 'object' && 'response' in error 
           ? (error.response as { data?: { message?: string } })?.data?.message 
           : 'Please try again.'
-        toast.error('Failed to cancel membership', {
-          description: errorMessage || 'Please try again.'
+        toast.error(`Failed to cancel membership\n${errorMessage || 'Please try again.'}`, {
+          autoClose: 5000
         })
       }
     })

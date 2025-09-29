@@ -51,7 +51,7 @@ import { MemberActionsModal, type MemberActionType } from '@/components/modals/m
 import { MemberHistoryModal } from '@/components/modals/member-history-modal'
 import { DeleteMemberModal } from '@/components/modals/delete-member-modal'
 import { RestoreMemberModal } from '@/components/modals/restore-member-modal'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 import { calculateMemberStatus, getAvailableMemberActions, type MemberData } from '@/lib/utils/member-status'
 import { getMemberStatusDisplay, getAvailableActions, getStatusColorClasses } from '@/lib/utils/member-status-display'
 

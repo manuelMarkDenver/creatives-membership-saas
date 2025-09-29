@@ -32,7 +32,7 @@ import {
   Info,
   Calendar
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 import { useMemberStatus, useActionReasons, useActivateMember, useCancelMember, useRestoreMember, useRenewMemberSubscription } from '@/lib/hooks/use-gym-member-actions'
 import type { MemberActionRequest } from '@/lib/api/gym-members'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'

@@ -28,7 +28,7 @@ import {
   CreditCard
 } from 'lucide-react'
 import { useRestoreUser } from '@/lib/hooks/use-gym-users'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 
 interface RestoreMemberModalProps {
   isOpen: boolean

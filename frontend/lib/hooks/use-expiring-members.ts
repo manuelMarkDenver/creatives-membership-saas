@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { expiringMembersApi, type ExpiringMembersFilters } from '@/lib/api/expiring-members'
-import { toast } from 'sonner'
+import { toast } from 'react-toastify'
 
 // Hook to get expiring members count
 export function useExpiringMembersCount(tenantId: string, daysBefore: number = 7, options: any = {}) {
