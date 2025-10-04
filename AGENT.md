@@ -674,11 +674,44 @@ cd frontend && npm run dev
 
 ---
 
-*Last Updated: September 29, 2025 - 12:51 UTC*
-*Status: Member Management UX & Onboarding System - ✅ COMPLETED*
-*Recent Updates: Membership plans requirement enforcement, first-time onboarding tracking, production-ready code cleanup*
+*Last Updated: October 4, 2025 - 05:22 UTC*
+*Status: Authentication & CORS Issues - 🔄 IN PROGRESS*
+*Current Work: Fixing Super Admin access to tenant management after disabling auth bypass*
 
-### **Recent Achievements (Sep 29, 2025)**
+### **Current Session Progress (Oct 4, 2025)**
+- ✅ **Auth Bypass System Disabled**: Removed problematic hardcoded credentials causing confusion
+  - Disabled `NEXT_PUBLIC_API_BYPASS_AUTH` in frontend `.env.local`
+  - Removed hardcoded bypass profile from `use-gym-users.ts`
+  - Cleaned up API client bypass logic
+- ✅ **Members List Fixed**: Resolved "No members found" issue for gym owners
+  - Fixed tenant ID mismatch between frontend and database
+  - Updated development profile with correct Muscle Mania tenant ID: `6dc96e87-11cc-4c0b-9fe3-ac849fd1a565`
+  - Removed problematic backend role filtering, added frontend filtering for CLIENT users
+- ✅ **Membership Plans Display Fixed**: Resolved "Create Plans First" button showing incorrectly
+  - Fixed double-wrapped response structure in `useActiveMembershipPlans` hook
+  - Added proper response parsing for nested API responses
+- ✅ **New Tenant Creation Working**: Successfully created "Fleur Chen" tenant with proper onboarding flow
+- 🔄 **Super Admin Access Issue**: Fixing 403 Forbidden errors when accessing tenant management
+  - **Root Cause**: Auth guard hardcoded to `owner@muscle-mania.com` regardless of logged-in user
+  - **Fix Applied**: Modified auth guard to use `x-user-email` header for user identification
+  - **CORS Issue**: Added `x-user-email` to allowed headers in `/backend/src/main.ts`
+  - **Status**: Backend ready to restart, port 5000 freed, changes applied
+
+### **🎯 Next Immediate Tasks:**
+1. **Restart Backend**: User to run `npm run start:dev` to apply CORS and auth fixes
+2. **Test Super Admin Login**: Verify `admin@creatives-saas.com` can access tenant management
+3. **Verify Tenant Display**: Confirm both "Muscle Mania" and "Fleur Chen" tenants are visible
+4. **Test Membership Plans**: Ensure both tenants show correct "Add Member"/"Create Plans First" states
+
+### **🔧 Technical Changes Made This Session:**
+- **Backend Auth Guard** (`/src/core/auth/auth.guard.ts`): Added `x-user-email` header lookup
+- **Frontend API Client** (`/lib/api/client.ts`): Added user email header to requests
+- **Backend CORS** (`/src/main.ts`): Added `x-user-email` to allowed headers
+- **Membership Plans Hook** (`/lib/hooks/use-membership-plans.ts`): Fixed double-wrapped response parsing
+- **Members Page** (`/app/(main)/members/page.tsx`): Removed problematic role filtering
+- **Profile Hook** (`/lib/hooks/use-gym-users.ts`): Updated with correct tenant IDs
+
+### **Previous Achievements (Sep 29, 2025)**
 - ✅ **Member UX Enforcement**: Add Member button properly disabled without membership plans
 - ✅ **Onboarding Tracking System**: Complete backend API for first-time setup tracking
 - ✅ **Database Schema Enhancement**: Added onboarding fields with `prisma db push`
@@ -687,4 +720,3 @@ cd frontend && npm run dev
 - ✅ **Enhanced Tenant Creation**: Modern modal with copy buttons for credentials
 - ✅ **Security Improvements**: Removed console.log exposure, fixed clipboard access
 - ✅ **Build Stability**: All TypeScript compilation errors resolved
-- 🔄 **Next Phase**: Frontend integration of onboarding system

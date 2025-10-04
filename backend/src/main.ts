@@ -20,6 +20,7 @@ async function bootstrap() {
       'x-bypass-auth',
       'x-bypass-user',
       'x-tenant-id',
+      'x-user-email',
     ],
     credentials: true,
   });

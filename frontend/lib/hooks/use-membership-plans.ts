@@ -64,9 +64,6 @@ export const useActiveMembershipPlans = () => {
       try {
         const response = await getActiveMembershipPlans()
         
-        // Debug logging - remove after fixing
-        console.log('🔍 useActiveMembershipPlans response:', response)
-        
         // Handle nested response structure where fetchApi wraps the API response
         // API returns: {success: true, data: [...]}
         // fetchApi returns: {success: true, data: {success: true, data: [...]}}
@@ -93,10 +90,8 @@ export const useActiveMembershipPlans = () => {
         return []
       }
     },
-    staleTime: 0, // Always refetch during debugging
-    gcTime: 0, // Don't cache during debugging
-    refetchOnWindowFocus: true, // Refetch when window gains focus
-    refetchOnMount: true, // Always refetch on mount
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   })
 }
 

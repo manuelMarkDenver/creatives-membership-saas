@@ -95,6 +95,11 @@ apiClient.interceptors.request.use(
     if (tenantId) {
       config.headers['x-tenant-id'] = tenantId;
     }
+    
+    // Add user email for backend identification (temporary until proper JWT)
+    if (storedUser?.email) {
+      config.headers['x-user-email'] = storedUser.email;
+    }
 
     // For bypass auth with specific user (if we have stored user email)
     if (useBypass) {

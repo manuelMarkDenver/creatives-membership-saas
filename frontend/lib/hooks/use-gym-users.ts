@@ -69,28 +69,7 @@ export function useProfile() {
         const storedUser = localStorage.getItem('user_data');
         const storedToken = localStorage.getItem('auth_token');
 
-        // DEVELOPMENT BYPASS: Return default owner profile for development
-        const BYPASS_AUTH = process.env.NODE_ENV === 'development' &&
-          process.env.NEXT_PUBLIC_API_BYPASS_AUTH === 'true';
-        if (BYPASS_AUTH && !storedUser) {
-          console.log('🔧 Using development bypass profile');
-          const bypassUser = {
-            id: '9d0eec63-5613-4cdc-a09e-676d9b08e131',
-            email: 'owner@muscle-mania.com',
-            firstName: 'Juan',
-            lastName: 'Cruz',
-            name: 'Juan Cruz',
-            role: 'OWNER' as Role,
-            globalRole: 'OWNER',
-            tenantId: '6dc96e87-11cc-4c0b-9fe3-ac849fd1a565',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          } as User;
-
-          // Store bypass user data in localStorage for API client to use
-          localStorage.setItem('user_data', JSON.stringify(bypassUser));
-          return bypassUser;
-        }
+        // AUTH BYPASS DISABLED - use proper authentication
 
         if (storedUser && storedToken) {
           try {
