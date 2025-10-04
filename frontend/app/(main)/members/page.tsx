@@ -119,6 +119,9 @@ export default function MembersPage() {
       // Invalidate subscription-related queries
       await queryClient.invalidateQueries({ queryKey: ['gym-subscriptions'] })
       
+      // Invalidate membership plans queries
+      await queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
+      
       // Force refetch for immediate UI update
       if (isSuperAdmin) {
         await refetchTenantMembers()
