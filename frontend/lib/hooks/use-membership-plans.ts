@@ -63,9 +63,28 @@ export const useActiveMembershipPlans = () => {
     queryFn: async () => {
       try {
         const response = await getActiveMembershipPlans()
-        if (response.success && Array.isArray(response.data)) {
-          return response.data
+        
+        // Debug logging - remove after fixing
+        console.log('🔍 useActiveMembershipPlans response:', response)
+        
+        // Handle nested response structure where fetchApi wraps the API response
+        // API returns: {success: true, data: [...]}
+        // fetchApi returns: {success: true, data: {success: true, data: [...]}}
+        if (response.success) {
+          const actualData = response.data
+          
+          // Check if it's double-wrapped (fetchApi wrapped the API response)
+          if (actualData && typeof actualData === 'object' && 'success' in actualData && 'data' in actualData) {
+            if (actualData.success && Array.isArray(actualData.data)) {
+              return actualData.data
+            }
+          }
+          // Check if it's direct array (in case API structure changes)
+          else if (Array.isArray(actualData)) {
+            return actualData
+          }
         }
+        
         // Return empty array if API call succeeds but no data
         return []
       } catch (error) {
@@ -74,8 +93,10 @@ export const useActiveMembershipPlans = () => {
         return []
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 0, // Always refetch during debugging
+    gcTime: 0, // Don't cache during debugging
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchOnMount: true, // Always refetch on mount
   })
 }
 
