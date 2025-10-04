@@ -70,7 +70,7 @@ export default function MembersPage() {
   // Fetch data based on user role - useUsersByTenant already returns complete gym member data with gymSubscriptions and membershipPlan
   const { data: membersData, isLoading: isLoadingTenantMembers, error: tenantMembersError, refetch: refetchTenantMembers } = useUsersByTenant(
     profile?.tenantId || '',
-    { role: 'CLIENT' as Role }
+    {} // Remove role filter since backend API filtering is not working correctly
   )
 
   const { data: systemMemberStats, isLoading: isLoadingSystemMembers, error: systemMembersError } = useSystemMemberStats({
@@ -105,7 +105,7 @@ export default function MembersPage() {
       // Invalidate all user-related queries first
       await queryClient.invalidateQueries({ queryKey: userKeys.lists() })
       await queryClient.invalidateQueries({
-        queryKey: userKeys.byTenant(profile?.tenantId || '', { role: 'CLIENT' as Role })
+        queryKey: userKeys.byTenant(profile?.tenantId || '', {})
       })
       
       // Invalidate gym members with subscriptions queries
@@ -242,7 +242,7 @@ export default function MembersPage() {
   const error = isSuperAdmin ? systemMembersError : tenantMembersError
   const rawMembers = isSuperAdmin ? 
     (systemMemberStats?.members || []).filter(m => ['CLIENT', 'ECOM_CUSTOMER', 'COFFEE_CUSTOMER'].includes(m.role)) :
-    (membersData || [])
+    (membersData || []).filter(m => m.role === 'CLIENT') // Filter for CLIENT role users only
   
   // Apply branch filtering to ensure consistency between stats and displayed members
   const allMembers = rawMembers.filter((member: MemberData) => {
