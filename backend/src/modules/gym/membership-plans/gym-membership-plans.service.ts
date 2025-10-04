@@ -88,7 +88,7 @@ export class GymMembershipPlansService {
         success: true,
         data: {
           ...createdPlan,
-        benefits: createdPlan.benefits || [],
+          benefits: createdPlan.benefits || [],
         },
       };
     } catch (error) {
@@ -108,68 +108,89 @@ export class GymMembershipPlansService {
   }
 
   async findAllByTenant(tenantId: string, includeDeleted = false) {
-    const whereClause = includeDeleted
-      ? { tenantId }
-      : { tenantId, deletedAt: null };
+    try {
+      this.logger.log(`Finding membership plans for tenant: ${tenantId}`);
+      
+      const whereClause = includeDeleted
+        ? { tenantId }
+        : { tenantId, deletedAt: null };
 
-    const plans = await this.prisma.gymMembershipPlan.findMany({
-      where: whereClause,
-      orderBy: [
-        { deletedAt: 'asc' }, // Non-deleted first
-        { isActive: 'desc' }, 
-        { createdAt: 'desc' }
-      ],
-      include: {
-        tenant: {
-          select: {
-            id: true,
-            name: true,
+      const plans = await this.prisma.gymMembershipPlan.findMany({
+        where: whereClause,
+        orderBy: [
+          { deletedAt: 'asc' }, // Non-deleted first
+          { isActive: 'desc' }, 
+          { createdAt: 'desc' }
+        ],
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          deletedByUser: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
           },
         },
-        deletedByUser: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
+      });
+
+      // Get member counts for each plan using individual count queries
+      // This approach is simpler and avoids TypeScript issues with groupBy
+      const memberCountMap = new Map<string, number>();
+      
+      // For each plan, count active subscriptions
+      for (const plan of plans) {
+        const memberCount = await this.prisma.gymMemberSubscription.count({
+          where: {
+            gymMembershipPlanId: plan.id,
+            tenantId,
+            status: 'ACTIVE',
+            cancelledAt: null,
           },
-        },
-      },
-    });
-
-    // Get member counts for each plan
-    const planIds = plans.map(plan => plan.id);
-    
-    // Count from gym member subscriptions using new relation
-    const subscriptionCounts = await this.prisma.gymMemberSubscription.groupBy({
-      by: ['gymMembershipPlanId'],
-      where: {
-        gymMembershipPlanId: { in: planIds },
-        tenantId,
-        status: 'ACTIVE',
-        cancelledAt: null,
-      },
-      _count: {
-        gymMembershipPlanId: true,
-      },
-    });
-
-    // Create member count map
-    const memberCountMap = new Map<string, number>();
-    subscriptionCounts.forEach((count) => {
-      if (count.gymMembershipPlanId) {
-        memberCountMap.set(count.gymMembershipPlanId, count._count.gymMembershipPlanId);
+        });
+        memberCountMap.set(plan.id, memberCount);
       }
-    });
 
-    return {
-      success: true,
-      data: plans.map((plan) => ({
-        ...plan,
-        benefits: plan.benefits || [],
-        memberCount: memberCountMap.get(plan.id) || 0,
-        isDeleted: !!plan.deletedAt,
-      })),
-    };
+      this.logger.log(`Found ${plans.length} plans for tenant ${tenantId}`);
+      
+      return {
+        success: true,
+        data: plans.map((plan) => {
+          // Safely parse benefits field
+          let benefits: any[] = [];
+          try {
+            if (plan.benefits) {
+              if (typeof plan.benefits === 'string') {
+                benefits = JSON.parse(plan.benefits);
+              } else {
+                benefits = plan.benefits as any[];
+              }
+            }
+          } catch (error) {
+            this.logger.warn(`Failed to parse benefits for plan ${plan.id}: ${(error as Error).message}`);
+            benefits = [];
+          }
+          
+          return {
+            ...plan,
+            benefits,
+            memberCount: memberCountMap.get(plan.id) || 0,
+            isDeleted: !!plan.deletedAt,
+          };
+        }),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch membership plans for tenant ${tenantId}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException('Failed to fetch membership plans');
+    }
   }
 
   async findAllActive(tenantId: string) {

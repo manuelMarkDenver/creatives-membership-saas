@@ -674,9 +674,9 @@ cd frontend && npm run dev
 
 ---
 
-*Last Updated: October 4, 2025 - 05:24 UTC*
-*Status: Authentication & CORS Issues - ✅ COMPLETED*
-*Recent Achievement: Super Admin access to tenant management fully restored*
+*Last Updated: October 4, 2025 - 05:35 UTC*
+*Status: New Tenant Membership Plans Error - 🔄 IN PROGRESS*
+*Current Issue: 500 Internal Server Error for new tenants with no membership plans*
 
 ### **Current Session Progress (Oct 4, 2025)**
 - ✅ **Auth Bypass System Disabled**: Removed problematic hardcoded credentials causing confusion
@@ -697,18 +697,25 @@ cd frontend && npm run dev
   - **CORS Issue**: Added `x-user-email` to allowed headers in `/backend/src/main.ts`
   - **Status**: ✅ RESOLVED - Super admin can now access all tenant management features
 
-### **🎯 Session Completed Successfully:**
+### **🎯 Previous Session Completed Successfully:**
 1. ✅ **Backend Restarted**: CORS and auth fixes applied successfully
 2. ✅ **Super Admin Login**: `admin@creatives-saas.com` can now access tenant management
 3. ✅ **Tenant Display**: Both "Muscle Mania" and "Fleur Chen" tenants are visible
 4. ✅ **Authentication System**: Proper user identification working without bypass
 
-### **🚀 Ready for Next Development Phase:**
-- Authentication system fully functional with proper RBAC
-- Member management working correctly for gym owners
-- Membership plans detection working properly
-- New tenant creation flow validated
-- Super admin tenant management restored
+### **🔄 Current Issue - New Tenant Membership Plans Error:**
+- **Problem**: `mozif@mailinator.com` (Fleur Chen tenant) getting 500 Internal Server Error when fetching membership plans
+- **Root Cause**: Backend gym membership plans service crashes when tenant has 0 plans
+- **Current Behavior**: Shows "Add Member" button instead of "Create Plans First" due to error handling
+- **Expected Behavior**: New tenant should show "Create Plans First" button
+- **API Status**: `/gym/membership-plans` returns 500 for tenant `8afc2f55-aabe-4bb8-ad88-ec04e46fd9be`
+- **Database Confirmed**: Fleur Chen tenant has 0 membership plans (correct for new tenant)
+- **Working Comparison**: `owner@muscle-mania.com` works correctly (has 5 plans)
+
+### **🎯 Next Immediate Task:**
+- **Fix Backend Service**: Update gym membership plans service to handle empty plan arrays gracefully
+- **Return Empty Array**: Service should return `{success: true, data: []}` for tenants with no plans
+- **Verify UX Flow**: Ensure new tenants show "Create Plans First" instead of "Add Member"
 
 ### **🔧 Technical Changes Made This Session:**
 - **Backend Auth Guard** (`/src/core/auth/auth.guard.ts`): Added `x-user-email` header lookup
