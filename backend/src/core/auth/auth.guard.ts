@@ -98,18 +98,40 @@ export class AuthGuard implements CanActivate {
 
     console.log('🔐 Processing JWT token');
 
-    // For development/testing, accept any Bearer token and authenticate as owner
+    // For development/testing, decode JWT or use stored user context
     try {
-      const targetUser = await this.prisma.user.findFirst({
-        where: { email: 'owner@muscle-mania.com' },
-        include: {
-          gymUserBranches: { include: { branch: true } },
-          gymMemberProfile: true,
-        },
-      });
+      // TODO: Implement proper JWT decoding here
+      // For now, we need to identify the actual user from the token
+      // Since we don't have proper JWT decoding yet, let's check localStorage context
+      // This is a temporary workaround until proper JWT auth is implemented
+      
+      // Try to get user email from a custom header (set by frontend)
+      const userEmail = request.headers['x-user-email'] || request.headers['X-User-Email'];
+      
+      let targetUser;
+      if (userEmail) {
+        targetUser = await this.prisma.user.findFirst({
+          where: { email: userEmail },
+          include: {
+            gymUserBranches: { include: { branch: true } },
+            gymMemberProfile: true,
+          },
+        });
+      }
+      
+      // Fallback to owner if no specific user found
+      if (!targetUser) {
+        targetUser = await this.prisma.user.findFirst({
+          where: { email: 'owner@muscle-mania.com' },
+          include: {
+            gymUserBranches: { include: { branch: true } },
+            gymMemberProfile: true,
+          },
+        });
+      }
 
       if (!targetUser) {
-        throw new UnauthorizedException('Owner user not found');
+        throw new UnauthorizedException('User not found');
       }
 
       const authenticatedUser: AuthenticatedUser = {
