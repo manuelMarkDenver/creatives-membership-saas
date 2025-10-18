@@ -110,7 +110,20 @@ export class GymMembershipPlansService {
   async findAllByTenant(tenantId: string, includeDeleted = false) {
     try {
       this.logger.log(`Finding membership plans for tenant: ${tenantId}`);
-      
+
+      // Verify tenant exists and is a gym business
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+      });
+
+      if (!tenant) {
+        throw new NotFoundException('Gym tenant not found');
+      }
+
+      if (tenant.category !== 'GYM') {
+        throw new ForbiddenException('This endpoint is only for gym businesses');
+      }
+
       const whereClause = includeDeleted
         ? { tenantId }
         : { tenantId, deletedAt: null };
@@ -194,6 +207,19 @@ export class GymMembershipPlansService {
   }
 
   async findAllActive(tenantId: string) {
+    // Verify tenant exists and is a gym business
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Gym tenant not found');
+    }
+
+    if (tenant.category !== 'GYM') {
+      throw new ForbiddenException('This endpoint is only for gym businesses');
+    }
+
     const result = await this.findAllByTenant(tenantId, false);
     return {
       success: true,
