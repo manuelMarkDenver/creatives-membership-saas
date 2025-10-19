@@ -6,6 +6,7 @@ import {
   Put,
   Get,
   Delete,
+  Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -63,14 +64,14 @@ export class BranchesController {
 
   @Get('system/all')
   @RequiredRoles(Role.SUPER_ADMIN)
-  async findAllBranchesSystemWide() {
-    return this.branchesService.findAllBranchesSystemWide();
+  async findAllBranchesSystemWide(@Query('includeDeleted') includeDeleted?: string) {
+    return this.branchesService.findAllBranchesSystemWide(includeDeleted === 'true');
   }
 
   @Get()
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
-  async findAllBranches(@Request() req: any) {
+  async findAllBranches(@Request() req: any, @Query('includeDeleted') includeDeleted?: string) {
     const user = req.user as AuthenticatedUser;
     // Handle bypass auth case - use tenantId from query or headers
     const tenantId =
@@ -80,7 +81,7 @@ export class BranchesController {
       throw new Error('Tenant ID is required');
     }
 
-    return this.branchesService.findAllBranches(tenantId);
+    return this.branchesService.findAllBranches(tenantId, includeDeleted === 'true');
   }
 
   @Get(':branchId')
