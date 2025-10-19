@@ -7,7 +7,7 @@ import {
   IsBoolean,
   IsObject,
 } from 'class-validator';
-import { BusinessCategory, AccessLevel } from '@prisma/client';
+import { AccessLevel } from '@prisma/client';
 
 export class CreateBranchDto {
   @IsOptional()
@@ -32,8 +32,6 @@ export class CreateBranchDto {
   @IsString()
   email?: string;
 
-  @IsEnum(BusinessCategory)
-  businessCategory: BusinessCategory;
 
   @IsOptional()
   @IsObject()
@@ -65,9 +63,6 @@ export class UpdateBranchDto {
   @IsString()
   email?: string;
 
-  @IsOptional()
-  @IsEnum(BusinessCategory)
-  businessCategory?: BusinessCategory;
 
   @IsOptional()
   @IsObject()

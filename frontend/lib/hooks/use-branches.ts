@@ -109,13 +109,74 @@ export function useDeleteBranch() {
   return useMutation({
     mutationFn: (id: string) => branchesApi.delete(id),
     onSuccess: (_, deletedId) => {
-      // Remove from cache
-      queryClient.removeQueries({ queryKey: branchKeys.detail(deletedId) })
-      queryClient.removeQueries({ queryKey: branchKeys.stats(deletedId) })
-      
-      // Invalidate lists
+      // Don't remove from cache since it's soft delete - just invalidate lists
       queryClient.invalidateQueries({ queryKey: branchKeys.lists() })
       queryClient.invalidateQueries({ queryKey: [...branchKeys.all, 'tenant'] })
+      queryClient.invalidateQueries({ queryKey: branchKeys.detail(deletedId) })
+    },
+  })
+}
+
+// Restore branch mutation
+export function useRestoreBranch() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => branchesApi.restore(id),
+    onSuccess: (restoredBranch: Branch) => {
+      // Update cached branch
+      queryClient.setQueryData(branchKeys.detail(restoredBranch.id), restoredBranch)
+      
+      // Invalidate lists to show restored branch
+      queryClient.invalidateQueries({ queryKey: branchKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: [...branchKeys.all, 'tenant', restoredBranch.tenantId] })
+    },
+  })
+}
+
+// Get branch users query
+export function useBranchUsers(branchId: string) {
+  return useQuery({
+    queryKey: [...branchKeys.all, 'users', branchId],
+    queryFn: () => branchesApi.getBranchUsers(branchId),
+    enabled: !!branchId,
+  })
+}
+
+// Bulk reassign users mutation
+export function useBulkReassignUsers() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ fromBranchId, data }: {
+      fromBranchId: string
+      data: { userIds: string[]; toBranchId: string; reason?: string }
+    }) => branchesApi.bulkReassignUsers(fromBranchId, data),
+    onSuccess: (result, { fromBranchId, data }) => {
+      // Invalidate branch user lists for both source and target branches
+      queryClient.invalidateQueries({ queryKey: [...branchKeys.all, 'users', fromBranchId] })
+      queryClient.invalidateQueries({ queryKey: [...branchKeys.all, 'users', data.toBranchId] })
+      
+      // Invalidate branch lists to update user counts
+      queryClient.invalidateQueries({ queryKey: branchKeys.lists() })
+    },
+  })
+}
+
+// Force delete branch mutation
+export function useForceDeleteBranch() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ branchId, data }: {
+      branchId: string
+      data: { reason: string; confirmationText: string }
+    }) => branchesApi.forceDelete(branchId, data),
+    onSuccess: (_, { branchId }) => {
+      // Invalidate all branch-related queries
+      queryClient.invalidateQueries({ queryKey: branchKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: [...branchKeys.all, 'tenant'] })
+      queryClient.invalidateQueries({ queryKey: branchKeys.detail(branchId) })
     },
   })
 }
