@@ -45,7 +45,7 @@ export class AuthGuard implements CanActivate {
             id: targetUser.id,
             email: targetUser.email || bypassUserEmail,
             role: (targetUser.role as Role) || Role.CLIENT,
-            tenantId: targetUser.gymMemberProfile?.tenantId || null,
+            tenantId: targetUser.tenantId || targetUser.gymMemberProfile?.tenantId || null,
             branchAccess: targetUser.gymUserBranches.map((ub) => ({
               branchId: ub.branchId,
               accessLevel: ub.accessLevel,
@@ -73,7 +73,7 @@ export class AuthGuard implements CanActivate {
             id: ownerUser.id,
             email: ownerUser.email || 'owner@muscle-mania.com',
             role: (ownerUser.role as Role) || Role.OWNER,
-            tenantId: ownerUser.gymMemberProfile?.tenantId || null,
+            tenantId: ownerUser.tenantId || ownerUser.gymMemberProfile?.tenantId || null,
             branchAccess: ownerUser.gymUserBranches.map((ub) => ({
               branchId: ub.branchId,
               accessLevel: ub.accessLevel,
@@ -138,7 +138,7 @@ export class AuthGuard implements CanActivate {
         id: targetUser.id,
         email: targetUser.email || 'owner@muscle-mania.com',
         role: (targetUser.role as Role) || Role.OWNER,
-        tenantId: targetUser.gymMemberProfile?.tenantId || null,
+        tenantId: targetUser.tenantId || targetUser.gymMemberProfile?.tenantId || null,
         branchAccess: targetUser.gymUserBranches.map((ub) => ({
           branchId: ub.branchId,
           accessLevel: ub.accessLevel,

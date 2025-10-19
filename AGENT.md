@@ -551,10 +551,11 @@ formatPHPWithUnits(1500000) // → ₱1.5M
 ## 🔄 Development Workflow
 
 ### **Current Setup**
-- **Frontend**: Runs on port 3000
-- **Backend**: Runs on port 5000
+- **Frontend**: Runs on port 3000 (User manages `npm run dev`)
+- **Backend**: Runs on port 5000 (User manages `npm run start:dev`)
 - **Database**: PostgreSQL with Prisma
 - **Environment**: Linux (Pop!_OS) development environment
+- **Agent Role**: Agent handles builds/testing only, user manages servers
 
 ### **🚫 DATABASE MIGRATION RULES**
 

@@ -71,25 +71,119 @@ export class AuthManager {
   }
   
   /**
-   * Validate if user's tenant still exists
+   * Validate if user's authentication and tenant access are still valid
    */
-  async validateUserTenant(): Promise<boolean> {
+  async validateUserAccess(): Promise<{ isValid: boolean; reason?: string }> {
     const user = this.getCurrentUser()
-    if (!user?.tenantId) return true // Super admin or users without tenant
+    const token = this.getAuthToken()
     
+    // Check if we have basic auth data
+    if (!user || !token) {
+      return { isValid: false, reason: 'No authentication data' }
+    }
+    
+    // Super admins don't need tenant validation
+    if (user.role === 'SUPER_ADMIN') {
+      return await this.validateTokenOnly(token)
+    }
+    
+    // All other roles (OWNER, MANAGER, STAFF, CLIENT) need tenant validation
+    if (!user.tenantId) {
+      return { isValid: false, reason: 'Missing tenant assignment for non-super-admin user' }
+    }
+    
+    // Validate both token and tenant access
+    return await this.validateTokenAndTenant(token, user.tenantId, user.role)
+  }
+  
+  /**
+   * Validate just the authentication token
+   */
+  private async validateTokenOnly(token: string): Promise<{ isValid: boolean; reason?: string }> {
     try {
-      // Try to fetch tenant data to verify it exists
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tenants/${user.tenantId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
         headers: {
-          'Authorization': `Bearer ${this.getAuthToken()}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       })
       
-      return response.ok
+      if (response.ok) {
+        return { isValid: true }
+      } else if (response.status === 401) {
+        return { isValid: false, reason: 'Token expired or invalid' }
+      } else {
+        return { isValid: false, reason: `Auth validation failed: ${response.status}` }
+      }
     } catch (error) {
-      console.warn('Error validating tenant:', error)
-      return false
+      return { isValid: false, reason: 'Network error during auth validation' }
+    }
+  }
+  
+  /**
+   * Validate both token and tenant access for role-based users
+   */
+  private async validateTokenAndTenant(token: string, tenantId: string, role: string): Promise<{ isValid: boolean; reason?: string }> {
+    try {
+      // First validate the token
+      const tokenResult = await this.validateTokenOnly(token)
+      if (!tokenResult.isValid) {
+        return tokenResult
+      }
+      
+      // Then validate tenant access based on role
+      const tenantValidation = await this.validateTenantAccess(token, tenantId, role)
+      return tenantValidation
+      
+    } catch (error) {
+      return { isValid: false, reason: 'Error during comprehensive validation' }
+    }
+  }
+  
+  /**
+   * Validate tenant access for different user roles
+   */
+  private async validateTenantAccess(token: string, tenantId: string, role: string): Promise<{ isValid: boolean; reason?: string }> {
+    try {
+      let validationEndpoint: string
+      
+      // Choose appropriate validation endpoint based on role
+      switch (role) {
+        case 'OWNER':
+          // Owners should be able to access tenant management
+          validationEndpoint = `/tenants/${tenantId}`
+          break
+        case 'MANAGER':
+        case 'STAFF':
+        case 'CLIENT':
+          // Staff/managers/clients should be able to access gym users for their tenant
+          validationEndpoint = `/gym/users/tenant/${tenantId}?limit=1`
+          break
+        default:
+          return { isValid: false, reason: `Unknown role: ${role}` }
+      }
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${validationEndpoint}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-tenant-id': tenantId,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (response.ok) {
+        return { isValid: true }
+      } else if (response.status === 401) {
+        return { isValid: false, reason: 'Authentication expired' }
+      } else if (response.status === 403) {
+        return { isValid: false, reason: 'Access denied - insufficient permissions' }
+      } else if (response.status === 404) {
+        return { isValid: false, reason: 'Tenant no longer exists or access revoked' }
+      } else {
+        return { isValid: false, reason: `Tenant validation failed: ${response.status}` }
+      }
+    } catch (error) {
+      return { isValid: false, reason: 'Network error during tenant validation' }
     }
   }
   

@@ -46,25 +46,34 @@ export function useAuthValidation() {
           return
         }
 
-        // Validate tenant if user has one
-        let hasValidTenant = true
-        if (user.tenantId) {
-          hasValidTenant = await authManager.validateUserTenant()
+        // Comprehensive validation (token + tenant + role-based access)
+        const validationResult = await authManager.validateUserAccess()
+        
+        if (!validationResult.isValid) {
+          console.warn(`Access validation failed: ${validationResult.reason}`)
           
-          if (!hasValidTenant) {
-            console.warn('Tenant validation failed - logging out user')
+          // Handle different failure types appropriately
+          if (validationResult.reason?.includes('Token expired') || 
+              validationResult.reason?.includes('Authentication expired')) {
+            authManager.handleAuthFailure('Token expired')
+          } else if (validationResult.reason?.includes('Tenant no longer exists') || 
+                     validationResult.reason?.includes('access revoked')) {
             authManager.handleTenantFailure()
-            if (mounted) {
-              setState({
-                user: null,
-                isAuthenticated: false,
-                isValidating: false,
-                hasValidTenant: false,
-                error: 'Your organization no longer exists'
-              })
-            }
-            return
+          } else {
+            // For other errors, also logout but with generic message
+            authManager.handleAuthFailure(validationResult.reason || 'Access validation failed')
           }
+          
+          if (mounted) {
+            setState({
+              user: null,
+              isAuthenticated: false,
+              isValidating: false,
+              hasValidTenant: false,
+              error: validationResult.reason || 'Access validation failed'
+            })
+          }
+          return
         }
 
         if (mounted) {
@@ -72,7 +81,7 @@ export function useAuthValidation() {
             user,
             isAuthenticated: true,
             isValidating: false,
-            hasValidTenant,
+            hasValidTenant: true,
             error: null
           })
         }
