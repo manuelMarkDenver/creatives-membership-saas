@@ -6,6 +6,7 @@ import { useProfile, useUsersByTenant, userKeys } from '@/lib/hooks/use-gym-user
 import { useSystemMemberStats } from '@/lib/hooks/use-stats'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
 import { gymMemberKeys } from '@/lib/hooks/use-gym-members'
+import { useBranchesByTenant } from '@/lib/hooks/use-branches'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -51,6 +52,7 @@ export default function MembersPage() {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'deleted'>('all')
+  const [branchFilter, setBranchFilter] = useState<string>('all')
   const [showDeleted, setShowDeleted] = useState(false)
   const [selectedMember, setSelectedMember] = useState<User | null>(null)
   const [showMemberInfoModal, setShowMemberInfoModal] = useState(false)
@@ -79,6 +81,12 @@ export default function MembersPage() {
 
   // Fetch membership plans for the current tenant
   const { data: membershipPlans, isLoading: isLoadingPlans, error: plansError } = useActiveMembershipPlans()
+  
+  // Fetch branches for the current tenant (for branch filter)
+  const { data: branches, isLoading: isLoadingBranches } = useBranchesByTenant(
+    profile?.tenantId || '',
+    { includeDeleted: false }
+  )
   
   // Ensure membershipPlans is always an array
   const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
@@ -261,18 +269,33 @@ export default function MembersPage() {
       (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase()))
   })
 
+  // Apply branch filtering
+  const branchFilteredMembers = searchFilteredMembers.filter((member: MemberData) => {
+    if (branchFilter === 'all') return true
+    
+    const memberBranchId = getMemberBranchId(member)
+    
+    // Show members without branch assignments if "no-branch" is selected
+    if (branchFilter === 'no-branch') {
+      return !memberBranchId
+    }
+    
+    // Show members assigned to specific branch
+    return memberBranchId === branchFilter
+  })
+
   // Apply status filtering using our new utility
   // NOTE: When filtering by 'expiring', this uses frontend logic which may show different 
   // results than the backend API count due to branch filtering differences.
   // The stats panel uses backend API count for consistency with badge/overview.
   const filteredMembers = filterMembersByStatus(
-    searchFilteredMembers as MemberData[], 
+    branchFilteredMembers as MemberData[], 
     memberStatusFilter, 
     showDeleted
   )
 
   // Calculate stats - use backend subscription stats for more accurate counts when available
-  const frontendStats = calculateMemberStats(searchFilteredMembers as MemberData[])
+  const frontendStats = calculateMemberStats(branchFilteredMembers as MemberData[])
   
   const stats = isSuperAdmin ? {
     ...frontendStats,
@@ -359,7 +382,7 @@ export default function MembersPage() {
                   />
                 </div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 <Select value={memberStatusFilter} onValueChange={(value) => setMemberStatusFilter(value as 'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'deleted')}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Filter by status" />
@@ -373,6 +396,35 @@ export default function MembersPage() {
                     <SelectItem value="deleted">Deleted</SelectItem>
                   </SelectContent>
                 </Select>
+                {!isSuperAdmin && (
+                  <Select value={branchFilter} onValueChange={setBranchFilter}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Filter by branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        <div className="flex items-center gap-2">
+                          <Building className="h-4 w-4 text-blue-500" />
+                          All Branches
+                        </div>
+                      </SelectItem>
+                      {branches && branches.length > 0 && branches.map((branch: any) => (
+                        <SelectItem key={branch.id} value={branch.id}>
+                          <div className="flex items-center gap-2">
+                            <Building className="h-4 w-4 text-gray-500" />
+                            {branch.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="no-branch">
+                        <div className="flex items-center gap-2">
+                          <Building className="h-4 w-4 text-orange-500" />
+                          No Branch Assigned
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="showDeleted"
@@ -387,8 +439,8 @@ export default function MembersPage() {
             </div>
             
             {/* Filter status indicator */}
-            {(memberStatusFilter !== 'all' || showDeleted || searchTerm) && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {(memberStatusFilter !== 'all' || branchFilter !== 'all' || showDeleted || searchTerm) && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                 <span>Showing:</span>
                 {searchTerm && (
                 <Badge variant="secondary" className="text-xs">
@@ -398,6 +450,12 @@ export default function MembersPage() {
                 {memberStatusFilter !== 'all' && (
                   <Badge variant="outline" className="text-xs capitalize">
                     {memberStatusFilter} members
+                  </Badge>
+                )}
+                {branchFilter !== 'all' && (
+                  <Badge variant="outline" className="text-xs">
+                    <Building className="h-3 w-3 mr-1" />
+                    {branchFilter === 'no-branch' ? 'No Branch' : branches?.find((b: any) => b.id === branchFilter)?.name || 'Branch'}
                   </Badge>
                 )}
                 {showDeleted && (

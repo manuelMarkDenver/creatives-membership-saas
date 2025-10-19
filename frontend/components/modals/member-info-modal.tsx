@@ -36,11 +36,15 @@ import {
   Save,
   X,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Building,
+  ArrowRightLeft
 } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { membersApi } from '@/lib/api/gym-members'
 import { gymMemberPhotosApi } from '@/lib/api/gym-member-photos'
+import { useBranchesByTenant } from '@/lib/hooks/use-branches'
+import { useProfile } from '@/lib/hooks/use-gym-users'
 
 interface MemberInfoModalProps {
   isOpen: boolean
@@ -724,6 +728,55 @@ export function MemberInfoModal({
                   <div>
                     <span className="text-muted-foreground">End:</span>
                     <span className="ml-2">{member.gymSubscriptions?.[0]?.endDate ? new Date(member.gymSubscriptions[0].endDate).toLocaleDateString() : 'N/A'}</span>
+                  </div>
+                </div>
+                
+                {/* Branch Access Information */}
+                <div className="border-t pt-3 mt-3">
+                  <h5 className="flex items-center gap-2 text-sm font-medium mb-2">
+                    <Building className="h-4 w-4" />
+                    Branch Access
+                  </h5>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Primary Branch:</span>
+                      <div className="ml-2 font-medium text-blue-600">
+                        {member.gymSubscriptions?.[0]?.branch?.name || 
+                         member.gymMemberProfile?.primaryBranch?.name || 
+                         'Not assigned'}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Access Level:</span>
+                      <div className="ml-2">
+                        <Badge variant="outline" className="text-xs">
+                          {member.gymMemberProfile?.accessLevel === 'ALL_BRANCHES' ? 'All Branches' :
+                           member.gymMemberProfile?.accessLevel === 'MULTI_BRANCH' ? 'Multiple Branches' :
+                           member.gymMemberProfile?.accessLevel === 'SINGLE_BRANCH' ? 'Single Branch' :
+                           'All Branches'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  {member.gymMemberProfile?.accessLevel === 'ALL_BRANCHES' && (
+                    <div className="text-xs text-green-600 mt-2">
+                      ✓ Can visit any branch in the network
+                    </div>
+                  )}
+                  
+                  {/* Transfer to Branch Button */}
+                  <div className="flex justify-end mt-3 pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        toast.info('Branch transfer functionality will be available in a future update')
+                      }}
+                      className="flex items-center gap-2 text-xs"
+                    >
+                      <ArrowRightLeft className="h-3 w-3" />
+                      Transfer Branch
+                    </Button>
                   </div>
                 </div>
               </div>

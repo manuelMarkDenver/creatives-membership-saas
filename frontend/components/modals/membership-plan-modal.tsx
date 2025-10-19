@@ -48,6 +48,12 @@ const MEMBERSHIP_TYPES = [
   { value: 'CORPORATE', label: 'Corporate' },
 ]
 
+const ACCESS_LEVEL_OPTIONS = [
+  { value: 'ALL_BRANCHES', label: 'All Branches', description: 'Can visit any branch (premium)' },
+  { value: 'MULTI_BRANCH', label: 'Multiple Branches', description: 'Can visit specific allowed branches' },
+  { value: 'SINGLE_BRANCH', label: 'Single Branch', description: 'Can only visit primary branch' },
+]
+
 const DURATION_SUGGESTIONS = {
   DAY_PASS: 1,
   WEEKLY: 7,
@@ -76,6 +82,7 @@ export function MembershipPlanModal({
     duration: '',
     type: '',
     benefits: [] as string[],
+    accessLevel: 'ALL_BRANCHES',
     isActive: true,
   })
   const [newBenefit, setNewBenefit] = useState('')
@@ -93,6 +100,7 @@ export function MembershipPlanModal({
         duration: plan.duration?.toString() || '',
         type: plan.type || '',
         benefits: plan.benefits ? JSON.parse(plan.benefits) : [],
+        accessLevel: plan.accessLevel || 'ALL_BRANCHES',
         isActive: plan.isActive ?? true,
       })
     } else {
@@ -104,6 +112,7 @@ export function MembershipPlanModal({
         duration: '',
         type: '',
         benefits: [],
+        accessLevel: 'ALL_BRANCHES',
         isActive: true,
       })
     }
@@ -169,6 +178,7 @@ export function MembershipPlanModal({
         duration: parseInt(formData.duration),
         type: formData.type,
         benefits: formData.benefits.length > 0 ? formData.benefits : undefined,
+        accessLevel: formData.accessLevel,
         isActive: formData.isActive,
       }
 
@@ -281,6 +291,32 @@ export function MembershipPlanModal({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Branch Access Level */}
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <Label className="text-sm font-medium text-gray-600 flex items-center gap-2">
+              Branch Access Level
+              <Badge variant="secondary" className="text-xs">View Only</Badge>
+            </Label>
+            <Select value={formData.accessLevel} onValueChange={(value) => handleInputChange('accessLevel', value)} disabled>
+              <SelectTrigger className="mt-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ACCESS_LEVEL_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div>
+                      <div className="font-medium">{option.label}</div>
+                      <div className="text-xs text-gray-500">{option.description}</div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500 mt-2">
+              Currently defaults to "All Branches". Custom access levels will be configurable in a future update.
+            </p>
           </div>
 
           {/* Benefits */}
