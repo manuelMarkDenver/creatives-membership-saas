@@ -5,14 +5,14 @@ export interface CreateBranchDto {
   tenantId: string
   name: string
   address: string
-  phone?: string
+  phoneNumber?: string
   email?: string
 }
 
 export interface UpdateBranchDto {
   name?: string
   address?: string
-  phone?: string
+  phoneNumber?: string
   email?: string
 }
 
@@ -58,9 +58,40 @@ export const branchesApi = {
     return response.data
   },
 
-  // Delete branch
+  // Delete branch (soft delete)
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/branches/${id}`)
+  },
+
+  // Restore branch
+  restore: async (id: string): Promise<Branch> => {
+    const response = await apiClient.put(`/branches/${id}/restore`)
+    return response.data
+  },
+
+  // Get users assigned to a branch
+  getBranchUsers: async (id: string) => {
+    const response = await apiClient.get(`/branches/${id}/users`)
+    return response.data
+  },
+
+  // Bulk reassign users
+  bulkReassignUsers: async (fromBranchId: string, data: {
+    userIds: string[]
+    toBranchId: string
+    reason?: string
+  }) => {
+    const response = await apiClient.post(`/branches/${fromBranchId}/users/bulk-reassign`, data)
+    return response.data
+  },
+
+  // Force delete branch (admin override)
+  forceDelete: async (id: string, data: {
+    reason: string
+    confirmationText: string
+  }) => {
+    const response = await apiClient.delete(`/branches/${id}/force`, { data })
+    return response.data
   },
 
   // Get branch stats/analytics

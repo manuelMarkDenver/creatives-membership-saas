@@ -66,15 +66,16 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     description: 'Your membership details'
   },
 
-  // Future Features - Disabled/Coming Soon
+  // Active Features - Locations Management  
   {
     name: 'Locations',
     href: '/locations',
     icon: MapPin,
-    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role],
-    description: 'Manage gym locations',
-    isFutureFeature: true
+    roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role],
+    description: 'Manage gym locations'
   },
+
+  // Future Features - Disabled/Coming Soon
   {
     name: 'Staff',
     href: '/staff',

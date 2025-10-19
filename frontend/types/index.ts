@@ -6,24 +6,34 @@ export enum BusinessCategory {
   OTHER = 'OTHER'
 }
 
+// Global/Platform roles for platform-wide access control
 export enum Role {
-  // Global System Role
   SUPER_ADMIN = 'SUPER_ADMIN',
-
-  // Universal Business Roles
-  OWNER = 'OWNER',
+  OWNER = 'OWNER', 
   MANAGER = 'MANAGER',
   STAFF = 'STAFF',
-  CLIENT = 'CLIENT',
-  
-  // GYM Specific Roles
+  CLIENT = 'CLIENT'
+}
+
+// Business-specific role enums (matching backend schema)
+export enum GymRole {
   GYM_TRAINER = 'GYM_TRAINER',
   GYM_NUTRITIONIST = 'GYM_NUTRITIONIST',
   GYM_FRONT_DESK = 'GYM_FRONT_DESK',
   GYM_MAINTENANCE = 'GYM_MAINTENANCE',
-  GYM_MEMBER = 'GYM_MEMBER',
-  
-  // E-COMMERCE Specific Roles
+  GYM_MEMBER = 'GYM_MEMBER'
+}
+
+export enum CoffeeRole {
+  COFFEE_MANAGER = 'COFFEE_MANAGER',
+  BARISTA = 'BARISTA',
+  CASHIER = 'CASHIER',
+  BAKER = 'BAKER',
+  SHIFT_SUPERVISOR = 'SHIFT_SUPERVISOR',
+  COFFEE_CUSTOMER = 'COFFEE_CUSTOMER'
+}
+
+export enum EcommerceRole {
   STORE_MANAGER = 'STORE_MANAGER',
   PRODUCT_MANAGER = 'PRODUCT_MANAGER',
   INVENTORY_MANAGER = 'INVENTORY_MANAGER',
@@ -31,15 +41,7 @@ export enum Role {
   MARKETING_MANAGER = 'MARKETING_MANAGER',
   FULFILLMENT_STAFF = 'FULFILLMENT_STAFF',
   VENDOR = 'VENDOR',
-  ECOM_CUSTOMER = 'ECOM_CUSTOMER',
-  
-  // COFFEE_SHOP Specific Roles
-  COFFEE_MANAGER = 'COFFEE_MANAGER',
-  BARISTA = 'BARISTA',
-  CASHIER = 'CASHIER',
-  BAKER = 'BAKER',
-  SHIFT_SUPERVISOR = 'SHIFT_SUPERVISOR',
-  COFFEE_CUSTOMER = 'COFFEE_CUSTOMER'
+  ECOM_CUSTOMER = 'ECOM_CUSTOMER'
 }
 
 export enum AccessLevel {

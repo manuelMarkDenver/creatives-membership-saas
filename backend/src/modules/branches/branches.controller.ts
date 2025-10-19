@@ -33,7 +33,7 @@ export class BranchesController {
   constructor(private readonly branchesService: BranchesService) {}
 
   @Post()
-  @RequiredRoles(Role.OWNER)
+  @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
   async createBranch(
     @Body() createBranchDto: CreateBranchDto,
@@ -91,10 +91,46 @@ export class BranchesController {
   }
 
   @Delete(':branchId')
-  @RequiredRoles(Role.OWNER)
+  @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
   async deleteBranch(@Param('branchId') branchId: string) {
     return this.branchesService.deleteBranch(branchId);
+  }
+
+  @Put(':branchId/restore')
+  @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER)
+  @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
+  async restoreBranch(@Param('branchId') branchId: string) {
+    return this.branchesService.restoreBranch(branchId);
+  }
+
+  @Get(':branchId/users')
+  @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER)
+  @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
+  async getBranchUsers(@Param('branchId') branchId: string) {
+    return this.branchesService.getBranchUsers(branchId);
+  }
+
+  @Post(':branchId/users/bulk-reassign')
+  @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER)
+  @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
+  async bulkReassignUsers(
+    @Param('branchId') fromBranchId: string,
+    @Body() data: { userIds: string[]; toBranchId: string; reason?: string }
+  ) {
+    return this.branchesService.bulkReassignUsers(fromBranchId, data.toBranchId, data.userIds, data.reason);
+  }
+
+  @Delete(':branchId/force')
+  @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER)
+  @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
+  async forceDeleteBranch(
+    @Param('branchId') branchId: string,
+    @Body() data: { reason: string; confirmationText: string },
+    @Request() req: any
+  ) {
+    const user = req.user as AuthenticatedUser;
+    return this.branchesService.forceDeleteBranch(branchId, data.reason, data.confirmationText, user.id);
   }
 
   @Post(':branchId/users')
