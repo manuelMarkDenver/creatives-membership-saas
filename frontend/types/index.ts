@@ -334,7 +334,7 @@ export interface CreateUserDto {
   lastName: string
   email?: string
   phoneNumber?: string
-  globalRole?: Role // Changed from role to globalRole to match backend
+  role?: Role // Platform-level role
   photoUrl?: string
   notes?: string
   businessData?: any // Added to match backend DTO

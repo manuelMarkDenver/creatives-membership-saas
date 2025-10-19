@@ -314,7 +314,7 @@ export async function getUserAccessibleBranches(
   }
 
   // SUPER_ADMIN and OWNER can access all branches
-  if (user.globalRole === Role.SUPER_ADMIN) {
+  if (user.role === Role.SUPER_ADMIN) {
     const allBranches = await prisma.branch.findMany({
       where: tenantId ? { tenantId } : {},
       select: { id: true },
@@ -322,7 +322,7 @@ export async function getUserAccessibleBranches(
     return allBranches.map((b) => b.id);
   }
 
-  if (user.globalRole === Role.OWNER) {
+  if (user.role === Role.OWNER) {
     const profileTenantId = user.gymMemberProfile?.tenantId;
     const tenantBranches = await prisma.branch.findMany({
       where: { tenantId: profileTenantId || undefined },

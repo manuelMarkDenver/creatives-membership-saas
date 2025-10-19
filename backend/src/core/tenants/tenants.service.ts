@@ -241,7 +241,7 @@ export class TenantsService {
                   gymUserBranches: {
                     where: {
                       user: {
-                        globalRole: 'STAFF',
+                        role: 'STAFF',
                       },
                     },
                   },
@@ -253,7 +253,7 @@ export class TenantsService {
             select: {
               users: {
                 where: {
-                  globalRole: 'STAFF',
+                  role: 'STAFF',
                 },
               },
               branches: true,

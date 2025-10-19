@@ -170,15 +170,7 @@ async function main() {
         }
       });
 
-     // Create gym member profile for owner
-     await prisma.gymMemberProfile.create({
-       data: {
-         userId: owner.id,
-         tenantId: tenant.id,
-         role: 'GYM_MEMBER', // Business-specific role
-         status: 'ACTIVE'
-       }
-     });
+     // Note: Owner gym profile will be created after branch creation
     
     console.log(`✅ Created owner: ${owner.email}`);
     loginCredentials.push({
@@ -281,7 +273,8 @@ async function main() {
            duration: planData.duration,
            type: planData.type,
            benefits: planData.benefits,
-           isActive: true
+           isActive: true,
+           accessLevel: 'ALL_BRANCHES' // Default all plans to all branches access
          }
        });
       createdGymPlans.push(gymPlan);
@@ -295,6 +288,7 @@ async function main() {
          name: 'Muscle Mania Manggahan',
          address: '123 Manggahan Street, Pasig City',
          isActive: true,
+         createdBy: owner.id,
          tenant: {
            connect: { id: tenant.id }
          }
@@ -302,6 +296,30 @@ async function main() {
      });
     
     console.log(`✅ Created branch: ${branch.name}`);
+    
+    // Create gym member profile for owner (now that branch exists)
+    await prisma.gymMemberProfile.create({
+      data: {
+        userId: owner.id,
+        tenantId: tenant.id,
+        role: 'GYM_MEMBER', // Business-specific role
+        status: 'ACTIVE',
+        primaryBranchId: branch.id, // Set primary branch
+        accessLevel: 'ALL_BRANCHES' // Owner can access all branches
+      }
+    });
+    console.log(`✅ Created gym profile for owner`);
+    
+    // Create GymUserBranch relationship for owner
+    await prisma.gymUserBranch.create({
+      data: {
+        userId: owner.id,
+        branchId: branch.id,
+        tenantId: tenant.id,
+        accessLevel: 'OWNER_ACCESS'
+      }
+    });
+    console.log(`✅ Assigned owner to branch`);
     
     // Create SaaS subscription for the branch
     const monthlyPlan = await prisma.plan.findUnique({ where: { name: 'Monthly Pro' } });
@@ -358,7 +376,9 @@ async function main() {
          userId: manager.id,
          tenantId: tenant.id,
          role: 'GYM_MEMBER', // Business-specific role
-         status: 'ACTIVE'
+         status: 'ACTIVE',
+         primaryBranchId: branch.id, // Set primary branch to manage
+         accessLevel: 'ALL_BRANCHES' // Manager can access all branches
        }
      });
     
@@ -518,6 +538,10 @@ async function main() {
                    memberInfo.status === 'EXPIRING' ? 'ACTIVE' :
                    memberInfo.status === 'NO_SUBSCRIPTION' ? 'NO_SUBSCRIPTION' :
                    memberInfo.status,
+            
+            // Primary branch and access level
+            primaryBranchId: branch.id, // All members start at Manggahan branch
+            accessLevel: 'ALL_BRANCHES', // Default access to all branches
             
             // Gym-level soft deletion for DELETED members
             deletedAt: memberInfo.status === 'DELETED' ? new Date() : null,
@@ -789,7 +813,8 @@ async function main() {
            duration: planData.duration,
            type: planData.type,
            benefits: planData.benefits,
-           isActive: true
+           isActive: true,
+           accessLevel: 'ALL_BRANCHES' // Default all plans to all branches access
          }
        });
       createdGymPlans.push(gymPlan);

@@ -77,8 +77,7 @@ export class GymMembersService {
             lastName: data.lastName.trim(),
             email: data.email?.trim().toLowerCase() || null,
             phoneNumber: data.phoneNumber?.trim() || null,
-            role: 'CLIENT', // Set both role and globalRole for consistency
-            globalRole: 'CLIENT',
+            role: 'CLIENT', // Platform-level role for gym members
             tenantId: tenantId,
           },
         });
@@ -90,6 +89,8 @@ export class GymMembersService {
             tenantId: tenantId,
             role: 'GYM_MEMBER',
             status: 'ACTIVE',
+            primaryBranchId: branch.id, // Set the primary branch
+            accessLevel: 'ALL_BRANCHES', // Default access level
             emergencyContactName: data.emergencyContactName,
             emergencyContactPhone: data.emergencyContactPhone,
             emergencyContactRelation: data.emergencyContactRelation,

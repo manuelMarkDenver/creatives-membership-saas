@@ -7,7 +7,7 @@ import {
   IsBoolean,
   Min,
 } from 'class-validator';
-import { MembershipType } from '@prisma/client';
+import { MembershipType, BranchAccessLevel } from '@prisma/client';
 import { Type } from 'class-transformer';
 
 // DTO for frontend requests (without tenantId or soft delete fields)
@@ -36,6 +36,10 @@ export class CreateGymMembershipPlanRequestDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsEnum(BranchAccessLevel)
+  accessLevel?: BranchAccessLevel; // Optional, defaults to ALL_BRANCHES
 }
 
 // DTO for internal use (with tenantId)
@@ -73,6 +77,10 @@ export class UpdateGymMembershipPlanRequestDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsEnum(BranchAccessLevel)
+  accessLevel?: BranchAccessLevel;
 }
 
 // DTO for soft delete requests

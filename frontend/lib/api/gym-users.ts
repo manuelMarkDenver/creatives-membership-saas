@@ -6,7 +6,7 @@ export interface CreateUserDto {
   lastName: string
   email?: string
   phoneNumber?: string
-  globalRole?: Role
+  role?: Role
   photoUrl?: string
   notes?: string
   businessData?: any
@@ -82,9 +82,9 @@ export const usersApi = {
 
           const userData = JSON.parse(storedUser);
 
-          // Map globalRole to role for frontend compatibility
-          if (userData.globalRole && !userData.role) {
-            userData.role = userData.globalRole;
+          // Ensure role field is available for compatibility
+          if (!userData.role) {
+            userData.role = 'CLIENT'; // Default fallback
           }
 
           // Verify the data is not corrupted and has the required role field
@@ -116,9 +116,9 @@ export const usersApi = {
       const response = await apiClient.get('/auth/me')
       const userData = response.data.user || response.data;
 
-      // Map globalRole to role for frontend compatibility
-      if (userData.globalRole && !userData.role) {
-        userData.role = userData.globalRole;
+      // Ensure role field is available for compatibility
+      if (!userData.role) {
+        userData.role = 'CLIENT'; // Default fallback
       }
 
       // Store fresh data from API
@@ -135,9 +135,9 @@ export const usersApi = {
           try {
             const userData = JSON.parse(storedUser);
 
-            // Map globalRole to role for frontend compatibility
-            if (userData.globalRole && !userData.role) {
-              userData.role = userData.globalRole;
+            // Ensure role field is available for compatibility
+            if (!userData.role) {
+              userData.role = 'CLIENT'; // Default fallback
             }
 
             // For OWNER/SUPER_ADMIN, missing userBranches is acceptable

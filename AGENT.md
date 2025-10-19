@@ -29,6 +29,7 @@
 ### 🏗️ Code Quality Rules
 - **SOLID, DRY, YAGNI Principles**: Always implement best programming practices
 - **Schema Updates**: Every modification in schema MUST update the seeder and run the seeder to maintain data consistency
+- **Seeder Maintenance**: When adding new schema fields or changing existing structures, always update `/backend/prisma/seed.js` to include the new fields with appropriate default values
 - **Port Consistency**: Always run frontend on 3000 and backend on 5000 for local development. No other ports (3001, 5001, etc.)
 - **Build Verification**: Check functionality by building Next.js or Nest.js using their build scripts
 - **Error Handling**: Implement graceful error handling with user-friendly messages

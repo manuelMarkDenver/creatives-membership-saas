@@ -81,7 +81,7 @@ export class AuthController {
         JSON.stringify({
           userId: user.id,
           email: user.email,
-          role: user.globalRole, // Use globalRole for consistency
+          role: user.role, // Use role field
           tenantId: user.tenantId,
           timestamp: Date.now(),
         }),
@@ -96,8 +96,7 @@ export class AuthController {
             name: `${user.firstName} ${user.lastName}`,
             firstName: user.firstName,
             lastName: user.lastName,
-            role: user.globalRole || user.role, // Use globalRole if available, fallback to role
-            globalRole: user.globalRole, // Keep for compatibility
+            role: user.role, // Platform role
             tenantId: user.tenantId,
             tenant: user.tenant,
           },
@@ -285,7 +284,7 @@ export class AuthController {
     let effectiveTenantId = user.tenantId;
     let effectiveTenant = user.tenant;
 
-    if (user.globalRole === 'SUPER_ADMIN') {
+    if (user.role === 'SUPER_ADMIN') {
       // Super Admins should always have null tenantId for global access
       effectiveTenantId = null;
       effectiveTenant = null;
@@ -299,7 +298,7 @@ export class AuthController {
         name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.globalRole, // Return globalRole as role for frontend compatibility
+        role: user.role, // Return platform role
         tenantId: effectiveTenantId,
         tenant: effectiveTenant,
         created_at: user.createdAt,

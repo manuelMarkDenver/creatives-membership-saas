@@ -43,10 +43,10 @@ export class UsersService {
         throw new BadRequestException('Invalid email format');
       }
 
-      // Validate globalRole if provided
-      if (data.globalRole && !Object.values(Role).includes(data.globalRole)) {
+      // Validate role if provided
+      if (data.role && !Object.values(Role).includes(data.role)) {
         throw new BadRequestException(
-          `Invalid global role. Must be one of: ${Object.values(Role).join(', ')}`,
+          `Invalid role. Must be one of: ${Object.values(Role).join(', ')}`,
         );
       }
 
@@ -57,7 +57,7 @@ export class UsersService {
         email: data.email?.trim().toLowerCase() || null,
         phoneNumber: data.phoneNumber?.trim() || null,
         notes: data.notes?.trim() || null,
-        globalRole: data.globalRole || null,
+        role: data.role || null,
         photoUrl: data.photoUrl || null,
         businessData: data.businessData || null,
       };
@@ -553,9 +553,9 @@ export class UsersService {
 
       // Add role filter if provided
       if (filters?.role) {
-        // Handle CLIENT role filtering - CLIENT is a global role, not business role
+        // Handle CLIENT role filtering - CLIENT is a platform role, not business role
         if (filters.role === 'CLIENT') {
-          whereClause.globalRole = 'CLIENT';
+          whereClause.role = 'CLIENT';
           // Only show CLIENTs who have at least one gym membership subscription
           // This excludes prospects/leads who have no subscription history
           whereClause.gymMemberSubscriptions = {
@@ -595,7 +595,7 @@ export class UsersService {
 
         if (accessibleBranchIds.length > 0) {
           // For members (CLIENT), filter by customers who have subscriptions in accessible branches
-          if (filters.role === 'CLIENT' || whereClause.globalRole === 'CLIENT') {
+          if (filters.role === 'CLIENT' || whereClause.role === 'CLIENT') {
             const membersInAccessibleBranches =
               await this.prisma.gymMemberSubscription.findMany({
                 where: {
