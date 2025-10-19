@@ -129,7 +129,12 @@ export const useCreateMembershipPlan = () => {
       return response
     },
     onSuccess: () => {
+      // Invalidate all membership plan related queries
       queryClient.invalidateQueries({ queryKey: ['membership-plans'] })
+      queryClient.invalidateQueries({ queryKey: ['membership-plans', 'active'] })
+      queryClient.invalidateQueries({ queryKey: ['membership-plans', 'stats'] })
+      // Force immediate refetch
+      queryClient.refetchQueries({ queryKey: ['membership-plans'] })
     }
   })
 }

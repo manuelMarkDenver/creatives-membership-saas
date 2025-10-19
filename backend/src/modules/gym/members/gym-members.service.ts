@@ -77,6 +77,7 @@ export class GymMembersService {
             lastName: data.lastName.trim(),
             email: data.email?.trim().toLowerCase() || null,
             phoneNumber: data.phoneNumber?.trim() || null,
+            role: 'CLIENT', // Set both role and globalRole for consistency
             globalRole: 'CLIENT',
             tenantId: tenantId,
           },
