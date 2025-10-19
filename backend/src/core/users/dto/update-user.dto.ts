@@ -129,4 +129,13 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsOptional()
   @IsObject()
   profileMetadata?: any;
+
+  // Branch relationship fields
+  @IsOptional()
+  @IsUUID()
+  primaryBranchId?: string;
+
+  @IsOptional()
+  @IsEnum(['SINGLE_BRANCH', 'MULTI_BRANCH', 'ALL_BRANCHES'])
+  accessLevel?: 'SINGLE_BRANCH' | 'MULTI_BRANCH' | 'ALL_BRANCHES';
 }

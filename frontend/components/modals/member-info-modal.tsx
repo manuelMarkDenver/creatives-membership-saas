@@ -45,6 +45,7 @@ import { membersApi } from '@/lib/api/gym-members'
 import { gymMemberPhotosApi } from '@/lib/api/gym-member-photos'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
 import { useProfile } from '@/lib/hooks/use-gym-users'
+import { BranchTransferModal } from './branch-transfer-modal'
 
 interface MemberInfoModalProps {
   isOpen: boolean
@@ -96,6 +97,7 @@ export function MemberInfoModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [showBranchTransferModal, setShowBranchTransferModal] = useState(false)
   
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
@@ -324,6 +326,7 @@ export function MemberInfoModal({
   const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[95vh] w-[95vw] sm:w-full overflow-y-auto">
         <DialogHeader className="space-y-4 pb-6">
@@ -769,9 +772,7 @@ export function MemberInfoModal({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        toast.info('Branch transfer functionality will be available in a future update')
-                      }}
+                      onClick={() => setShowBranchTransferModal(true)}
                       className="flex items-center gap-2 text-xs"
                     >
                       <ArrowRightLeft className="h-3 w-3" />
@@ -850,5 +851,17 @@ export function MemberInfoModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Branch Transfer Modal */}
+    <BranchTransferModal
+      isOpen={showBranchTransferModal}
+      onClose={() => setShowBranchTransferModal(false)}
+      member={member}
+      onTransferComplete={() => {
+        setShowBranchTransferModal(false)
+        onMemberUpdated?.()
+      }}
+    />
+    </>
   )
 }

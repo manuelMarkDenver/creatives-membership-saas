@@ -184,6 +184,8 @@ export class UsersService {
         'preferredWorkoutTime',
         'membershipHistory',
         'profileMetadata',
+        'primaryBranchId',
+        'accessLevel',
       ];
 
       const userUpdateData: any = {};
@@ -234,6 +236,7 @@ export class UsersService {
           await this.prisma.gymMemberProfile.create({
             data: {
               userId: id,
+              tenantId: existingUser.tenantId || updatedUser.tenantId,
               ...gymProfileUpdateData,
             },
           });
