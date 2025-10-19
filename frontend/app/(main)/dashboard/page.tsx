@@ -10,8 +10,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CollapsibleStatsOverview, type StatItem } from '@/components/ui/collapsible-stats-overview'
 import ChangePasswordModal from '@/components/modals/change-password-modal'
-import { Building2, Users, MapPin, Crown, TrendingUp, Activity, Plus, Globe, Key } from 'lucide-react'
+import { Building2, Users, MapPin, Crown, TrendingUp, Activity, Plus, Globe, Key, MoreHorizontal, ExternalLink, Settings, Eye } from 'lucide-react'
 import Link from 'next/link'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 function SuperAdminDashboard() {
   const { data: systemStats, isLoading: statsLoading } = useSystemStats()
@@ -133,80 +139,150 @@ function SuperAdminDashboard() {
         <CardContent>
           <div className="space-y-4">
             {(tenants || []).slice(0, 5).map((tenant: any) => (
-              <div key={tenant.id} className="flex items-center justify-between p-6 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <div key={tenant.id} className="group relative flex items-center justify-between p-6 border rounded-xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 dark:hover:from-gray-800 dark:hover:to-blue-900/20 transition-all duration-200 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800">
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold">
-                    {tenant.name.charAt(0).toUpperCase()}
+                  <div className="relative">
+                    <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                      {tenant.name.charAt(0).toUpperCase()}
+                    </div>
+                    {/* Status indicator */}
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-lg">{tenant.name}</h4>
-                    <p className="text-sm text-muted-foreground">{tenant.email || tenant.address || 'No contact info'}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="text-xs text-muted-foreground">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1">
+                      <h4 className="font-bold text-lg text-gray-900 dark:text-white truncate">{tenant.name}</h4>
+                      <div className="flex gap-1">
+                        <Badge variant="secondary" className="text-xs px-2 py-1 rounded-full">
+                          {tenant.category?.replace('_', ' ')}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs px-2 py-1 rounded-full border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-400">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          {(tenant.branches?.length || 0)} branches
+                        </Badge>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{tenant.email || tenant.address || 'No contact info'}</p>
+                    <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Globe className="w-3 h-3" />
                         Created: {new Date(tenant.createdAt).toLocaleDateString()}
-                      </p>
+                      </span>
                     </div>
                   </div>
                 </div>
-                <div className="text-right space-y-2">
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    <Badge variant="secondary">
-                      {tenant.category?.replace('_', ' ')}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {(tenant.branches?.length || 0)} branches
-                    </Badge>
-                  </div>
-                  
-                  {/* Enhanced SaaS Subscription Information */}
-                  <div className="space-y-1">
+                
+                <div className="flex items-center gap-4">
+                  {/* Subscription Status Pills */}
+                  <div className="hidden sm:flex flex-col gap-2 items-end">
                     {tenant.branches?.map((branch: any, index: number) => {
                       // Get the latest subscription for this branch
-                      const latestSubscription = branch.subscriptions?.[0]; // Already ordered by createdAt desc
+                      const latestSubscription = branch.subscriptions?.[0];
                       const isExpired = latestSubscription && new Date(latestSubscription.endDate) <= new Date();
                       const daysRemaining = latestSubscription 
                         ? Math.ceil((new Date(latestSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
                         : 0;
                       
                       return (
-                        <div key={branch.id || index} className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground truncate max-w-24">
-                            {branch.name}:
+                        <div key={branch.id || index} className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-2 rounded-full border shadow-sm">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate max-w-24">
+                            {branch.name}
                           </span>
                           {latestSubscription ? (
                             <>
                               <Badge 
                                 variant={isExpired ? 'destructive' : 
                                         latestSubscription.status === 'ACTIVE' ? 'default' : 'secondary'}
-                                className="text-xs"
+                                className="text-xs px-2 py-1 rounded-full"
                               >
                                 {latestSubscription.plan?.name || 'Unknown'}
                               </Badge>
                               {!isExpired && latestSubscription.status === 'ACTIVE' && (
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-xs text-green-600 dark:text-green-400 font-medium">
                                   {daysRemaining > 0 
                                     ? `${daysRemaining}d left`
                                     : 'Expires today'}
                                 </span>
                               )}
                               {isExpired && (
-                                <span className="text-xs text-red-500">
+                                <span className="text-xs text-red-500 font-medium">
                                   Expired
                                 </span>
                               )}
                             </>
                           ) : (
-                            <Badge variant="outline" className="text-xs text-orange-600">
+                            <Badge variant="outline" className="text-xs px-2 py-1 rounded-full border-orange-200 text-orange-600 dark:border-orange-800 dark:text-orange-400">
                               No subscription
                             </Badge>
                           )}
                         </div>
                       );
                     }) || (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-full">
                         No subscription data available
                       </div>
                     )}
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    {/* Quick Actions */}
+                    <div className="hidden md:flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 px-3 text-xs hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20"
+                        onClick={() => window.open(`/dashboard?tenant=${tenant.id}`, '_blank')}
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                      <Link href={`/tenants`}>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 px-3 text-xs hover:bg-green-50 hover:border-green-300 dark:hover:bg-green-900/20"
+                        >
+                          <Settings className="w-3 h-3 mr-1" />
+                          Manage
+                        </Button>
+                      </Link>
+                    </div>
+                    
+                    {/* More Actions Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem 
+                          onClick={() => window.open(`/dashboard?tenant=${tenant.id}`, '_blank')}
+                          className="cursor-pointer"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/tenants`} className="cursor-pointer flex items-center w-full">
+                            <Settings className="w-4 h-4 mr-2" />
+                            Manage Tenant
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => window.open(`/tenants`, '_blank')}
+                          className="cursor-pointer"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Open in New Tab
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </div>
