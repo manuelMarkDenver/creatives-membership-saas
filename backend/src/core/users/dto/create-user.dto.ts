@@ -29,7 +29,7 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsEnum(Role)
-  globalRole?: Role; // Renamed to globalRole to match schema
+  role?: Role; // Platform-level roles
 
   @IsOptional()
   @IsString()

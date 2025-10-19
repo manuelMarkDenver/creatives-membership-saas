@@ -66,6 +66,7 @@ export class GymMembershipPlansService {
           type: createDto.type,
           isActive: createDto.isActive ?? true,
           tenantId: createDto.tenantId,
+          accessLevel: createDto.accessLevel || 'ALL_BRANCHES', // Use provided or default
           benefits: createDto.benefits
             ? JSON.stringify(createDto.benefits)
             : undefined,

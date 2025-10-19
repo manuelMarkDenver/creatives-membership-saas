@@ -49,14 +49,28 @@ model Branch {
   email                  String?
   isActive               Boolean                 @default(true)
   branchData             Json?
+  
+  // Audit fields
   createdAt              DateTime                @default(now())
+  createdBy              String?                 // User ID who created
   updatedAt              DateTime                @updatedAt
+  deletedAt              DateTime?               // Soft delete timestamp
+  deletedBy              String?                 // User ID who deleted
+  
   tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   gymMemberSubscriptions GymMemberSubscription[]
   subscriptions          Subscription[]
   gymUserBranches        GymUserBranch[]
+  
+  // Audit relations
+  createdByUser          User?                   @relation("BranchCreatedBy", fields: [createdBy], references: [id])
+  deletedByUser          User?                   @relation("BranchDeletedBy", fields: [deletedBy], references: [id])
+  
+  // Primary branch relationships
+  primaryMemberProfiles  GymMemberProfile[]      @relation("PrimaryBranchProfiles")
 
   @@unique([tenantId, name])
+  @@index([deletedAt])
 }
 
 model BusinessUnit {
@@ -134,7 +148,6 @@ model User {
   photoUrl               String? // Main profile photo
   photos                 Json?   // Array of additional photo URLs for future features
   role                   Role?   // Platform-level roles (SUPER_ADMIN, OWNER, MANAGER, STAFF)
-  globalRole             Role?   // Platform-level roles (SUPER_ADMIN, OWNER, MANAGER, STAFF) - keeping for compatibility
   tenantId               String? // Current tenant context
   businessData           Json?
   deletedAt              DateTime?
@@ -154,6 +167,10 @@ model User {
   gymUserBranches        GymUserBranch[]
   gymMemberProfile       GymMemberProfile?
   coffeeCustomerProfile  CoffeeCustomerProfile?
+  
+  // Branch audit relations
+  createdBranches        Branch[]              @relation("BranchCreatedBy")
+  deletedBranches        Branch[]              @relation("BranchDeletedBy")
 }
 
 model GymUserBranch {
@@ -178,8 +195,14 @@ model GymUserBranch {
   id                String   @id @default(uuid())
   userId            String   @unique // One profile per user (across all tenants)
   tenantId          String
+  
+  // Primary branch relationship
+  primaryBranchId   String?  // Where member signed up/pays membership
+  accessLevel       BranchAccessLevel @default(ALL_BRANCHES) // Default: can visit all branches
+  
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  primaryBranch     Branch?  @relation("PrimaryBranchProfiles", fields: [primaryBranchId], references: [id])
 
   // Business-specific fields
   role              GymRole  @default(GYM_MEMBER)
@@ -277,6 +300,7 @@ model GymMembershipPlan {
   duration               Int                     // Duration in days
   type                   MembershipType
   benefits               Json?                   // Array of benefits
+  accessLevel            BranchAccessLevel       @default(ALL_BRANCHES) // Branch access level for this plan
   isActive               Boolean                 @default(true)
   
   // Soft delete fields (matching GymMemberProfile pattern)
@@ -607,4 +631,10 @@ enum SaasSubscriptionStatus {
   SUSPENDED // Temporarily suspended
   CANCELLED // User cancelled
   EXPIRED // Trial or subscription expired
+}
+
+enum BranchAccessLevel {
+  SINGLE_BRANCH    // Can only visit primary branch
+  MULTI_BRANCH     // Can visit specific allowed branches
+  ALL_BRANCHES     // Can visit any branch (premium memberships)
 }

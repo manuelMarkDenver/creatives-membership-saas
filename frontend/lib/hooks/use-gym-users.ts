@@ -83,9 +83,9 @@ export function useProfile() {
 
             const userData = JSON.parse(storedUser);
 
-            // Map globalRole to role for frontend compatibility
-            if (userData.globalRole && !userData.role) {
-              userData.role = userData.globalRole;
+            // Ensure role field is available for compatibility
+            if (!userData.role) {
+              userData.role = 'CLIENT'; // Default fallback
             }
 
             // Verify the data is not corrupted and has the required role field
