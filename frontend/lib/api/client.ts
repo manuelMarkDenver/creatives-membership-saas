@@ -118,18 +118,51 @@ apiClient.interceptors.request.use(
   }
 )
 
+import { authManager } from '@/lib/auth/auth-utils'
+
+// Check if error is tenant-related (404 for tenant endpoints)
+const isTenantNotFoundError = (error: any): boolean => {
+  if (error.response?.status !== 404) return false
+  
+  const url = error.config?.url || ''
+  // Check if URL contains tenant-specific endpoints
+  return url.includes('/tenant/') || 
+         url.includes('/gym/users/tenant/') || 
+         url.includes('/gym/members/tenant/') ||
+         url.includes('/tenants/')
+}
+
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => {
     return response
   },
   (error) => {
-    // Handle common errors
+    // Handle authentication errors (401 - Unauthorized)
     if (error.response?.status === 401) {
-      // Redirect to login if not already there
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-        window.location.href = '/auth/login'
+      authManager.handleAuthFailure('Authentication token invalid or expired')
+      return Promise.reject(new Error('Authentication failed. Please log in again.'))
+    }
+
+    // Handle tenant not found errors (404 for tenant-specific endpoints)
+    if (isTenantNotFoundError(error)) {
+      authManager.handleTenantFailure()
+      return Promise.reject(new Error('Your account access has been revoked or your organization no longer exists. Please log in again.'))
+    }
+
+    // Handle forbidden access (403)
+    if (error.response?.status === 403) {
+      const errorMessage = error.response?.data?.message || 'Access denied'
+      console.warn('Access forbidden:', errorMessage)
+      
+      // If it's a role/permission error, don't logout, just show error
+      if (errorMessage.includes('role') || errorMessage.includes('permission')) {
+        return Promise.reject(new Error(`Access denied: ${errorMessage}`))
       }
+      
+      // For other 403 errors, it might be an auth issue
+      authManager.handleAuthFailure('Access denied - invalid permissions')
+      return Promise.reject(new Error('Access denied. Please log in again.'))
     }
 
     // Log errors in development
