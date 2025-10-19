@@ -23,6 +23,7 @@ import { setTenantContext } from '@/lib/api'
 import { useRoleNavigation } from '@/lib/hooks/use-role-navigation'
 import { useSubscriptionStatus } from '@/lib/hooks/use-subscription'
 import { signOut } from '@/lib/auth/supabase'
+import { useTenantValidation } from '@/lib/hooks/use-auth-validation'
 import TenantSwitcher from './tenant-switcher'
 import { ExpiringMembersButton } from '@/components/ui/expiring-members-button'
 import { ExpiringMembersAutoPopup } from '@/components/ui/expiring-members-auto-popup'
@@ -35,6 +36,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
+  
+  // Comprehensive auth and tenant validation
+  const { user, isAuthenticated, hasValidTenant, isValidating, isReady } = useTenantValidation()
+  
   const { data: profile, error: profileError, isLoading: profileLoading } = useProfile()
   const { currentTenant } = useTenantContext()
 
@@ -59,33 +64,24 @@ export default function MainLayout({ children }: MainLayoutProps) {
     { enabled: profile?.role === 'OWNER' && !!currentTenant?.id }
   )
 
-  // Authentication guard (only run on client after hydration)
+  // Enhanced authentication and tenant validation
   useEffect(() => {
     if (!mounted) return
-
-    const token = localStorage.getItem('auth_token')
-    const userData = localStorage.getItem('user_data')
-
-    if (!token || !userData) {
-      // No authentication data, redirect to login
-      router.push('/auth/login')
-      return
-    }
-
-    // If profile fetch failed with 401 (unauthorized), clear auth and redirect
-    if (profileError && (profileError as any)?.response?.status === 401) {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('user_data')
-      router.push('/auth/login')
-      return
-    }
-  }, [router, profileError, mounted])
+    
+    // The useTenantValidation hook handles all auth/tenant checks and redirects automatically
+    // No additional logic needed here
+  }, [mounted])
   
-  // Show loading while checking authentication
-  if (profileLoading || !profile) {
+  // Show loading while validating authentication and tenant
+  if (isValidating || !isReady || profileLoading || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">
+            {isValidating ? 'Validating your access...' : 'Loading your workspace...'}
+          </p>
+        </div>
       </div>
     )
   }
@@ -100,12 +96,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
     )
 
   const handleSignOut = async () => {
-    // Clear stored auth data
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('user_data')
-    
-    // Redirect to login
-    router.push('/auth/login')
+    // Use the centralized auth manager for consistent logout
+    const { authManager } = await import('@/lib/auth/auth-utils')
+    authManager.logout() // This will clear all auth data and redirect automatically
   }
 
   return (
