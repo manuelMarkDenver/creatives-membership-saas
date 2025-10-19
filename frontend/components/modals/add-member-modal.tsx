@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { useMembershipPlans } from '@/lib/hooks/use-membership-plans'
 import { useProfile } from '@/lib/hooks/use-gym-users'
+import { useBranchesByTenant } from '@/lib/hooks/use-branches'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -103,6 +104,7 @@ export function AddMemberModal({
     
     // Membership
     selectedPlanId: '',
+    selectedBranchId: '',
     membershipStartDate: '',
     paymentAmount: '',
     paymentMethod: 'CASH',
@@ -113,9 +115,14 @@ export function AddMemberModal({
   })
 
   const { data: membershipPlans, isLoading: plansLoading } = useMembershipPlans()
+  const { data: branches, isLoading: branchesLoading } = useBranchesByTenant(profile?.tenantId || '')
   
   // Ensure membershipPlans is always an array
   const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
+  
+  // Ensure branches is always an array and filter active ones
+  const safeBranches = Array.isArray(branches) ? branches.filter((b: any) => b.isActive) : []
+  const showBranchSelection = safeBranches.length > 1
 
   const selectedPlan = safeMembershipPlans.find((plan: any) => plan.id === formData.selectedPlanId)
 
@@ -157,6 +164,11 @@ export function AddMemberModal({
       errors.email = 'Email is required'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = 'Please enter a valid email address'
+    }
+    
+    // Branch validation - only required if multiple branches exist
+    if (showBranchSelection && !formData.selectedBranchId) {
+      errors.selectedBranchId = 'Please select a branch location'
     }
     
     return {
@@ -256,6 +268,7 @@ export function AddMemberModal({
       emergencyContactName: formData.emergencyContactName || undefined,
       emergencyContactPhone: formData.emergencyContactPhone || undefined,
       emergencyContactRelation: formData.emergencyContactRelationship || undefined,
+      branchId: formData.selectedBranchId || undefined,
       gymMembershipPlanId: formData.selectedPlanId,
       paymentMethod: formData.paymentMethod
     }
@@ -330,6 +343,7 @@ export function AddMemberModal({
       preferredWorkoutTime: '',
       favoriteEquipment: '',
       selectedPlanId: '',
+      selectedBranchId: '',
       membershipStartDate: '',
       paymentAmount: '',
       paymentMethod: 'CASH',
@@ -450,6 +464,50 @@ export function AddMemberModal({
                   </div>
                 </div>
               </div>
+
+              {/* Branch Selection - Only show if multiple branches */}
+              {showBranchSelection && (
+                <div>
+                  <Label htmlFor="branchSelection">Branch Location *</Label>
+                  <Select 
+                    value={formData.selectedBranchId} 
+                    onValueChange={(value) => handleInputChange('selectedBranchId', value)}
+                  >
+                    <SelectTrigger className={currentBasicErrors.selectedBranchId ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select branch location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branchesLoading ? (
+                        <div className="p-2 text-sm text-muted-foreground">Loading branches...</div>
+                      ) : safeBranches.map((branch: any) => (
+                        <SelectItem key={branch.id} value={branch.id}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>{branch.name}</span>
+                            <span className="text-xs text-muted-foreground ml-2">
+                              {branch.address}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {currentBasicErrors.selectedBranchId && (
+                    <p className="text-sm text-red-500 mt-1">{currentBasicErrors.selectedBranchId}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Single branch info display */}
+              {!showBranchSelection && safeBranches.length === 1 && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm text-blue-700 dark:text-blue-300">
+                      Member will be assigned to: <strong>{safeBranches[0]?.name}</strong>
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Personal Details */}
               <div className="grid grid-cols-3 gap-4">

@@ -37,6 +37,7 @@ interface CreateGymMemberDto {
   emergencyContactRelation?: string;
   membershipPlanId?: string;
   paymentMethod?: string;
+  branchId?: string; // Optional: specific branch assignment
 }
 
 interface UpdateGymMemberDto {

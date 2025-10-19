@@ -35,18 +35,37 @@ export class GymMembersService {
         throw new BadRequestException('Last name is required');
       }
 
-      // Get the first active branch for this tenant (since each tenant typically has one main branch)
-      const branch = await this.prisma.branch.findFirst({
-        where: {
-          tenantId: tenantId,
-          isActive: true,
-        },
-      });
+      // Determine target branch: use provided branchId or find first active branch
+      let branch;
+      if (data.branchId) {
+        // Validate provided branch exists, belongs to tenant, and is active
+        branch = await this.prisma.branch.findFirst({
+          where: {
+            id: data.branchId,
+            tenantId: tenantId,
+            isActive: true,
+          },
+        });
 
-      if (!branch) {
-        throw new BadRequestException(
-          'No active branch found for this tenant. Please create a branch first.',
-        );
+        if (!branch) {
+          throw new BadRequestException(
+            'Invalid branch selected. Branch not found, inactive, or does not belong to this tenant.',
+          );
+        }
+      } else {
+        // Fallback: Get the first active branch for this tenant
+        branch = await this.prisma.branch.findFirst({
+          where: {
+            tenantId: tenantId,
+            isActive: true,
+          },
+        });
+
+        if (!branch) {
+          throw new BadRequestException(
+            'No active branch found for this tenant. Please create a branch first.',
+          );
+        }
       }
 
       // Create user, gym member profile, branch assignment, and optionally subscription in a transaction

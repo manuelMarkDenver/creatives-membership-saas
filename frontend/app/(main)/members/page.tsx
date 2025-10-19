@@ -245,7 +245,7 @@ export default function MembersPage() {
   const error = isSuperAdmin ? systemMembersError : tenantMembersError
   const rawMembers = isSuperAdmin ? 
     (systemMemberStats?.members || []).filter(m => ['CLIENT', 'ECOM_CUSTOMER', 'COFFEE_CUSTOMER'].includes(m.role)) :
-    (membersData || []).filter(m => m.role === 'CLIENT') // Filter for CLIENT role users only
+    (membersData || []).filter((m: any) => m.role === 'CLIENT') // Filter for CLIENT role users only
   
   // Apply branch filtering to ensure consistency between stats and displayed members
   const allMembers = rawMembers.filter((member: MemberData) => {
