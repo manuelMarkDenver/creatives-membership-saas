@@ -250,6 +250,26 @@ export function MemberCard({
                   </>
                 )}
               </div>
+              
+              {/* Branch Information */}
+              {(subscription.branch || member.gymMemberProfile?.primaryBranch) && (
+                <div className="flex items-center gap-2 text-xs">
+                  <Building className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                  <span className="text-blue-700 dark:text-blue-400 font-medium">
+                    {subscription.branch?.name || member.gymMemberProfile?.primaryBranch?.name || 'Unknown Branch'}
+                  </span>
+                  {member.gymMemberProfile?.accessLevel && (
+                    <>
+                      <span>•</span>
+                      <span className="text-gray-500">
+                        {member.gymMemberProfile.accessLevel === 'ALL_BRANCHES' ? 'All Branches' :
+                         member.gymMemberProfile.accessLevel === 'MULTI_BRANCH' ? 'Multi-Branch' :
+                         'Single Branch'}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg space-y-1 min-h-[60px] sm:min-h-[70px]">
