@@ -46,6 +46,7 @@ export function createMockBranches(count: number = 3): Branch[] {
       address: '123 Main Street, Manila, Philippines',
       phoneNumber: '+63 2 8123 4567',
       email: 'downtown@fitnesscenter.ph',
+      isActive: true,
       createdAt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
       updatedAt: new Date().toISOString(),
       _count: { userBranches: 0 }
@@ -57,6 +58,7 @@ export function createMockBranches(count: number = 3): Branch[] {
       address: '456 Ayala Avenue, Makati, Philippines',
       phoneNumber: '+63 2 8234 5678',
       email: 'makati@fitnesscenter.ph',
+      isActive: true,
       createdAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
       updatedAt: new Date().toISOString(),
       _count: { userBranches: 0 }
@@ -68,6 +70,7 @@ export function createMockBranches(count: number = 3): Branch[] {
       address: '789 EDSA, Quezon City, Philippines',
       phoneNumber: '+63 2 8345 6789',
       email: 'qc@fitnesscenter.ph',
+      isActive: true,
       createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
       updatedAt: new Date().toISOString(),
       _count: { userBranches: 0 }

@@ -21,6 +21,7 @@ export interface BranchQueryParams {
   limit?: number
   search?: string
   tenantId?: string
+  includeDeleted?: boolean
 }
 
 export const branchesApi = {
@@ -34,7 +35,7 @@ export const branchesApi = {
   getByTenant: async (tenantId: string, params?: Omit<BranchQueryParams, 'tenantId'>) => {
     // Ensure tenantId is available via both query param and header for backend flexibility
     const response = await apiClient.get('/branches', {
-      params: { ...params },
+      params: { ...params, includeDeleted: params?.includeDeleted },
       headers: { 'x-tenant-id': tenantId }
     })
     return response.data
@@ -101,8 +102,10 @@ export const branchesApi = {
   },
 
   // Get all branches system-wide (Super Admin only)
-  getSystemWide: async () => {
-    const response = await apiClient.get('/branches/system/all')
+  getSystemWide: async (includeDeleted?: boolean) => {
+    const response = await apiClient.get('/branches/system/all', {
+      params: { includeDeleted }
+    })
     return response.data
   },
 }

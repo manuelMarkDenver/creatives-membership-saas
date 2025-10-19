@@ -115,10 +115,10 @@ export class BranchesService {
     });
   }
 
-  async findAllBranches(tenantId: string) {
+  async findAllBranches(tenantId: string, includeDeleted = false) {
     return this.prisma.branch
       .findMany({
-        where: { tenantId, isActive: true },
+        where: includeDeleted ? { tenantId } : { tenantId, isActive: true },
         include: {
           _count: {
             select: {
@@ -168,10 +168,10 @@ export class BranchesService {
       });
   }
 
-  async findAllBranchesSystemWide() {
+  async findAllBranchesSystemWide(includeDeleted = false) {
     return this.prisma.branch
       .findMany({
-        where: { isActive: true },
+        where: includeDeleted ? {} : { isActive: true },
         include: {
           tenant: {
             select: {
@@ -283,10 +283,50 @@ export class BranchesService {
       throw new NotFoundException('Branch not found');
     }
 
+    if (branch.isActive) {
+      throw new ConflictException('Branch is already active');
+    }
+
+    // Check for main branch conflict
+    await this.validateMainBranchConflict(branch);
+
     return this.prisma.branch.update({
       where: { id: branchId },
       data: { isActive: true },
     });
+  }
+
+  private async validateMainBranchConflict(branchToRestore: any) {
+    // Check if this branch would be considered a main branch
+    const isMainBranch = this.isMainBranch(branchToRestore);
+    
+    if (isMainBranch) {
+      // Check if there's already an active main branch
+      const activeBranches = await this.prisma.branch.findMany({
+        where: { 
+          tenantId: branchToRestore.tenantId, 
+          isActive: true 
+        },
+        orderBy: { createdAt: 'asc' }
+      });
+      
+      // Check if any active branch is already a main branch
+      const existingMainBranch = activeBranches.find(branch => this.isMainBranch(branch));
+      
+      if (existingMainBranch) {
+        throw new ConflictException(
+          `Cannot restore "${branchToRestore.name}" as it would create multiple main branches. ` +
+          `"${existingMainBranch.name}" is already the main branch. ` +
+          `Please rename one of them to avoid conflict.`
+        );
+      }
+    }
+  }
+
+  private isMainBranch(branch: any): boolean {
+    const mainKeywords = ['main', 'primary', 'headquarters', 'head office', 'central'];
+    const branchName = branch.name.toLowerCase();
+    return mainKeywords.some(keyword => branchName.includes(keyword));
   }
 
   async getBranchUsers(branchId: string) {

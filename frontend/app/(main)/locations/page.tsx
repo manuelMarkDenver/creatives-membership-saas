@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useProfile } from '@/lib/hooks/use-gym-users'
-import { useBranchesByTenant, useBranchesSystemWide, useCreateBranch, useUpdateBranch, useDeleteBranch, useBranchUsers, useBulkReassignUsers, useForceDeleteBranch } from '@/lib/hooks/use-branches'
+import { useBranchesByTenant, useBranchesSystemWide, useCreateBranch, useUpdateBranch, useDeleteBranch, useBranchUsers, useBulkReassignUsers, useForceDeleteBranch, useRestoreBranch } from '@/lib/hooks/use-branches'
 import { useTenants } from '@/lib/hooks/use-tenants'
 import { useRoleNavigation } from '@/lib/hooks/use-role-navigation'
 import { Role, Tenant } from '@/types'
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { CollapsibleStatsOverview, type StatItem } from '@/components/ui/collapsible-stats-overview'
 import { 
   MapPin, 
@@ -21,7 +22,8 @@ import {
   Mail,
   MoreHorizontal,
   Edit,
-  Trash2
+  Trash2,
+  RotateCcw
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -52,6 +54,7 @@ export default function LocationsPage() {
   const { data: profile } = useProfile()
   const { canAccess } = useRoleNavigation(profile?.role)
   const [searchTerm, setSearchTerm] = useState('')
+  const [showDeleted, setShowDeleted] = useState(false)
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -74,7 +77,7 @@ export default function LocationsPage() {
   const isSuperAdmin = userRole === Role.SUPER_ADMIN
   const canCreate = canAccess([Role.SUPER_ADMIN, Role.OWNER])
   const canEdit = canAccess([Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER])
-  const canDelete = canAccess([Role.SUPER_ADMIN, Role.OWNER])
+  const canDelete = canAccess([Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER]) // Temporary: Allow MANAGER to delete
 
   // Fetch tenants for Super Admin tenant selector
   const { data: tenants } = useTenants(
@@ -84,10 +87,12 @@ export default function LocationsPage() {
 
   // Fetch locations using unified branches API - two-view architecture
   const { data: tenantLocationsData, isLoading: tenantLoading, error: tenantError } = useBranchesByTenant(
-    isSuperAdmin ? (selectedTenantId || '') : (profile?.tenantId || '')
+    isSuperAdmin ? (selectedTenantId || '') : (profile?.tenantId || ''),
+    { includeDeleted: showDeleted }
   )
   const { data: systemWideData, isLoading: systemLoading, error: systemError } = useBranchesSystemWide(
-    isSuperAdmin && !selectedTenantId
+    isSuperAdmin && !selectedTenantId,
+    showDeleted
   )
 
   // Combine loading and error states
@@ -97,6 +102,7 @@ export default function LocationsPage() {
   const createLocation = useCreateBranch()
   const updateLocation = useUpdateBranch()
   const deleteLocation = useDeleteBranch()
+  const restoreLocation = useRestoreBranch()
   const bulkReassignUsers = useBulkReassignUsers()
   const forceDeleteBranch = useForceDeleteBranch()
   
@@ -241,6 +247,17 @@ export default function LocationsPage() {
     } else {
       // Simple deletion for branches without users
       setDeleteDialogOpen(true)
+    }
+  }
+
+  const handleRestoreLocation = async (location: Branch) => {
+    try {
+      await restoreLocation.mutateAsync(location.id)
+      toast.success(`Location "${location.name}" restored successfully!`)
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || 'Failed to restore location'
+      toast.error(errorMessage)
+      console.error('Failed to restore location:', error)
     }
   }
 
@@ -399,7 +416,7 @@ export default function LocationsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -410,6 +427,16 @@ export default function LocationsPage() {
                   className="pl-10"
                 />
               </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="showDeleted"
+                checked={showDeleted}
+                onCheckedChange={(checked) => setShowDeleted(checked as boolean)}
+              />
+              <Label htmlFor="showDeleted" className="text-sm font-medium whitespace-nowrap">
+                Show deleted
+              </Label>
             </div>
           </div>
 
@@ -466,8 +493,8 @@ export default function LocationsPage() {
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
                       <div className="flex flex-col items-end gap-2">
-                        <Badge variant="default" className="mb-1">
-                          ACTIVE
+                        <Badge variant={location.isActive ? "default" : "destructive"} className="mb-1">
+                          {location.isActive ? 'ACTIVE' : 'DELETED'}
                         </Badge>
                         
                         {/* Member/staff info */}
@@ -487,46 +514,72 @@ export default function LocationsPage() {
                       </p>
                     </div>
                     
-                    {(canEditLocation(location) || canDeleteLocation(location)) && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {canEditLocation(location) && (
-                          <DropdownMenuItem onClick={() => openEditDialog(location)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Location
-                            {isMainBranch(location) && (
-                              <Badge variant="outline" className="ml-2 text-xs border-amber-200 text-amber-700">
-                                Main
-                              </Badge>
-                            )}
-                          </DropdownMenuItem>
-                        )}
-                        {canDeleteLocation(location) && (
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => openDeleteDialog(location)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Location
-                            {isMainBranch(location) && (
-                              <Badge variant="outline" className="ml-2 text-xs border-red-200 text-red-700">
-                                Restricted
-                              </Badge>
-                            )}
-                          </DropdownMenuItem>
-                        )}
-                        {!canEditLocation(location) && !canDeleteLocation(location) && (
-                          <DropdownMenuItem disabled>
-                            <span className="text-muted-foreground text-xs">Read-only access</span>
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                      </DropdownMenu>
+                    {location.isActive ? (
+                      // Active locations - show edit/delete options
+                      (canEditLocation(location) || canDeleteLocation(location)) && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {canEditLocation(location) && (
+                            <DropdownMenuItem onClick={() => openEditDialog(location)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Location
+                              {isMainBranch(location) && (
+                                <Badge variant="outline" className="ml-2 text-xs border-amber-200 text-amber-700">
+                                  Main
+                                </Badge>
+                              )}
+                            </DropdownMenuItem>
+                          )}
+                          {canDeleteLocation(location) && (
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onClick={() => openDeleteDialog(location)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Location
+                              {isMainBranch(location) && (
+                                <Badge variant="outline" className="ml-2 text-xs border-red-200 text-red-700">
+                                  Restricted
+                                </Badge>
+                              )}
+                            </DropdownMenuItem>
+                          )}
+                          {!canEditLocation(location) && !canDeleteLocation(location) && (
+                            <DropdownMenuItem disabled>
+                              <span className="text-muted-foreground text-xs">Read-only access</span>
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                        </DropdownMenu>
+                      )
+                    ) : (
+                      // Deleted locations - show restore option
+                      canDelete && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRestoreLocation(location)}
+                          disabled={restoreLocation.isPending}
+                          className="text-green-600 hover:text-green-700"
+                        >
+                          {restoreLocation.isPending ? (
+                            <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin mr-2" />
+                          ) : (
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                          )}
+                          Restore
+                          {isMainBranch(location) && (
+                            <Badge variant="outline" className="ml-2 text-xs border-amber-200 text-amber-700">
+                              Main
+                            </Badge>
+                          )}
+                        </Button>
+                      )
                     )}
                   </div>
                 </div>
@@ -751,6 +804,127 @@ export default function LocationsPage() {
               disabled={deleteLocation.isPending}
             >
               {deleteLocation.isPending ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Location
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Advanced Delete Dialog - For main branches and locations with users */}
+      <Dialog open={advancedDeleteDialogOpen} onOpenChange={setAdvancedDeleteDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Advanced Delete: {selectedLocation?.name}
+            </DialogTitle>
+            <DialogDescription>
+              This location requires advanced deletion workflow.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {selectedLocation && isMainBranch(selectedLocation) && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-center gap-2 text-amber-800 font-medium">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full" />
+                  Main Branch Protection
+                </div>
+                <p className="text-sm text-amber-700 mt-1">
+                  This appears to be your main branch. Deleting it may affect your business operations.
+                </p>
+              </div>
+            )}
+
+            {branchUsers && branchUsers.users?.total > 0 && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 text-blue-800 font-medium">
+                  <Users className="w-4 h-4" />
+                  Users Assigned ({branchUsers.users.total})
+                </div>
+                <p className="text-sm text-blue-700 mt-1">
+                  {branchUsers.users.byRole.staff.length} staff, {branchUsers.users.byRole.members.length} members
+                </p>
+                <p className="text-xs text-blue-600 mt-2">
+                  Users will be unassigned when this location is deleted.
+                </p>
+              </div>
+            )}
+
+            <div className="grid gap-2">
+              <Label htmlFor="delete-reason">Reason for deletion *</Label>
+              <Input
+                id="delete-reason"
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="e.g., Location closed, consolidating operations"
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="force-confirmation">Type "FORCE DELETE" to confirm *</Label>
+              <Input
+                id="force-confirmation"
+                value={forceDeleteConfirmation}
+                onChange={(e) => setForceDeleteConfirmation(e.target.value)}
+                placeholder="FORCE DELETE"
+                required
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setAdvancedDeleteDialogOpen(false)
+                setSelectedLocation(null)
+                setDeleteReason('')
+                setForceDeleteConfirmation('')
+              }}
+              disabled={forceDeleteBranch.isPending}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={async () => {
+                if (!selectedLocation || !deleteReason || forceDeleteConfirmation !== 'FORCE DELETE') {
+                  toast.error('Please fill in all required fields and type "FORCE DELETE" to confirm')
+                  return
+                }
+
+                try {
+                  await forceDeleteBranch.mutateAsync({
+                    branchId: selectedLocation.id,
+                    data: {
+                      reason: deleteReason,
+                      confirmationText: forceDeleteConfirmation
+                    }
+                  })
+                  toast.success('Location deleted successfully!')
+                  setAdvancedDeleteDialogOpen(false)
+                  setSelectedLocation(null)
+                  setDeleteReason('')
+                  setForceDeleteConfirmation('')
+                } catch (error) {
+                  toast.error('Failed to delete location. Please try again.')
+                  console.error('Failed to force delete location:', error)
+                }
+              }}
+              disabled={forceDeleteBranch.isPending || !deleteReason || forceDeleteConfirmation !== 'FORCE DELETE'}
+            >
+              {forceDeleteBranch.isPending ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                   Deleting...

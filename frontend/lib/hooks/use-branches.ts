@@ -37,10 +37,10 @@ export function useBranchesByTenant(
 }
 
 // Get all branches system-wide (Super Admin only)
-export function useBranchesSystemWide(enabled: boolean = true) {
+export function useBranchesSystemWide(enabled: boolean = true, includeDeleted?: boolean) {
   return useQuery({
-    queryKey: branchKeys.systemWide(),
-    queryFn: () => branchesApi.getSystemWide(),
+    queryKey: [...branchKeys.systemWide(), { includeDeleted }],
+    queryFn: () => branchesApi.getSystemWide(includeDeleted),
     enabled,
   })
 }
