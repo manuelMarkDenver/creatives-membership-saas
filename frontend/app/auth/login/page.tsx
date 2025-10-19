@@ -28,6 +28,12 @@ export default function LoginPage() {
     setError('')
 
     try {
+      // Clear any existing auth data before login attempt
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user_data')
+      
+      console.log('🔍 Attempting login with:', { email }) // Debug log
+      
       // Use the environment variable API URL
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
       const response = await fetch(`${apiUrl}/auth/login`, {
@@ -45,6 +51,8 @@ export default function LoginPage() {
       }
 
       if (data.success && data.data.user && data.data.token) {
+        console.log('✅ Login successful for:', data.data.user.email) // Debug log
+        
         // Store user data and token
         localStorage.setItem('auth_token', data.data.token)
         localStorage.setItem('user_data', JSON.stringify(data.data.user))
