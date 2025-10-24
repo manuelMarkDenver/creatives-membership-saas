@@ -47,8 +47,13 @@ export class SubscriptionsController {
   }
 
   @Get('tenant/:tenantId/can-create-branch')
-  @RequiredRoles(Role.SUPER_ADMIN)
-  async canCreateBranch(@Param('tenantId') tenantId: string) {
+  @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER)
+  async canCreateBranch(@Param('tenantId') tenantId: string, @Req() req: RequestWithTenant) {
+    // Verify user has access to this tenant (unless SUPER_ADMIN)
+    const userRole = (req as any).user?.role;
+    if (userRole !== Role.SUPER_ADMIN && req.tenantId !== tenantId) {
+      throw new Error('Access denied: Cannot check subscription status for other tenants');
+    }
     return this.subscriptionsService.canCreateBranch(tenantId);
   }
 

@@ -138,6 +138,13 @@ apiClient.interceptors.response.use(
     return response
   },
   (error) => {
+    // Handle network errors (no response from server)
+    if (!error.response) {
+      console.warn('Network error - unable to reach server:', error.message)
+      // Don't logout on network errors - just return the error
+      return Promise.reject(new Error('Network error - unable to reach server. Please check your connection.'))
+    }
+
     // Handle authentication errors (401 - Unauthorized)
     if (error.response?.status === 401) {
       authManager.handleAuthFailure('Authentication token invalid or expired')
@@ -145,10 +152,11 @@ apiClient.interceptors.response.use(
     }
 
     // Handle tenant not found errors (404 for tenant-specific endpoints)
-    if (isTenantNotFoundError(error)) {
-      authManager.handleTenantFailure()
-      return Promise.reject(new Error('Your account access has been revoked or your organization no longer exists. Please log in again.'))
-    }
+    // TEMPORARILY DISABLED: Too aggressive, causing auto-logout
+    // if (isTenantNotFoundError(error)) {
+    //   authManager.handleTenantFailure()
+    //   return Promise.reject(new Error('Your account access has been revoked or your organization no longer exists. Please log in again.'))
+    // }
 
     // Handle forbidden access (403)
     if (error.response?.status === 403) {

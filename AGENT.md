@@ -630,6 +630,11 @@ cd frontend && npm run dev
 - **Prisma Access**: Backend Prisma commands read from root `.env` file
 - **Database Push**: Run `npx prisma db push` from `/backend` directory (reads from `../.env`)
 
+### Browser Console Logs
+- **Location**: `/home/mhackeedev/console.log`
+- **Usage**: When user mentions "browser logs" or "console logs", refer to this file
+- **Access**: `cat /home/mhackeedev/console.log | tail -50` for recent logs
+
 ### Port Management
 - **Frontend**: Always run on port 3000. Kill any process using it if needed.
 - **Backend**: Always run on port 5000. Kill any process using it if needed.
