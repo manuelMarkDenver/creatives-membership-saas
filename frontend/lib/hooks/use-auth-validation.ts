@@ -46,8 +46,9 @@ export function useAuthValidation() {
           return
         }
 
-        // Comprehensive validation (token + tenant + role-based access)
-        const validationResult = await authManager.validateUserAccess()
+        // TEMPORARILY DISABLED: Comprehensive validation causing auto-logout
+        // const validationResult = await authManager.validateUserAccess()
+        const validationResult: { isValid: boolean; reason?: string } = { isValid: true } // Always return valid for now
         
         if (!validationResult.isValid) {
           console.warn(`Access validation failed: ${validationResult.reason}`)

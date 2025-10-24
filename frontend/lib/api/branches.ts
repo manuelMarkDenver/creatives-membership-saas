@@ -7,6 +7,7 @@ export interface CreateBranchDto {
   address: string
   phoneNumber?: string
   email?: string
+  isMainBranch?: boolean
 }
 
 export interface UpdateBranchDto {
@@ -14,6 +15,7 @@ export interface UpdateBranchDto {
   address?: string
   phoneNumber?: string
   email?: string
+  isMainBranch?: boolean
 }
 
 export interface BranchQueryParams {

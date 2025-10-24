@@ -5,6 +5,7 @@ import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useBranchesByTenant, useBranchesSystemWide, useCreateBranch, useUpdateBranch, useDeleteBranch, useBranchUsers, useBulkReassignUsers, useForceDeleteBranch, useRestoreBranch } from '@/lib/hooks/use-branches'
 import { useTenants } from '@/lib/hooks/use-tenants'
 import { useRoleNavigation } from '@/lib/hooks/use-role-navigation'
+import { useSubscriptionStatus } from '@/lib/hooks/use-subscription-status'
 import { Role, Tenant } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -117,6 +118,14 @@ export default function LocationsPage() {
     advancedDeleteDialogOpen && selectedLocation ? selectedLocation.id : ''
   )
 
+  // Fetch subscription status for branch limit checking
+  // Only fetch when we have both profile and tenantId to avoid auth errors
+  const targetTenantId = isSuperAdmin ? selectedTenantId : profile?.tenantId
+  const shouldFetchSubscription = !!profile && !!targetTenantId
+  const { data: subscriptionStatus } = useSubscriptionStatus(
+    shouldFetchSubscription ? targetTenantId : undefined
+  )
+
   // Handle data based on view type
   const locations = isSuperAdmin && !selectedTenantId ? (systemWideData || []) : (tenantLocationsData || [])
   
@@ -155,6 +164,7 @@ export default function LocationsPage() {
         address: formData.address,
         phoneNumber: formData.phone || undefined,
         email: formData.email || undefined,
+        isMainBranch: formData.isMainBranch,
       })
       toast.success('Location created successfully!')
       setCreateDialogOpen(false)
@@ -163,7 +173,7 @@ export default function LocationsPage() {
       // Extract and show the actual error message
       const errorMessage = error?.message || error?.response?.data?.message || 'Failed to create location. Please try again.'
       toast.error(errorMessage)
-      console.error('Failed to create location:', error)
+      // Don't log the full error to console in production
     }
   }
 
@@ -235,25 +245,23 @@ export default function LocationsPage() {
           name: formData.name,
           address: formData.address,
           phoneNumber: formData.phone || undefined,
-          email: formData.email || undefined
+          email: formData.email || undefined,
+          isMainBranch: formData.isMainBranch
         }
       })
       toast.success('Location updated successfully!')
       setEditDialogOpen(false)
       setSelectedLocation(null)
       setFormData({ name: '', address: '', phone: '', email: '', isMainBranch: false })
-    } catch (error) {
-      toast.error('Failed to update location. Please try again.')
-      console.error('Failed to update location:', error)
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.response?.data?.message || 'Failed to update location. Please try again.'
+      toast.error(errorMessage)
     }
   }
 
   const isMainBranch = (location: Branch) => {
-    // Consider first branch or branch with name containing "main", "primary", "headquarters"
-    const mainKeywords = ['main', 'primary', 'headquarters', 'head office', 'central']
-    const locationName = location.name.toLowerCase()
-    return mainKeywords.some(keyword => locationName.includes(keyword)) || 
-           locations.length > 0 && locations[0]?.id === location.id
+    // Use the actual isMainBranch field from database
+    return location.isMainBranch === true
   }
 
   const canEditLocation = (location: Branch) => {
@@ -373,10 +381,11 @@ export default function LocationsPage() {
           <Button 
             onClick={() => setCreateDialogOpen(true)}
             className="w-full sm:w-auto"
-            disabled={isSuperAdmin && !selectedTenantId}
+            disabled={(isSuperAdmin && !selectedTenantId) || (subscriptionStatus && !subscriptionStatus.canCreate)}
+            title={subscriptionStatus && !subscriptionStatus.canCreate ? subscriptionStatus.reason : undefined}
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Location
+            {subscriptionStatus && !subscriptionStatus.canCreate ? 'Branch Limit Reached' : 'Add Location'}
           </Button>
         )}
       </div>
@@ -510,6 +519,11 @@ export default function LocationsPage() {
                     <div>
                       <div className="flex items-center gap-3">
                         <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{location.name}</h4>
+                        {isMainBranch(location) && (
+                          <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 bg-amber-50">
+                            MAIN
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300 mt-1">
                         <div className="flex items-center gap-1">
@@ -610,8 +624,8 @@ export default function LocationsPage() {
                         </DropdownMenu>
                       )
                     ) : (
-                      // Deleted locations - show restore option
-                      canDelete && (
+                      // Deleted locations - show restore option only if within branch limit
+                      canDelete && subscriptionStatus && subscriptionStatus.canCreate && (
                         <Button
                           variant="outline"
                           size="sm"
