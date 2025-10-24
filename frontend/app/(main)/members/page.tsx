@@ -218,9 +218,9 @@ export default function MembersPage() {
     })
   }
 
-  // Helper function to get member's branch ID from subscription
+  // Helper function to get member's branch ID (use primaryBranchId as source of truth)
   const getMemberBranchId = (member: MemberData): string | null => {
-    return member.gymSubscriptions?.[0]?.branchId || null
+    return member.gymMemberProfile?.primaryBranchId || member.gymSubscriptions?.[0]?.branchId || null
   }
 
   // Helper function to check if current user can manage a member based on branch access

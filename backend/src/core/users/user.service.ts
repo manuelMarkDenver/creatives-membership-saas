@@ -241,6 +241,34 @@ export class UsersService {
             },
           });
         }
+
+        // Refetch user with updated profile to return fresh data
+        const userWithUpdatedProfile = await this.prisma.user.findUnique({
+          where: { id },
+          include: {
+            tenant: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+              },
+            },
+            gymMemberProfile: {
+              include: {
+                primaryBranch: true,
+              },
+            },
+          },
+        });
+
+        if (!userWithUpdatedProfile) {
+          throw new NotFoundException(`User with ID '${id}' not found after update`);
+        }
+
+        this.logger.log(
+          `Updated user with gym profile: ${userWithUpdatedProfile.firstName} ${userWithUpdatedProfile.lastName} (${id})`,
+        );
+        return userWithUpdatedProfile;
       }
 
       this.logger.log(
@@ -683,7 +711,17 @@ export class UsersService {
               },
             },
           },
-          gymMemberProfile: true,
+          gymMemberProfile: {
+            include: {
+              primaryBranch: {
+                select: {
+                  id: true,
+                  name: true,
+                  address: true,
+                },
+              },
+            },
+          },
           gymMemberSubscriptions: {
             include: {
               gymMembershipPlan: {

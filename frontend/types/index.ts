@@ -246,12 +246,12 @@ export interface PaginatedResponse<T> {
 export interface GymMemberProfile {
   id: string
   userId: string
-   user?: User
-   emergencyContactName?: string
-   emergencyContactPhone?: string
-   emergencyContactRelation?: string
-   joinedDate?: string
-   medicalConditions?: string
+  user?: User
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+  emergencyContactRelation?: string
+  joinedDate?: string
+  medicalConditions?: string
   fitnessGoals?: string
   preferredTrainer?: string
   trainerContactNumber?: string
@@ -268,6 +268,10 @@ export interface GymMemberProfile {
   favoriteEquipment?: string
   averageVisitsPerWeek?: number
   preferredWorkoutTime?: string
+  // Branch relationship fields
+  primaryBranchId?: string
+  primaryBranch?: Branch
+  accessLevel?: 'SINGLE_BRANCH' | 'MULTI_BRANCH' | 'ALL_BRANCHES'
   // Historical data
   membershipHistory?: any // JSON field for past memberships
   profileMetadata?: any // JSON field for additional dynamic data

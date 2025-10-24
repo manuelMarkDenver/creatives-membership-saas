@@ -207,7 +207,7 @@ export function MembershipPlanModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' ? 'Create New Membership Plan' : 'Edit Membership Plan'}
@@ -276,47 +276,42 @@ export function MembershipPlanModal({
             </div>
           </div>
 
-          {/* Plan Type */}
-          <div>
-            <Label htmlFor="type">Plan Type *</Label>
-            <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select plan type" />
-              </SelectTrigger>
-              <SelectContent>
-                {MEMBERSHIP_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Plan Type & Branch Access Side by Side */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="type">Plan Type *</Label>
+              <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select plan type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEMBERSHIP_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Branch Access Level */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <Label className="text-sm font-medium text-gray-600 flex items-center gap-2">
-              Branch Access Level
-              <Badge variant="secondary" className="text-xs">View Only</Badge>
-            </Label>
-            <Select value={formData.accessLevel} onValueChange={(value) => handleInputChange('accessLevel', value)} disabled>
-              <SelectTrigger className="mt-2">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ACCESS_LEVEL_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div>
-                      <div className="font-medium">{option.label}</div>
-                      <div className="text-xs text-gray-500">{option.description}</div>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-gray-500 mt-2">
-              Currently defaults to "All Branches". Custom access levels will be configurable in a future update.
-            </p>
+            <div>
+              <Label htmlFor="accessLevel" className="flex items-center gap-2">
+                Branch Access
+                <Badge variant="secondary" className="text-xs">All Branches</Badge>
+              </Label>
+              <Select value={formData.accessLevel} onValueChange={(value) => handleInputChange('accessLevel', value)} disabled>
+                <SelectTrigger className="bg-gray-100">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACCESS_LEVEL_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Benefits */}
