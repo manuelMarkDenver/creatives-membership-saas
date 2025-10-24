@@ -40,6 +40,10 @@ export class CreateBranchDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isMainBranch?: boolean;
 }
 
 export class UpdateBranchDto {
@@ -71,6 +75,10 @@ export class UpdateBranchDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isMainBranch?: boolean;
 }
 
 export class AssignUserToBranchDto {

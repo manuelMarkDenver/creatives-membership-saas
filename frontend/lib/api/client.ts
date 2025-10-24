@@ -155,8 +155,16 @@ apiClient.interceptors.response.use(
       const errorMessage = error.response?.data?.message || 'Access denied'
       console.warn('Access forbidden:', errorMessage)
       
-      // If it's a role/permission error, don't logout, just show error
-      if (errorMessage.includes('role') || errorMessage.includes('permission')) {
+      // Don't logout for business logic errors - only for auth errors
+      // Business logic errors: role, permission, subscription limits, branch limits, etc.
+      if (
+        errorMessage.includes('role') || 
+        errorMessage.includes('permission') ||
+        errorMessage.includes('limit') ||
+        errorMessage.includes('subscription') ||
+        errorMessage.includes('branch') ||
+        errorMessage.includes('Upgrade')
+      ) {
         return Promise.reject(new Error(`Access denied: ${errorMessage}`))
       }
       

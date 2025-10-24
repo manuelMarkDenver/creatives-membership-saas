@@ -624,6 +624,12 @@ cd backend && npm run start:dev
 cd frontend && npm run dev
 ```
 
+### Environment Configuration
+- **Root .env**: Project root contains main `.env` file with database URLs
+- **Frontend .env.local**: `/frontend/.env.local` contains `NEXT_PUBLIC_API_URL`
+- **Prisma Access**: Backend Prisma commands read from root `.env` file
+- **Database Push**: Run `npx prisma db push` from `/backend` directory (reads from `../.env`)
+
 ### Port Management
 - **Frontend**: Always run on port 3000. Kill any process using it if needed.
 - **Backend**: Always run on port 5000. Kill any process using it if needed.

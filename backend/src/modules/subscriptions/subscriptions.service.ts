@@ -62,6 +62,9 @@ export class SubscriptionsService {
       where: { id: tenantId },
       include: {
         branches: {
+          where: {
+            isActive: true, // Only count active (non-deleted) branches
+          },
           include: {
             subscriptions: {
               where: {
