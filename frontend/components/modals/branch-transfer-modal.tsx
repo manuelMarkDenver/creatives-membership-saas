@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -44,6 +45,7 @@ export function BranchTransferModal({
 }: BranchTransferModalProps) {
   const [selectedBranchId, setSelectedBranchId] = useState('')
   const [isTransferring, setIsTransferring] = useState(false)
+  const queryClient = useQueryClient()
   const { data: profile } = useProfile()
   const { data: branches, isLoading: isLoadingBranches } = useBranchesByTenant(
     profile?.tenantId || '',
@@ -51,11 +53,12 @@ export function BranchTransferModal({
   )
 
   const memberName = member?.name || `${member?.firstName || ''} ${member?.lastName || ''}`.trim() || member?.email || 'Unknown Member'
-  const currentBranchName = member?.gymSubscriptions?.[0]?.branch?.name || 
-                           member?.gymMemberProfile?.primaryBranch?.name || 
+  // Prioritize primaryBranch from gymMemberProfile (source of truth)
+  const currentBranchName = member?.gymMemberProfile?.primaryBranch?.name || 
+                           member?.gymSubscriptions?.[0]?.branch?.name || 
                            'No branch assigned'
-  const currentBranchId = member?.gymSubscriptions?.[0]?.branchId || 
-                         member?.gymMemberProfile?.primaryBranchId
+  const currentBranchId = member?.gymMemberProfile?.primaryBranchId || 
+                         member?.gymSubscriptions?.[0]?.branchId
 
   useEffect(() => {
     if (isOpen) {
@@ -76,17 +79,50 @@ export function BranchTransferModal({
     try {
       const selectedBranch = branches?.find((b: any) => b.id === selectedBranchId)
       
+      console.log('🔄 Transferring member:', {
+        memberId: member.id,
+        memberEmail: member.email,
+        fromBranch: currentBranchName,
+        toBranch: selectedBranch?.name,
+        toBranchId: selectedBranchId
+      })
+      
       // Update member's primary branch via the user API
-      await membersApi.updateMember(member.id, {
+      const response = await membersApi.updateMember(member.id, {
         primaryBranchId: selectedBranchId
       })
+      
+      console.log('✅ Transfer successful:', response)
+      console.log('Updated member data:', response.member)
+
+      // Force hard refetch of all member-related queries
+      console.log('🔄 Force refetching all member queries...')
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['gym-members'], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['users'], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['gym-subscriptions'], type: 'active' })
+      ])
+      console.log('✅ All queries refetched')
 
       toast.success(`Successfully transferred ${memberName} to ${selectedBranch?.name}`)
-      onTransferComplete?.()
+      
+      // Trigger parent component refresh with refetch
+      if (onTransferComplete) {
+        onTransferComplete()
+      }
+      
+      // Wait for UI to update
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
       onClose()
     } catch (error: any) {
-      console.error('Branch transfer error:', error)
-      toast.error(error.message || 'Failed to transfer member to new branch')
+      console.error('❌ Branch transfer error:', error)
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      })
+      toast.error(error.response?.data?.message || error.message || 'Failed to transfer member to new branch')
     } finally {
       setIsTransferring(false)
     }

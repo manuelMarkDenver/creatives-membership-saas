@@ -252,11 +252,11 @@ export function MemberCard({
               </div>
               
               {/* Branch Information */}
-              {(subscription.branch || member.gymMemberProfile?.primaryBranch) && (
+              {member.gymMemberProfile?.primaryBranch && (
                 <div className="flex items-center gap-2 text-xs">
                   <Building className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                   <span className="text-blue-700 dark:text-blue-400 font-medium">
-                    {subscription.branch?.name || member.gymMemberProfile?.primaryBranch?.name || 'Unknown Branch'}
+                    {member.gymMemberProfile.primaryBranch.name || 'Unknown Branch'}
                   </span>
                   {member.gymMemberProfile?.accessLevel && (
                     <>

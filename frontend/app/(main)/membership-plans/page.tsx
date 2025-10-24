@@ -626,6 +626,26 @@ export default function MembershipPlansPage() {
                 </select>
               </div>
             </div>
+            
+            {/* Branch Access Level */}
+            <div className="grid gap-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+              <Label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                Branch Access Level
+                <Badge variant="secondary" className="text-xs">All Branches</Badge>
+              </Label>
+              <select
+                disabled
+                value="ALL_BRANCHES"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 cursor-not-allowed"
+              >
+                <option value="ALL_BRANCHES">All Branches (premium)</option>
+                <option value="MULTI_BRANCH">Multiple Branches</option>
+                <option value="SINGLE_BRANCH">Single Branch</option>
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Currently defaults to "All Branches". Custom access levels will be configurable in a future update.
+              </p>
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -807,6 +827,26 @@ export default function MembershipPlansPage() {
                   required
                 />
               </div>
+            </div>
+            
+            {/* Branch Access Level */}
+            <div className="grid gap-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+              <Label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                Branch Access Level
+                <Badge variant="secondary" className="text-xs">All Branches</Badge>
+              </Label>
+              <select
+                disabled
+                value="ALL_BRANCHES"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 cursor-not-allowed"
+              >
+                <option value="ALL_BRANCHES">All Branches (premium)</option>
+                <option value="MULTI_BRANCH">Multiple Branches</option>
+                <option value="SINGLE_BRANCH">Single Branch</option>
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Currently defaults to "All Branches". Custom access levels will be configurable in a future update.
+              </p>
             </div>
             
             {/* Benefits */}
