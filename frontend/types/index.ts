@@ -106,6 +106,7 @@ export interface Branch {
   phoneNumber?: string
   email?: string
   isActive: boolean
+  isMainBranch?: boolean
   branchData?: any // JSON field for business-specific data
   createdAt: string
   updatedAt: string

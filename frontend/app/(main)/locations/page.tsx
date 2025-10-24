@@ -74,7 +74,8 @@ export default function LocationsPage() {
     name: '',
     address: '',
     phone: '',
-    email: ''
+    email: '',
+    isMainBranch: false
   })
 
   // Role-based access control
@@ -118,6 +119,10 @@ export default function LocationsPage() {
 
   // Handle data based on view type
   const locations = isSuperAdmin && !selectedTenantId ? (systemWideData || []) : (tenantLocationsData || [])
+  
+  // Count active locations for the current tenant
+  const activeLocationsCount = locations.filter((loc: Branch) => loc.isActive).length
+  const isLastActiveBranch = activeLocationsCount === 1
 
   const filteredLocations = locations.filter((location: Branch) =>
     location.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -153,9 +158,11 @@ export default function LocationsPage() {
       })
       toast.success('Location created successfully!')
       setCreateDialogOpen(false)
-      setFormData({ name: '', address: '', phone: '', email: '' })
-    } catch (error) {
-      toast.error('Failed to create location. Please try again.')
+      setFormData({ name: '', address: '', phone: '', email: '', isMainBranch: false })
+    } catch (error: any) {
+      // Extract and show the actual error message
+      const errorMessage = error?.message || error?.response?.data?.message || 'Failed to create location. Please try again.'
+      toast.error(errorMessage)
       console.error('Failed to create location:', error)
     }
   }
@@ -209,7 +216,8 @@ export default function LocationsPage() {
       name: location.name,
       address: location.address || '',
       phone: location.phoneNumber || '',
-      email: location.email || ''
+      email: location.email || '',
+      isMainBranch: location.isMainBranch || false
     })
     setEditDialogOpen(true)
   }
@@ -233,7 +241,7 @@ export default function LocationsPage() {
       toast.success('Location updated successfully!')
       setEditDialogOpen(false)
       setSelectedLocation(null)
-      setFormData({ name: '', address: '', phone: '', email: '' })
+      setFormData({ name: '', address: '', phone: '', email: '', isMainBranch: false })
     } catch (error) {
       toast.error('Failed to update location. Please try again.')
       console.error('Failed to update location:', error)
@@ -570,18 +578,28 @@ export default function LocationsPage() {
                             </DropdownMenuItem>
                           )}
                           {canDeleteLocation(location) && (
-                            <DropdownMenuItem 
-                              className="text-red-600"
-                              onClick={() => openDeleteDialog(location)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete Location
-                              {isMainBranch(location) && (
-                                <Badge variant="outline" className="ml-2 text-xs border-red-200 text-red-700">
-                                  Restricted
+                            isLastActiveBranch && location.isActive ? (
+                              <DropdownMenuItem disabled>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Cannot Delete Last Location
+                                <Badge variant="outline" className="ml-2 text-xs border-amber-200 text-amber-700">
+                                  Required
                                 </Badge>
-                              )}
-                            </DropdownMenuItem>
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem 
+                                className="text-red-600"
+                                onClick={() => openDeleteDialog(location)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Location
+                                {isMainBranch(location) && (
+                                  <Badge variant="outline" className="ml-2 text-xs border-red-200 text-red-700">
+                                    Restricted
+                                  </Badge>
+                                )}
+                              </DropdownMenuItem>
+                            )
                           )}
                           {!canEditLocation(location) && !canDeleteLocation(location) && (
                             <DropdownMenuItem disabled>
@@ -677,6 +695,21 @@ export default function LocationsPage() {
                 placeholder="location@gym.com"
               />
             </div>
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox
+                id="isMainBranch"
+                checked={formData.isMainBranch}
+                onCheckedChange={(checked) => setFormData({...formData, isMainBranch: checked as boolean})}
+              />
+              <Label htmlFor="isMainBranch" className="text-sm font-medium cursor-pointer">
+                Set as Main Branch
+              </Label>
+            </div>
+            {formData.isMainBranch && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                <strong>Note:</strong> If another branch is already set as main, it will be automatically unset.
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2">
@@ -684,7 +717,7 @@ export default function LocationsPage() {
               variant="outline" 
               onClick={() => {
                 setCreateDialogOpen(false)
-                setFormData({ name: '', address: '', phone: '', email: '' })
+                setFormData({ name: '', address: '', phone: '', email: '', isMainBranch: false })
               }}
               disabled={createLocation.isPending}
             >
@@ -774,6 +807,21 @@ export default function LocationsPage() {
                 placeholder="location@gym.com"
               />
             </div>
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox
+                id="edit-isMainBranch"
+                checked={formData.isMainBranch}
+                onCheckedChange={(checked) => setFormData({...formData, isMainBranch: checked as boolean})}
+              />
+              <Label htmlFor="edit-isMainBranch" className="text-sm font-medium cursor-pointer">
+                Set as Main Branch
+              </Label>
+            </div>
+            {formData.isMainBranch && !selectedLocation?.isMainBranch && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                <strong>Note:</strong> If another branch is already set as main, it will be automatically unset.
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2">
@@ -782,7 +830,7 @@ export default function LocationsPage() {
               onClick={() => {
                 setEditDialogOpen(false)
                 setSelectedLocation(null)
-                setFormData({ name: '', address: '', phone: '', email: '' })
+                setFormData({ name: '', address: '', phone: '', email: '', isMainBranch: false })
               }}
               disabled={updateLocation.isPending}
             >

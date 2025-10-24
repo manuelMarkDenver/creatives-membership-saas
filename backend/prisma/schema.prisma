@@ -48,6 +48,7 @@ model Branch {
   phoneNumber            String?
   email                  String?
   isActive               Boolean                 @default(true)
+  isMainBranch           Boolean                 @default(false)
   branchData             Json?
   
   // Audit fields

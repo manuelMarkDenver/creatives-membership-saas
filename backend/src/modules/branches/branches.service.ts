@@ -45,6 +45,25 @@ export class BranchesService {
         throw new ForbiddenException(canCreateResult.reason);
       }
 
+      // Handle main branch logic
+      if (createBranchDto.isMainBranch) {
+        // Check if there's already a main branch
+        const existingMainBranch = await this.prisma.branch.findFirst({
+          where: {
+            tenantId: createBranchDto.tenantId,
+            isMainBranch: true,
+            isActive: true,
+          },
+        });
+
+        if (existingMainBranch) {
+          throw new ConflictException(
+            `Cannot set as main branch. "${existingMainBranch.name}" is already the main branch. ` +
+            `Please unset the existing main branch first.`,
+          );
+        }
+      }
+
       // Create the branch
       const branch = await this.prisma.branch.create({
         data: createBranchDto as any,
@@ -107,6 +126,36 @@ export class BranchesService {
     });
     if (!branch) {
       throw new NotFoundException('Branch not found');
+    }
+
+    // Handle main branch swap logic
+    if (updateBranchDto.isMainBranch === true && !branch.isMainBranch) {
+      // Check if there's already a main branch
+      const existingMainBranch = await this.prisma.branch.findFirst({
+        where: {
+          tenantId: branch.tenantId,
+          isMainBranch: true,
+          isActive: true,
+          id: { not: branchId },
+        },
+      });
+
+      if (existingMainBranch) {
+        // Use transaction to swap main branch status
+        return this.prisma.$transaction(async (tx) => {
+          // Unset existing main branch
+          await tx.branch.update({
+            where: { id: existingMainBranch.id },
+            data: { isMainBranch: false },
+          });
+
+          // Set new main branch
+          return tx.branch.update({
+            where: { id: branchId },
+            data: updateBranchDto,
+          });
+        });
+      }
     }
 
     return this.prisma.branch.update({
@@ -261,6 +310,20 @@ export class BranchesService {
       throw new NotFoundException('Branch not found');
     }
 
+    // Check if this is the last active branch in the tenant
+    const activeBranchCount = await this.prisma.branch.count({
+      where: {
+        tenantId: branch.tenantId,
+        isActive: true,
+      },
+    });
+    
+    if (activeBranchCount <= 1) {
+      throw new ConflictException(
+        'Cannot delete the last branch. Each tenant must have at least one active location.'
+      );
+    }
+
     // Check for assigned users (both active staff and members)
     const activeUsers = branch.gymUserBranches.filter(ub => !ub.user.deletedAt);
     if (activeUsers.length > 0) {
@@ -285,6 +348,17 @@ export class BranchesService {
 
     if (branch.isActive) {
       throw new ConflictException('Branch is already active');
+    }
+
+    // Check if tenant can restore (create) this branch
+    const canCreateResult = await this.subscriptionsService.canCreateBranch(
+      branch.tenantId,
+    );
+
+    if (!canCreateResult.canCreate) {
+      throw new ForbiddenException(
+        `Cannot restore branch: ${canCreateResult.reason}`,
+      );
     }
 
     // Check for main branch conflict
@@ -543,6 +617,20 @@ export class BranchesService {
 
     if (!branch) {
       throw new NotFoundException('Branch not found');
+    }
+
+    // Check if this is the last active branch in the tenant
+    const activeBranchCount = await this.prisma.branch.count({
+      where: {
+        tenantId: branch.tenantId,
+        isActive: true,
+      },
+    });
+    
+    if (activeBranchCount <= 1) {
+      throw new ConflictException(
+        'Cannot delete the last branch. Each tenant must have at least one active location.'
+      );
     }
 
     const activeUsers = branch.gymUserBranches.filter(ub => !ub.user.deletedAt);
