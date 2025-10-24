@@ -547,9 +547,42 @@ export class BranchesService {
 
     const activeUsers = branch.gymUserBranches.filter(ub => !ub.user.deletedAt);
 
+    // Get fallback branch for member reassignment (first active branch in tenant)
+    const fallbackBranch = await this.prisma.branch.findFirst({
+      where: {
+        tenantId: branch.tenantId,
+        isActive: true,
+        id: { not: branchId }, // Exclude the branch being deleted
+      },
+      orderBy: { createdAt: 'asc' }, // Use oldest branch (likely the main branch)
+    });
+
     // Perform force deletion in transaction
     const result = await this.prisma.$transaction(async (tx) => {
-      // Remove all user assignments first
+      // Get members whose primary branch is being deleted
+      const membersToReassign = await tx.gymMemberProfile.findMany({
+        where: { primaryBranchId: branchId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+            },
+          },
+        },
+      });
+
+      // Reassign members to fallback branch or set to null
+      if (membersToReassign.length > 0) {
+        await tx.gymMemberProfile.updateMany({
+          where: { primaryBranchId: branchId },
+          data: { primaryBranchId: fallbackBranch?.id || null },
+        });
+      }
+
+      // Remove all user assignments
       if (activeUsers.length > 0) {
         await tx.gymUserBranch.deleteMany({
           where: { branchId },
@@ -559,7 +592,7 @@ export class BranchesService {
       // Soft delete the branch
       const deletedBranch = await tx.branch.update({
         where: { id: branchId },
-        data: { isActive: false },
+        data: { isActive: false, deletedBy: performedBy, deletedAt: new Date() },
       });
 
       // TODO: Create audit log entry for force deletion
@@ -570,6 +603,12 @@ export class BranchesService {
           id: deletedBranch.id,
           name: deletedBranch.name,
         },
+        reassignedMembers: membersToReassign.map(m => ({
+          id: m.user.id,
+          name: `${m.user.firstName} ${m.user.lastName}`,
+          role: m.user.role,
+          newBranch: fallbackBranch ? { id: fallbackBranch.id, name: fallbackBranch.name } : null,
+        })),
         orphanedUsers: activeUsers.map(ub => ({
           id: ub.user.id,
           name: `${ub.user.firstName} ${ub.user.lastName}`,
@@ -578,7 +617,9 @@ export class BranchesService {
         reason,
         performedBy,
         timestamp: new Date().toISOString(),
-        warning: 'Users have been unassigned from all branches. They may need to be reassigned manually.',
+        warning: fallbackBranch 
+          ? `${membersToReassign.length} members automatically reassigned to "${fallbackBranch.name}"`
+          : 'WARNING: No active branches available. Members have been left without a primary branch and will need manual reassignment.',
       };
     });
 

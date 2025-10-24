@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CollapsibleStatsOverview, type StatItem } from '@/components/ui/collapsible-stats-overview'
+import { BulkReassignMembersModal } from '@/components/modals/bulk-reassign-members-modal'
 import { 
   MapPin, 
   Search, 
@@ -49,6 +50,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Branch } from '@/types'
 import { toast } from 'react-toastify'
+import { branchesApi } from '@/lib/api'
 
 export default function LocationsPage() {
   const { data: profile } = useProfile()
@@ -65,6 +67,9 @@ export default function LocationsPage() {
   const [targetBranchId, setTargetBranchId] = useState<string>('')
   const [deleteReason, setDeleteReason] = useState('')
   const [forceDeleteConfirmation, setForceDeleteConfirmation] = useState('')
+  const [reassignModalOpen, setReassignModalOpen] = useState(false)
+  const [membersToReassign, setMembersToReassign] = useState<any[]>([])
+  const [branchToDeleteId, setBranchToDeleteId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -163,9 +168,38 @@ export default function LocationsPage() {
       toast.success('Location deleted successfully!')
       setDeleteDialogOpen(false)
       setSelectedLocation(null)
-    } catch (error) {
-      toast.error('Failed to delete location. Please try again.')
-      console.error('Failed to delete location:', error)
+    } catch (error: any) {
+      // Check if it's a 409 conflict (members assigned)
+      if (error?.response?.status === 409) {
+        const errorMessage = error.response?.data?.message || ''
+        
+        // Show proper error message
+        toast.error(errorMessage)
+        
+        // Close the delete dialog
+        setDeleteDialogOpen(false)
+        
+        // Fetch the full member list for this branch
+        try {
+          const branchUsersResponse = await branchesApi.getBranchUsers(selectedLocation.id)
+          const members = branchUsersResponse?.users?.byRole?.members || []
+          
+          if (members.length > 0) {
+            // Store members and branch ID for reassignment
+            setMembersToReassign(members)
+            setBranchToDeleteId(selectedLocation.id)
+            setReassignModalOpen(true)
+          } else {
+            toast.error('No members found to reassign. Please try again.')
+          }
+        } catch (fetchError) {
+          console.error('Failed to fetch branch members:', fetchError)
+          toast.error('Failed to load members. Please try again.')
+        }
+      } else {
+        toast.error('Failed to delete location. Please try again.')
+        console.error('Failed to delete location:', error)
+      }
     }
   }
 
@@ -818,6 +852,31 @@ export default function LocationsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Reassign Members Modal */}
+      <BulkReassignMembersModal
+        isOpen={reassignModalOpen}
+        onClose={() => setReassignModalOpen(false)}
+        branchToDelete={selectedLocation}
+        members={membersToReassign}
+        availableBranches={locations.filter((loc: Branch) => loc.id !== branchToDeleteId && loc.isActive)}
+        onReassignComplete={async () => {
+          // After successful reassignment, retry deletion
+          if (branchToDeleteId) {
+            try {
+              await deleteLocation.mutateAsync(branchToDeleteId)
+              toast.success('Members reassigned and location deleted successfully!')
+              setReassignModalOpen(false)
+              setMembersToReassign([])
+              setBranchToDeleteId(null)
+              setSelectedLocation(null)
+            } catch (error: any) {
+              toast.error('Failed to delete location after reassignment. Please try again.')
+              console.error('Failed to delete after reassignment:', error)
+            }
+          }
+        }}
+      />
 
       {/* Advanced Delete Dialog - For main branches and locations with users */}
       <Dialog open={advancedDeleteDialogOpen} onOpenChange={setAdvancedDeleteDialogOpen}>
