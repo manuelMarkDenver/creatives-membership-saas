@@ -36,6 +36,9 @@ export interface MemberData {
     deletedBy?: string | null
     deletionReason?: string | null
     deletionNotes?: string | null
+    primaryBranchId?: string
+    primaryBranch?: { id: string; name: string; address?: string }
+    accessLevel?: 'SINGLE_BRANCH' | 'MULTI_BRANCH' | 'ALL_BRANCHES'
   } | null
   gymSubscriptions?: Array<{
     id: string
