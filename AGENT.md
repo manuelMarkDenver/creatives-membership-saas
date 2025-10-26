@@ -861,9 +861,9 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ---
 
-*Last Updated: October 26, 2025 - 20:30 UTC*
-*Status: Analytics Dashboard Fix - ✅ COMPLETED*
-*Current Focus: Fixed analytics transaction date issue - all metrics now showing live data*
+*Last Updated: October 26, 2025 - 20:50 UTC*
+*Status: Analytics Dashboard ✅ WORKING - Member counts ✅ FIXED*
+*Current Focus: Analytics showing revenue data, member counts corrected from 38→18*
 
 ### **Current Session Progress (Oct 26, 2025) - Analytics Dashboard Fix**
 
@@ -899,10 +899,32 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
    - Top Performing Plans: Top 5 plans by revenue with member counts
    - Branch Overview: Revenue and metrics per branch (Manggahan: 8 members, San Rafael: 6, San Jose: 4)
 
-6. **Next Steps for User** ⚠️
-   - Reset database: Run from repo root in psql: `DROP SCHEMA public CASCADE; CREATE SCHEMA public;`
-   - Re-seed database: `cd backend && npx prisma db push && npm run seed`
-   - Verify analytics: Refresh dashboard to see live data
+6. **Member Double-Counting Bug Fixed** ✅
+   - **Problem**: Locations page showed 38 members instead of 18 (counted twice)
+   - **Root Cause**: Seeder created GymUserBranch records for ALL_BRANCHES members
+   - **Design**: GymUserBranch is for SINGLE_BRANCH/MULTI_BRANCH members and staff only
+   - **Solution**: Removed GymUserBranch creation for regular members with ALL_BRANCHES access
+   - **Result**: Members now counted once via primaryBranchId only
+
+7. **UI Fixes - Currency and Staff Display** ✅
+   - **Problem**: Locations page showed USD ($) instead of Philippine Peso (₱)
+   - **Problem**: Staff counts displayed but Staff Management not yet implemented
+   - **Solution**: Changed currency formatter from USD to PHP (en-PH locale)
+   - **Solution**: Hid staff badge with comment noting future feature
+   - **Result**: All revenue displays now show ₱33,300 format
+
+8. **Member Count Includes Staff Bug Fixed** ✅
+   - **Problem**: Member counts showed 20 (should be 18) - owner+manager were counted
+   - **Root Cause**: `primaryBranchCounts` query didn't filter by role, included all GymMemberProfiles
+   - **Solution**: Added `role: 'CLIENT'` filter to gymMemberProfile.groupBy queries
+   - **Result**: Correct counts now: Manggahan 8, San Rafael 5, San Jose 4 = 17 active (1 deleted)
+
+9. **Verification Results** ✅
+   - Database regenerated successfully
+   - Members: 17 active CLIENT users (8+5+4), 1 deleted, 2 staff (owner+manager) = 20 GymMemberProfiles total
+   - Transactions: 18 within last 7 days (all showing in analytics)
+   - Revenue metrics: Working with Philippine Peso formatting
+   - Staff: Excluded from member counts until Staff Management feature implemented
 
 ### **Previous Session Progress (Oct 26, 2025) - Location Member Statistics & Reassignment System**
 

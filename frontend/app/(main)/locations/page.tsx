@@ -356,11 +356,11 @@ export default function LocationsPage() {
     }
   }
 
-  // Helper function to format currency
+  // Helper function to format currency in Philippine Peso
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-PH', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'PHP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount)
@@ -649,7 +649,6 @@ export default function LocationsPage() {
                           </div>
                           {location.averageRevenuePerMember > 0 && (
                             <div className="flex items-center gap-1 text-xs bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
-                              <DollarSign className="h-3 w-3" />
                               {formatCurrency(location.averageRevenuePerMember)}/member
                             </div>
                           )}
@@ -684,16 +683,14 @@ export default function LocationsPage() {
                           {location.isActive ? 'ACTIVE' : 'DELETED'}
                         </Badge>
                         
-                        {/* Member/staff info */}
+                        {/* Member info only - Staff management not yet implemented */}
                         <div className="flex flex-col items-end gap-1">
                           <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
                             <Users className="h-3 w-3 mr-1" />
                             {(location._count as any)?.gymUserBranches || (location._count as any)?.activeMembers || 0} members
                           </Badge>
-                          <Badge variant="outline" className="text-xs bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
-                            <Users className="h-3 w-3 mr-1" />
-                            {location._count?.staff || 0} staff
-                          </Badge>
+                          {/* Staff badge hidden - feature not yet implemented */}
+                          {/* Future: Show staff count when staff management is ready */}
                         </div>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
