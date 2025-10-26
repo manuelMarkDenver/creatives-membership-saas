@@ -138,13 +138,15 @@ async function main() {
   ];
   
   // Check if tenant already exists
-  const existingTenant = await prisma.tenant.findUnique({
+  let existingTenant = await prisma.tenant.findUnique({
     where: { slug: tenantInfo.slug }
   });
   
+  let tenant, owner;
+  
   if (!existingTenant) {
     // Create tenant
-    const tenant = await prisma.tenant.create({
+    tenant = await prisma.tenant.create({
       data: {
         name: tenantInfo.name,
         slug: tenantInfo.slug,
@@ -706,21 +708,30 @@ async function main() {
     
   } else {
     console.log(`⏭️  Tenant already exists: ${tenantInfo.name}`);
+    tenant = existingTenant;
+    
+    // Get existing owner for this tenant
+    owner = await prisma.user.findFirst({
+      where: {
+        tenantId: existingTenant.id,
+        role: 'OWNER'
+      }
+    });
   }
   
   // Always ensure GymMembershipPlan data exists for the tenant
-  const tenant = await prisma.tenant.findUnique({
+  const tenantWithPlans = await prisma.tenant.findUnique({
     where: { slug: tenantInfo.slug },
-    include: { gymMembershipPlans: true }
+    include: { gymMembershipPlans: true, branches: true }
   });
   
-  if (!tenant) {
+  if (!tenantWithPlans) {
     throw new Error('Tenant not found after creation check');
   }
   
   // Check if gym membership plans exist for this tenant
-  if (tenant.gymMembershipPlans.length === 0) {
-    console.log(`🏋️ Creating gym membership plans for ${tenant.name}...`);
+  if (tenantWithPlans.gymMembershipPlans.length === 0) {
+    console.log(`🏋️ Creating gym membership plans for ${tenantWithPlans.name}...`);
     const gymMembershipPlans = [
       {
         name: 'Day Pass',
@@ -820,7 +831,25 @@ async function main() {
       console.log(`✅ Created gym membership plan: ${gymPlan.name} (₱${gymPlan.price})`);
     }
   } else {
-    console.log(`⏭️  Gym membership plans already exist for ${tenant.name} (${tenant.gymMembershipPlans.length} plans)`);
+    console.log(`⏭️  Gym membership plans already exist for ${tenantWithPlans.name} (${tenantWithPlans.gymMembershipPlans.length} plans)`);
+  }
+  
+  // Check if branch exists and create if it doesn't
+  if (tenantWithPlans.branches.length === 0 && owner) {
+    console.log('🏪 Creating Manggahan branch...');
+    const branch = await prisma.branch.create({
+      data: {
+        name: 'Muscle Mania Manggahan',
+        address: '123 Manggahan Street, Pasig City',
+        isActive: true,
+        tenant: {
+          connect: { id: tenant.id }
+        }
+      }
+    });
+    console.log(`✅ Created branch: ${branch.name}`);
+  } else if (tenantWithPlans.branches.length > 0) {
+    console.log(`⏭️  Branch already exists: ${tenantWithPlans.branches[0].name}`);
   }
 
   console.log('🎉 Simplified database seeding completed!');
