@@ -786,15 +786,15 @@ async function main() {
         });
       } // End of subscription creation block
       
-      // Create GymUserBranch relationship (for all members)
-      await prisma.gymUserBranch.create({
-        data: {
-          userId: member.id,
-          branchId: i < 8 ? branch1.id : (i < 14 ? branch2.id : branch3.id), // 0-7: Manggahan, 8-13: San Rafael, 14-17: San Jose
-          tenantId: tenant.id,
-          accessLevel: 'READ_ONLY'
-        }
-      });
+      // NOTE: Do NOT create GymUserBranch for members with ALL_BRANCHES access
+      // ALL_BRANCHES members are tracked via GymMemberProfile.primaryBranchId only
+      // GymUserBranch is ONLY for:
+      //   - Staff/managers/owners (explicit branch assignments)
+      //   - Members with SINGLE_BRANCH or MULTI_BRANCH access levels
+      // This prevents double-counting in branch member statistics (fixes 38 members bug)
+      
+      // Future: When implementing SINGLE_BRANCH/MULTI_BRANCH features, create GymUserBranch here
+      // For now, all members have ALL_BRANCHES access, so no GymUserBranch needed
       
       console.log(`✅ Created ${memberInfo.description}: ${member.email} (${memberInfo.status})`);
       loginCredentials.push({
