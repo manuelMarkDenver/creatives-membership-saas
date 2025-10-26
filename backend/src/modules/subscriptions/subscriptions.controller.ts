@@ -48,12 +48,32 @@ export class SubscriptionsController {
 
   @Get('tenant/:tenantId/can-create-branch')
   @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER)
-  async canCreateBranch(@Param('tenantId') tenantId: string, @Req() req: RequestWithTenant) {
-    // Verify user has access to this tenant (unless SUPER_ADMIN)
-    const userRole = (req as any).user?.role;
-    if (userRole !== Role.SUPER_ADMIN && req.tenantId !== tenantId) {
-      throw new Error('Access denied: Cannot check subscription status for other tenants');
+  async canCreateBranch(@Param('tenantId') tenantId: string, @Req() req: any) {
+    // Get user from request (set by auth guard)
+    const user = req.user;
+    const userRole = user?.role;
+    const userTenantId = user?.tenantId;
+    
+    // Debug logging
+    console.log('🔍 canCreateBranch - req.user:', JSON.stringify(user, null, 2));
+    console.log('🔍 userTenantId:', userTenantId);
+    console.log('🔍 requested tenantId:', tenantId);
+    
+    // Super admins can check any tenant
+    if (userRole === Role.SUPER_ADMIN) {
+      return this.subscriptionsService.canCreateBranch(tenantId);
     }
+    
+    // Owners and managers can only check their own tenant
+    if (!userTenantId) {
+      console.error('❌ User tenantId is missing from req.user');
+      throw new Error('Access denied: User tenant not found');
+    }
+    
+    if (userTenantId !== tenantId) {
+      throw new Error(`Access denied: Cannot check subscription status for other tenants (your tenant: ${userTenantId}, requested: ${tenantId})`);
+    }
+    
     return this.subscriptionsService.canCreateBranch(tenantId);
   }
 

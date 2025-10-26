@@ -571,6 +571,22 @@ export class BranchesService {
         })),
       });
 
+      // Update primaryBranchId for gym members (CLIENT role)
+      const memberUserIds = currentAssignments
+        .filter(a => a.user.role === 'CLIENT')
+        .map(a => a.userId);
+      
+      if (memberUserIds.length > 0) {
+        await tx.gymMemberProfile.updateMany({
+          where: {
+            userId: { in: memberUserIds },
+          },
+          data: {
+            primaryBranchId: toBranchId,
+          },
+        });
+      }
+
       // TODO: Create audit log entry
       // await tx.branchAuditLog.create({ ... })
 

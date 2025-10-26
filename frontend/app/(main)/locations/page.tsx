@@ -624,27 +624,40 @@ export default function LocationsPage() {
                         </DropdownMenu>
                       )
                     ) : (
-                      // Deleted locations - show restore option only if within branch limit
-                      canDelete && subscriptionStatus && subscriptionStatus.canCreate && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRestoreLocation(location)}
-                          disabled={restoreLocation.isPending}
-                          className="text-green-600 hover:text-green-700"
-                        >
-                          {restoreLocation.isPending ? (
-                            <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin mr-2" />
-                          ) : (
-                            <RotateCcw className="w-4 h-4 mr-2" />
-                          )}
-                          Restore
-                          {isMainBranch(location) && (
-                            <Badge variant="outline" className="ml-2 text-xs border-amber-200 text-amber-700">
-                              Main
+                      // Deleted locations - show restore option if user has permission AND within branch limit
+                      canDelete && (
+                        (subscriptionStatus && !subscriptionStatus.canCreate) ? (
+                          // Show info message when branch limit is reached
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge variant="outline" className="text-xs bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300">
+                              Limit Reached
                             </Badge>
-                          )}
-                        </Button>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[150px] text-right">
+                              {subscriptionStatus.reason}
+                            </p>
+                          </div>
+                        ) : (
+                          // Show restore button when within limit
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRestoreLocation(location)}
+                            disabled={restoreLocation.isPending}
+                            className="text-green-600 hover:text-green-700"
+                          >
+                            {restoreLocation.isPending ? (
+                              <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin mr-2" />
+                            ) : (
+                              <RotateCcw className="w-4 h-4 mr-2" />
+                            )}
+                            Restore
+                            {isMainBranch(location) && (
+                              <Badge variant="outline" className="ml-2 text-xs border-amber-200 text-amber-700">
+                                Main
+                              </Badge>
+                            )}
+                          </Button>
+                        )
                       )
                     )}
                   </div>
