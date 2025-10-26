@@ -587,9 +587,9 @@ export class GymAnalyticsService {
   private async getTopPerformingPlans(tenantId: string, start: Date, end: Date, branchId?: string): Promise<TopPerformingPlanDto[]> {
     const whereClause: any = {
       tenantId,
-      transactionDate: { gte: start, lte: end },
+      createdAt: { gte: start, lte: end },
       status: 'COMPLETED',
-      gymMemberSubscription: { isNot: null },
+      gymMemberSubscriptionId: { not: null },
     };
 
     if (branchId) {
