@@ -838,9 +838,9 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ---
 
-*Last Updated: October 26, 2025 - 05:50 UTC*
-*Status: Subscription Management Audit Complete - Core Features ✅ IMPLEMENTED*
-*Current Focus: Polish existing subscription features (Phase 1 Quick Wins)*
+*Last Updated: October 26, 2025 - 18:52 UTC*
+*Status: Member UX Enhancements & Feature Flags - ✅ IMPLEMENTED*
+*Current Focus: UI/UX polish and feature flag management*
 
 ### **Current Session Progress (Oct 26, 2025) - Location Member Statistics & Reassignment System**
 
@@ -1027,7 +1027,54 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ---
 
-### **Current Session Progress (Oct 24, 2025) - Locations/Branches Enhancements + Auto-Logout Fix**
+### **Current Session Progress (Oct 26, 2025) - Member UX Enhancements & Feature Flags**
+
+#### ✅ **Feature Flags Implementation - COMPLETED**
+**Feature-based control for member creation options**
+
+1. **Environment Variables** ✅
+   - Added `NEXT_PUBLIC_FEATURE_WELCOME_EMAIL` flag to control welcome email option
+   - Added `NEXT_PUBLIC_FEATURE_CREATE_ACCOUNT` flag to control login account creation option
+   - Both flags default to `false` (disabled) in `.env.local`
+   - Located in `/frontend/.env.local` lines 13-16
+
+2. **Add Member Modal Enhancement** ✅
+   - "Member Options" section now conditionally rendered based on feature flags
+   - "Send welcome email to member" hidden when `NEXT_PUBLIC_FEATURE_WELCOME_EMAIL != 'true'`
+   - "Create login account for member" hidden when `NEXT_PUBLIC_FEATURE_CREATE_ACCOUNT != 'true'`
+   - Entire section hidden when both flags are disabled
+   - Implementation in `/frontend/components/modals/add-member-modal.tsx` lines 740-767
+
+#### ✅ **Member Card UI Improvements - COMPLETED**
+**Enhanced visual design and interaction patterns**
+
+1. **Square Avatar with Full Height** ✅
+   - Changed from circular/rounded to square avatar that spans full card height
+   - Avatar now uses `w-32 h-full` (128px width, full container height)
+   - Better visual prominence for member photos
+   - Improved consistency with gym membership card aesthetic
+
+2. **Larger, Clickable Member Name** ✅
+   - Increased name font size from `text-lg` to `text-2xl` (24px)
+   - Name is now clickable and opens member info modal
+   - Added hover effect: text changes to blue on hover
+   - Includes keyboard accessibility (Enter/Space key support)
+   - Visual feedback with `cursor-pointer` and color transition
+
+3. **Technical Implementation** ✅
+   - Used semantic HTML with `role="button"` and `tabIndex={0}` for accessibility
+   - Added `onKeyDown` handler for keyboard navigation
+   - Smooth color transition with Tailwind's `transition-colors`
+   - Maintains responsive design across mobile and desktop
+
+#### 📝 **Documentation Updates**
+- Updated `.env.local` with feature flag examples and comments
+- Added feature flag documentation to AGENT.md
+- Documented member card UX improvements
+
+---
+
+### **Previous Session Progress (Oct 24, 2025) - Locations/Branches Enhancements + Auto-Logout Fix**
 
 #### ✅ What changed this session
 - Auto-logout fixed by disabling aggressive tenant validation in `useAuthValidation` and API client interceptors; network errors no longer trigger logout. Verified after dev server restart.

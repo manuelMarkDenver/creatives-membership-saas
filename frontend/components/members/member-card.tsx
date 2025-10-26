@@ -201,26 +201,39 @@ export function MemberCard({
   }
   
   return (
-    <div className="flex flex-col p-5 border-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm hover:shadow-lg transition-all min-w-0 space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:min-h-[140px]">
-      <div className="flex items-start space-x-5 min-w-0 flex-1">
-        {/* Member Photo - Much Larger for Gym Context */}
-        <div className="relative flex-shrink-0 sm:self-start">
+    <div className="flex flex-col p-5 border-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm hover:shadow-lg transition-all min-w-0 space-y-4 sm:space-y-0 sm:flex-row sm:items-stretch sm:justify-between">
+      <div className="flex items-stretch space-x-5 min-w-0 flex-1">
+        {/* Member Photo - Square and Full Height */}
+        <div className="relative flex-shrink-0">
           {member.photoUrl ? (
             <img
               src={member.photoUrl}
               alt={memberName}
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full sm:rounded-lg object-cover border-3 border-gray-200 dark:border-gray-600 shadow-md"
+              className="w-32 h-full object-cover rounded-lg border-3 border-gray-200 dark:border-gray-600 shadow-md"
             />
           ) : (
-            <div className="w-24 h-24 sm:w-28 sm:h-28 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full sm:rounded-lg flex items-center justify-center text-white font-bold text-xl sm:text-lg shadow-md">
+            <div className="w-32 h-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-3xl shadow-md">
               {memberName.charAt(0).toUpperCase()}
             </div>
           )}
         </div>
 
         <div className="flex-1 min-w-0 space-y-2 sm:pr-8 sm:flex sm:flex-col sm:justify-between">
-          <div className="space-y-1 min-h-[3rem] sm:min-h-[2.5rem] sm:flex sm:flex-col sm:justify-start">
-            <h4 className="font-bold text-lg sm:text-base truncate text-gray-900 dark:text-gray-100">{memberName}</h4>
+          <div className="space-y-1 sm:flex sm:flex-col sm:justify-start">
+            <h4 
+              className="font-bold text-2xl truncate text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              onClick={() => onViewMemberInfo(member)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onViewMemberInfo(member)
+                }
+              }}
+            >
+              {memberName}
+            </h4>
             {member.phoneNumber && (
               <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{member.phoneNumber}</p>
             )}
