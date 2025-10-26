@@ -165,116 +165,158 @@ export class BranchesService {
   }
 
   async findAllBranches(tenantId: string, includeDeleted = false) {
-    return this.prisma.branch
-      .findMany({
-        where: includeDeleted ? { tenantId } : { tenantId, isActive: true },
-        include: {
-          _count: {
-            select: {
-              gymUserBranches: true,
-            },
+    const branches = await this.prisma.branch.findMany({
+      where: includeDeleted ? { tenantId } : { tenantId, isActive: true },
+      include: {
+        _count: {
+          select: {
+            gymUserBranches: true,
           },
-          gymUserBranches: {
-            select: {
-              user: {
-                select: {
-                  id: true,
-                  role: true,
-                  deletedAt: true,
-                },
+        },
+        gymUserBranches: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                role: true,
+                deletedAt: true,
               },
             },
           },
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      })
-      .then((branches) => {
-        return branches.map((branch) => {
-          const members = branch.gymUserBranches.filter(
-            (ub) => ub.user.role === 'CLIENT',
-          );
-          const activeMembers = members.filter((ub) => !ub.user.deletedAt).length;
-          const deletedMembers = members.filter(
-            (ub) => ub.user.deletedAt,
-          ).length;
-          const staff = branch.gymUserBranches.filter(
-            (ub) => ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
-          ).length;
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
-          return {
-            ...branch,
-            _count: {
-              gymUserBranches: members.length,
-              activeMembers,
-              deletedMembers,
-              staff,
-            },
-            gymUserBranches: undefined, // Remove detailed gymUserBranches from response
-          };
-        });
-      });
+    // Get all members with primaryBranchId for these branches
+    const branchIds = branches.map(b => b.id);
+    const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.groupBy({
+      by: ['primaryBranchId'],
+      where: {
+        primaryBranchId: { in: branchIds },
+        user: {
+          deletedAt: null,
+        },
+      },
+      _count: {
+        primaryBranchId: true,
+      },
+    });
+
+    const primaryBranchCounts = new Map(
+      membersWithPrimaryBranch.map(item => [item.primaryBranchId, item._count.primaryBranchId])
+    );
+
+    return branches.map((branch) => {
+      const membersFromBranches = branch.gymUserBranches.filter(
+        (ub) => ub.user.role === 'CLIENT',
+      );
+      const activeMembersFromBranches = membersFromBranches.filter((ub) => !ub.user.deletedAt).length;
+      const deletedMembers = membersFromBranches.filter(
+        (ub) => ub.user.deletedAt,
+      ).length;
+      const staff = branch.gymUserBranches.filter(
+        (ub) => ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
+      ).length;
+
+      // Total members = members from gymUserBranches + members with primaryBranchId (avoiding duplicates is handled by backend logic)
+      const membersWithPrimaryBranchCount = primaryBranchCounts.get(branch.id) || 0;
+      const totalMembers = Math.max(activeMembersFromBranches, membersWithPrimaryBranchCount);
+
+      return {
+        ...branch,
+        _count: {
+          gymUserBranches: totalMembers,
+          activeMembers: totalMembers,
+          deletedMembers,
+          staff,
+        },
+        gymUserBranches: undefined, // Remove detailed gymUserBranches from response
+      };
+    });
   }
 
   async findAllBranchesSystemWide(includeDeleted = false) {
-    return this.prisma.branch
-      .findMany({
-        where: includeDeleted ? {} : { isActive: true },
-        include: {
-          tenant: {
-            select: {
-              id: true,
-              name: true,
-              category: true,
-            },
+    const branches = await this.prisma.branch.findMany({
+      where: includeDeleted ? {} : { isActive: true },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            category: true,
           },
-          _count: {
-            select: {
-              gymUserBranches: true,
-            },
+        },
+        _count: {
+          select: {
+            gymUserBranches: true,
           },
-          gymUserBranches: {
-            select: {
-              user: {
-                select: {
-                  id: true,
-                  role: true,
-                  deletedAt: true,
-                },
+        },
+        gymUserBranches: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                role: true,
+                deletedAt: true,
               },
             },
           },
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      })
-      .then((branches) => {
-        return branches.map((branch) => {
-          const members = branch.gymUserBranches.filter(
-            (ub) => ub.user.role === 'CLIENT',
-          );
-          const activeMembers = members.filter((ub) => !ub.user.deletedAt).length;
-          const deletedMembers = members.filter(
-            (ub) => ub.user.deletedAt,
-          ).length;
-          const staff = branch.gymUserBranches.filter(
-            (ub) => ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
-          ).length;
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
-          return {
-            ...branch,
-            _count: {
-              gymUserBranches: members.length,
-              activeMembers,
-              deletedMembers,
-              staff,
-            },
-            gymUserBranches: undefined, // Remove detailed gymUserBranches from response
-          };
-        });
-      });
+    // Get all members with primaryBranchId for these branches
+    const branchIds = branches.map(b => b.id);
+    const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.groupBy({
+      by: ['primaryBranchId'],
+      where: {
+        primaryBranchId: { in: branchIds },
+        user: {
+          deletedAt: null,
+        },
+      },
+      _count: {
+        primaryBranchId: true,
+      },
+    });
+
+    const primaryBranchCounts = new Map(
+      membersWithPrimaryBranch.map(item => [item.primaryBranchId, item._count.primaryBranchId])
+    );
+
+    return branches.map((branch) => {
+      const membersFromBranches = branch.gymUserBranches.filter(
+        (ub) => ub.user.role === 'CLIENT',
+      );
+      const activeMembersFromBranches = membersFromBranches.filter((ub) => !ub.user.deletedAt).length;
+      const deletedMembers = membersFromBranches.filter(
+        (ub) => ub.user.deletedAt,
+      ).length;
+      const staff = branch.gymUserBranches.filter(
+        (ub) => ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
+      ).length;
+
+      // Total members = members from gymUserBranches + members with primaryBranchId (avoiding duplicates is handled by backend logic)
+      const membersWithPrimaryBranchCount = primaryBranchCounts.get(branch.id) || 0;
+      const totalMembers = Math.max(activeMembersFromBranches, membersWithPrimaryBranchCount);
+
+      return {
+        ...branch,
+        _count: {
+          gymUserBranches: totalMembers,
+          activeMembers: totalMembers,
+          deletedMembers,
+          staff,
+        },
+        gymUserBranches: undefined, // Remove detailed gymUserBranches from response
+      };
+    });
   }
 
   async findBranchById(branchId: string) {

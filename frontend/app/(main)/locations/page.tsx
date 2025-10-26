@@ -140,9 +140,9 @@ export default function LocationsPage() {
 
   const stats = {
     total: locations.length,
-    active: locations.length, // All locations are considered active (soft delete is used)
-    totalMembers: locations.reduce((sum: number, location: Branch) => sum + (location._count?.userBranches || 0), 0),
-    totalStaff: locations.reduce((sum: number, location: Branch) => sum + (location._count?.staff || 0), 0)
+    active: locations.filter((loc: Branch) => loc.isActive).length,
+    totalMembers: locations.reduce((sum: number, location: Branch) => sum + ((location._count as any)?.gymUserBranches || (location._count as any)?.activeMembers || 0), 0),
+    totalStaff: locations.reduce((sum: number, location: Branch) => sum + ((location._count as any)?.staff || 0), 0)
   }
 
   const handleCreateLocation = async () => {
@@ -188,11 +188,6 @@ export default function LocationsPage() {
     } catch (error: any) {
       // Check if it's a 409 conflict (members assigned)
       if (error?.response?.status === 409) {
-        const errorMessage = error.response?.data?.message || ''
-        
-        // Show proper error message
-        toast.error(errorMessage)
-        
         // Close the delete dialog
         setDeleteDialogOpen(false)
         
@@ -202,6 +197,10 @@ export default function LocationsPage() {
           const members = branchUsersResponse?.users?.byRole?.members || []
           
           if (members.length > 0) {
+            // Show generic message
+            const memberCount = members.length
+            toast.error(`Cannot delete location: ${memberCount} member${memberCount !== 1 ? 's' : ''} must be reassigned first.`)
+            
             // Store members and branch ID for reassignment
             setMembersToReassign(members)
             setBranchToDeleteId(selectedLocation.id)
@@ -557,7 +556,7 @@ export default function LocationsPage() {
                         <div className="flex flex-col items-end gap-1">
                           <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
                             <Users className="h-3 w-3 mr-1" />
-                            {location._count?.userBranches || 0} members
+                            {(location._count as any)?.gymUserBranches || (location._count as any)?.activeMembers || 0} members
                           </Badge>
                           <Badge variant="outline" className="text-xs bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
                             <Users className="h-3 w-3 mr-1" />
