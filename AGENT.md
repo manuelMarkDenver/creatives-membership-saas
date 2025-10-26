@@ -838,9 +838,9 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ---
 
-*Last Updated: October 26, 2025 - 18:52 UTC*
-*Status: Member UX Enhancements & Feature Flags - ✅ IMPLEMENTED*
-*Current Focus: UI/UX polish and feature flag management*
+*Last Updated: October 26, 2025 - 19:16 UTC*
+*Status: Analytics Backend Complete - ✅ IMPLEMENTED*
+*Current Focus: Revenue & Branch Performance Analytics - Backend DONE, Frontend IN PROGRESS*
 
 ### **Current Session Progress (Oct 26, 2025) - Location Member Statistics & Reassignment System**
 
@@ -1027,7 +1027,120 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ---
 
-### **Current Session Progress (Oct 26, 2025) - Member UX Enhancements & Feature Flags**
+### **Current Session Progress (Oct 26, 2025) - Revenue & Branch Performance Analytics**
+
+#### ✅ **Backend Analytics Implementation - COMPLETED**
+**Comprehensive analytics system for gym owners with revenue tracking and performance metrics**
+
+1. **Database Schema Enhancement** ✅
+   - Added `gymMemberSubscriptionId` field to `CustomerTransaction` model
+   - Created bidirectional relation between transactions and subscriptions
+   - Added index on `gymMemberSubscriptionId` for query performance
+   - Schema pushed with `npx prisma db push`
+   - Seeder updated to link all transactions to their subscriptions
+
+2. **Analytics DTOs** ✅
+   - `AnalyticsQueryDto`: Query parameters with period enum (TODAY, THIS_WEEK, THIS_MONTH, THIS_YEAR, CUSTOM)
+   - `RevenueMetricsDto`: Total revenue, growth rate, revenue by plan/branch, timeline, payment methods
+   - `BranchPerformanceDto`: Member counts, revenue, retention rate, growth rate per branch
+   - `MemberGrowthStatsDto`: Churn rate, retention rate, member lifetime value, timeline
+   - `OwnerInsightsDto`: Collection rate, renewal rate, top plans, peak periods, forecasts
+
+3. **Analytics Service** ✅
+   - `getRevenueMetrics()`: Total revenue with period comparison and growth calculation
+   - `getBranchPerformance()`: Performance metrics for all branches with ranking
+   - `getMemberGrowthStats()`: Member acquisition, churn, and retention analytics
+   - `getOwnerInsights()`: Business intelligence metrics for decision-making
+   - All methods support branch filtering and date range filtering
+   - Optimized Prisma queries with proper aggregations and joins
+
+4. **REST API Endpoints** ✅
+   - `GET /gym/analytics/revenue-metrics` - Revenue data with filters
+   - `GET /gym/analytics/branch-performance` - Branch comparison data
+   - `GET /gym/analytics/member-growth` - Member growth statistics
+   - `GET /gym/analytics/owner-insights` - Business insights and forecasts
+   - All endpoints protected with AuthGuard
+   - Automatic tenant context from authenticated user
+
+5. **Owner-Beneficial Metrics Implemented** ✅
+   - **Collection Rate**: Actual payments vs expected revenue percentage
+   - **Average Subscription Value**: Mean price of active memberships
+   - **Member Lifetime Value**: Total revenue per active member
+   - **Subscription Renewal Rate**: Percentage of expired members who renewed
+   - **Top Performing Plans**: Plans ranked by revenue (top 5)
+   - **Peak Signup Periods**: Best days of week and month for sign-ups
+   - **Revenue Forecasts**: 30-day revenue projection based on active subscriptions
+
+6. **Module Integration** ✅
+   - Created `GymAnalyticsModule` with service and controller
+   - Registered in `GymModule` imports
+   - Backend builds successfully with zero TypeScript errors
+
+#### ⌛ **Frontend Analytics - PENDING**
+**Next steps to complete the feature:**
+
+1. **React Query Hooks** (⌛ Pending)
+   - `useRevenueMetrics(branchId?, period?)` - Hook for revenue data
+   - `useBranchPerformance(period?)` - Hook for branch performance
+   - `useMemberGrowthStats(branchId?, period?)` - Hook for member stats
+   - `useOwnerInsights(branchId?, period?)` - Hook for insights
+   - Location: `/frontend/lib/hooks/use-analytics.ts`
+
+2. **Analytics Components** (⌛ Pending)
+   - `RevenueCard` - Revenue with trend indicator and growth rate
+   - `BranchPerformanceCard` - Branch comparison with charts
+   - `MemberGrowthChart` - Member timeline visualization
+   - `TopPerformingPlansCard` - Top 5 plans by revenue
+   - Location: `/frontend/components/analytics/`
+
+3. **Dashboard Integration** (⌛ Pending)
+   - Add branch filter dropdown (All Branches + individual selection)
+   - Add date range filter (predefined periods + custom range)
+   - Integrate revenue metrics cards at top
+   - Add revenue trend chart
+   - Display top performing membership plans
+   - Location: `/frontend/app/(main)/dashboard/page.tsx`
+
+4. **Locations Page Enhancement** (⌛ Pending)
+   - Show revenue per branch in location cards
+   - Add member count with growth indicators  
+   - Display revenue ranking (1st, 2nd, 3rd place badges)
+   - Show average revenue per member
+   - Add performance filters (highest revenue, most members, fastest growing)
+   - Location: `/frontend/app/(main)/locations/page.tsx`
+
+5. **Export Functionality** (⌛ Pending)
+   - CSV/Excel export for revenue reports
+   - Branch performance comparison exports
+   - Member list with subscription details
+   - Date range selection for exports
+
+#### 📝 **Technical Details**
+
+**API Endpoint Format:**
+```
+GET /api/v1/gym/analytics/revenue-metrics?period=this_month&branchId=xxx
+GET /api/v1/gym/analytics/branch-performance?period=this_week
+GET /api/v1/gym/analytics/member-growth?branchId=xxx
+GET /api/v1/gym/analytics/owner-insights?period=this_year
+```
+
+**Metrics Calculations:**
+- **Growth Rate**: `((current - previous) / previous) * 100`
+- **Churn Rate**: `(expired + cancelled) / total * 100`
+- **Retention Rate**: `((total - churned) / total) * 100`
+- **Collection Rate**: `(actual_payments / expected_revenue) * 100`
+- **Average Revenue Per Member**: `total_revenue / active_member_count`
+
+**Performance Optimizations:**
+- Indexed `gymMemberSubscriptionId` in CustomerTransaction
+- Used Prisma aggregations for sum/count operations
+- Batch queries with Promise.all() for parallel execution
+- Map-based aggregations to avoid N+1 queries
+
+---
+
+### **Previous Session Progress (Oct 26, 2025) - Member UX Enhancements & Feature Flags**
 
 #### ✅ **Feature Flags Implementation - COMPLETED**
 **Feature-based control for member creation options**

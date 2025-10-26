@@ -672,6 +672,7 @@ async function main() {
           data: {
             tenantId: tenant.id,
             customerId: member.id,
+            gymMemberSubscriptionId: gymMemberSubscription.id,
             businessType: 'gym',
             transactionCategory: 'membership',
             amount: gymMembershipPlan.price,

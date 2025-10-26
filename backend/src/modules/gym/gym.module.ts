@@ -3,6 +3,7 @@ import { GymSubscriptionsModule } from './subscriptions/gym-subscriptions.module
 import { GymMembershipPlansModule } from './membership-plans/gym-membership-plans.module';
 import { GymLocationsModule } from './locations/gym-locations.module';
 import { GymMembersModule } from './members/gym-members.module';
+import { GymAnalyticsModule } from './analytics/gym-analytics.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { GymMembersModule } from './members/gym-members.module';
     GymMembershipPlansModule,
     GymLocationsModule,
     GymMembersModule,
+    GymAnalyticsModule,
   ],
 })
 export class GymModule {}
