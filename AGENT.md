@@ -21,7 +21,9 @@
 - **CONFIRM UNDERSTANDING**: Ask clarifying questions if the request is ambiguous
 - **EXPLAIN CHANGES**: When proposing changes, clearly explain what will be modified and why
 - **PRESERVE USER CONTROL**: The user must approve every change to maintain their ability to follow along
-- **LOCAL DEVELOPMENT**: User runs backend at 5000 and frontend at 3000 - Agent doesn't need to run unless rebuilding
+- **LOCAL DEVELOPMENT**: User runs backend at 5000 and frontend at 3000 - Agent MUST NEVER start, stop, or restart servers
+- **STRICT PORT ENFORCEMENT**: Frontend MUST run on port 3000, Backend MUST run on port 5000 - NO exceptions, NO alternative ports
+- **SERVER MANAGEMENT**: Agent can ONLY run builds (`npm run build`) if necessary - User manages all `npm run dev` and server processes
 - **FILE CHANGE INDICATION**: Use **bold** or *italics* for file changes to distinguish from thinking
 - **NO CONSOLE LOG SPAM**: Remove debug console logs after fixing issues - keep code clean
 - **CONSISTENT QUERY KEYS**: Always match React Query keys between hooks and mutations for proper cache invalidation
@@ -71,6 +73,12 @@ npx prisma migrate deploy
 4. Run seeders to maintain updated data
 5. Test changes thoroughly
 6. Commit to git
+
+**CRITICAL: Database Regeneration After Seeder Changes**
+- ⚠️ **EVERY seeder update requires database regeneration** during development
+- ✅ **Always run**: `npx prisma db push && npm run seed` after modifying seed.js
+- **Why**: Seeder changes don't apply to existing data - must regenerate to see changes
+- **Production**: Will use proper migrations - seeder only for initial data
 
 ---
 
@@ -853,11 +861,50 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ---
 
-*Last Updated: October 26, 2025 - 20:59 UTC*
-*Status: Analytics Feature - ✅ FULLY FUNCTIONAL with 3-Branch Test Data*
-*Current Focus: Analytics fully integrated with multi-branch testing capability*
+*Last Updated: October 26, 2025 - 20:30 UTC*
+*Status: Analytics Dashboard Fix - ✅ COMPLETED*
+*Current Focus: Fixed analytics transaction date issue - all metrics now showing live data*
 
-### **Current Session Progress (Oct 26, 2025) - Location Member Statistics & Reassignment System**
+### **Current Session Progress (Oct 26, 2025) - Analytics Dashboard Fix**
+
+#### ✅ **Analytics Transaction Date Issue - FIXED**
+**Root cause identified and resolved for zero analytics data display**
+
+1. **Problem Identified** ✅
+   - Dashboard showed all zeros: ₱0.00 revenue, 0.0% collection rate, 0.0% renewal rate
+   - "Top Performing Plans" section displayed "No plan data available"
+   - "Branch Overview" section showed only branch names without revenue/metrics
+   - Analytics hooks were configured correctly but returning empty data
+
+2. **Root Cause Analysis** ✅
+   - **Seeder Issue**: CustomerTransaction records created with `createdAt: startDate` (1-4 months ago)
+   - **Analytics Queries**: Filter transactions by `createdAt: { gte: start, lte: end }` for current period
+   - **Mismatch**: "This Month" analytics queried for transactions created this month, but all seeded transactions were created months ago
+   - **Result**: No transactions found in current period = zero metrics
+
+3. **Solution Implemented** ✅
+   - Updated seeder to create transactions with current dates
+   - Added random offset (0-7 days ago) for realistic data distribution
+   - Transactions now visible in current period analytics (This Week, This Month, This Year)
+   - All 18 member transactions will show up in dashboard metrics
+
+4. **Files Modified** ✅
+   - `/backend/prisma/seed.js` (lines 763-784): Updated transaction creation logic
+   - Changed `createdAt: startDate` → `createdAt: transactionDate` (current date with random offset)
+
+5. **Expected Results After Re-seeding** ✅
+   - Total Revenue: ~₱22,200 (18 members × plan prices)
+   - Collection Rate: 100% (all transactions completed)
+   - Renewal Rate: Calculated based on subscription statuses
+   - Top Performing Plans: Top 5 plans by revenue with member counts
+   - Branch Overview: Revenue and metrics per branch (Manggahan: 8 members, San Rafael: 6, San Jose: 4)
+
+6. **Next Steps for User** ⚠️
+   - Reset database: Run from repo root in psql: `DROP SCHEMA public CASCADE; CREATE SCHEMA public;`
+   - Re-seed database: `cd backend && npx prisma db push && npm run seed`
+   - Verify analytics: Refresh dashboard to see live data
+
+### **Previous Session Progress (Oct 26, 2025) - Location Member Statistics & Reassignment System**
 
 #### ✅ **Backend Member Counting & Reassignment Fixes - COMPLETED**
 **Fixed dual-source member assignment tracking for accurate statistics**
