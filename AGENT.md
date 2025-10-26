@@ -26,6 +26,10 @@
 - **NO CONSOLE LOG SPAM**: Remove debug console logs after fixing issues - keep code clean
 - **CONSISTENT QUERY KEYS**: Always match React Query keys between hooks and mutations for proper cache invalidation
 - **COMMIT MESSAGES**: After every milestone or significant feature completion, provide a concise git commit message that user can copy-paste
+- **SHORTHAND REFERENCES**:
+  - **"a-doc"** = This AGENT.md file (`/home/mhackeedev/_apps/creatives-saas/AGENT.md`)
+  - **"b-logs"** = Browser console logs (`/home/mhackeedev/console.log`)
+- **MILESTONE DOCUMENTATION**: Update a-doc after every milestone or task completion, then provide a copy-paste ready commit message
 
 ### 🏗️ Code Quality Rules
 - **SOLID, DRY, YAGNI Principles**: Always implement best programming practices
@@ -776,12 +780,12 @@ cd frontend && npm run dev
 
 **Seeder Creates**:
 - Super Admin account
-- Muscle Mania demo tenant with 2 branches
-- 2 Branches: Muscle Mania Manggahan (main) + San Rafael Branch
+- Muscle Mania demo tenant with 3 branches
+- 3 Branches: Muscle Mania Manggahan (main), San Rafael Branch, San Jose Branch
 - 5 Membership Plans (Day Pass, Basic Monthly, Premium Monthly, Annual Basic, Student Monthly)
-- 12 Demo Members distributed evenly across both branches (6 per branch)
+- 18 Demo Members distributed unevenly across branches (8, 6, 4 for realistic testing)
 - Realistic subscription data with proper branch assignments
-- Total revenue: ₱22,200 (₱11,100 per branch)
+- Mix of member statuses: 10 ACTIVE, 3 EXPIRING, 3 EXPIRED, 1 CANCELLED, 1 DELETED
 - All transactions linked to subscriptions for proper analytics
 
 See `DEPLOYMENT.md` for detailed step-by-step instructions.
@@ -850,7 +854,7 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 ---
 
 *Last Updated: October 26, 2025 - 20:59 UTC*
-*Status: Analytics Feature - ✅ FULLY FUNCTIONAL with 2-Branch Test Data*
+*Status: Analytics Feature - ✅ FULLY FUNCTIONAL with 3-Branch Test Data*
 *Current Focus: Analytics fully integrated with multi-branch testing capability*
 
 ### **Current Session Progress (Oct 26, 2025) - Location Member Statistics & Reassignment System**
@@ -1040,33 +1044,35 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ### **Current Session Progress (Oct 26, 2025) - Analytics Integration & Multi-Branch Seeder**
 
-#### ✅ **2-Branch Seeder Setup - COMPLETED**
+#### ✅ **3-Branch Seeder Setup - COMPLETED**
 **Enhanced database seeding for comprehensive analytics testing**
 
 1. **Multi-Branch Architecture** ✅
-   - Created 2 branches: Muscle Mania Manggahan (main) and San Rafael Branch
+   - Created 3 branches: Muscle Mania Manggahan (main), San Rafael Branch, and San Jose Branch
    - Each branch has its own SaaS subscription and payment records
    - Enables proper testing of branch-specific analytics and filtering
    - Main branch flag set correctly for primary location
 
 2. **Member Distribution** ✅
-   - 12 members distributed evenly: 6 per branch
-   - First 6 members → Muscle Mania Manggahan (₱11,100 revenue)
-   - Last 6 members → San Rafael Branch (₱11,100 revenue)
-   - Total: 12 members across 2 branches, ₱22,200 total revenue
-   - Mix of statuses: 6 ACTIVE, 2 EXPIRING, 2 EXPIRED, 1 CANCELLED, 1 DELETED
+   - 18 members distributed unevenly: 8 → 6 → 4 (for realistic analytics testing)
+   - First 8 members (indexes 0-7) → Muscle Mania Manggahan (main branch)
+   - Next 6 members (indexes 8-13) → San Rafael Branch
+   - Last 4 members (indexes 14-17) → San Jose Branch
+   - Total: 18 members across 3 branches
+   - Mix of statuses: 10 ACTIVE, 3 EXPIRING, 3 EXPIRED, 1 CANCELLED, 1 DELETED
 
 3. **Proper Data Linkage** ✅
-   - Members assigned via `primaryBranchId` in GymMemberProfile
+   - Members assigned via `primaryBranchId` in GymMemberProfile (uneven distribution: 8-6-4)
    - Subscriptions linked to correct branch via `branchId`
    - Transactions linked to subscriptions via `gymMemberSubscriptionId`
    - GymUserBranch records created for all member-branch relationships
 
 4. **Analytics Testing Capability** ✅
-   - Branch filtering now testable with real distributed data
+   - 3-branch filtering testable with realistic uneven distribution
    - Revenue metrics calculable per branch and overall
    - Collection rate: 100% (all subscriptions paid)
    - Member growth and performance ranking fully testable
+   - Branch performance comparison across 3 locations
    - Top performing plans identifiable with real transaction data
 
 5. **Database Reset Workflow** ✅
@@ -1078,21 +1084,23 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 #### 📊 **Expected Analytics Results**
 
 **All Branches View:**
-- Total Revenue: ₱22,200
-- Average Revenue/Member: ₱1,850 (₱22,200 / 12 members)
+- Total Members: 18 (CLIENT role only, excludes owner/manager)
 - Collection Rate: 100%
-- Member Count: 12 (CLIENT role only, excludes owner/manager)
+- Revenue varies by membership plan selections
 
-**Muscle Mania Manggahan (Branch 1):**
-- Total Revenue: ₱11,100
-- Average Revenue/Member: ₱1,850 (₱11,100 / 6 members)
-- Member Count: 6
+**Muscle Mania Manggahan (Branch 1 - Main):**
+- Member Count: 8 (largest branch)
+- Revenue: Varies by plan assignments
 - Collection Rate: 100%
 
 **San Rafael Branch (Branch 2):**
-- Total Revenue: ₱11,100
-- Average Revenue/Member: ₱1,850 (₱11,100 / 6 members)
-- Member Count: 6
+- Member Count: 6 (medium branch)
+- Revenue: Varies by plan assignments
+- Collection Rate: 100%
+
+**San Jose Branch (Branch 3):**
+- Member Count: 4 (smallest branch)
+- Revenue: Varies by plan assignments
 - Collection Rate: 100%
 
 ---
