@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useBranchesByTenant, useBranchesSystemWide, useCreateBranch, useUpdateBranch, useDeleteBranch, useBranchUsers, useBulkReassignUsers, useForceDeleteBranch, useRestoreBranch } from '@/lib/hooks/use-branches'
 import { useTenants } from '@/lib/hooks/use-tenants'
 import { useRoleNavigation } from '@/lib/hooks/use-role-navigation'
 import { useSubscriptionStatus } from '@/lib/hooks/use-subscription-status'
+import { useRevenueMetrics, useBranchPerformance, type TimePeriod } from '@/lib/hooks/use-analytics'
 import { Role, Tenant } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,7 +26,11 @@ import {
   MoreHorizontal,
   Edit,
   Trash2,
-  RotateCcw
+  RotateCcw,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Award
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -59,6 +64,8 @@ export default function LocationsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showDeleted, setShowDeleted] = useState(false)
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null)
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('this_month')
+  const [sortBy, setSortBy] = useState<'name' | 'revenue' | 'members' | 'growth'>('name')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -126,6 +133,10 @@ export default function LocationsPage() {
     shouldFetchSubscription ? targetTenantId : undefined
   )
 
+  // Fetch analytics data
+  const { data: revenueMetrics } = useRevenueMetrics({ period: timePeriod })
+  const { data: branchPerformanceData } = useBranchPerformance({ period: timePeriod })
+  
   // Handle data based on view type
   const locations = isSuperAdmin && !selectedTenantId ? (systemWideData || []) : (tenantLocationsData || [])
   
@@ -133,16 +144,51 @@ export default function LocationsPage() {
   const activeLocationsCount = locations.filter((loc: Branch) => loc.isActive).length
   const isLastActiveBranch = activeLocationsCount === 1
 
-  const filteredLocations = locations.filter((location: Branch) =>
+  // Enrich locations with analytics data
+  const locationsWithAnalytics = useMemo(() => {
+    return locations.map((location: Branch) => {
+      const performance = branchPerformanceData?.find(bp => bp.branchId === location.id)
+      const revenueData = revenueMetrics?.revenueByBranch?.find(rb => rb.branchId === location.id)
+      
+      return {
+        ...location,
+        revenue: revenueData?.revenue || 0,
+        averageRevenuePerMember: revenueData?.averageRevenuePerMember || 0,
+        memberGrowthRate: performance?.memberGrowthRate || 0,
+        activeSubscriptionRate: performance?.activeSubscriptionRate || 0,
+        performanceRank: performance?.rank || 0
+      }
+    })
+  }, [locations, branchPerformanceData, revenueMetrics])
+  
+  // Filter and sort locations
+  let filteredLocations = locationsWithAnalytics.filter((location: any) =>
     location.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (location.address?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   )
+  
+  // Sort locations based on selected criteria
+  filteredLocations = [...filteredLocations].sort((a: any, b: any) => {
+    switch (sortBy) {
+      case 'revenue':
+        return b.revenue - a.revenue
+      case 'members':
+        return ((b._count as any)?.gymUserBranches || 0) - ((a._count as any)?.gymUserBranches || 0)
+      case 'growth':
+        return b.memberGrowthRate - a.memberGrowthRate
+      case 'name':
+      default:
+        return a.name.localeCompare(b.name)
+    }
+  })
 
   const stats = {
     total: locations.length,
     active: locations.filter((loc: Branch) => loc.isActive).length,
     totalMembers: locations.reduce((sum: number, location: Branch) => sum + ((location._count as any)?.gymUserBranches || (location._count as any)?.activeMembers || 0), 0),
-    totalStaff: locations.reduce((sum: number, location: Branch) => sum + ((location._count as any)?.staff || 0), 0)
+    totalStaff: locations.reduce((sum: number, location: Branch) => sum + ((location._count as any)?.staff || 0), 0),
+    totalRevenue: revenueMetrics?.totalRevenue || 0,
+    revenueGrowthRate: revenueMetrics?.growthRate || 0
   }
 
   const handleCreateLocation = async () => {
@@ -310,6 +356,16 @@ export default function LocationsPage() {
     }
   }
 
+  // Helper function to format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount)
+  }
+  
   // Prepare stats for mobile-first layout
   const locationStats: StatItem[] = [
     {
@@ -337,20 +393,20 @@ export default function LocationsPage() {
       description: stats.totalMembers === 0 ? 'No members yet' : 'Across all locations'
     },
     {
-      key: 'totalStaff',
-      label: 'Staff',
-      value: stats.totalStaff,
-      icon: Users,
-      color: 'text-purple-700 dark:text-purple-400',
-      description: 'All team members'
+      key: 'totalRevenue',
+      label: 'Revenue',
+      value: formatCurrency(stats.totalRevenue),
+      icon: DollarSign,
+      color: stats.revenueGrowthRate >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400',
+      description: `${stats.revenueGrowthRate >= 0 ? '+' : ''}${stats.revenueGrowthRate.toFixed(1)}% vs previous period`
     }
   ]
 
   // Compact summary for mobile (first 3 most important stats)
   const compactSummary = [
     locationStats[0], // Total
-    locationStats[1], // Active
     locationStats[2], // Members
+    locationStats[3], // Revenue
   ]
 
   return (
@@ -466,27 +522,62 @@ export default function LocationsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search locations..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+          <div className="space-y-4 mb-6">
+            {/* Search and filters row */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search locations..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="showDeleted"
+                  checked={showDeleted}
+                  onCheckedChange={(checked) => setShowDeleted(checked as boolean)}
                 />
+                <Label htmlFor="showDeleted" className="text-sm font-medium whitespace-nowrap">
+                  Show deleted
+                </Label>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="showDeleted"
-                checked={showDeleted}
-                onCheckedChange={(checked) => setShowDeleted(checked as boolean)}
-              />
-              <Label htmlFor="showDeleted" className="text-sm font-medium whitespace-nowrap">
-                Show deleted
-              </Label>
+            
+            {/* Sort and period filters */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <Label className="text-xs text-muted-foreground mb-2">Sort by</Label>
+                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name (A-Z)</SelectItem>
+                    <SelectItem value="revenue">Revenue (Highest)</SelectItem>
+                    <SelectItem value="members">Members (Most)</SelectItem>
+                    <SelectItem value="growth">Growth Rate (Fastest)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1">
+                <Label className="text-xs text-muted-foreground mb-2">Analytics Period</Label>
+                <Select value={timePeriod} onValueChange={(value: TimePeriod) => setTimePeriod(value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="this_week">This Week</SelectItem>
+                    <SelectItem value="this_month">This Month</SelectItem>
+                    <SelectItem value="this_year">This Year</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -509,39 +600,80 @@ export default function LocationsPage() {
                 </p>
               </div>
             ) : (
-              filteredLocations.map((location: Branch) => (
-                <div key={location.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold">
+              filteredLocations.map((location: any) => (
+                <div key={location.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700 gap-4">
+                  <div className="flex items-start space-x-4 flex-1">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold flex-shrink-0">
                       {location.name.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 flex-wrap">
                         <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{location.name}</h4>
                         {isMainBranch(location) && (
                           <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 bg-amber-50">
                             MAIN
                           </Badge>
                         )}
+                        {location.performanceRank > 0 && location.performanceRank <= 3 && (
+                          <Badge variant="default" className="text-xs bg-gradient-to-r from-yellow-400 to-orange-500 border-0">
+                            <Award className="h-3 w-3 mr-1" />
+                            #{location.performanceRank}
+                          </Badge>
+                        )}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300 mt-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600 dark:text-gray-300 mt-1">
                         <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {location.address}
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{location.address}</span>
                         </div>
                         {location.phoneNumber && (
                           <div className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
+                            <Phone className="h-3 w-3 flex-shrink-0" />
                             {location.phoneNumber}
                           </div>
                         )}
                         {location.email && (
                           <div className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {location.email}
+                            <Mail className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate">{location.email}</span>
                           </div>
                         )}
                       </div>
+                      
+                      {/* Analytics metrics for location */}
+                      {location.revenue > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <div className="flex items-center gap-1 text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-2 py-1 rounded">
+                            <DollarSign className="h-3 w-3" />
+                            {formatCurrency(location.revenue)} revenue
+                          </div>
+                          {location.averageRevenuePerMember > 0 && (
+                            <div className="flex items-center gap-1 text-xs bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
+                              <DollarSign className="h-3 w-3" />
+                              {formatCurrency(location.averageRevenuePerMember)}/member
+                            </div>
+                          )}
+                          {location.memberGrowthRate !== 0 && (
+                            <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
+                              location.memberGrowthRate >= 0 
+                                ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                            }`}>
+                              {location.memberGrowthRate >= 0 ? (
+                                <TrendingUp className="h-3 w-3" />
+                              ) : (
+                                <TrendingDown className="h-3 w-3" />
+                              )}
+                              {location.memberGrowthRate >= 0 ? '+' : ''}{location.memberGrowthRate.toFixed(1)}% growth
+                            </div>
+                          )}
+                          {location.activeSubscriptionRate > 0 && (
+                            <div className="flex items-center gap-1 text-xs bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 px-2 py-1 rounded">
+                              {location.activeSubscriptionRate.toFixed(0)}% active subs
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   
