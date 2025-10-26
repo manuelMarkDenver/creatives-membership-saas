@@ -63,6 +63,7 @@ export class GymAnalyticsService {
     const { start, end } = this.getDateRange(query.period || TimePeriod.THIS_MONTH, query.startDate, query.endDate);
     const { start: prevStart, end: prevEnd } = this.getPreviousPeriodRange(start, end);
 
+    // Build base where clause
     const whereClause: any = {
       tenantId,
       createdAt: {
@@ -72,6 +73,13 @@ export class GymAnalyticsService {
       status: 'COMPLETED',
     };
 
+    // Add branch filter if specified - need to filter via gymMemberSubscription relation
+    if (query.branchId) {
+      whereClause.gymMemberSubscription = {
+        branchId: query.branchId,
+      };
+    }
+
     const prevWhereClause: any = {
       tenantId,
       createdAt: {
@@ -80,6 +88,13 @@ export class GymAnalyticsService {
       },
       status: 'COMPLETED',
     };
+
+    // Add branch filter to previous period as well
+    if (query.branchId) {
+      prevWhereClause.gymMemberSubscription = {
+        branchId: query.branchId,
+      };
+    }
 
     const [currentTransactions, previousTransactions, revenueByPlan, revenueByBranch, timeline, paymentMethods, memberCount] = await Promise.all([
       this.prisma.customerTransaction.aggregate({
@@ -507,28 +522,35 @@ export class GymAnalyticsService {
   }
 
   private async calculateCollectionRate(tenantId: string, start: Date, end: Date, branchId?: string): Promise<number> {
-    const whereClause: any = {
+    const subWhereClause: any = {
       tenantId,
       startDate: { gte: start, lte: end },
     };
 
     if (branchId) {
-      whereClause.branchId = branchId;
+      subWhereClause.branchId = branchId;
+    }
+
+    // Build transaction where clause
+    const txWhereClause: any = {
+      tenantId,
+      createdAt: { gte: start, lte: end },
+      status: 'COMPLETED',
+      gymMemberSubscriptionId: { not: null },
+    };
+
+    // Add branch filter if specified
+    if (branchId) {
+      txWhereClause.gymMemberSubscription = { branchId };
     }
 
     const [expectedRevenue, actualRevenue] = await Promise.all([
       this.prisma.gymMemberSubscription.aggregate({
-        where: whereClause,
+        where: subWhereClause,
         _sum: { price: true },
       }),
       this.prisma.customerTransaction.aggregate({
-        where: {
-          tenantId,
-          createdAt: { gte: start, lte: end },
-          status: 'COMPLETED',
-          gymMemberSubscriptionId: branchId ? undefined : { not: null },
-          ...(branchId ? { gymMemberSubscription: { branchId } } : {}),
-        },
+        where: txWhereClause,
         _sum: { amount: true },
       }),
     ]);

@@ -31,6 +31,12 @@
 - **SOLID, DRY, YAGNI Principles**: Always implement best programming practices
 - **Schema Updates**: Every modification in schema MUST update the seeder and run the seeder to maintain data consistency
 - **Seeder Maintenance**: When adding new schema fields or changing existing structures, always update `/backend/prisma/seed.js` to include the new fields with appropriate default values
+- **No Manual Database Updates**: NEVER manually update database records with SQL commands. Always update the seeder and regenerate the database using `npx prisma db push && npm run seed`
+- **Database Reset Workflow**: When data inconsistencies occur, use the proper workflow:
+  1. Update the seeder code in `/backend/prisma/seed.js`
+  2. Run `npx prisma db push` to sync schema
+  3. Run `npm run seed` to populate with correct data
+  4. Verify data integrity
 - **Port Consistency**: Always run frontend on 3000 and backend on 5000 for local development. No other ports (3001, 5001, etc.)
 - **Build Verification**: Check functionality by building Next.js or Nest.js using their build scripts
 - **Error Handling**: Implement graceful error handling with user-friendly messages
@@ -770,9 +776,13 @@ cd frontend && npm run dev
 
 **Seeder Creates**:
 - Super Admin account
-- Muscle Mania demo tenant
-- 3 Branches, 4 Membership Plans, 12 Demo Members
-- Realistic subscription data for client demos
+- Muscle Mania demo tenant with 2 branches
+- 2 Branches: Muscle Mania Manggahan (main) + San Rafael Branch
+- 5 Membership Plans (Day Pass, Basic Monthly, Premium Monthly, Annual Basic, Student Monthly)
+- 12 Demo Members distributed evenly across both branches (6 per branch)
+- Realistic subscription data with proper branch assignments
+- Total revenue: ₱22,200 (₱11,100 per branch)
+- All transactions linked to subscriptions for proper analytics
 
 See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
@@ -839,9 +849,9 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ---
 
-*Last Updated: October 26, 2025 - 20:36 UTC*
-*Status: Analytics Feature - ✅ FULLY FUNCTIONAL*
-*Current Focus: Locations page analytics integrated - Revenue breakdown and export features next*
+*Last Updated: October 26, 2025 - 20:59 UTC*
+*Status: Analytics Feature - ✅ FULLY FUNCTIONAL with 2-Branch Test Data*
+*Current Focus: Analytics fully integrated with multi-branch testing capability*
 
 ### **Current Session Progress (Oct 26, 2025) - Location Member Statistics & Reassignment System**
 
@@ -1028,7 +1038,66 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ---
 
-### **Current Session Progress (Oct 26, 2025) - Locations Page Analytics Integration**
+### **Current Session Progress (Oct 26, 2025) - Analytics Integration & Multi-Branch Seeder**
+
+#### ✅ **2-Branch Seeder Setup - COMPLETED**
+**Enhanced database seeding for comprehensive analytics testing**
+
+1. **Multi-Branch Architecture** ✅
+   - Created 2 branches: Muscle Mania Manggahan (main) and San Rafael Branch
+   - Each branch has its own SaaS subscription and payment records
+   - Enables proper testing of branch-specific analytics and filtering
+   - Main branch flag set correctly for primary location
+
+2. **Member Distribution** ✅
+   - 12 members distributed evenly: 6 per branch
+   - First 6 members → Muscle Mania Manggahan (₱11,100 revenue)
+   - Last 6 members → San Rafael Branch (₱11,100 revenue)
+   - Total: 12 members across 2 branches, ₱22,200 total revenue
+   - Mix of statuses: 6 ACTIVE, 2 EXPIRING, 2 EXPIRED, 1 CANCELLED, 1 DELETED
+
+3. **Proper Data Linkage** ✅
+   - Members assigned via `primaryBranchId` in GymMemberProfile
+   - Subscriptions linked to correct branch via `branchId`
+   - Transactions linked to subscriptions via `gymMemberSubscriptionId`
+   - GymUserBranch records created for all member-branch relationships
+
+4. **Analytics Testing Capability** ✅
+   - Branch filtering now testable with real distributed data
+   - Revenue metrics calculable per branch and overall
+   - Collection rate: 100% (all subscriptions paid)
+   - Member growth and performance ranking fully testable
+   - Top performing plans identifiable with real transaction data
+
+5. **Database Reset Workflow** ✅
+   - Added coding rule: NO manual database updates
+   - Documented proper workflow in AGENT.md
+   - Full reset command: `DROP SCHEMA public CASCADE; CREATE SCHEMA public;`
+   - Then: `npx prisma db push && npm run seed`
+
+#### 📊 **Expected Analytics Results**
+
+**All Branches View:**
+- Total Revenue: ₱22,200
+- Average Revenue/Member: ₱1,850 (₱22,200 / 12 members)
+- Collection Rate: 100%
+- Member Count: 12 (CLIENT role only, excludes owner/manager)
+
+**Muscle Mania Manggahan (Branch 1):**
+- Total Revenue: ₱11,100
+- Average Revenue/Member: ₱1,850 (₱11,100 / 6 members)
+- Member Count: 6
+- Collection Rate: 100%
+
+**San Rafael Branch (Branch 2):**
+- Total Revenue: ₱11,100
+- Average Revenue/Member: ₱1,850 (₱11,100 / 6 members)
+- Member Count: 6
+- Collection Rate: 100%
+
+---
+
+### **Previous Session: Locations Page Analytics Integration**
 
 #### ✅ **Locations Page Analytics - COMPLETED**
 **Comprehensive analytics display with revenue metrics and performance tracking per branch**
