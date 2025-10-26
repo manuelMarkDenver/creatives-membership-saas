@@ -118,24 +118,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
               <ul className="space-y-1">
                 {navigation.map((item) => (
                   <li key={item.name}>
-                    {item.isFutureFeature ? (
-                      <div className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-400 cursor-not-allowed">
-                        <item.icon className="h-6 w-6 shrink-0" />
-                        <div className="flex items-center justify-between flex-1">
-                          {item.name}
-                          <Badge variant="secondary" className="text-xs">Soon</Badge>
-                        </div>
-                      </div>
-                    ) : (
-                      <Link
-                        href={item.href}
-                        className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 hover:bg-gray-50 dark:hover:text-indigo-300 dark:hover:bg-gray-700"
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-6 w-6 shrink-0" />
-                        {item.name}
-                      </Link>
-                    )}
+                    <Link
+                      href={item.href}
+                      className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 hover:bg-gray-50 dark:hover:text-indigo-300 dark:hover:bg-gray-700"
+                      onClick={() => setSidebarOpen(false)}
+                    >
+                      <item.icon className="h-6 w-6 shrink-0" />
+                      {item.name}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -160,23 +150,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 <ul className="-mx-2 space-y-1">
                   {navigation.map((item) => (
                     <li key={item.name}>
-                      {item.isFutureFeature ? (
-                        <div className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-400 cursor-not-allowed">
-                          <item.icon className="h-6 w-6 shrink-0" />
-                          <div className="flex items-center justify-between flex-1">
-                            {item.name}
-                            <Badge variant="secondary" className="text-xs">Soon</Badge>
-                          </div>
-                        </div>
-                      ) : (
-                        <Link
-                          href={item.href}
-                          className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 hover:bg-gray-50 dark:hover:text-indigo-300 dark:hover:bg-gray-700"
-                        >
-                          <item.icon className="h-6 w-6 shrink-0" />
-                          {item.name}
-                        </Link>
-                      )}
+                      <Link
+                        href={item.href}
+                        className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 dark:text-gray-200 hover:text-indigo-600 hover:bg-gray-50 dark:hover:text-indigo-300 dark:hover:bg-gray-700"
+                      >
+                        <item.icon className="h-6 w-6 shrink-0" />
+                        {item.name}
+                      </Link>
                     </li>
                   ))}
                 </ul>
