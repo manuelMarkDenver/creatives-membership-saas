@@ -760,7 +760,12 @@ async function main() {
           }
         });
         
-        // Create payment transaction
+        // Create payment transaction with current date for analytics visibility
+        // Use current date so transactions show up in current period analytics
+        const transactionDate = new Date();
+        // Add small random offset (0-7 days ago) for realistic data distribution
+        transactionDate.setDate(transactionDate.getDate() - Math.floor(Math.random() * 7));
+        
         await prisma.customerTransaction.create({
           data: {
             tenantId: tenant.id,
@@ -776,7 +781,7 @@ async function main() {
             status: 'COMPLETED',
             description: `Payment for ${gymMembershipPlan.name} membership`,
             processedBy: owner.id,
-            createdAt: startDate
+            createdAt: transactionDate  // Use recent date for analytics
           }
         });
       } // End of subscription creation block
