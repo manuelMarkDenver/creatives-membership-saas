@@ -152,11 +152,10 @@ apiClient.interceptors.response.use(
     }
 
     // Handle tenant not found errors (404 for tenant-specific endpoints)
-    // TEMPORARILY DISABLED: Too aggressive, causing auto-logout
-    // if (isTenantNotFoundError(error)) {
-    //   authManager.handleTenantFailure()
-    //   return Promise.reject(new Error('Your account access has been revoked or your organization no longer exists. Please log in again.'))
-    // }
+    if (isTenantNotFoundError(error)) {
+      authManager.handleTenantFailure()
+      return Promise.reject(new Error('Your account access has been revoked or your organization no longer exists. Please log in again.'))
+    }
 
     // Handle forbidden access (403)
     if (error.response?.status === 403) {
