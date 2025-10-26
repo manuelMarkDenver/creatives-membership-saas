@@ -4,13 +4,18 @@ import { useState } from 'react'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenants, useSystemStats } from '@/lib/hooks/use-tenants'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
-import { formatPHPCompact } from '@/lib/utils/currency'
+import { useRevenueMetrics, useOwnerInsights } from '@/lib/hooks/use-analytics'
+import { formatPHPCompact, formatPHP } from '@/lib/utils/currency'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CollapsibleStatsOverview, type StatItem } from '@/components/ui/collapsible-stats-overview'
 import ChangePasswordModal from '@/components/modals/change-password-modal'
-import { Building2, Users, MapPin, Crown, TrendingUp, Activity, Plus, Globe, Key, MoreHorizontal, ExternalLink, Settings, Eye } from 'lucide-react'
+import { RevenueCard } from '@/components/analytics/revenue-card'
+import { TopPerformingPlansCard } from '@/components/analytics/top-performing-plans-card'
+import { MetricCard } from '@/components/analytics/metric-card'
+import { Building2, Users, MapPin, Crown, TrendingUp, Activity, Plus, Globe, Key, MoreHorizontal, ExternalLink, Settings, Eye, DollarSign, UserCheck, Percent } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import Link from 'next/link'
 import {
   DropdownMenu,
@@ -296,11 +301,24 @@ function SuperAdminDashboard() {
 
 function OwnerDashboard() {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [selectedBranch, setSelectedBranch] = useState<string>('all')
+  const [selectedPeriod, setSelectedPeriod] = useState<'this_week' | 'this_month' | 'this_year'>('this_month')
+  
   const { data: profile } = useProfile()
   const { data: branchesData, isLoading: branchesLoading } = useBranchesByTenant(
     profile?.tenantId || ''
   )
   const branches = branchesData || []
+  
+  const { data: revenueMetrics, isLoading: revenueLoading } = useRevenueMetrics({
+    branchId: selectedBranch === 'all' ? undefined : selectedBranch,
+    period: selectedPeriod,
+  })
+  
+  const { data: ownerInsights, isLoading: insightsLoading } = useOwnerInsights({
+    branchId: selectedBranch === 'all' ? undefined : selectedBranch,
+    period: selectedPeriod,
+  })
 
   if (branchesLoading) {
     return <div className="animate-pulse">Loading Owner Dashboard...</div>
@@ -370,10 +388,73 @@ function OwnerDashboard() {
         </Button>
       </div>
 
-      {/* Mobile-First Stats Overview */}
-      <CollapsibleStatsOverview 
-        title="Business Overview"
-        stats={ownerStats}
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <label className="text-sm font-medium mb-2 block">Branch Filter</label>
+          <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select branch" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Branches</SelectItem>
+              {branches.map((branch: any) => (
+                <SelectItem key={branch.id} value={branch.id}>
+                  {branch.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1">
+          <label className="text-sm font-medium mb-2 block">Time Period</label>
+          <Select value={selectedPeriod} onValueChange={(value: any) => setSelectedPeriod(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="this_week">This Week</SelectItem>
+              <SelectItem value="this_month">This Month</SelectItem>
+              <SelectItem value="this_year">This Year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      {/* Analytics Cards Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <RevenueCard
+          totalRevenue={revenueMetrics?.totalRevenue || 0}
+          growthRate={revenueMetrics?.growthRate || 0}
+          growthAmount={revenueMetrics?.growthAmount || 0}
+          isLoading={revenueLoading}
+        />
+        <MetricCard
+          title="Avg Revenue/Member"
+          value={formatPHP(revenueMetrics?.averageRevenuePerMember || 0)}
+          icon={UserCheck}
+          isLoading={revenueLoading}
+        />
+        <MetricCard
+          title="Collection Rate"
+          value={`${ownerInsights?.collectionRate.toFixed(1) || 0}%`}
+          subtitle="Payments vs expected"
+          icon={Percent}
+          isLoading={insightsLoading}
+        />
+        <MetricCard
+          title="Renewal Rate"
+          value={`${ownerInsights?.subscriptionRenewalRate.toFixed(1) || 0}%`}
+          subtitle="Member retention"
+          icon={TrendingUp}
+          isLoading={insightsLoading}
+        />
+      </div>
+      
+      {/* Top Performing Plans */}
+      <TopPerformingPlansCard
+        plans={ownerInsights?.topPerformingPlans || []}
+        isLoading={insightsLoading}
       />
 
       {/* Branch Overview - Priority Position for Mobile */}
