@@ -21,6 +21,8 @@
     "test:api:install": "npm install -g newman newman-reporter-htmlextra",
     "postman:collection": "newman run postman/Creatives-SaaS-API.postman_collection.json -e postman/Creatives-SaaS-Environment.postman_environment.json",
     "postman:validate": "newman run postman/Creatives-SaaS-API.postman_collection.json -e postman/Creatives-SaaS-Environment.postman_environment.json --bail",
+    "db:push": "npx prisma db push",
+    "db:reset": "npx prisma migrate reset --force --skip-generate",
     "seed": "npx prisma db seed"
   },
   "dependencies": {
