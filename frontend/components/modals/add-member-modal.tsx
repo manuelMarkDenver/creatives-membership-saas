@@ -737,28 +737,34 @@ export function AddMemberModal({
                 </div>
               )}
 
-              {/* Options */}
-              <div className="border-t pt-4 space-y-4">
-                <h4 className="font-medium">Member Options</h4>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="sendWelcomeEmail"
-                    checked={formData.sendWelcomeEmail}
-                    onCheckedChange={(checked) => handleInputChange('sendWelcomeEmail', checked)}
-                  />
-                  <Label htmlFor="sendWelcomeEmail">Send welcome email to member</Label>
+              {/* Options - Feature Flagged */}
+              {(process.env.NEXT_PUBLIC_FEATURE_WELCOME_EMAIL === 'true' || process.env.NEXT_PUBLIC_FEATURE_CREATE_ACCOUNT === 'true') && (
+                <div className="border-t pt-4 space-y-4">
+                  <h4 className="font-medium">Member Options</h4>
+                  
+                  {process.env.NEXT_PUBLIC_FEATURE_WELCOME_EMAIL === 'true' && (
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="sendWelcomeEmail"
+                        checked={formData.sendWelcomeEmail}
+                        onCheckedChange={(checked) => handleInputChange('sendWelcomeEmail', checked)}
+                      />
+                      <Label htmlFor="sendWelcomeEmail">Send welcome email to member</Label>
+                    </div>
+                  )}
+                  
+                  {process.env.NEXT_PUBLIC_FEATURE_CREATE_ACCOUNT === 'true' && (
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="createAccountForMember"
+                        checked={formData.createAccountForMember}
+                        onCheckedChange={(checked) => handleInputChange('createAccountForMember', checked)}
+                      />
+                      <Label htmlFor="createAccountForMember">Create login account for member</Label>
+                    </div>
+                  )}
                 </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="createAccountForMember"
-                    checked={formData.createAccountForMember}
-                    onCheckedChange={(checked) => handleInputChange('createAccountForMember', checked)}
-                  />
-                  <Label htmlFor="createAccountForMember">Create login account for member</Label>
-                </div>
-              </div>
+              )}
             </div>
           )}
 
