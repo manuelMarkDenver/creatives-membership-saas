@@ -2,7 +2,7 @@
 cmd = "npm install && npx prisma generate && npx prisma db push --accept-data-loss && npm run build"
 
 [phases.start]
-cmd = "npm run start:prod"
+cmd = "cd /app && node dist/main"
 
 [variables]
 NODE_ENV = "production"
