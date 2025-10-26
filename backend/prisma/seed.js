@@ -317,7 +317,7 @@ async function main() {
         userId: owner.id,
         branchId: branch.id,
         tenantId: tenant.id,
-        accessLevel: 'OWNER_ACCESS'
+        accessLevel: 'FULL_ACCESS'
       }
     });
     console.log(`✅ Assigned owner to branch`);
