@@ -428,20 +428,112 @@ formatPHPWithUnits(1500000) // → ₱1.5M
 
 ## 🎯 Next Recommended Actions
 
-### **High Priority**
+### **High Priority - Gym MVP Completion (Oct 26, 2025)**
+
+#### **Option A: Member Subscription Management** 💪 (RECOMMENDED)
+*Completes the core member workflow: Create → Assign Plan → Track → Renew*
+
+**STATUS UPDATE (Oct 26, 2025)**: Subscription assignment IS ALREADY IMPLEMENTED during member creation! See audit above for details.
+
+1. **Subscription Assignment** ✅ IMPLEMENTED
+   - ✅ Create subscription assignment interface (select member + plan + dates)
+   - ❌ Validate subscription conflicts (active subscription exists)
+   - ✅ Handle subscription start/end dates with timezone support
+   - ✅ Calculate expiration dates based on plan duration
+   - ✅ Record initial payment transaction
+
+2. **Active Subscription Tracking** ⚠️ PARTIAL
+   - ✅ Display active subscriptions on member profile
+   - ✅ Show subscription status badges (Active, Expiring Soon, Expired)
+   - ✅ Member subscription list with filters (status, plan type, branch)
+   - ❌ Subscription timeline visualization
+   - ❌ Subscription history (only current subscription shown)
+
+3. **Renewal & Expiration Handling** ⚠️ PARTIAL
+   - ❌ Expiring subscriptions dashboard (7 days, 30 days)
+   - ✅ Renewal workflow with payment tracking (basic modal exists)
+   - ❌ Auto-notification system for expiring members
+   - ❌ Subscription history per member
+   - ❌ Auto-renewal processing
+
+4. **Payment Integration** ⚠️ PARTIAL
+   - ✅ Payment recording interface (cash, card, online)
+   - ✅ Payment status tracking (paid, pending, overdue) - model exists
+   - ❌ Invoice generation (PDF download)
+   - ❌ Payment history UI (exists but disabled at line 757 in members/page.tsx)
+   - ❌ Payment gateway integration
+
+**NEXT STEPS**: Focus on Phase 1 (expiring dashboard, subscription history, payment history UI)
+
+#### **Option B: Staff Management** 💼
+*Completes location management with staff allocation*
+
+1. **Staff CRUD Operations**
+   - Create staff member interface (role selection: STAFF, MANAGER)
+   - Edit staff details and permissions
+   - Staff list with filters (role, branch, status)
+   - Staff profile page
+
+2. **Branch Assignment**
+   - Assign staff to specific branches
+   - Multi-branch access for managers
+   - Update `useRoleNavigation` to show staff page
+   - Branch transfer for staff members
+
+3. **Role & Permission Management**
+   - Define granular permissions per role
+   - Custom permission sets per staff member
+   - Access level configuration (READ_ONLY, FULL_ACCESS)
+   - Permission audit log
+
+4. **Staff Scheduling** (Optional - Phase 3)
+   - Shift management interface
+   - Staff availability tracking
+   - Schedule conflicts detection
+   - Attendance tracking
+
+#### **Option C: Gym Analytics Dashboard** 📊
+*Provides business insights and decision-making data*
+
+1. **Revenue Metrics**
+   - Total revenue by period (daily, weekly, monthly, yearly)
+   - Revenue by membership plan type
+   - Revenue by branch comparison
+   - Revenue trends and growth rate
+
+2. **Member Growth & Retention**
+   - New members by period
+   - Active vs expired members
+   - Churn rate calculation
+   - Member lifetime value
+
+3. **Branch Performance**
+   - Members per branch comparison
+   - Revenue per branch
+   - Staff efficiency metrics
+   - Branch capacity utilization
+
+4. **Reports & Exports**
+   - Monthly/quarterly reports (PDF/Excel)
+   - Custom date range reports
+   - Subscription expiration forecasts
+   - Payment collection reports
+
+---
+
+### **Medium Priority - System Improvements**
 1. **Frontend Onboarding Integration**: Create hooks and UI components for the new onboarding endpoints
 2. **Guided Setup Flow**: Implement step-by-step onboarding sequence for new tenant owners
 3. **Password Change Tracking**: Hook into auth system to automatically mark `ownerPasswordChanged`
+4. **Fix Build Issues**: Address member-subscriptions page collection error
+5. **Review Members Module**: Update with Philippine peso formatting
+6. **Type Safety**: Replace `any` types with proper TypeScript interfaces
 
-### **Medium Priority**
-1. **Fix Build Issues**: Address member-subscriptions page collection error
-2. **Review Members Module**: Update with Philippine peso formatting
-3. **Type Safety**: Replace `any` types with proper TypeScript interfaces
-
-### **Low Priority**
+### **Low Priority - Code Quality**
 1. **Code Cleanup**: Remove unused imports and fix ESLint warnings
 2. **Testing**: Add unit tests for currency utilities and CRUD operations
 3. **Performance**: Optimize member count calculations
+4. **Documentation**: Update API documentation with new endpoints
 
 ### **Planned Features - First-Time Setup**
 1. **Setup Modal**: Welcome modal with progress tracking and step-by-step guidance
@@ -531,11 +623,23 @@ formatPHPWithUnits(1500000) // → ₱1.5M
 - ✅ API Endpoint Migration - All endpoints migrated to `/gym/users`
 - ✅ Endpoint Testing - All new endpoints tested and working
 - ✅ Gym Membership Plans - Complete CRUD with soft delete and status toggle
+- ✅ Locations Management - Branch CRUD, member reassignment, dual-source counting
 - 🔄 Member Subscription Management - Assign plans to members, track renewals
 - 🔄 Payment Integration - Handle membership fees and payment tracking
 - 🔄 Gym Analytics - Dashboard with key metrics and reporting
 - 🔄 End-to-End Testing - Manual verification of complete gym workflows
 - 🔄 Production Deployment - Push enhanced features to Railway/Vercel
+
+### Future Features (Hidden from Navigation - Oct 26, 2025)
+*These features exist as routes/pages but are hidden from sidebar to avoid user confusion.*
+
+- **Staff Management** 👥 - Staff CRUD, role assignment, branch assignment, scheduling
+- **Member Subscriptions Page** 📅 - Dedicated subscription management interface with renewals
+- **Subscription/Billing** 💳 - SaaS billing for tenants, payment methods, invoice history
+- **Settings** ⚙️ - User profile settings, preferences, notifications, theme
+- **System Settings (Super Admin)** 🛡️ - System config, feature flags, global parameters
+
+**Note**: Routes are accessible via direct URL but hidden from navigation using `isFutureFeature` flag in `use-role-navigation.ts`
 
 ### Phase 3: Traction Building + Mobile Planning
 - User acquisition and market validation
@@ -640,12 +744,36 @@ cd frontend && npm run dev
 - **Backend**: Always run on port 5000. Kill any process using it if needed.
 
 ### Production Infrastructure
-- **Backend**: Railway.com (₱250/month) - NestJS + PostgreSQL (149+ seeded users)
-- **Frontend**: Vercel.com (free) - Next.js with SSR compatibility
+- **Backend**: Railway.com (~$5-20/month) - NestJS + PostgreSQL
+- **Frontend**: Vercel.com (free tier) - Next.js with SSR compatibility
 - **Database**: Railway PostgreSQL with business units and gym subscriptions
-- **File Storage**: Supabase Storage for member photos
-- **Total Cost**: ₱250/month (bootstrap-friendly)
-- **URLs**: https://happy-respect-production.up.railway.app (backend), Vercel deployment (frontend)
+- **File Storage**: Supabase Storage for member photos (free tier)
+- **Total Cost**: ~$5-20/month (bootstrap-friendly)
+- **Repository**: https://github.com/manuelMarkDenver/creatives-membership-saas.git
+- **Deployment Guide**: See `DEPLOYMENT.md` for complete production deployment instructions
+
+### Deployment Quick Start
+
+**Backend (Railway)**:
+1. Create Railway project from GitHub repo
+2. Add PostgreSQL database
+3. Set environment variables (DATABASE_URL, JWT_SECRET, SUPABASE keys, etc.)
+4. Deploy from `/backend` directory
+5. Run: `railway run npx prisma db push && npm run seed`
+
+**Frontend (Vercel)**:
+1. Import GitHub repo to Vercel
+2. Set root directory to `/frontend`
+3. Add environment variables (NEXT_PUBLIC_API_URL, NEXT_PUBLIC_FRONTEND_URL)
+4. Deploy automatically
+
+**Seeder Creates**:
+- Super Admin account
+- Muscle Mania demo tenant
+- 3 Branches, 4 Membership Plans, 12 Demo Members
+- Realistic subscription data for client demos
+
+See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ---
 
@@ -710,9 +838,194 @@ cd frontend && npm run dev
 
 ---
 
-*Last Updated: October 24, 2025 - 15:49 UTC*
-*Status: Branch/Location Management Features - ✅ COMPLETE; Auto-Logout Bug - ✅ RESOLVED*
-*Current Focus: Fix location statistics and enforce member reassignment on branch deletion*
+*Last Updated: October 26, 2025 - 05:50 UTC*
+*Status: Subscription Management Audit Complete - Core Features ✅ IMPLEMENTED*
+*Current Focus: Polish existing subscription features (Phase 1 Quick Wins)*
+
+### **Current Session Progress (Oct 26, 2025) - Location Member Statistics & Reassignment System**
+
+#### ✅ **Backend Member Counting & Reassignment Fixes - COMPLETED**
+**Fixed dual-source member assignment tracking for accurate statistics**
+
+1. **Dual-Source Member Counting** ✅
+   - **Problem**: Members assigned via `primaryBranchId` were not counted in location statistics
+   - **Solution**: Enhanced `findAllBranches` and `findAllBranchesSystemWide` to aggregate from:
+     * `gymUserBranches` table (explicit branch assignments for staff/members)
+     * `gymMemberProfile.primaryBranchId` (member primary branch assignments)
+   - **Implementation**: Used efficient `groupBy` query with Map-based aggregation
+   - **Result**: Accurate member counts on all location cards
+
+2. **Branch Deletion Validation** ✅
+   - **Problem**: Branch deletion only checked `gymUserBranches`, missing members with `primaryBranchId`
+   - **Solution**: Enhanced `deleteBranch` to validate users from both sources
+   - **Validation**: Prevents deletion when ANY members are assigned (either table)
+   - **Error Messages**: Returns complete list of assigned users with names and roles
+
+3. **Bulk Member Reassignment** ✅
+   - **Problem**: `bulkReassignUsers` only moved users in `gymUserBranches` table
+   - **Solution**: Comprehensive reassignment handling:
+     * Validates users from both `gymUserBranches` AND `primaryBranchId` sources
+     * Creates new `gymUserBranch` assignments for explicitly assigned users
+     * Updates `primaryBranchId` for ALL affected gym members
+     * Handles members who exist only via `primaryBranchId` (not in `gymUserBranches`)
+   - **Transaction Safety**: All operations in single database transaction
+
+4. **Frontend UX Improvements** ✅
+   - **Generic Error Messages**: Removed 'CLIENT' role references in delete errors
+   - **Automatic UI Updates**: React Query cache invalidation after reassignment
+   - **Member List Refresh**: Automatic update after bulk operations complete
+   - **Toast Notifications**: User-friendly success/error messages
+
+5. **TypeScript & Build Fixes** ✅
+   - **Field Name Consistency**: Fixed `gymUserBranches` vs `userBranches` mismatches
+   - **Type Casting**: Added `(location._count as any)` for dynamic field access
+   - **Frontend Build**: Resolved all compilation errors
+   - **Backend Build**: Clean build with no errors
+
+6. **Navigation UX Improvement** ✅
+   - **Hidden Future Features**: Removed "Soon" badges from sidebar navigation
+   - **Filter at Source**: Modified `useRoleNavigation` to exclude `isFutureFeature` items
+   - **Cleaner UI**: Navigation only shows implemented features
+   - **Documentation**: Added future features list to AGENT.md roadmap
+   - **Routes Still Accessible**: Pages exist but hidden to avoid user confusion
+
+#### 🎯 **Technical Implementation Details**
+
+**Backend Changes:**
+- `/backend/src/modules/branches/branches.service.ts`:
+  * `findAllBranches()`: Added `groupBy` query for primary branch counts
+  * `findAllBranchesSystemWide()`: Same member counting logic
+  * `deleteBranch()`: Enhanced validation checking both assignment sources
+  * `bulkReassignUsers()`: Complete dual-source reassignment logic
+  * `getBranchUsers()`: Already updated to return combined user list
+
+**Frontend Changes:**
+- `/frontend/app/(main)/locations/page.tsx`: Fixed stats calculation with correct field names
+- `/frontend/components/locations/bulk-reassign-modal.tsx`: Generic error messages and cache invalidation
+
+**Database Schema:**
+- No schema changes required (leveraged existing relationships)
+- `gymUserBranches`: Explicit user-branch assignments
+- `gymMemberProfile.primaryBranchId`: Member primary location tracking
+
+#### 📊 **Impact & Benefits**
+- ✅ **Accurate Statistics**: Location cards show correct member counts from all sources
+- ✅ **Data Integrity**: No orphaned members after branch deletion/reassignment
+- ✅ **Complete Validation**: All assignment types validated before deletion
+- ✅ **Atomic Operations**: Transaction-based reassignments prevent partial updates
+- ✅ **Better UX**: Clear error messages and automatic UI updates
+
+---
+
+## 🔍 Member Subscription Management Audit (Oct 26, 2025)
+
+### Quick Status Overview
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Subscription Assignment | ✅ Complete | During member creation with plan, dates, payment |
+| Basic Renewal | ✅ Complete | Modal exists, can select new plan |
+| Cancellation | ✅ Complete | Modal with reason selection |
+| Status Tracking | ✅ Complete | ACTIVE, EXPIRED, CANCELLED, etc. |
+| Status Filtering | ✅ Complete | Filter members by subscription status |
+| Expiring Stats | ✅ Complete | Shows expiring count (within 7 days) |
+| Expired Stats | ✅ Complete | Shows expired count with red badge |
+| Status Badges | ✅ Complete | Visual "Membership Expired" badges on member cards |
+| Payment Recording | ✅ Complete | CustomerTransaction model populated |
+| Payment History UI | ❌ Missing | Code exists but disabled (line 757) |
+| Subscription History | ❌ Missing | Only current subscription shown |
+| Auto-Renewal | ❌ Missing | Flag exists but no processing |
+| Notifications | ❌ Missing | No email/SMS for expiring/renewed |
+| Invoices | ❌ Missing | No PDF generation |
+
+**UPDATE (Oct 26, 2025 - User Screenshot Review)**: Expiring/Expired tracking is MORE complete than initially assessed! Stats cards, filters, and visual badges all working correctly.
+
+### ✅ Implemented
+- Subscription assignment during member creation: plan selection, start date, auto end date, payment method, initial transaction recorded
+- Backend transaction creates User + GymMemberProfile + GymUserBranch + GymMemberSubscription atomically
+- Subscription status tracking via GymMemberSubscription (ACTIVE, EXPIRED, CANCELLED, etc.)
+- Basic renewal and cancellation modals exist in members page
+
+### ⚠️ Partial
+- Active subscription badges and basic filtering present
+- Renewal modal allows selecting a new plan for expired members
+- Transaction model present and initial payment recorded, but UI history view disabled
+
+### ❌ Missing/Incomplete
+- Consistent "expiring soon" logic and dashboard widget
+- Subscription history/timeline per member
+- Auto-renewal processing and notifications
+- Payment history UI, invoices/receipts, refunds, and reports
+
+### 🗺️ Phased TODO Roadmap
+
+**Phase 1 (High Priority - 1-2 days)**: Polish Existing Features
+- ❌ Re-enable payment history UI using CustomerTransaction data (line 757 in members/page.tsx)
+- ❌ Implement subscription history timeline per member (show past subscriptions after renewal)
+- ✅ ~~Expiring member tracking~~ ALREADY IMPLEMENTED (stats card + filter working)
+
+**Phase 2 (Medium Priority - 3-5 days)**: Automation & Notifications
+- ❌ Implement auto-renew processing using existing autoRenew flag
+- ❌ Email/SMS notifications for expiring subscriptions (7 days, 3 days, 1 day)
+- ❌ Improve manual renewal flow (add notes, custom start dates, prorations)
+- ❌ Dashboard expiring widget (quick view from main dashboard, not members page)
+
+**Phase 3 (Medium Priority - 5-7 days)**: Payments & Reporting
+- ❌ Invoice PDF generation and email delivery
+- ❌ Payment gateway integration (PayMongo/GCash) with webhooks
+- ❌ Revenue and payment reports (daily/monthly/yearly)
+- ❌ Export transactions to CSV/Excel
+
+**Phase 4 (Low Priority - Future)**: Advanced Features
+- ❌ Freeze/pause memberships with hold periods
+- ❌ Membership upgrades/downgrades with prorations
+- ❌ Promotional pricing and discount codes
+- ❌ Bulk renewal operations
+
+### References
+- Frontend: `frontend/components/modals/add-member-modal.tsx`, `frontend/app/(main)/members/page.tsx`
+- Backend: `backend/src/modules/gym/members/gym-members.service.ts`
+- Schema: `backend/prisma/schema.prisma` (GymMemberSubscription, CustomerTransaction)
+
+### 🎯 Decision Point: What to Build Next?
+
+**Great News**: Subscription management is MORE complete than initially assessed!
+
+**What You Have (Screenshot Verified Oct 26, 2025)**:
+- ✅ Member creation with subscription assignment
+- ✅ Subscription stats (Total: 5, Active: 5, Expiring: 1, Expired: 4, Cancelled: 0)
+- ✅ Expiring/Expired filtering and badges
+- ✅ Manual renewal and cancellation modals
+- ✅ Payment recording (CustomerTransaction populated)
+
+**What's Actually Missing**:
+1. ❌ Payment history UI (data exists, just needs display)
+2. ❌ Subscription history (can't see past subscriptions after renewal)
+
+**MVP Assessment**:
+- **Can launch NOW?** YES! Core subscription workflow is functional.
+- **Should you add Phase 1?** RECOMMENDED for better operations.
+
+**Options**:
+
+**A) Launch As-Is** (🚀 Ready for MVP)
+- Pros: Everything works, members can subscribe/renew
+- Cons: No payment audit trail, no subscription history
+- Best for: Quick launch, < 50 members
+
+**B) Add Payment History Only** (+ 1 day)
+- Pros: Can verify payments, resolve disputes
+- Cons: Still no subscription history
+- Best for: Want payment reconciliation
+
+**C) Add Both Features** (+ 2 days) ⭐ **RECOMMENDED**
+- Pros: Complete audit trail, professional look
+- Cons: 2 more days before launch
+- Best for: Want polished product, 100+ members
+
+**My Recommendation**: Option B or C. Your subscription management is solid, just needs the audit trail features for professional operations.
+
+---
 
 ### **Current Session Progress (Oct 24, 2025) - Locations/Branches Enhancements + Auto-Logout Fix**
 
@@ -722,12 +1035,21 @@ cd frontend && npm run dev
 - Documentation updated: `.env` lives in repo root; browser console logs at `/home/mhackeedev/console.log`.
 
 #### 🔥 High Priority TODOs (Oct 24, 2025)
-1) Location statistics not updating
-   - Fix top "Location Statistics" cards and per-location card stats so they reflect actual counts (active, members, staff). Hook up correct API, ensure React Query invalidation after create/update/delete/restore.
-2) Prevent deleting a location with members – require reassignment
-   - If a branch has members, show Reassign Members modal before allowing delete; move members to selected branch and then soft-delete.
-3) Members list still shows deleted branch (e.g., "Maite Blair")
-   - On delete, trigger reassignment flow; ensure members no longer reference deleted branches and UI filters exclude deleted branches.
+~~1) Location statistics not updating~~ ✅ **FIXED (Oct 26, 2025)**
+   - Fixed backend methods `findAllBranches` and `findAllBranchesSystemWide` to count members from both:
+     * `gymUserBranches` table (explicitly assigned users)
+     * `gymMemberProfile.primaryBranchId` (members with this location as primary branch)
+   - Used efficient `groupBy` query to aggregate primary branch counts
+   - Frontend now displays accurate member counts on location cards
+~~2) Prevent deleting a location with members – require reassignment~~ ✅ **FIXED (Oct 26, 2025)**
+   - Backend `deleteBranch` now checks both assignment sources before allowing deletion
+   - Validates all active users from `gymUserBranches` AND members with `primaryBranchId`
+   - Returns detailed conflict error with user names if members exist
+   - `bulkReassignUsers` handles both assignment types in transaction
+~~3) Members list still shows deleted branch (e.g., "Maite Blair")~~ ✅ **FIXED (Oct 26, 2025)**
+   - Frontend shows generic error messages (removed 'CLIENT' role text)
+   - React Query cache invalidation triggers automatic UI updates after reassignment
+   - Member list refreshes correctly after bulk reassignment completes
 
 ### **Current Session Progress (Oct 19, 2025) - MAJOR AUTHENTICATION OVERHAUL**
 

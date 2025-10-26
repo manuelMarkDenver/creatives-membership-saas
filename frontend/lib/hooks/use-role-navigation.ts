@@ -123,7 +123,7 @@ export function useRoleNavigation(userRole?: Role) {
     if (!userRole) return []
 
     return NAVIGATION_ITEMS.filter(item =>
-      item.roles.includes(userRole)
+      item.roles.includes(userRole) && !item.isFutureFeature
     )
   }, [userRole])
 
