@@ -792,7 +792,51 @@ cd frontend && npm run dev
 
 **Prerequisites**: Railway CLI and Vercel CLI installed
 
-### Step 1: Update Schema and Push to Production Database
+### Quick Push Workflow (Most Common)
+
+Use these commands when you have code/schema changes to deploy:
+
+```bash
+# 1. Push database schema to production
+cd /home/mhackeedev/_apps/creatives-saas/backend
+railway run npx prisma db push
+
+# 2. Deploy backend to Railway
+railway up
+
+# 3. Deploy frontend to Vercel
+cd /home/mhackeedev/_apps/creatives-saas/frontend
+vercel --prod
+```
+
+### Full Reset & Reseed (Development/Testing Only)
+
+⚠️ **WARNING**: This deletes ALL data in production database!
+
+Use this when you need to completely reset the production database with fresh seed data:
+
+```bash
+# 1. Reset production database (deletes all data)
+cd /home/mhackeedev/_apps/creatives-saas/backend
+railway run npx prisma migrate reset --force --skip-generate
+
+# 2. Push schema to recreate tables
+railway run npx prisma db push
+
+# 3. Seed production database with fresh data
+railway run npm run seed
+
+# 4. Deploy backend (optional, if code changed)
+railway up
+
+# 5. Deploy frontend (optional, if code changed)
+cd /home/mhackeedev/_apps/creatives-saas/frontend
+vercel --prod
+```
+
+### Step-by-Step Details
+
+#### Step 1: Update Schema and Push to Production Database
 ```bash
 # From /backend directory
 cd /home/mhackeedev/_apps/creatives-saas/backend
@@ -842,7 +886,7 @@ If you have a `.env.prod` file with production values:
 - **Railway Dashboard**: Settings → Variables
 - **Vercel Dashboard**: Project Settings → Environment Variables
 
-### Step 2: Deploy Backend to Railway
+#### Step 2: Deploy Backend to Railway
 ```bash
 # From /backend directory
 cd /home/mhackeedev/_apps/creatives-saas/backend
@@ -863,7 +907,7 @@ railway up
 railway logs
 ```
 
-### Step 3: Deploy Frontend to Vercel
+#### Step 3: Deploy Frontend to Vercel
 ```bash
 # From /frontend directory
 cd /home/mhackeedev/_apps/creatives-saas/frontend
@@ -883,7 +927,7 @@ vercel --prod
 # Just push to main and Vercel deploys automatically
 ```
 
-### Step 4: Verify Production Deployment
+#### Step 4: Verify Production Deployment
 ```bash
 # Check backend health
 curl https://your-backend.railway.app/health
