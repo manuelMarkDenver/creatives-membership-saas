@@ -919,12 +919,30 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
    - **Solution**: Added `role: 'CLIENT'` filter to gymMemberProfile.groupBy queries
    - **Result**: Correct counts now: Manggahan 8, San Rafael 5, San Jose 4 = 17 active (1 deleted)
 
-9. **Verification Results** ✅
+9. **Dashboard Branch Overview Empty - FIXED** ✅
+   - **Problem**: Branch Overview section showed only branch names with "Active" badge, no data
+   - **Root Cause**: Dashboard wasn't fetching branchPerformance data, only revenueMetrics + ownerInsights
+   - **Solution**: 
+     * Added `useBranchPerformance` import to dashboard page
+     * Fetched branch performance data with current period filter
+     * Enhanced UI to display member counts and revenue per branch
+   - **Files Modified**: `/frontend/app/(main)/dashboard/page.tsx` (added import + hook usage)
+   - **Result**: Each branch now shows "X members" and "₱X revenue" below address
+
+10. **Missing Import Error - FIXED** ✅
+   - **Problem**: Browser console showed "useBranchPerformance is not defined" error
+   - **Root Cause**: Hook was used but not imported from `@/lib/hooks/use-analytics`
+   - **Solution**: Added `useBranchPerformance` to existing analytics hook import statement
+   - **Result**: Dashboard loads without errors, branch data displays correctly
+
+11. **Final Verification Results** ✅
    - Database regenerated successfully
-   - Members: 17 active CLIENT users (8+5+4), 1 deleted, 2 staff (owner+manager) = 20 GymMemberProfiles total
+   - Members: 17 active CLIENT users (8+5+4), 1 deleted, 2 staff = 20 GymMemberProfiles total
    - Transactions: 18 within last 7 days (all showing in analytics)
-   - Revenue metrics: Working with Philippine Peso formatting
+   - Revenue metrics: Working with Philippine Peso formatting (₱33,300 total)
    - Staff: Excluded from member counts until Staff Management feature implemented
+   - Branch Overview: Now displays member counts and revenue per branch
+   - Dashboard analytics: All metrics showing correct data
 
 ### **Previous Session Progress (Oct 26, 2025) - Location Member Statistics & Reassignment System**
 

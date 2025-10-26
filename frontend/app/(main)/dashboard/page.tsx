@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenants, useSystemStats } from '@/lib/hooks/use-tenants'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
-import { useRevenueMetrics, useOwnerInsights } from '@/lib/hooks/use-analytics'
+import { useRevenueMetrics, useOwnerInsights, useBranchPerformance } from '@/lib/hooks/use-analytics'
 import { formatPHPCompact, formatPHP } from '@/lib/utils/currency'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -319,6 +319,10 @@ function OwnerDashboard() {
     branchId: selectedBranch === 'all' ? undefined : selectedBranch,
     period: selectedPeriod,
   })
+  
+  const { data: branchPerformance } = useBranchPerformance({
+    period: selectedPeriod,
+  })
 
   if (branchesLoading) {
     return <div className="animate-pulse">Loading Owner Dashboard...</div>
@@ -471,19 +475,37 @@ function OwnerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {branches.map((branch: any) => (
-                <div key={branch.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h4 className="font-semibold">{branch.name}</h4>
-                    <p className="text-sm text-muted-foreground">{branch.address || 'No address set'}</p>
+              {branches.map((branch: any) => {
+                const performance = branchPerformance?.find((bp: any) => bp.branchId === branch.id)
+                const memberCount = branch._count?.gymUserBranches || branch._count?.activeMembers || 0
+                return (
+                  <div key={branch.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{branch.name}</h4>
+                      <p className="text-sm text-muted-foreground">{branch.address || 'No address set'}</p>
+                      {performance && (
+                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {memberCount} members
+                          </span>
+                          {performance.totalRevenue > 0 && (
+                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                              <TrendingUp className="h-3 w-3" />
+                              {formatPHP(performance.totalRevenue)} revenue
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="default">
+                        Active
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="default">
-                      Active
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </CardContent>
         </Card>
