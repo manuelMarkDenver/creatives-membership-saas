@@ -191,6 +191,7 @@ export class BranchesService {
     });
 
     // Get all members with primaryBranchId for these branches
+    // ONLY count CLIENT role users (exclude OWNER, MANAGER, STAFF until Staff Management is implemented)
     const branchIds = branches.map(b => b.id);
     const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.groupBy({
       by: ['primaryBranchId'],
@@ -198,6 +199,7 @@ export class BranchesService {
         primaryBranchId: { in: branchIds },
         user: {
           deletedAt: null,
+          role: 'CLIENT', // Only count CLIENT role users (gym members)
         },
       },
       _count: {
@@ -275,6 +277,7 @@ export class BranchesService {
     });
 
     // Get all members with primaryBranchId for these branches
+    // ONLY count CLIENT role users (exclude OWNER, MANAGER, STAFF until Staff Management is implemented)
     const branchIds = branches.map(b => b.id);
     const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.groupBy({
       by: ['primaryBranchId'],
@@ -282,6 +285,7 @@ export class BranchesService {
         primaryBranchId: { in: branchIds },
         user: {
           deletedAt: null,
+          role: 'CLIENT', // Only count CLIENT role users (gym members)
         },
       },
       _count: {
