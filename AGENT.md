@@ -786,6 +786,134 @@ cd frontend && npm run dev
 3. Add environment variables (NEXT_PUBLIC_API_URL, NEXT_PUBLIC_FRONTEND_URL)
 4. Deploy automatically
 
+---
+
+## 🚀 Production Deployment Steps (Railway + Vercel)
+
+**Prerequisites**: Railway CLI and Vercel CLI installed
+
+### Step 1: Update Schema and Push to Production Database
+```bash
+# From /backend directory
+cd /home/mhackeedev/_apps/creatives-saas/backend
+
+# Ensure schema changes are committed
+git add prisma/schema.prisma
+git commit -m "chore: update database schema for production"
+
+# Link to Railway project (if not already linked)
+railway link
+
+# Push schema to production database (uses Railway's DATABASE_URL automatically)
+railway run npx prisma db push
+
+# Optional: Run seeder if needed (be careful in production!)
+# railway run npm run seed
+```
+
+**Note**: Railway and Vercel manage environment variables through their dashboards/CLI, not `.env.prod` files. 
+
+#### Copying Variables from .env.prod to Dashboards
+
+If you have a `.env.prod` file with production values:
+
+**Railway (Backend)**:
+1. Open Railway dashboard → Select your backend service → Settings → Variables
+2. Click "+ New Variable" or "Raw Editor"
+3. Copy variables from `backend/.env.prod` (or root `.env.prod` if applicable)
+4. Paste them one by one, ensuring:
+   - `DATABASE_URL` uses Railway's reference: `${{Postgres.DATABASE_URL}}`
+   - `JWT_SECRET` and `SESSION_SECRET` are unique production secrets
+   - `FRONTEND_URL` and `CORS_ORIGIN` point to your Vercel domain
+   - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` are copied correctly
+5. Click "Save" or "Deploy" to apply changes
+
+**Vercel (Frontend)**:
+1. Open Vercel dashboard → Select your project → Settings → Environment Variables
+2. Click "Add New" for each variable
+3. Copy variables from `frontend/.env.prod` (usually just these):
+   - `NEXT_PUBLIC_API_URL` (your Railway backend URL)
+   - `NEXT_PUBLIC_FRONTEND_URL` (your Vercel deployment URL)
+   - `NODE_ENV=production`
+4. Select environment: Production (and optionally Preview, Development)
+5. Click "Save" and redeploy your frontend
+
+**Quick Reference**:
+- **Railway Dashboard**: Settings → Variables
+- **Vercel Dashboard**: Project Settings → Environment Variables
+
+### Step 2: Deploy Backend to Railway
+```bash
+# From /backend directory
+cd /home/mhackeedev/_apps/creatives-saas/backend
+
+# Build and test locally first
+npm run build
+
+# Commit all changes
+git add .
+git commit -m "feat: ready for production deployment"
+git push origin main
+
+# Deploy to Railway (triggers automatic deployment from GitHub)
+# Or manually deploy:
+railway up
+
+# Verify deployment
+railway logs
+```
+
+### Step 3: Deploy Frontend to Vercel
+```bash
+# From /frontend directory
+cd /home/mhackeedev/_apps/creatives-saas/frontend
+
+# Build and test locally first
+npm run build
+
+# Ensure changes are committed and pushed
+git add .
+git commit -m "feat: ready for production deployment"
+git push origin main
+
+# Deploy to Vercel
+vercel --prod
+
+# Or use automatic deployment (Vercel watches GitHub main branch)
+# Just push to main and Vercel deploys automatically
+```
+
+### Step 4: Verify Production Deployment
+```bash
+# Check backend health
+curl https://your-backend.railway.app/health
+
+# Check frontend
+curl https://your-frontend.vercel.app
+
+# Test authentication flow
+# Login as Super Admin and verify tenant access
+```
+
+### Production Deployment Checklist
+- [ ] Schema changes committed to git
+- [ ] Database schema pushed to production (`railway run npx prisma db push`)
+- [ ] Backend builds successfully (`npm run build`)
+- [ ] Frontend builds successfully (`npm run build`)
+- [ ] Environment variables set in Railway dashboard
+- [ ] Environment variables set in Vercel dashboard
+- [ ] Railway deployment successful
+- [ ] Vercel deployment successful
+- [ ] Health check endpoint responding
+- [ ] Authentication flow tested
+- [ ] Production database has correct data
+
+**IMPORTANT**: 
+- Always push schema changes to production BEFORE deploying new code
+- Test builds locally before deploying
+- Never run seeder in production unless absolutely necessary
+- Use migrations for production once MVP is finalized (currently using `prisma db push`)
+
 **Seeder Creates**:
 - Super Admin account
 - Muscle Mania demo tenant with 3 branches
