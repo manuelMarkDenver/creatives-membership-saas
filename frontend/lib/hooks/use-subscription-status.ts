@@ -16,7 +16,7 @@ export function useSubscriptionStatus(tenantId: string | undefined) {
         throw new Error('No tenant ID')
       }
       try {
-        const response = await apiClient.get(`/api/v1/subscriptions/tenant/${tenantId}/can-create-branch`)
+        const response = await apiClient.get(`/subscriptions/tenant/${tenantId}/can-create-branch`)
         return response.data
       } catch (error) {
         // Silently fail and use placeholder data

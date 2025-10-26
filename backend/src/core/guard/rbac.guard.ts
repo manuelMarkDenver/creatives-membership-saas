@@ -144,7 +144,8 @@ export class RBACGuard implements CanActivate {
 
     // Use role for platform-level permissions
     user.role = (dbUser.role as Role) || Role.CLIENT;
-    user.tenantId = dbUser.gymMemberProfile?.tenantId || null;
+    // Use User.tenantId first, fallback to gymMemberProfile.tenantId for gym members
+    user.tenantId = dbUser.tenantId || dbUser.gymMemberProfile?.tenantId || null;
     user.branchAccess = dbUser.gymUserBranches.map((ub) => ({
       branchId: ub.branchId,
       accessLevel: ub.accessLevel,

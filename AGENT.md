@@ -710,9 +710,24 @@ cd frontend && npm run dev
 
 ---
 
-*Last Updated: October 19, 2025 - 14:18 UTC*
-*Status: Member-Branch Relationship System Implementation - ✅ BACKEND COMPLETE, 🔄 TESTING PENDING*
-*Current Focus: Branch access levels, filtering, transfer functionality, and comprehensive member-branch management*
+*Last Updated: October 24, 2025 - 15:49 UTC*
+*Status: Branch/Location Management Features - ✅ COMPLETE; Auto-Logout Bug - ✅ RESOLVED*
+*Current Focus: Fix location statistics and enforce member reassignment on branch deletion*
+
+### **Current Session Progress (Oct 24, 2025) - Locations/Branches Enhancements + Auto-Logout Fix**
+
+#### ✅ What changed this session
+- Auto-logout fixed by disabling aggressive tenant validation in `useAuthValidation` and API client interceptors; network errors no longer trigger logout. Verified after dev server restart.
+- Branch/Location features implemented end-to-end: `isMainBranch` field and swap logic, subscription limit checks (create/restore), UI badges and checkbox, create disabled when limit reached, restore hidden when limit reached.
+- Documentation updated: `.env` lives in repo root; browser console logs at `/home/mhackeedev/console.log`.
+
+#### 🔥 High Priority TODOs (Oct 24, 2025)
+1) Location statistics not updating
+   - Fix top "Location Statistics" cards and per-location card stats so they reflect actual counts (active, members, staff). Hook up correct API, ensure React Query invalidation after create/update/delete/restore.
+2) Prevent deleting a location with members – require reassignment
+   - If a branch has members, show Reassign Members modal before allowing delete; move members to selected branch and then soft-delete.
+3) Members list still shows deleted branch (e.g., "Maite Blair")
+   - On delete, trigger reassignment flow; ensure members no longer reference deleted branches and UI filters exclude deleted branches.
 
 ### **Current Session Progress (Oct 19, 2025) - MAJOR AUTHENTICATION OVERHAUL**
 

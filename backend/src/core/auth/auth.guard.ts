@@ -148,6 +148,7 @@ export class AuthGuard implements CanActivate {
       };
 
       console.log(`🔐 JWT auth successful for: ${authenticatedUser.email} (${authenticatedUser.role})`);
+      console.log(`🔐 User tenantId: ${authenticatedUser.tenantId}`);
       request.user = authenticatedUser;
       return true;
 
