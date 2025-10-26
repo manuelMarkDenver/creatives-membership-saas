@@ -283,20 +283,39 @@ async function main() {
       console.log(`✅ Created gym membership plan: ${gymPlan.name} (₱${gymPlan.price})`);
     }
     
-    // Create only Manggahan branch
-    console.log('🏪 Creating Manggahan branch...');
-     const branch = await prisma.branch.create({
-       data: {
-         name: 'Muscle Mania Manggahan',
-         address: '123 Manggahan Street, Pasig City',
-         isActive: true,
-         tenant: {
-           connect: { id: tenant.id }
-         }
-       }
-     });
+    // Create 2 branches for better analytics testing
+    console.log('🏪 Creating branches...');
+    const branches = [];
     
-    console.log(`✅ Created branch: ${branch.name}`);
+    const branch1 = await prisma.branch.create({
+      data: {
+        name: 'Muscle Mania Manggahan',
+        address: '123 Manggahan Street, Pasig City',
+        isActive: true,
+        isMainBranch: true,
+        tenant: {
+          connect: { id: tenant.id }
+        }
+      }
+    });
+    branches.push(branch1);
+    console.log(`✅ Created main branch: ${branch1.name}`);
+    
+    const branch2 = await prisma.branch.create({
+      data: {
+        name: 'San Rafael Branch',
+        address: '456 San Rafael Street, Quezon City',
+        isActive: true,
+        isMainBranch: false,
+        tenant: {
+          connect: { id: tenant.id }
+        }
+      }
+    });
+    branches.push(branch2);
+    console.log(`✅ Created second branch: ${branch2.name}`);
+    
+    const branch = branch1; // Keep compatibility with existing code
     
     // Create gym member profile for owner (now that branch exists)
     await prisma.gymMemberProfile.create({
@@ -322,37 +341,39 @@ async function main() {
     });
     console.log(`✅ Assigned owner to branch`);
     
-    // Create SaaS subscription for the branch
+    // Create SaaS subscriptions for both branches
     const monthlyPlan = await prisma.plan.findUnique({ where: { name: 'Monthly Pro' } });
     if (monthlyPlan) {
-      const subscriptionStartDate = new Date();
-      const subscriptionEndDate = new Date(subscriptionStartDate);
-      subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 1);
-      
-      const subscription = await prisma.subscription.create({
-        data: {
-          branchId: branch.id,
-          planId: monthlyPlan.id,
-          startDate: subscriptionStartDate,
-          endDate: subscriptionEndDate,
-          status: 'ACTIVE'
-        }
-      });
-      
-      console.log(`✅ Created SaaS subscription: ${monthlyPlan.name} for ${branch.name}`);
-      
-      // Create payment record
-      await prisma.payment.create({
-        data: {
-          subscriptionId: subscription.id,
-          amount: monthlyPlan.price,
-          paymentDate: subscriptionStartDate,
-          status: 'SUCCESSFUL',
-          paymentMethod: 'CARD',
-          transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        }
-      });
-      console.log(`✅ Created payment record for ${branch.name} subscription`);
+      for (const branchToSubscribe of branches) {
+        const subscriptionStartDate = new Date();
+        const subscriptionEndDate = new Date(subscriptionStartDate);
+        subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 1);
+        
+        const subscription = await prisma.subscription.create({
+          data: {
+            branchId: branchToSubscribe.id,
+            planId: monthlyPlan.id,
+            startDate: subscriptionStartDate,
+            endDate: subscriptionEndDate,
+            status: 'ACTIVE'
+          }
+        });
+        
+        console.log(`✅ Created SaaS subscription: ${monthlyPlan.name} for ${branchToSubscribe.name}`);
+        
+        // Create payment record
+        await prisma.payment.create({
+          data: {
+            subscriptionId: subscription.id,
+            amount: monthlyPlan.price,
+            paymentDate: subscriptionStartDate,
+            status: 'SUCCESSFUL',
+            paymentMethod: 'CARD',
+            transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          }
+        });
+        console.log(`✅ Created payment record for ${branchToSubscribe.name} subscription`);
+      }
     }
     
     // Create manager for the branch
@@ -540,8 +561,8 @@ async function main() {
                    memberInfo.status === 'NO_SUBSCRIPTION' ? 'NO_SUBSCRIPTION' :
                    memberInfo.status,
             
-            // Primary branch and access level
-            primaryBranchId: branch.id, // All members start at Manggahan branch
+            // Primary branch and access level - distribute members across both branches
+            primaryBranchId: i < 6 ? branch1.id : branch2.id, // First 6 to Manggahan, next 6 to San Rafael
             accessLevel: 'ALL_BRANCHES', // Default access to all branches
             
             // Gym-level soft deletion for DELETED members
@@ -657,7 +678,7 @@ async function main() {
             tenantId: tenant.id,
             memberId: member.id,
             gymMembershipPlanId: gymMembershipPlan.id, // Gym-specific plan ID
-            branchId: branch.id,
+            branchId: i < 6 ? branch1.id : branch2.id, // First 6 to Manggahan, next 6 to San Rafael
             status: subscriptionStatus,
             startDate: startDate,
             endDate: endDate,
@@ -692,7 +713,7 @@ async function main() {
       await prisma.gymUserBranch.create({
         data: {
           userId: member.id,
-          branchId: branch.id,
+          branchId: i < 6 ? branch1.id : branch2.id, // First 6 to Manggahan, next 6 to San Rafael
           tenantId: tenant.id,
           accessLevel: 'READ_ONLY'
         }

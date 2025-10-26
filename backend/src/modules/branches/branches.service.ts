@@ -218,12 +218,15 @@ export class BranchesService {
         (ub) => ub.user.deletedAt,
       ).length;
       const staff = branch.gymUserBranches.filter(
-        (ub) => ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
+        (ub) => ub.user.role && ['STAFF', 'MANAGER', 'OWNER'].includes(ub.user.role),
       ).length;
 
-      // Total members = members from gymUserBranches + members with primaryBranchId (avoiding duplicates is handled by backend logic)
+      // Members with primaryBranchId set to this branch (count is already from groupBy)
       const membersWithPrimaryBranchCount = primaryBranchCounts.get(branch.id) || 0;
-      const totalMembers = Math.max(activeMembersFromBranches, membersWithPrimaryBranchCount);
+      
+      // Total members = sum of both sources (primaryBranchId members are NOT in gymUserBranches table by design)
+      // No double-counting because primaryBranchId members don't have gymUserBranch records
+      const totalMembers = activeMembersFromBranches + membersWithPrimaryBranchCount;
 
       return {
         ...branch,
@@ -299,12 +302,15 @@ export class BranchesService {
         (ub) => ub.user.deletedAt,
       ).length;
       const staff = branch.gymUserBranches.filter(
-        (ub) => ub.user.role && ['STAFF', 'MANAGER'].includes(ub.user.role),
+        (ub) => ub.user.role && ['STAFF', 'MANAGER', 'OWNER'].includes(ub.user.role),
       ).length;
 
-      // Total members = members from gymUserBranches + members with primaryBranchId (avoiding duplicates is handled by backend logic)
+      // Members with primaryBranchId set to this branch (count is already from groupBy)
       const membersWithPrimaryBranchCount = primaryBranchCounts.get(branch.id) || 0;
-      const totalMembers = Math.max(activeMembersFromBranches, membersWithPrimaryBranchCount);
+      
+      // Total members = sum of both sources (primaryBranchId members are NOT in gymUserBranches table by design)
+      // No double-counting because primaryBranchId members don't have gymUserBranch records
+      const totalMembers = activeMembersFromBranches + membersWithPrimaryBranchCount;
 
       return {
         ...branch,
