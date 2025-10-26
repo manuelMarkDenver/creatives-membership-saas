@@ -1,5 +1,5 @@
 [phases.build]
-cmd = "npm install && npm run build"
+cmd = "npm install && npx prisma generate && npm run build"
 
 [phases.start]
 cmd = "npm run start:prod"
