@@ -288,7 +288,6 @@ async function main() {
          name: 'Muscle Mania Manggahan',
          address: '123 Manggahan Street, Pasig City',
          isActive: true,
-         createdBy: owner.id,
          tenant: {
            connect: { id: tenant.id }
          }
