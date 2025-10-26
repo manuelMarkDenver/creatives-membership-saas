@@ -283,7 +283,7 @@ async function main() {
       console.log(`✅ Created gym membership plan: ${gymPlan.name} (₱${gymPlan.price})`);
     }
     
-    // Create 2 branches for better analytics testing
+    // Create 3 branches with uneven member distribution for realistic analytics testing
     console.log('🏪 Creating branches...');
     const branches = [];
     
@@ -291,6 +291,8 @@ async function main() {
       data: {
         name: 'Muscle Mania Manggahan',
         address: '123 Manggahan Street, Pasig City',
+        phoneNumber: '+63 2 8123 4567',
+        email: 'manggahan@muscle-mania.com',
         isActive: true,
         isMainBranch: true,
         tenant: {
@@ -305,6 +307,8 @@ async function main() {
       data: {
         name: 'San Rafael Branch',
         address: '456 San Rafael Street, Quezon City',
+        phoneNumber: '+63 2 8234 5678',
+        email: 'sanrafael@muscle-mania.com',
         isActive: true,
         isMainBranch: false,
         tenant: {
@@ -314,6 +318,22 @@ async function main() {
     });
     branches.push(branch2);
     console.log(`✅ Created second branch: ${branch2.name}`);
+    
+    const branch3 = await prisma.branch.create({
+      data: {
+        name: 'San Jose Branch',
+        address: '789 San Jose Avenue, Manila',
+        phoneNumber: '+63 2 8345 6789',
+        email: 'sanjose@muscle-mania.com',
+        isActive: true,
+        isMainBranch: false,
+        tenant: {
+          connect: { id: tenant.id }
+        }
+      }
+    });
+    branches.push(branch3);
+    console.log(`✅ Created third branch: ${branch3.name}`);
     
     const branch = branch1; // Keep compatibility with existing code
     
@@ -422,8 +442,9 @@ async function main() {
       }
     });
     
-    // Create exactly 12 gym members with realistic mix of statuses
-    console.log('👥 Creating 12 realistic gym members...');
+    // Create 18 gym members with realistic mix of statuses
+    // Distribution: Manggahan (8), San Rafael (6), San Jose (4)
+    console.log('👥 Creating 18 realistic gym members...');
     
     const specificMembers = [
       // Active Members (6)
@@ -527,6 +548,57 @@ async function main() {
         status: 'DELETED',
         description: 'Deleted member'
       },
+      // Additional Active Members (4 more)
+      {
+        firstName: 'David',
+        lastName: 'Villanueva',
+        email: 'david.villanueva@muscle-mania.com',
+        password: 'David123!',
+        status: 'ACTIVE',
+        description: 'Active premium member'
+      },
+      {
+        firstName: 'Patricia',
+        lastName: 'Mendoza',
+        email: 'patricia.mendoza@muscle-mania.com',
+        password: 'Patricia123!',
+        status: 'ACTIVE',
+        description: 'Active basic member'
+      },
+      {
+        firstName: 'Ricardo',
+        lastName: 'Cruz',
+        email: 'ricardo.cruz@muscle-mania.com',
+        password: 'Ricardo123!',
+        status: 'ACTIVE',
+        description: 'Active annual member'
+      },
+      {
+        firstName: 'Elena',
+        lastName: 'Santiago',
+        email: 'elena.santiago@muscle-mania.com',
+        password: 'Elena123!',
+        status: 'ACTIVE',
+        description: 'Active student member'
+      },
+      // Additional Expired (1)
+      {
+        firstName: 'Thomas',
+        lastName: 'Velasco',
+        email: 'thomas.velasco@muscle-mania.com',
+        password: 'Thomas123!',
+        status: 'EXPIRED',
+        description: 'Expired member'
+      },
+      // Additional Expiring (1)
+      {
+        firstName: 'Jasmine',
+        lastName: 'Bautista',
+        email: 'jasmine.bautista@muscle-mania.com',
+        password: 'Jasmine123!',
+        status: 'EXPIRING',
+        description: 'Expiring premium member'
+      },
     ];
     
     for (let i = 0; i < specificMembers.length; i++) {
@@ -561,8 +633,8 @@ async function main() {
                    memberInfo.status === 'NO_SUBSCRIPTION' ? 'NO_SUBSCRIPTION' :
                    memberInfo.status,
             
-            // Primary branch and access level - distribute members across both branches
-            primaryBranchId: i < 6 ? branch1.id : branch2.id, // First 6 to Manggahan, next 6 to San Rafael
+            // Primary branch and access level - distribute members unevenly: 8-6-4
+            primaryBranchId: i < 8 ? branch1.id : (i < 14 ? branch2.id : branch3.id), // 0-7: Manggahan, 8-13: San Rafael, 14-17: San Jose
             accessLevel: 'ALL_BRANCHES', // Default access to all branches
             
             // Gym-level soft deletion for DELETED members
@@ -678,7 +750,7 @@ async function main() {
             tenantId: tenant.id,
             memberId: member.id,
             gymMembershipPlanId: gymMembershipPlan.id, // Gym-specific plan ID
-            branchId: i < 6 ? branch1.id : branch2.id, // First 6 to Manggahan, next 6 to San Rafael
+            branchId: i < 8 ? branch1.id : (i < 14 ? branch2.id : branch3.id), // 0-7: Manggahan, 8-13: San Rafael, 14-17: San Jose
             status: subscriptionStatus,
             startDate: startDate,
             endDate: endDate,
@@ -713,7 +785,7 @@ async function main() {
       await prisma.gymUserBranch.create({
         data: {
           userId: member.id,
-          branchId: i < 6 ? branch1.id : branch2.id, // First 6 to Manggahan, next 6 to San Rafael
+          branchId: i < 8 ? branch1.id : (i < 14 ? branch2.id : branch3.id), // 0-7: Manggahan, 8-13: San Rafael, 14-17: San Jose
           tenantId: tenant.id,
           accessLevel: 'READ_ONLY'
         }

@@ -46,9 +46,8 @@ export function useAuthValidation() {
           return
         }
 
-        // TEMPORARILY DISABLED: Comprehensive validation causing auto-logout
-        // const validationResult = await authManager.validateUserAccess()
-        const validationResult: { isValid: boolean; reason?: string } = { isValid: true } // Always return valid for now
+        // Comprehensive validation - will auto-logout on invalid tenant
+        const validationResult = await authManager.validateUserAccess()
         
         if (!validationResult.isValid) {
           console.warn(`Access validation failed: ${validationResult.reason}`)
