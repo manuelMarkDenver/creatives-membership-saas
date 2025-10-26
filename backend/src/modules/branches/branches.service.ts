@@ -324,11 +324,47 @@ export class BranchesService {
       );
     }
 
-    // Check for assigned users (both active staff and members)
+    // Check for assigned users via gymUserBranches (staff and some members)
     const activeUsers = branch.gymUserBranches.filter(ub => !ub.user.deletedAt);
-    if (activeUsers.length > 0) {
-      const userSummary = activeUsers.map(ub => `${ub.user.firstName} ${ub.user.lastName} (${ub.user.role})`).join(', ');
-      throw new ConflictException(`Cannot delete branch: ${activeUsers.length} users are assigned (${userSummary}). Please reassign users first.`);
+    
+    // Also check for gym members with this as their primary branch
+    const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.findMany({
+      where: {
+        primaryBranchId: branchId,
+        user: {
+          deletedAt: null, // Only active members
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+      },
+    });
+    
+    const totalAssignedUsers = activeUsers.length + membersWithPrimaryBranch.length;
+    
+    if (totalAssignedUsers > 0) {
+      const userSummaries: string[] = [];
+      
+      // Add gymUserBranches users
+      activeUsers.forEach(ub => {
+        userSummaries.push(`${ub.user.firstName} ${ub.user.lastName} (${ub.user.role})`);
+      });
+      
+      // Add primary branch members
+      membersWithPrimaryBranch.forEach(profile => {
+        userSummaries.push(`${profile.user.firstName} ${profile.user.lastName} (${profile.user.role})`);
+      });
+      
+      throw new ConflictException(
+        `Cannot delete branch: ${totalAssignedUsers} users are assigned (${userSummaries.join(', ')}). Please reassign users first.`
+      );
     }
 
     // Soft delete by setting isActive to false
@@ -456,7 +492,7 @@ export class BranchesService {
       throw new NotFoundException('Branch not found');
     }
 
-    // Categorize users by role and status
+    // Get users from gymUserBranches
     const activeUsers = branch.gymUserBranches
       .filter(ub => !ub.user.deletedAt)
       .map(ub => ({
@@ -468,10 +504,55 @@ export class BranchesService {
         },
       }));
 
+    // Also get gym members with this as their primary branch
+    const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.findMany({
+      where: {
+        primaryBranchId: branchId,
+        user: {
+          deletedAt: null,
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phoneNumber: true,
+            role: true,
+            photoUrl: true,
+            deletedAt: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    // Add primary branch members to the list (if not already in gymUserBranches)
+    const userIdsInBranches = new Set(activeUsers.map(u => u.id));
+    const additionalMembers = membersWithPrimaryBranch
+      .filter(profile => !userIdsInBranches.has(profile.user.id))
+      .map(profile => ({
+        ...profile.user,
+        branchAssignment: {
+          accessLevel: 'READ_ONLY',
+          isPrimary: true,
+          assignedAt: profile.createdAt,
+        },
+        gymMemberProfile: {
+          role: profile.role,
+          status: profile.status,
+          joinedDate: profile.joinedDate,
+        },
+      }));
+
+    const allActiveUsers = [...activeUsers, ...additionalMembers];
+
     const usersByRole = {
-      staff: activeUsers.filter(u => u.role && ['STAFF', 'MANAGER'].includes(u.role)),
-      members: activeUsers.filter(u => u.role === 'CLIENT'),
-      admins: activeUsers.filter(u => u.role && ['SUPER_ADMIN', 'OWNER'].includes(u.role)),
+      staff: allActiveUsers.filter(u => u.role && ['STAFF', 'MANAGER'].includes(u.role)),
+      members: allActiveUsers.filter(u => u.role === 'CLIENT'),
+      admins: allActiveUsers.filter(u => u.role && ['SUPER_ADMIN', 'OWNER'].includes(u.role)),
     };
 
     return {
@@ -482,9 +563,9 @@ export class BranchesService {
         isActive: branch.isActive,
       },
       users: {
-        total: activeUsers.length,
+        total: allActiveUsers.length,
         byRole: usersByRole,
-        all: activeUsers,
+        all: allActiveUsers,
       },
       reassignmentOptions: branch.tenant.branches,
       statistics: {
@@ -512,7 +593,7 @@ export class BranchesService {
       throw new BadRequestException('Cannot reassign users between different tenants');
     }
 
-    // Validate all users are currently assigned to the source branch
+    // Get users assigned via gymUserBranch table
     const currentAssignments = await this.prisma.gymUserBranch.findMany({
       where: {
         branchId: fromBranchId,
@@ -530,9 +611,31 @@ export class BranchesService {
       },
     });
 
-    if (currentAssignments.length !== userIds.length) {
-      const foundUserIds = currentAssignments.map(a => a.userId);
-      const missingUserIds = userIds.filter(id => !foundUserIds.includes(id));
+    // Get members with this as their primary branch (not in gymUserBranch)
+    const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.findMany({
+      where: {
+        primaryBranchId: fromBranchId,
+        userId: { in: userIds },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    const foundUserIds = new Set([
+      ...currentAssignments.map(a => a.userId),
+      ...membersWithPrimaryBranch.map(p => p.userId),
+    ]);
+
+    const missingUserIds = userIds.filter(id => !foundUserIds.has(id));
+    if (missingUserIds.length > 0) {
       throw new BadRequestException(`Some users are not assigned to source branch: ${missingUserIds.join(', ')}`);
     }
 
@@ -551,54 +654,72 @@ export class BranchesService {
 
     // Perform bulk reassignment in a transaction
     const result = await this.prisma.$transaction(async (tx) => {
-      // Delete old assignments
-      await tx.gymUserBranch.deleteMany({
-        where: {
-          branchId: fromBranchId,
-          userId: { in: userIds },
-        },
-      });
+      let reassignedCount = 0;
 
-      // Create new assignments (preserve access levels and primary status)
-      const newAssignments = await tx.gymUserBranch.createMany({
-        data: currentAssignments.map(assignment => ({
-          userId: assignment.userId,
-          branchId: toBranchId,
-          tenantId: toBranch.tenantId,
-          accessLevel: assignment.accessLevel,
-          isPrimary: assignment.isPrimary,
-          permissions: assignment.permissions || undefined,
-        })),
-      });
-
-      // Update primaryBranchId for gym members (CLIENT role)
-      const memberUserIds = currentAssignments
-        .filter(a => a.user.role === 'CLIENT')
-        .map(a => a.userId);
-      
-      if (memberUserIds.length > 0) {
-        await tx.gymMemberProfile.updateMany({
+      // Handle users in gymUserBranch table
+      if (currentAssignments.length > 0) {
+        // Delete old assignments
+        await tx.gymUserBranch.deleteMany({
           where: {
-            userId: { in: memberUserIds },
+            branchId: fromBranchId,
+            userId: { in: currentAssignments.map(a => a.userId) },
+          },
+        });
+
+        // Create new assignments (preserve access levels and primary status)
+        const newAssignments = await tx.gymUserBranch.createMany({
+          data: currentAssignments.map(assignment => ({
+            userId: assignment.userId,
+            branchId: toBranchId,
+            tenantId: toBranch.tenantId,
+            accessLevel: assignment.accessLevel,
+            isPrimary: assignment.isPrimary,
+            permissions: assignment.permissions || undefined,
+          })),
+        });
+        reassignedCount += newAssignments.count;
+      }
+
+      // Update primaryBranchId for all gym members (both in gymUserBranch and only primaryBranch)
+      const allMemberUserIds = [
+        ...currentAssignments.filter(a => a.user.role === 'CLIENT').map(a => a.userId),
+        ...membersWithPrimaryBranch.map(p => p.userId),
+      ];
+      
+      if (allMemberUserIds.length > 0) {
+        const updateResult = await tx.gymMemberProfile.updateMany({
+          where: {
+            userId: { in: allMemberUserIds },
           },
           data: {
             primaryBranchId: toBranchId,
           },
         });
+        // Add members that were only in primaryBranch (not in gymUserBranch)
+        reassignedCount += membersWithPrimaryBranch.length;
       }
 
       // TODO: Create audit log entry
       // await tx.branchAuditLog.create({ ... })
 
-      return {
-        reassignedCount: newAssignments.count,
-        fromBranch: { id: fromBranch.id, name: fromBranch.name },
-        toBranch: { id: toBranch.id, name: toBranch.name },
-        users: currentAssignments.map(a => ({
+      const allUsers = [
+        ...currentAssignments.map(a => ({
           id: a.user.id,
           name: `${a.user.firstName} ${a.user.lastName}`,
           role: a.user.role,
         })),
+        ...membersWithPrimaryBranch.map(p => ({
+          id: p.user.id,
+          name: `${p.user.firstName} ${p.user.lastName}`,
+          role: p.user.role,
+        })),
+      ];
+
+      return {
+        reassignedCount,
+        fromBranch: { id: fromBranch.id, name: fromBranch.name },
+        toBranch: { id: toBranch.id, name: toBranch.name },
+        users: allUsers,
         reason,
         timestamp: new Date().toISOString(),
       };
