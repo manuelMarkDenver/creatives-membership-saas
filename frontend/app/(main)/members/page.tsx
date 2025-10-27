@@ -370,71 +370,72 @@ export default function MembersPage() {
         </CardHeader>
         <CardContent className="p-6">
           <div className="flex flex-col gap-4 mb-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search members..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+            {/* Search bar - full width */}
+            <div className="w-full">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search members..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full"
+                />
               </div>
-              <div className="flex gap-3 flex-wrap">
-                <Select value={memberStatusFilter} onValueChange={(value) => setMemberStatusFilter(value as 'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'deleted')}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by status" />
+            </div>
+            
+            {/* Filters row */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <Select value={memberStatusFilter} onValueChange={(value) => setMemberStatusFilter(value as 'all' | 'active' | 'expired' | 'expiring' | 'cancelled' | 'deleted')}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Members</SelectItem>
+                  <SelectItem value="active">Active Only</SelectItem>
+                  <SelectItem value="expiring">Expiring Soon</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="deleted">Deleted</SelectItem>
+                </SelectContent>
+              </Select>
+              {!isSuperAdmin && (
+                <Select value={branchFilter} onValueChange={setBranchFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Filter by branch" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Members</SelectItem>
-                    <SelectItem value="active">Active Only</SelectItem>
-                    <SelectItem value="expiring">Expiring Soon</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="deleted">Deleted</SelectItem>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4 text-blue-500" />
+                        All Branches
+                      </div>
+                    </SelectItem>
+                    {branches && branches.length > 0 && branches.map((branch: any) => (
+                      <SelectItem key={branch.id} value={branch.id}>
+                        <div className="flex items-center gap-2">
+                          <Building className="h-4 w-4 text-gray-500" />
+                          {branch.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="no-branch">
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4 text-orange-500" />
+                        No Branch Assigned
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
-                {!isSuperAdmin && (
-                  <Select value={branchFilter} onValueChange={setBranchFilter}>
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue placeholder="Filter by branch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">
-                        <div className="flex items-center gap-2">
-                          <Building className="h-4 w-4 text-blue-500" />
-                          All Branches
-                        </div>
-                      </SelectItem>
-                      {branches && branches.length > 0 && branches.map((branch: any) => (
-                        <SelectItem key={branch.id} value={branch.id}>
-                          <div className="flex items-center gap-2">
-                            <Building className="h-4 w-4 text-gray-500" />
-                            {branch.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="no-branch">
-                        <div className="flex items-center gap-2">
-                          <Building className="h-4 w-4 text-orange-500" />
-                          No Branch Assigned
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="showDeleted"
-                    checked={showDeleted}
-                    onCheckedChange={(checked) => setShowDeleted(checked as boolean)}
-                  />
-                  <Label htmlFor="showDeleted" className="text-sm font-medium whitespace-nowrap">
-                    Show deleted
-                  </Label>
-                </div>
+              )}
+              <div className="flex items-center space-x-2 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md">
+                <Checkbox
+                  id="showDeleted"
+                  checked={showDeleted}
+                  onCheckedChange={(checked) => setShowDeleted(checked as boolean)}
+                />
+                <Label htmlFor="showDeleted" className="text-sm font-medium whitespace-nowrap cursor-pointer">
+                  Show deleted
+                </Label>
               </div>
             </div>
             
