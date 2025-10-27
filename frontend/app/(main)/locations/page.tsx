@@ -601,16 +601,17 @@ export default function LocationsPage() {
               </div>
             ) : (
               filteredLocations.map((location: any) => (
-                <div key={location.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700 gap-4">
-                  <div className="flex items-start space-x-4 flex-1">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold flex-shrink-0">
+                <div key={location.id} className="flex flex-col p-4 sm:p-5 border-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:border-gray-700 gap-4 shadow-sm hover:shadow-md transition-all">
+                  {/* Top section with icon, title and badges */}
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl sm:text-2xl flex-shrink-0 shadow-md">
                       {location.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{location.name}</h4>
+                      <div className="flex items-start gap-2 flex-wrap">
+                        <h4 className="font-bold text-lg sm:text-xl text-gray-900 dark:text-gray-100">{location.name}</h4>
                         {isMainBranch(location) && (
-                          <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 bg-amber-50">
+                          <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-600">
                             MAIN
                           </Badge>
                         )}
@@ -621,81 +622,78 @@ export default function LocationsPage() {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600 dark:text-gray-300 mt-1">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">{location.address}</span>
+                      
+                      {/* Contact details */}
+                      <div className="flex flex-col gap-1.5 mt-2 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span className="break-words">{location.address}</span>
                         </div>
                         {location.phoneNumber && (
-                          <div className="flex items-center gap-1">
-                            <Phone className="h-3 w-3 flex-shrink-0" />
-                            {location.phoneNumber}
+                          <div className="flex items-center gap-1.5">
+                            <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span>{location.phoneNumber}</span>
                           </div>
                         )}
                         {location.email && (
-                          <div className="flex items-center gap-1">
-                            <Mail className="h-3 w-3 flex-shrink-0" />
-                            <span className="truncate">{location.email}</span>
+                          <div className="flex items-center gap-1.5">
+                            <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span className="break-all">{location.email}</span>
                           </div>
                         )}
                       </div>
-                      
-                      {/* Analytics metrics for location */}
-                      {location.revenue > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          <div className="flex items-center gap-1 text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-2 py-1 rounded">
-                            <DollarSign className="h-3 w-3" />
-                            {formatCurrency(location.revenue)} revenue
-                          </div>
-                          {location.averageRevenuePerMember > 0 && (
-                            <div className="flex items-center gap-1 text-xs bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
-                              {formatCurrency(location.averageRevenuePerMember)}/member
-                            </div>
-                          )}
-                          {location.memberGrowthRate !== 0 && (
-                            <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
-                              location.memberGrowthRate >= 0 
-                                ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
-                                : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
-                            }`}>
-                              {location.memberGrowthRate >= 0 ? (
-                                <TrendingUp className="h-3 w-3" />
-                              ) : (
-                                <TrendingDown className="h-3 w-3" />
-                              )}
-                              {location.memberGrowthRate >= 0 ? '+' : ''}{location.memberGrowthRate.toFixed(1)}% growth
-                            </div>
-                          )}
-                          {location.activeSubscriptionRate > 0 && (
-                            <div className="flex items-center gap-1 text-xs bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 px-2 py-1 rounded">
-                              {location.activeSubscriptionRate.toFixed(0)}% active subs
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <div className="flex flex-col items-end gap-2">
-                        <Badge variant={location.isActive ? "default" : "destructive"} className="mb-1">
-                          {location.isActive ? 'ACTIVE' : 'DELETED'}
-                        </Badge>
-                        
-                        {/* Member info only - Staff management not yet implemented */}
-                        <div className="flex flex-col items-end gap-1">
-                          <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
-                            <Users className="h-3 w-3 mr-1" />
-                            {(location._count as any)?.gymUserBranches || (location._count as any)?.activeMembers || 0} members
-                          </Badge>
-                          {/* Staff badge hidden - feature not yet implemented */}
-                          {/* Future: Show staff count when staff management is ready */}
-                        </div>
+                  {/* Analytics metrics for location */}
+                  {location.revenue > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      <div className="flex items-center gap-1.5 text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-3 py-1.5 rounded-lg font-medium">
+                        <span className="font-bold text-base">₱</span>
+                        {location.revenue.toLocaleString()} revenue
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Created: {new Date(location.createdAt).toLocaleDateString()}
-                      </p>
+                      {location.averageRevenuePerMember > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-lg font-medium">
+                          ₱{location.averageRevenuePerMember.toLocaleString()}/member
+                        </div>
+                      )}
+                      {location.memberGrowthRate !== 0 && (
+                        <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium ${
+                          location.memberGrowthRate >= 0 
+                            ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                        }`}>
+                          {location.memberGrowthRate >= 0 ? (
+                            <TrendingUp className="h-3.5 w-3.5" />
+                          ) : (
+                            <TrendingDown className="h-3.5 w-3.5" />
+                          )}
+                          {location.memberGrowthRate >= 0 ? '+' : ''}{location.memberGrowthRate.toFixed(1)}% growth
+                        </div>
+                      )}
+                      {location.activeSubscriptionRate > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-lg font-medium">
+                          {location.activeSubscriptionRate.toFixed(0)}% active subs
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Bottom section with status and actions */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Badge variant={location.isActive ? "default" : "destructive"} className="px-3 py-1">
+                        {location.isActive ? 'ACTIVE' : 'DELETED'}
+                      </Badge>
+                      
+                      <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-3 py-1">
+                        <Users className="h-3 w-3 mr-1.5" />
+                        {(location._count as any)?.gymUserBranches || (location._count as any)?.activeMembers || 0} members
+                      </Badge>
+                      
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        Created {new Date(location.createdAt).toLocaleDateString()}
+                      </span>
                     </div>
                     
                     {location.isActive ? (
@@ -703,8 +701,9 @@ export default function LocationsPage() {
                       (canEditLocation(location) || canDeleteLocation(location)) && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
+                            <Button variant="outline" size="sm" className="shadow-sm hover:shadow-md transition-shadow">
+                              <MoreHorizontal className="h-4 w-4 mr-2" />
+                              Actions
                             </Button>
                           </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -756,11 +755,11 @@ export default function LocationsPage() {
                       canDelete && (
                         (subscriptionStatus && !subscriptionStatus.canCreate) ? (
                           // Show info message when branch limit is reached
-                          <div className="flex flex-col items-end gap-1">
+                          <div className="flex flex-col gap-1">
                             <Badge variant="outline" className="text-xs bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300">
                               Limit Reached
                             </Badge>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[150px] text-right">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-full">
                               {subscriptionStatus.reason}
                             </p>
                           </div>
@@ -771,7 +770,7 @@ export default function LocationsPage() {
                             size="sm"
                             onClick={() => handleRestoreLocation(location)}
                             disabled={restoreLocation.isPending}
-                            className="text-green-600 hover:text-green-700"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 shadow-sm hover:shadow-md transition-all"
                           >
                             {restoreLocation.isPending ? (
                               <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin mr-2" />
