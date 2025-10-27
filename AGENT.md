@@ -1033,11 +1033,97 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ---
 
-*Last Updated: October 26, 2025 - 20:50 UTC*
-*Status: Analytics Dashboard ✅ WORKING - Member counts ✅ FIXED*
-*Current Focus: Analytics showing revenue data, member counts corrected from 38→18*
+*Last Updated: October 27, 2025 - 03:40 UTC*
+*Status: Mobile UI Improvements ✅ COMPLETED - Dark Mode Fixes ✅ APPLIED*
+*Current Focus: Production-ready mobile layouts with better UX*
 
-### **Current Session Progress (Oct 26, 2025) - Analytics Dashboard Fix**
+### **Current Session Progress (Oct 27, 2025) - Mobile UI & Dark Mode Improvements**
+
+#### ✅ **Mobile Layout Optimization & Dark Mode Fixes - COMPLETED**
+**Production-ready UI improvements for better mobile experience and accessibility**
+
+1. **Currency Formatting - PHP Peso (₱)** ✅
+   - **Problem**: Location cards displayed USD ($) instead of Philippine Peso (₱)
+   - **Solution**: Replaced DollarSign icon and formatCurrency() with direct ₱ symbol and number formatting
+   - **Impact**: All revenue displays now show ₱33,300 format (no decimal noise)
+   - **Files**: `frontend/app/(main)/locations/page.tsx` (lines 647-652)
+
+2. **Location Card Mobile Layout** ✅
+   - **Restructured**: Changed from horizontal to vertical card layout for mobile
+   - **Enhanced**: Larger icons (16x16), better spacing (gap-3 to gap-4)
+   - **Improved**: Contact details with break-words for long addresses/emails
+   - **Added**: Better shadows (shadow-sm → shadow-md on hover)
+   - **Bottom Section**: Clean status/actions bar with border-top separator
+   - **Result**: More attractive, easier to scan on mobile devices
+
+3. **Member Card Mobile Layout** ✅
+   - **Restructured**: Simplified from complex nested layout to clean vertical sections
+   - **Photo Size**: Reduced from 32x32 to 20x20 (24x24 desktop) for better mobile fit
+   - **Sections**: Photo/Info → Subscription → Actions (clear visual hierarchy)
+   - **Status Button**: Full width on mobile (flex-1), fixed width on desktop
+   - **Actions Menu**: Added "Actions" label visible on desktop
+   - **Result**: Clean, organized cards that work well on all screen sizes
+
+4. **Search/Filter Section Width** ✅
+   - **Problem**: Search and filters were squeezed on mobile
+   - **Solution**: Full width search bar (w-full), separated filters into own row
+   - **Enhancement**: Select dropdowns full width on mobile, fixed on desktop
+   - **Result**: Better usability and visual balance across devices
+
+5. **Checkbox Visibility - Dark Mode Fix** ✅
+   - **Problem**: Checkboxes invisible in dark mode (low contrast)
+   - **Root Cause**: Default checkbox styling used transparent/light backgrounds
+   - **Solution**: Added explicit dark mode styling to checkbox component
+   - **Implementation**: `bg-white dark:bg-gray-700 dark:border-gray-500 border-2`
+   - **Result**: Checkboxes now visible in both light and dark modes
+   - **Files**: `frontend/components/ui/checkbox.tsx` (line 17)
+   - **Impact**: Affects all checkboxes across app (locations, members, modals)
+
+6. **Additional UI Polish** ✅
+   - **Borders**: Upgraded from border to border-2 for better definition
+   - **Shadows**: Added hover:shadow-md for better interactivity feedback
+   - **Buttons**: Better touch targets (min-h-[44px]) for mobile usability
+   - **Badges**: Enhanced with better padding and rounded-lg styling
+   - **Actions**: Changed ghost button to outline for better visibility
+
+#### 📊 **Impact Summary**
+- ✅ **Mobile UX**: Cards are now easier to read and interact with on phones
+- ✅ **Accessibility**: Checkboxes visible in all modes for all users
+- ✅ **Localization**: Consistent Philippine Peso (₱) display throughout
+- ✅ **Professional**: Better shadows, spacing, and visual hierarchy
+- ✅ **Touch-Friendly**: Proper button sizes and spacing for mobile taps
+
+#### 🎯 **Files Modified**
+1. `/frontend/app/(main)/locations/page.tsx` - Location card layout and currency
+2. `/frontend/components/members/member-card.tsx` - Member card restructure
+3. `/frontend/app/(main)/members/page.tsx` - Search/filter section width
+4. `/frontend/components/ui/checkbox.tsx` - Dark mode visibility fix
+
+#### 📝 **Commit Message**
+```
+fix(ui): improve mobile layouts and fix dark mode visibility
+
+- Replace $ with ₱ for PHP currency in location cards
+- Improve location card mobile layout with better spacing and organization
+- Restructure member card layout for better mobile responsiveness
+- Fix search/filter section to be full width in members page
+- Fix checkbox visibility in dark mode across all pages
+- Add better shadows, borders and hover states throughout
+- Improve button layouts and action menus for mobile touch targets
+```
+
+#### 🚀 **Deployment Commands (Vercel CLI)**
+```bash
+# Navigate to frontend
+cd /home/mhackeedev/_apps/creatives-saas/frontend
+
+# Deploy to production
+vercel --prod
+```
+
+---
+
+### **Previous Session Progress (Oct 26, 2025) - Analytics Dashboard Fix**
 
 #### ✅ **Analytics Transaction Date Issue - FIXED**
 **Root cause identified and resolved for zero analytics data display**
