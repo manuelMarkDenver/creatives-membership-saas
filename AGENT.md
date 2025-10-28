@@ -31,6 +31,8 @@
 - **SHORTHAND REFERENCES**:
   - **"a-doc"** = This AGENT.md file (`/home/mhackeedev/_apps/creatives-saas/AGENT.md`)
   - **"b-logs"** = Browser console logs (`/home/mhackeedev/console.log`)
+  - **"conversations"** = Documentation directory (`/home/mhackeedev/_apps/creatives-saas/conversations/`)
+    - `DEPLOYMENT-GUIDE.md` - Complete deployment workflows and CLI reference
 - **MILESTONE DOCUMENTATION**: Update a-doc after every milestone or task completion, then provide a copy-paste ready commit message
 
 ### 🏗️ Code Quality Rules
@@ -790,22 +792,48 @@ cd frontend && npm run dev
 
 ## 🚀 Production Deployment Steps (Railway + Vercel)
 
+**📖 Complete Guide**: See `/conversations/DEPLOYMENT-GUIDE.md` for comprehensive deployment documentation
+
 **Prerequisites**: Railway CLI and Vercel CLI installed
 
 ### Quick Push Workflow (Most Common)
 
-Use these commands when you have code/schema changes to deploy:
-
+**Frontend Only (UI/UX changes):**
 ```bash
-# 1. Push database schema to production
-cd /home/mhackeedev/_apps/creatives-saas/backend
+cd /home/mhackeedev/_apps/creatives-saas
+git add .
+git commit -m "fix(ui): your changes"
+git push origin main
+cd frontend
+vercel --prod
+```
+
+**Backend Only (API changes):**
+```bash
+cd /home/mhackeedev/_apps/creatives-saas
+git add .
+git commit -m "feat(api): your changes"
+git push origin main
+cd backend
+railway up
+```
+
+**Full Stack (Schema + Backend + Frontend):**
+```bash
+cd /home/mhackeedev/_apps/creatives-saas
+git add .
+git commit -m "feat: your feature"
+git push origin main
+
+# Push schema
+cd backend
 railway run npx prisma db push
 
-# 2. Deploy backend to Railway
+# Deploy backend
 railway up
 
-# 3. Deploy frontend to Vercel
-cd /home/mhackeedev/_apps/creatives-saas/frontend
+# Deploy frontend
+cd ../frontend
 vercel --prod
 ```
 
@@ -1114,12 +1142,16 @@ fix(ui): improve mobile layouts and fix dark mode visibility
 
 #### 🚀 **Deployment Commands (Vercel CLI)**
 ```bash
-# Navigate to frontend
+# Navigate to frontend (IMPORTANT: Always run from frontend directory!)
 cd /home/mhackeedev/_apps/creatives-saas/frontend
 
 # Deploy to production
 vercel --prod
 ```
+
+**⚠️ Common Mistake**: Running `vercel --prod` from root directory will fail with "No Next.js version detected"
+
+**📖 See Also**: `/conversations/DEPLOYMENT-GUIDE.md` for complete deployment workflows and troubleshooting
 
 ---
 
