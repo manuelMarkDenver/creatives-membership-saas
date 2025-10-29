@@ -107,14 +107,39 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
    * Handle password setup
    */
   const handlePasswordSet = useCallback(
-    async (tempPassword: string, newPassword: string) => {
+    async (newPassword: string) => {
       if (!tenantId) throw new Error('Tenant ID is required')
 
-      // Call the setInitialPassword endpoint
+      // Try to get verification token from localStorage first
+      let verificationToken = localStorage.getItem('verification_token')
+      
+      // If token not found, try to get it from the user record in the database
+      if (!verificationToken) {
+        try {
+          const response = await apiClient.get('/auth/me')
+          const user = response.data?.user
+          
+          // If user has emailVerificationToken still set, use it
+          if (user?.emailVerificationToken) {
+            verificationToken = user.emailVerificationToken
+          }
+        } catch (error) {
+          console.error('Failed to fetch user data:', error)
+        }
+      }
+
+      if (!verificationToken) {
+        throw new Error('Verification token not found. Please contact support or try registering again.')
+      }
+
+      // Call the set initial password endpoint
       await apiClient.post('/auth/set-initial-password', {
-        temporaryPassword: tempPassword,
-        newPassword,
+        token: verificationToken,
+        password: newPassword,
       })
+
+      // Clear the verification token after use
+      localStorage.removeItem('verification_token')
 
       // Mark password as changed in onboarding
       await markPasswordChanged.mutateAsync(tenantId)

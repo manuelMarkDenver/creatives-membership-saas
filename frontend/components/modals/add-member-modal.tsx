@@ -695,7 +695,7 @@ export function AddMemberModal({
                   />
                   {selectedPlan && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Plan price: ₱{selectedPlan.price.toFixed(2)}
+                      Plan price: ₱{parseFloat(selectedPlan.price).toFixed(2)}
                     </p>
                   )}
                   {currentMembershipErrors.paymentAmount && (

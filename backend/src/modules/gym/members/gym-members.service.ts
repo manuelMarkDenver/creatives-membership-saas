@@ -152,6 +152,7 @@ export class GymMembersService {
               data: {
                 tenantId: tenantId,
                 customerId: user.id,
+                gymMemberSubscriptionId: subscription.id, // Link to subscription for revenue tracking
                 businessType: 'gym',
                 transactionCategory: 'membership',
                 amount: paymentAmount,
@@ -162,7 +163,7 @@ export class GymMembersService {
                 status: 'COMPLETED',
                 description: `Initial payment for ${membershipPlan.name} membership`,
                 processedBy: user.id, // Self-processed for new member signup
-                createdAt: startDate,
+                createdAt: new Date(), // Use current date for transaction
               },
             });
           }

@@ -18,7 +18,7 @@ import { toast } from 'react-toastify'
 
 interface SetPasswordModalProps {
   open: boolean
-  onPasswordSet: (tempPassword: string, newPassword: string) => Promise<void>
+  onPasswordSet: (newPassword: string) => Promise<void>
   isLoading?: boolean
 }
 
@@ -27,10 +27,8 @@ export default function SetPasswordModal({
   onPasswordSet,
   isLoading = false,
 }: SetPasswordModalProps) {
-  const [tempPassword, setTempPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [showTempPassword, setShowTempPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
@@ -51,13 +49,13 @@ export default function SetPasswordModal({
     setError('')
 
     // Validation
-    if (!tempPassword || !newPassword || !confirmPassword) {
+    if (!newPassword || !confirmPassword) {
       setError('All fields are required')
       return
     }
 
     if (newPassword.length < 8) {
-      setError('New password must be at least 8 characters long')
+      setError('Password must be at least 8 characters long')
       return
     }
 
@@ -67,18 +65,13 @@ export default function SetPasswordModal({
     }
 
     if (newPassword !== confirmPassword) {
-      setError('New password and confirmation do not match')
-      return
-    }
-
-    if (tempPassword === newPassword) {
-      setError('New password must be different from temporary password')
+      setError('Passwords do not match')
       return
     }
 
     setIsSubmitting(true)
     try {
-      await onPasswordSet(tempPassword, newPassword)
+      await onPasswordSet(newPassword)
       toast.success('Password set successfully! Welcome to your dashboard.')
     } catch (error: any) {
       console.error('Failed to set password:', error)
@@ -97,14 +90,14 @@ export default function SetPasswordModal({
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mx-auto mb-4">
-            <Shield className="h-6 w-6 text-blue-600" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mx-auto mb-4">
+            <Shield className="h-6 w-6 text-primary" />
           </div>
           <DialogTitle className="text-center text-2xl">
             Set Your Password
           </DialogTitle>
           <DialogDescription className="text-center">
-            Welcome! Before you can access your dashboard, please set a secure password using the temporary password sent to your email.
+            Welcome! Before you can access your dashboard, please create a secure password for your account.
           </DialogDescription>
         </DialogHeader>
 
@@ -115,50 +108,16 @@ export default function SetPasswordModal({
             </Alert>
           )}
 
-          {/* Temporary Password */}
-          <div className="space-y-2">
-            <Label htmlFor="tempPassword">Temporary Password</Label>
-            <div className="relative">
-              <Input
-                id="tempPassword"
-                type={showTempPassword ? 'text' : 'password'}
-                value={tempPassword}
-                onChange={(e) => setTempPassword(e.target.value)}
-                placeholder="Enter the temporary password from your email"
-                className="pr-10"
-                required
-                autoComplete="off"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                onClick={() => setShowTempPassword(!showTempPassword)}
-                aria-label={showTempPassword ? 'Hide password' : 'Show password'}
-              >
-                {showTempPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Check your email for the temporary password we sent you.
-            </p>
-          </div>
-
           {/* New Password */}
           <div className="space-y-2">
-            <Label htmlFor="newPassword">New Password</Label>
+            <Label htmlFor="newPassword">Password</Label>
             <div className="relative">
               <Input
                 id="newPassword"
                 type={showNewPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Create a strong password"
+                placeholder="Enter a strong password"
                 className="pr-10"
                 required
                 minLength={8}
@@ -248,7 +207,7 @@ export default function SetPasswordModal({
             <Button 
               type="submit" 
               disabled={isSubmitting || isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full"
               size="lg"
             >
               {isSubmitting || isLoading ? (

@@ -135,8 +135,8 @@ export default function CreateMembershipPlanModal({
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 mx-auto mb-4">
-            <CreditCard className="h-6 w-6 text-green-600" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 mx-auto mb-4">
+            <CreditCard className="h-6 w-6 text-accent" />
           </div>
           <DialogTitle className="text-center text-2xl">
             Create Your First Membership Plan
@@ -206,7 +206,7 @@ export default function CreateMembershipPlanModal({
             </Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                $
+                ₱
               </span>
               <Input
                 id="planPrice"
@@ -216,12 +216,12 @@ export default function CreateMembershipPlanModal({
                 value={formData.price}
                 onChange={(e) => handleInputChange('price', e.target.value)}
                 placeholder="0.00"
-                className="pl-7"
+                className="pl-8"
                 required
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              The price members will pay for this plan.
+              The price members will pay for this plan (in Philippine Pesos).
             </p>
           </div>
 
@@ -294,7 +294,7 @@ export default function CreateMembershipPlanModal({
             <Button 
               type="submit" 
               disabled={isSubmitting || isLoading}
-              className="w-full bg-green-600 hover:bg-green-700"
+              className="w-full"
               size="lg"
             >
               {isSubmitting || isLoading ? (

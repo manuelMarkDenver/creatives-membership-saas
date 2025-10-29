@@ -38,6 +38,11 @@ function VerifyEmailContent() {
           localStorage.setItem('auth_token', result.data.token)
           localStorage.setItem('user_data', JSON.stringify(result.data.user))
         }
+        
+        // Store verification token for password setup if needed
+        if (result.verificationToken) {
+          localStorage.setItem('verification_token', result.verificationToken)
+        }
 
         // Redirect to dashboard after 2 seconds
         setTimeout(() => {

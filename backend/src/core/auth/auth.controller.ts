@@ -314,6 +314,8 @@ export class AuthController {
         tenantId: effectiveTenantId,
         tenant: effectiveTenant,
         created_at: user.createdAt,
+        // Include verification token if user hasn't set initial password (for onboarding)
+        emailVerificationToken: !user.initialPasswordSet ? user.emailVerificationToken : undefined,
       },
     };
   }

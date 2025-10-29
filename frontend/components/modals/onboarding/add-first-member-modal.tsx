@@ -136,8 +136,8 @@ export default function AddFirstMemberModal({
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 mx-auto mb-4">
-            <UserPlus className="h-6 w-6 text-purple-600" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-secondary/10 mx-auto mb-4">
+            <UserPlus className="h-6 w-6 text-secondary" />
           </div>
           <DialogTitle className="text-center text-2xl">
             Add Your First Member
@@ -253,7 +253,7 @@ export default function AddFirstMemberModal({
             <Button 
               type="submit" 
               disabled={isSubmitting || isLoading}
-              className="flex-1 bg-purple-600 hover:bg-purple-700"
+              className="flex-1"
             >
               {isSubmitting || isLoading ? (
                 <>
