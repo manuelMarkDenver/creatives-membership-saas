@@ -1108,11 +1108,98 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ---
 
-*Last Updated: October 29, 2025 - 17:16 UTC*
-*Status: Authentication & Production Deployment ✅ READY*
-*Current Focus: Production deployment to Railway and Vercel*
+*Last Updated: October 29, 2025 - 19:52 UTC*
+*Status: Onboarding Flow Implementation 🚧 IN PROGRESS*
+*Current Focus: User onboarding UX with forced setup wizard*
 
-### **Current Session Progress (Oct 29, 2025) - Authentication Fixes & Production Deployment Prep**
+### **Current Session Progress (Oct 29, 2025) - Onboarding Flow Implementation**
+
+#### 🚧 **Guided Onboarding System - IN PROGRESS**
+**Comprehensive setup wizard for new gym owners with forced steps**
+
+**Flow**: Sign Up → Verify Email → Set Password → Edit Branch → Create Plans → Add Member (optional) → Complete
+
+1. **Backend Implementation** ✅ COMPLETED
+   - Added `initialPasswordSet` field to User model (Boolean, default: false)
+   - Created `POST /auth/set-initial-password` endpoint
+   - Modified `verifyEmail` response to include `requiresPasswordSetup` flag
+   - Verification token preserved for password setup (not cleared immediately)
+   - Schema pushed with `npx prisma db push` (following AGENT.md rules)
+   - Files: `schema.prisma`, `auth.service.ts`, `auth.controller.ts`, `set-initial-password.dto.ts`
+
+2. **Documentation** ✅ COMPLETED
+   - Created `/conversations/ONBOARDING-FLOW-IMPLEMENTATION.md`
+   - Complete implementation guide with:
+     * Visual flow diagram (7 steps)
+     * Backend API specifications
+     * Frontend component architecture
+     * Forced modal pattern examples
+     * Route guard implementation
+     * Testing checklist
+     * Deployment strategy
+   - Updated AGENT.md with progress tracking
+
+3. **Frontend Implementation** ⌛ PENDING
+   - [ ] Create `SetPasswordModal` component (non-dismissible)
+   - [ ] Create `ConfigureBranchModal` component (non-dismissible)
+   - [ ] Create `CreatePlanModal` component (non-dismissible, multi-plan support)
+   - [ ] Create `AddMemberModal` component (optional, with Skip button)
+   - [ ] Create `OnboardingCompleteModal` component (celebration)
+   - [ ] Implement onboarding Zustand store
+   - [ ] Add route guards to prevent skipping steps
+   - [ ] Create onboarding status API hooks
+
+4. **Key UX Decisions** ✅ FINALIZED
+   - **Forced Steps**: Password, Branch Edit, Plan Creation (can't skip)
+   - **Optional Step**: First member addition (can skip)
+   - **Modal Pattern**: Gray overlay + non-dismissible modals for forced steps
+   - **Progress**: Visual indicator showing step X of 6
+   - **Branch Setup**: Edit auto-created "Main Branch" (don't force new creation)
+   - **Plan Creation**: Can add multiple plans before continuing
+   - **Member Addition**: Optional - users may not have members yet
+
+5. **Why This Approach**
+   - **Forces password setup**: Users must set own password (security)
+   - **Forces branch details**: Empty "Main Branch" looks unprofessional
+   - **Forces plan creation**: Can't add members without plans (business rule)
+   - **Optional members**: Gym may not have members yet on day 1
+   - **Better UX**: Guided flow vs overwhelming dashboard
+
+**Next Steps:**
+1. Implement frontend modals (Phase 1: Password setup)
+2. Add onboarding status tracking endpoints
+3. Create route guards
+4. Test complete flow end-to-end
+5. Deploy to production
+
+**Related Docs:**
+- Implementation Guide: `/conversations/ONBOARDING-FLOW-IMPLEMENTATION.md`
+- Email Verification: `/conversations/TENANT-SELF-REGISTRATION.md`
+
+---
+
+### **Previous Session Progress (Oct 29, 2025) - Email Service & Brevo Integration**
+
+#### ✅ **Email Service Configuration - COMPLETED**
+**Fixed email delivery with Brevo integration and domain authentication**
+
+1. **Email Provider Migration** ✅
+   - Switched from Resend to Brevo (prioritized in email service)
+   - Fixed invalid API keys (xsmtpsib → xkeysib format)
+   - Domain authentication completed for gymbosslab.com
+   - EMAIL_FROM updated to verified sender: hello@gymbosslab.com
+
+2. **Frontend URL Fix** ✅
+   - Updated FRONTEND_URL from old Vercel URL to https://gymbosslab.com
+   - Email verification links now point to correct domain
+
+3. **Files Modified** ✅
+   - `/backend/src/core/email/email.service.ts` - Brevo priority over Resend
+   - Railway variables updated: BREVO_API_KEY, EMAIL_FROM, FRONTEND_URL
+
+---
+
+### **Previous Session Progress (Oct 29, 2025) - Authentication Fixes & Production Deployment Prep**
 
 #### ✅ **SUPER_ADMIN Login Fix - COMPLETED**
 **Critical authentication issue resolved for admin access**

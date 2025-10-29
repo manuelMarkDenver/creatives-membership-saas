@@ -15,10 +15,11 @@ export class EmailService {
     const isDev = process.env.NODE_ENV !== 'production';
     
     // Check for production email providers in priority order
+    // Priority: Brevo > SendGrid > Mailgun > Resend
     if (!isDev) {
-      if (process.env.RESEND_API_KEY) {
-        this.provider = 'resend';
-        this.logger.log('✅ Email service initialized with Resend (production)');
+      if (process.env.BREVO_API_KEY) {
+        this.provider = 'brevo';
+        this.logger.log('✅ Email service initialized with Brevo (production)');
       } else if (process.env.SENDGRID_API_KEY) {
         sgMail.setApiKey(process.env.SENDGRID_API_KEY);
         this.provider = 'sendgrid';
@@ -26,9 +27,9 @@ export class EmailService {
       } else if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
         this.provider = 'mailgun';
         this.logger.log('✅ Email service initialized with Mailgun (production)');
-      } else if (process.env.BREVO_API_KEY) {
-        this.provider = 'brevo';
-        this.logger.log('✅ Email service initialized with Brevo (production)');
+      } else if (process.env.RESEND_API_KEY) {
+        this.provider = 'resend';
+        this.logger.log('✅ Email service initialized with Resend (production)');
       } else {
         this.logger.warn('⚠️  No production email provider configured, falling back to SMTP');
         this.provider = 'smtp';

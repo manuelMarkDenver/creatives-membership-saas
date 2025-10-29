@@ -212,13 +212,13 @@ export class AuthService {
 
       // Update user and tenant in transaction
       await this.prisma.$transaction(async (tx) => {
-        // Mark email as verified
+        // Mark email as verified (keep token for password setup)
         await tx.user.update({
           where: { id: user.id },
           data: {
             emailVerified: true,
             emailVerifiedAt: new Date(),
-            emailVerificationToken: null,
+            // Don't clear token yet - needed for password setup
             emailVerificationExpiry: null,
           },
         });
@@ -242,6 +242,8 @@ export class AuthService {
       return {
         success: true,
         message: 'Email verified successfully! You can now login.',
+        requiresPasswordSetup: !user.initialPasswordSet,
+        verificationToken: token, // Keep token for password setup
         data: {
           token: loginToken,
           user: this.formatUserResponse(user),
@@ -261,6 +263,83 @@ export class AuthService {
       }
       this.logger.error(`Email verification failed: ${error.message}`, error.stack);
       throw new BadRequestException('Email verification failed');
+    }
+  }
+
+  /**
+   * Set initial password after email verification
+   */
+  async setInitialPassword(token: string, newPassword: string) {
+    try {
+      // Decode and verify JWT token
+      const secret = process.env.JWT_SECRET || 'default-secret-change-me';
+      const decoded = jwt.verify(token, secret) as {
+        email: string;
+        type: string;
+      };
+
+      if (decoded.type !== 'email_verification') {
+        throw new BadRequestException('Invalid token');
+      }
+
+      // Find user by email and token
+      const user = await this.prisma.user.findFirst({
+        where: {
+          email: decoded.email,
+          emailVerificationToken: token,
+        },
+      });
+
+      if (!user) {
+        throw new BadRequestException('Invalid or expired token');
+      }
+
+      if (!user.emailVerified) {
+        throw new BadRequestException(
+          'Please verify your email before setting a password',
+        );
+      }
+
+      if (user.initialPasswordSet) {
+        throw new BadRequestException(
+          'Password already set. Use change password instead.',
+        );
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      // Update user with new password
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          initialPasswordSet: true,
+          emailVerificationToken: null, // Clear token after use
+        },
+      });
+
+      this.logger.log(`Initial password set for user: ${user.email}`);
+
+      return {
+        success: true,
+        message: 'Password set successfully! You can now login.',
+      };
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        throw new BadRequestException('Token has expired');
+      }
+      if (error.name === 'JsonWebTokenError') {
+        throw new BadRequestException('Invalid token');
+      }
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(
+        `Set initial password failed: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException('Failed to set password');
     }
   }
 

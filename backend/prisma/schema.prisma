@@ -157,6 +157,7 @@ model User {
   createdAt                 DateTime                @default(now())
   updatedAt                 DateTime                @updatedAt
   password                  String?
+  initialPasswordSet        Boolean                 @default(false) // Track if user has set their own password
   
   // Email verification fields
   emailVerified             Boolean                 @default(false)
