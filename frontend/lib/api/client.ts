@@ -199,4 +199,45 @@ apiClient.interceptors.response.use(
   }
 )
 
+// Auth API functions
+export const authApi = {
+  // Login
+  login: async (email: string, password: string) => {
+    const response = await apiClient.post('/auth/login', { email, password })
+    return response.data
+  },
+
+  // Register new tenant
+  registerTenant: async (data: {
+    name: string
+    category: string
+    ownerFirstName: string
+    ownerLastName: string
+    ownerEmail: string
+    ownerPhoneNumber?: string
+    agreeToTerms?: boolean
+  }) => {
+    const response = await apiClient.post('/auth/register-tenant', data)
+    return response.data
+  },
+
+  // Verify email with token
+  verifyEmail: async (token: string) => {
+    const response = await apiClient.get(`/auth/verify-email/${token}`)
+    return response.data
+  },
+
+  // Resend verification email
+  resendVerification: async (email: string) => {
+    const response = await apiClient.post('/auth/resend-verification', { email })
+    return response.data
+  },
+
+  // Get current user
+  getMe: async () => {
+    const response = await apiClient.get('/auth/me')
+    return response.data
+  },
+}
+
 export default apiClient

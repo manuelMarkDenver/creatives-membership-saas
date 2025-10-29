@@ -1108,11 +1108,168 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 
 ---
 
-*Last Updated: October 27, 2025 - 03:40 UTC*
-*Status: Mobile UI Improvements ✅ COMPLETED - Dark Mode Fixes ✅ APPLIED*
-*Current Focus: Production-ready mobile layouts with better UX*
+*Last Updated: October 29, 2025 - 17:16 UTC*
+*Status: Authentication & Production Deployment ✅ READY*
+*Current Focus: Production deployment to Railway and Vercel*
 
-### **Current Session Progress (Oct 27, 2025) - Mobile UI & Dark Mode Improvements**
+### **Current Session Progress (Oct 29, 2025) - Authentication Fixes & Production Deployment Prep**
+
+#### ✅ **SUPER_ADMIN Login Fix - COMPLETED**
+**Critical authentication issue resolved for admin access**
+
+1. **Problem Identified** ✅
+   - Super admin couldn't log in due to strict email verification requirement
+   - Email verification check applied to ALL users including SUPER_ADMIN
+   - Line 84-88 in `auth.controller.ts` blocked unverified logins
+
+2. **Solution Implemented** ✅
+   - Modified email verification check to skip for SUPER_ADMIN role
+   - Updated condition: `if (!user.emailVerified && user.role !== 'SUPER_ADMIN')`
+   - Super admins can now log in without email verification
+   - Regular tenant users still require email verification
+
+3. **Files Modified** ✅
+   - `/backend/src/core/auth/auth.controller.ts` (line 84)
+   - Added tenant registration endpoints (POST /auth/register-tenant)
+   - Added email verification endpoints (GET /auth/verify-email/:token)
+   - Added resend verification endpoint (POST /auth/resend-verification)
+
+#### ✅ **Business Category Restriction - COMPLETED**
+**Signup form now locked to Gym & Fitness only**
+
+1. **Implementation** ✅
+   - Default business category set to "GYM" in signup state
+   - Select dropdown disabled (cannot change category)
+   - Other options (Coffee Shop, E-commerce, Other) marked as disabled
+   - Helper text added: "Currently only available for gyms and fitness centers"
+
+2. **Files Modified** ✅
+   - `/frontend/app/auth/login/page.tsx` (lines 293-305)
+   - Select component with `disabled` prop added
+   - Individual SelectItem components marked with `disabled` attribute
+
+#### ✅ **Production Documentation - COMPLETED**
+**Comprehensive guides for Railway and Vercel deployment**
+
+1. **Email Verification Flow Documentation** ✅
+   - Updated `EMAIL_VERIFICATION_AUTH_FLOW.md` status to COMPLETE
+   - Documented recent fixes (admin login, business category)
+   - Added SendGrid integration notes
+
+2. **Production Deployment Guide** ✅
+   - Updated `PRODUCTION_DEPLOYMENT_GUIDE.md` for Railway (replaced Render)
+   - Added comprehensive SendGrid email setup instructions (Phase 4)
+   - Documented all environment variables needed
+   - Added Railway CLI commands and workflow
+   - Included verification steps and troubleshooting
+
+3. **Environment Variables Documented** ✅
+   - Railway Backend: DATABASE_URL, JWT_SECRET, SENDGRID keys, SUPER_ADMIN credentials
+   - Vercel Frontend: NEXT_PUBLIC_API_URL, NEXT_PUBLIC_FRONTEND_URL
+   - SendGrid: API key, sender email, sender name
+
+#### 🚀 **Production Deployment Status - READY**
+**All code changes complete, documentation ready, awaiting deployment**
+
+**What's Ready:**
+- ✅ Super admin login working (bypasses email verification)
+- ✅ Business category locked to Gym & Fitness
+- ✅ Email verification flow complete (SendGrid ready)
+- ✅ Documentation updated (deployment guides)
+- ✅ Frontend builds successfully
+- ✅ Backend builds successfully
+
+**SendGrid Status:**
+- ✅ Email service implemented with SendGrid support
+- ✅ Development mode uses Mailpit (localhost:8025)
+- ✅ Production mode uses SendGrid (when SENDGRID_API_KEY set)
+- ✅ Email templates ready with verification links
+- ⚠️ Requires SendGrid API key for production
+
+**Next Steps for Production:**
+1. Set up SendGrid account and get API key
+2. Deploy backend to Railway with environment variables
+3. Deploy frontend to Vercel with API URL
+4. Test email verification flow
+5. Verify super admin login
+
+---
+
+### **Previous Session Progress (Oct 29, 2025) - Tenant Self-Registration Planning**
+
+#### ✅ **Tenant Creation DTO Validation Fix - COMPLETED**
+**Fixed 400 Bad Request error when creating tenants**
+
+1. **Problem Identified** ✅
+   - CreateTenantDto validation failed with 400 Bad Request
+   - Optional URL and email fields rejected empty strings
+   - Validators like `@IsEmail()` and `@IsUrl()` don't accept empty strings even when marked `@IsOptional()`
+
+2. **Solution Implemented** ✅
+   - Added `@Transform(({ value }) => value === '' ? undefined : value)` to optional fields
+   - Converts empty strings to `undefined` before validation
+   - Applied to: `logoUrl`, `email`, `websiteUrl` fields
+   - File: `backend/src/core/tenants/dto/create-tenant.dto.ts`
+
+3. **Result** ✅
+   - Tenant creation now works correctly
+   - Super Admin can create tenants with optional fields left blank
+   - No more validation errors for empty strings
+
+#### 📋 **Tenant Self-Service Registration - PLANNED**
+**Transform admin-only tenant creation into professional self-service onboarding**
+
+**Current Flow:**
+```
+Super Admin → Creates Tenant → Generates Temp Password → Sends to Owner → Owner Changes Password
+```
+
+**Proposed Flow:**
+```
+Owner → Signs Up → Receives Email → Verifies Email → Auto-Login → Starts Using App
+```
+
+**Key Decisions (FINALIZED):**
+- ✅ **UI Pattern**: Tabbed Login/Signup on single page (NOT complex, industry standard)
+- ✅ **Email Service**: SendGrid (100 emails/day free - perfect for MVP)
+- ✅ **Verification**: Create tenant first, verify email later (better UX)
+- ✅ **Login**: Email + password only (NO phone/SMS for MVP)
+- ✅ **Phone Field**: Collected but not verified (future SMS upgrade)
+- ✅ **Dev Email Interceptor**: Optional DEV_EMAIL_INTERCEPT env var for testing
+- ✅ **Admin Override**: Keep manual tenant creation for demos/special cases
+- ✅ **Zero Cost**: Everything free (SendGrid free tier)
+
+**Why Email-Only for MVP:**
+- ✅ Simpler implementation (4-5 hours vs 10+ hours with SMS)
+- ✅ Zero cost (SMS costs $0.01 per message minimum)
+- ✅ Standard practice (all major SaaS use email verification)
+- ✅ Can add SMS later when revenue justifies cost
+
+**Documentation:**
+- Complete implementation guide: `/conversations/TENANT-SELF-REGISTRATION.md`
+- Status: Planning complete, ready for implementation
+- Estimated time: 4-5 hours (email-only simplified version)
+- Includes: Schema changes, email service with dev interceptor, auth endpoints, frontend forms
+
+**Dev Email Interceptor Benefits:**
+- Test signup without spamming real emails
+- All verification emails go to one dev inbox
+- Logs show original recipient for debugging
+- Auto-disabled in production
+
+**Next Steps:**
+1. Get SendGrid API key (free tier, no credit card)
+2. Update database schema (User + Tenant tables)
+3. Create email service with dev interceptor
+4. Implement backend registration endpoints
+5. Build tabbed login/signup UI
+6. Create email verification page
+7. End-to-end testing with interceptor
+8. Deploy to production
+
+---
+
+### **Previous Session Progress (Oct 27, 2025) - Mobile UI & Dark Mode Improvements**
 
 #### ✅ **Mobile Layout Optimization & Dark Mode Fixes - COMPLETED**
 **Production-ready UI improvements for better mobile experience and accessibility**

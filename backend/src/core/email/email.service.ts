@@ -1,28 +1,46 @@
 import sgMail from '@sendgrid/mail';
 import * as nodemailer from 'nodemailer';
 import { Injectable, Logger } from '@nestjs/common';
+import axios from 'axios';
+
+type EmailProvider = 'sendgrid' | 'resend' | 'mailgun' | 'brevo' | 'smtp';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private transporter: nodemailer.Transporter | null = null;
-  private useSendGrid = false;
+  private provider: EmailProvider = 'smtp';
 
   constructor() {
     const isDev = process.env.NODE_ENV !== 'production';
-    const sendGridKey = process.env.SENDGRID_API_KEY;
-
-    if (!isDev && sendGridKey) {
-      // Production: Use SendGrid
-      sgMail.setApiKey(sendGridKey);
-      this.useSendGrid = true;
-      this.logger.log('✅ Email service initialized with SendGrid (production)');
-    } else {
-      // Development: Use Mailpit/SMTP
+    
+    // Check for production email providers in priority order
+    if (!isDev) {
+      if (process.env.RESEND_API_KEY) {
+        this.provider = 'resend';
+        this.logger.log('✅ Email service initialized with Resend (production)');
+      } else if (process.env.SENDGRID_API_KEY) {
+        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+        this.provider = 'sendgrid';
+        this.logger.log('✅ Email service initialized with SendGrid (production)');
+      } else if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
+        this.provider = 'mailgun';
+        this.logger.log('✅ Email service initialized with Mailgun (production)');
+      } else if (process.env.BREVO_API_KEY) {
+        this.provider = 'brevo';
+        this.logger.log('✅ Email service initialized with Brevo (production)');
+      } else {
+        this.logger.warn('⚠️  No production email provider configured, falling back to SMTP');
+        this.provider = 'smtp';
+      }
+    }
+    
+    // Development or fallback: Use Mailpit/SMTP
+    if (isDev || this.provider === 'smtp') {
       this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'localhost',
         port: parseInt(process.env.SMTP_PORT || '1025'),
-        secure: false, // Mailpit doesn't use TLS
+        secure: false,
         ignoreTLS: true,
       });
       this.logger.log(
@@ -76,31 +94,41 @@ export class EmailService {
     this.logger.log(`Token: ${token.substring(0, 50)}...`);
     this.logger.log('='.repeat(80) + '\n');
 
+    const fromEmail = process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
+    const fromName = process.env.EMAIL_FROM_NAME || 'GymBossLab';
+    const subject = 'Welcome to GymBossLab - Verify Your Email';
+
     try {
-      if (this.useSendGrid) {
-        // Production: SendGrid
-        await sgMail.send({
-          to: recipient,
-          from: {
-            email: process.env.SENDGRID_FROM_EMAIL || 'noreply@gymbosslab.com',
-            name: process.env.SENDGRID_FROM_NAME || 'GymBossLab',
-          },
-          subject: 'Welcome to GymBossLab - Verify Your Email',
-          html: htmlContent,
-        });
-        this.logger.log(`✅ Verification email sent via SendGrid to ${recipient}`);
-      } else if (this.transporter) {
-        // Development: SMTP/Mailpit
-        await this.transporter.sendMail({
-          from: '"GymBossLab" <noreply@gymbosslab.com>',
-          to: recipient,
-          subject: 'Welcome to GymBossLab - Verify Your Email',
-          html: htmlContent,
-        });
-        this.logger.log(`✅ Verification email sent via SMTP to ${recipient}`);
-        this.logger.log(`📧 View it at: http://localhost:8025`);
-      } else {
-        throw new Error('No email transport configured');
+      switch (this.provider) {
+        case 'resend':
+          await this.sendViaResend(recipient, subject, htmlContent, fromEmail, fromName);
+          break;
+        case 'sendgrid':
+          await sgMail.send({
+            to: recipient,
+            from: { email: fromEmail, name: fromName },
+            subject,
+            html: htmlContent,
+          });
+          this.logger.log(`✅ Verification email sent via SendGrid to ${recipient}`);
+          break;
+        case 'mailgun':
+          await this.sendViaMailgun(recipient, subject, htmlContent, fromEmail, fromName);
+          break;
+        case 'brevo':
+          await this.sendViaBrevo(recipient, subject, htmlContent, fromEmail, fromName);
+          break;
+        case 'smtp':
+          if (!this.transporter) throw new Error('SMTP transporter not configured');
+          await this.transporter.sendMail({
+            from: `"${fromName}" <${fromEmail}>`,
+            to: recipient,
+            subject,
+            html: htmlContent,
+          });
+          this.logger.log(`✅ Verification email sent via SMTP to ${recipient}`);
+          this.logger.log(`📧 View it at: http://localhost:8025`);
+          break;
       }
     } catch (error) {
       this.logger.error(
@@ -166,5 +194,92 @@ export class EmailService {
       </body>
       </html>
     `;
+  }
+
+  // Provider-specific implementations
+  
+  private async sendViaResend(
+    to: string,
+    subject: string,
+    html: string,
+    fromEmail: string,
+    fromName: string,
+  ) {
+    const response = await axios.post(
+      'https://api.resend.com/emails',
+      {
+        from: `${fromName} <${fromEmail}>`,
+        to: [to],
+        subject,
+        html,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+    this.logger.log(`✅ Verification email sent via Resend to ${to}`);
+    return response.data;
+  }
+
+  private async sendViaMailgun(
+    to: string,
+    subject: string,
+    html: string,
+    fromEmail: string,
+    fromName: string,
+  ) {
+    const domain = process.env.MAILGUN_DOMAIN;
+    const apiKey = process.env.MAILGUN_API_KEY;
+    
+    const formData = new URLSearchParams();
+    formData.append('from', `${fromName} <${fromEmail}>`);
+    formData.append('to', to);
+    formData.append('subject', subject);
+    formData.append('html', html);
+
+    const response = await axios.post(
+      `https://api.mailgun.net/v3/${domain}/messages`,
+      formData,
+      {
+        auth: {
+          username: 'api',
+          password: apiKey!,
+        },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      },
+    );
+    this.logger.log(`✅ Verification email sent via Mailgun to ${to}`);
+    return response.data;
+  }
+
+  private async sendViaBrevo(
+    to: string,
+    subject: string,
+    html: string,
+    fromEmail: string,
+    fromName: string,
+  ) {
+    const response = await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      {
+        sender: { name: fromName, email: fromEmail },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      },
+      {
+        headers: {
+          'api-key': process.env.BREVO_API_KEY!,
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+    this.logger.log(`✅ Verification email sent via Brevo to ${to}`);
+    return response.data;
   }
 }

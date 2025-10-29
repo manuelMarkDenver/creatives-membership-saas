@@ -270,7 +270,9 @@ export function AddMemberModal({
       emergencyContactRelation: formData.emergencyContactRelationship || undefined,
       branchId: formData.selectedBranchId || undefined,
       gymMembershipPlanId: formData.selectedPlanId,
-      paymentMethod: formData.paymentMethod
+      paymentMethod: formData.paymentMethod,
+      startDate: formData.membershipStartDate || undefined,
+      paymentAmount: formData.paymentAmount ? parseFloat(formData.paymentAmount) : undefined
     }
 
     // Create the gym member (creates both User + GymMemberProfile + Subscription)
@@ -691,6 +693,11 @@ export function AddMemberModal({
                     placeholder="0.00"
                     className={currentMembershipErrors.paymentAmount ? "border-red-500" : ""}
                   />
+                  {selectedPlan && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Plan price: ₱{selectedPlan.price.toFixed(2)}
+                    </p>
+                  )}
                   {currentMembershipErrors.paymentAmount && (
                     <p className="text-sm text-red-500 mt-1">{currentMembershipErrors.paymentAmount}</p>
                   )}
@@ -705,9 +712,9 @@ export function AddMemberModal({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="CASH">Cash</SelectItem>
-                    <SelectItem value="CARD">Credit/Debit Card</SelectItem>
-                    <SelectItem value="GCASH">GCash</SelectItem>
-                    <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                    <SelectItem value="CARD" disabled>Credit/Debit Card (Coming Soon)</SelectItem>
+                    <SelectItem value="GCASH" disabled>GCash (Coming Soon)</SelectItem>
+                    <SelectItem value="BANK_TRANSFER" disabled>Bank Transfer (Coming Soon)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

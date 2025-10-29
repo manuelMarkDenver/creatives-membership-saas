@@ -64,6 +64,9 @@ export interface CreateGymMemberDto {
   emergencyContactRelation?: string
   gymMembershipPlanId?: string
   paymentMethod?: string
+  paymentAmount?: number
+  startDate?: string
+  branchId?: string
 }
 
 export const membersApi = {
