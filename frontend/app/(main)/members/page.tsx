@@ -336,13 +336,9 @@ export default function MembersPage() {
                 setShowAddMemberModal(true)
               }
             }}
-            className={`shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 w-full sm:w-auto ${
-              safeMembershipPlans.length === 0 
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white' 
-                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
-            }`}
             size="lg"
             title={safeMembershipPlans.length === 0 ? 'Create membership plans first' : 'Add a new member'}
+            className="w-full sm:w-auto"
           >
             {safeMembershipPlans.length === 0 ? (
               <>

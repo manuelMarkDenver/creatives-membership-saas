@@ -150,15 +150,15 @@ export function StatsOverview({ stats, isSuperAdmin = false, className }: StatsO
           return (
             <div
               key={item.key}
-              className="bg-white dark:bg-gray-800 border rounded-lg p-3"
+              className="bg-gradient-to-br from-pink-50 via-purple-50 to-orange-50 dark:from-pink-950/10 dark:via-purple-950/10 dark:to-orange-950/10 border border-pink-200/50 dark:border-pink-900/30 rounded-lg p-3"
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                <span className="text-xs font-medium bg-gradient-to-r from-pink-600 to-purple-600 dark:from-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
                   {item.label}
                 </span>
-                <Icon className={`h-3 w-3 ${item.color}`} />
+                <Icon className="h-3 w-3 text-pink-600 dark:text-pink-400" />
               </div>
-              <div className={`text-xl font-bold ${item.color}`}>
+              <div className="text-xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 dark:from-pink-300 dark:via-purple-300 dark:to-orange-300 bg-clip-text text-transparent">
                 {value ?? 0}
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -190,15 +190,15 @@ export function StatsOverview({ stats, isSuperAdmin = false, className }: StatsO
               return (
                 <div
                   key={item.key}
-                  className="bg-gray-50 dark:bg-gray-700 border rounded-lg p-4"
+                  className="bg-gradient-to-br from-pink-50 via-purple-50 to-orange-50 dark:from-pink-950/10 dark:via-purple-950/10 dark:to-orange-950/10 border border-pink-200/50 dark:border-pink-900/30 rounded-lg p-4"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    <span className="text-sm font-medium bg-gradient-to-r from-pink-600 to-purple-600 dark:from-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
                       {item.label}
                     </span>
-                    <Icon className={`h-4 w-4 ${item.color}`} />
+                    <Icon className="h-4 w-4 text-pink-600 dark:text-pink-400" />
                   </div>
-                  <div className={`text-2xl font-bold ${item.color}`}>
+                  <div className="text-2xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 dark:from-pink-300 dark:via-purple-300 dark:to-orange-300 bg-clip-text text-transparent">
                     {value ?? 0}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">

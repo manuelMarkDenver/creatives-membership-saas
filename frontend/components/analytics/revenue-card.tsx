@@ -30,13 +30,13 @@ export function RevenueCard({ totalRevenue, growthRate, growthAmount, isLoading 
   }
 
   return (
-    <Card>
+    <Card className="bg-gradient-to-br from-pink-50 via-purple-50 to-orange-50 dark:from-pink-950/20 dark:via-purple-950/20 dark:to-orange-950/20 border-pink-200 dark:border-pink-900/30">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-        <DollarSign className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className="text-sm font-medium bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 dark:from-pink-400 dark:via-purple-400 dark:to-orange-400 bg-clip-text text-transparent">Total Revenue</CardTitle>
+        <DollarSign className="h-4 w-4 text-pink-600 dark:text-pink-400" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{formatPHP(totalRevenue)}</div>
+        <div className="text-2xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 dark:from-pink-300 dark:via-purple-300 dark:to-orange-300 bg-clip-text text-transparent">{formatPHP(totalRevenue)}</div>
         <div className="flex items-center text-xs mt-1">
           {isPositiveGrowth ? (
             <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
