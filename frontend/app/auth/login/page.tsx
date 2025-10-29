@@ -99,7 +99,7 @@ export default function LoginPage() {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop')`,
+            backgroundImage: `url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=2075&auto=format&fit=crop')`,
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/40 via-teal-600/30 to-slate-900/60" />
