@@ -36,7 +36,10 @@ interface CreateGymMemberDto {
   emergencyContactPhone?: string;
   emergencyContactRelation?: string;
   membershipPlanId?: string;
+  gymMembershipPlanId?: string; // Alias for membershipPlanId
   paymentMethod?: string;
+  paymentAmount?: number; // Optional: override payment amount
+  startDate?: string; // Optional: custom start date
   branchId?: string; // Optional: specific branch assignment
 }
 

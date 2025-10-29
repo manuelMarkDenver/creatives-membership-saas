@@ -10,11 +10,14 @@ import {
   BadRequestException,
   InternalServerErrorException,
   UnauthorizedException,
+  Param,
 } from '@nestjs/common';
 import type { Response, Request } from 'express';
 import { SupabaseService } from '../supabase/supabase.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
+import { RegisterTenantDto } from './dto/register-tenant.dto';
 import * as bcrypt from 'bcrypt';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 
@@ -42,6 +45,7 @@ export class AuthController {
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly prisma: PrismaService,
+    private readonly authService: AuthService,
   ) {}
 
   /**
@@ -74,6 +78,13 @@ export class AuthController {
       // Check if user is deleted
       if (user.deletedAt) {
         throw new UnauthorizedException('Account is deactivated');
+      }
+
+      // Check if email is verified (skip for SUPER_ADMIN)
+      if (!user.emailVerified && user.role !== 'SUPER_ADMIN') {
+        throw new UnauthorizedException(
+          'Please verify your email before logging in. Check your inbox for the verification link.',
+        );
       }
 
       // Generate a simple token (in production, use proper JWT)
@@ -366,5 +377,35 @@ export class AuthController {
       console.error('Password change error:', error);
       throw new InternalServerErrorException('Failed to change password');
     }
+  }
+
+  /**
+   * Public tenant registration
+   * POST /auth/register-tenant
+   */
+  @Post('register-tenant')
+  async registerTenant(@Body() registerDto: RegisterTenantDto) {
+    return this.authService.registerTenant(registerDto);
+  }
+
+  /**
+   * Verify email with token
+   * GET /auth/verify-email/:token
+   */
+  @Get('verify-email/:token')
+  async verifyEmail(@Param('token') token: string) {
+    return this.authService.verifyEmail(token);
+  }
+
+  /**
+   * Resend verification email
+   * POST /auth/resend-verification
+   */
+  @Post('resend-verification')
+  async resendVerification(@Body() body: { email: string }) {
+    if (!body.email) {
+      throw new BadRequestException('Email is required');
+    }
+    return this.authService.resendVerificationEmail(body.email);
   }
 }

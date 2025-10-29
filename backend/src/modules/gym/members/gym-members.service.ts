@@ -111,31 +111,36 @@ export class GymMembersService {
 
         // 4. Create subscription if membershipPlanId is provided
         let subscription: any = null;
-        if (data.gymMembershipPlanId) {
+        const planId = data.gymMembershipPlanId || data.membershipPlanId;
+        if (planId) {
           const membershipPlan = await tx.gymMembershipPlan.findUnique({
-            where: { id: data.gymMembershipPlanId },
+            where: { id: planId },
           });
 
           if (!membershipPlan) {
             throw new BadRequestException(
-              `Membership plan with ID ${data.gymMembershipPlanId} not found`,
+              `Membership plan with ID ${planId} not found`,
             );
           }
 
-          const startDate = new Date();
+          // Use provided start date or default to current date
+          const startDate = data.startDate ? new Date(data.startDate) : new Date();
           const endDate = new Date(startDate);
           endDate.setDate(endDate.getDate() + membershipPlan.duration);
+
+          // Use provided payment amount or default to membership plan price
+          const paymentAmount = data.paymentAmount ?? membershipPlan.price;
 
           subscription = await tx.gymMemberSubscription.create({
             data: {
               tenantId: tenantId,
               memberId: user.id,
-              gymMembershipPlanId: data.gymMembershipPlanId,
+              gymMembershipPlanId: planId,
               branchId: branch.id,
               status: 'ACTIVE',
               startDate: startDate,
               endDate: endDate,
-              price: membershipPlan.price,
+              price: paymentAmount,
               currency: 'PHP',
               autoRenew: false,
             },
@@ -149,9 +154,9 @@ export class GymMembersService {
                 customerId: user.id,
                 businessType: 'gym',
                 transactionCategory: 'membership',
-                amount: membershipPlan.price,
+                amount: paymentAmount,
                 currency: 'PHP',
-                netAmount: membershipPlan.price,
+                netAmount: paymentAmount,
                 paymentMethod: data.paymentMethod.toLowerCase(),
                 transactionType: 'PAYMENT',
                 status: 'COMPLETED',
