@@ -18,8 +18,13 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Creative SaaS - Multi-Tenant Management',
-  description: 'Manage your business tenants, branches, and users',
+  title: 'GymBossLab - Gym Management System',
+  description: 'Complete management solution for gyms and fitness centers',
+  icons: {
+    icon: '/gymbosslab-logo.jpeg',
+    shortcut: '/gymbosslab-logo.jpeg',
+    apple: '/gymbosslab-logo.jpeg',
+  },
 }
 
 export default function RootLayout({
