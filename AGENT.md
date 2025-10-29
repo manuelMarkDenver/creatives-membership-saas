@@ -1,7 +1,8 @@
 # Creatives SaaS - Agent Documentation
 
 ## 📋 Project Overview
-**Multi-Business SaaS Platform** supporting gyms → coffee shops → e-commerce
+**GymBossLab - Multi-Tenant Gym Management SaaS**
+- **Brand**: GymBossLab (formerly GymPinoy)
 - **Current Status**: Gym Management System - Feature Development & Testing ✅
 - **Architecture**: Multi-tenant SaaS platform for gym businesses with business units for scalability
 - **Business Model**: SaaS subscriptions with paid mode toggle per tenant (₱399/month per business unit)
@@ -10,6 +11,8 @@
 - **Pricing**: ₱399/month per business unit, ₱3,999/year (save 2 months)
 - **Frontend**: Next.js 15.4.5 with TypeScript, Tailwind CSS, shadcn/ui
 - **Backend**: NestJS with Prisma ORM, PostgreSQL
+- **Storage**: Wasabi S3-compatible storage (Tokyo region)
+- **Theme**: Pink→Purple→Orange gradient theme
 - **Localization**: Philippine Peso (₱) currency formatting
 
 ---
@@ -127,9 +130,11 @@ npx prisma migrate deploy
 - [x] **Comprehensive Authentication**: Production-ready auth system with automatic logout ✅
 - [x] **Multi-Role Support**: OWNER, MANAGER, STAFF, CLIENT roles all working ✅
 - [x] **Member Creation**: Fixed role field consistency, branch assignment working ✅
+- [x] **GymBossLab Rebranding**: Complete rebrand with new logo and gradient theme ✅
+- [x] **Wasabi Storage Migration**: Migrated from Supabase to Wasabi S3 for photos ✅
+- [x] **Analytics Branch Filtering**: Fixed subscription tracking for accurate analytics ✅
 - [ ] **Member Subscription Management**: Create, assign, and manage member subscriptions to plans
 - [ ] **Payment Integration**: Handle membership payments and renewals
-- [ ] **Gym Analytics Dashboard**: Key metrics and reporting for gym owners
 - [ ] **MVP Launch Preparation**: End-to-end functionality verification, production testing
 
 ### ❌ PENDING
