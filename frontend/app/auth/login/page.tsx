@@ -110,39 +110,42 @@ export default function LoginPage() {
           {/* Logo & Brand */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-xl">
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 via-red-600 to-yellow-500 rounded-xl flex items-center justify-center shadow-xl relative overflow-hidden">
+                {/* Philippine Flag inspired colors with Gym icon */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/50 via-red-600/50 to-yellow-500/50"></div>
+                <svg className="w-7 h-7 text-white relative z-10 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+                  {/* Dumbbell icon */}
+                  <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/>
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold">CreativeCore</h2>
+              <h2 className="text-2xl font-bold text-white drop-shadow-lg">GymPinoy</h2>
             </div>
           </div>
 
           {/* Center Content */}
           <div className="space-y-6 max-w-lg">
             <div className="space-y-4">
-              <h1 className="text-4xl xl:text-5xl font-bold leading-tight break-words">
+              <h1 className="text-4xl xl:text-5xl font-bold leading-tight break-words text-white drop-shadow-lg">
                 Elevate Your
                 <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
-                  Business Performance
+                <span className="text-yellow-300 drop-shadow-lg">
+                  Gym Business
                 </span>
               </h1>
-              <p className="text-lg xl:text-xl text-slate-300 break-words">
-                Complete management solution for gyms, coffee shops, and growing businesses.
+              <p className="text-lg xl:text-xl text-white font-medium break-words" style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5)' }}>
+                Complete management solution for Filipino gyms and fitness centers.
               </p>
             </div>
 
             {/* Feature Pills */}
             <div className="flex flex-wrap gap-2 xl:gap-3">
-              <div className="px-3 xl:px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 text-xs xl:text-sm font-medium whitespace-nowrap">
+              <div className="px-3 xl:px-4 py-2 bg-white/20 backdrop-blur-md rounded-full border border-white/40 text-xs xl:text-sm font-semibold whitespace-nowrap text-white drop-shadow-md">
                 💪 Member Management
               </div>
-              <div className="px-3 xl:px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 text-xs xl:text-sm font-medium whitespace-nowrap">
+              <div className="px-3 xl:px-4 py-2 bg-white/20 backdrop-blur-md rounded-full border border-white/40 text-xs xl:text-sm font-semibold whitespace-nowrap text-white drop-shadow-md">
                 📊 Analytics Dashboard
               </div>
-              <div className="px-3 xl:px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 text-xs xl:text-sm font-medium whitespace-nowrap">
+              <div className="px-3 xl:px-4 py-2 bg-white/20 backdrop-blur-md rounded-full border border-white/40 text-xs xl:text-sm font-semibold whitespace-nowrap text-white drop-shadow-md">
                 💳 Payment Tracking
               </div>
             </div>
@@ -151,16 +154,16 @@ export default function LoginPage() {
           {/* Bottom Stats */}
           <div className="grid grid-cols-3 gap-4 xl:gap-8 max-w-lg">
             <div>
-              <div className="text-2xl xl:text-3xl font-bold text-emerald-400">100+</div>
-              <div className="text-xs xl:text-sm text-slate-400 break-words">Active Businesses</div>
+              <div className="text-2xl xl:text-3xl font-bold text-yellow-300 drop-shadow-lg">100+</div>
+              <div className="text-xs xl:text-sm text-white font-medium drop-shadow-md break-words">Active Gyms</div>
             </div>
             <div>
-              <div className="text-2xl xl:text-3xl font-bold text-emerald-400">5K+</div>
-              <div className="text-xs xl:text-sm text-slate-400 break-words">Happy Members</div>
+              <div className="text-2xl xl:text-3xl font-bold text-yellow-300 drop-shadow-lg">5K+</div>
+              <div className="text-xs xl:text-sm text-white font-medium drop-shadow-md break-words">Happy Members</div>
             </div>
             <div>
-              <div className="text-2xl xl:text-3xl font-bold text-emerald-400">99%</div>
-              <div className="text-xs xl:text-sm text-slate-400">Uptime</div>
+              <div className="text-2xl xl:text-3xl font-bold text-yellow-300 drop-shadow-lg">99%</div>
+              <div className="text-xs xl:text-sm text-white font-medium drop-shadow-md">Uptime</div>
             </div>
           </div>
         </div>
@@ -171,13 +174,14 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-4 sm:space-y-6 xl:space-y-8 animate-in fade-in-50 slide-in-from-bottom-4 duration-700">
           {/* Mobile Logo (Hidden on Extra Large Screens) */}
           <div className="2xl:hidden text-center mb-2">
-            <div className="mx-auto w-14 h-14 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mb-3 shadow-xl">
-              <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            <div className="mx-auto w-14 h-14 bg-gradient-to-br from-blue-600 via-red-600 to-yellow-500 rounded-2xl flex items-center justify-center mb-3 shadow-xl relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600/50 via-red-600/50 to-yellow-500/50"></div>
+              <svg className="w-7 h-7 text-white relative z-10 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/>
               </svg>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              CreativeCore
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 via-red-600 to-yellow-500 bg-clip-text text-transparent">
+              GymPinoy
             </h1>
           </div>
 
@@ -249,7 +253,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <div className="text-center text-slate-500 text-sm">
-            <p>© 2024 CreativeCore. All rights reserved.</p>
+            <p>© 2024 GymPinoy. All rights reserved.</p>
           </div>
         </div>
       </div>
