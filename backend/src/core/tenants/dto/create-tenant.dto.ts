@@ -8,6 +8,7 @@ import {
   Min,
   IsNotEmpty,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { BusinessCategory } from '@prisma/client';
 
 export class CreateTenantDto {
@@ -41,6 +42,7 @@ export class CreateTenantDto {
   freeBranchOverride?: number;
 
   @IsOptional()
+  @Transform(({ value }) => value === '' ? undefined : value)
   @IsString()
   logoUrl?: string;
 
@@ -53,11 +55,13 @@ export class CreateTenantDto {
   phoneNumber?: string;
 
   @IsOptional()
-  @IsEmail()
+  @Transform(({ value }) => value === '' ? undefined : value)
+  @IsEmail({}, { message: 'Business email must be a valid email address' })
   email?: string;
 
   @IsOptional()
-  @IsUrl()
+  @Transform(({ value }) => value === '' ? undefined : value)
+  @IsUrl({}, { message: 'Website URL must be a valid URL' })
   websiteUrl?: string;
 
   @IsOptional()

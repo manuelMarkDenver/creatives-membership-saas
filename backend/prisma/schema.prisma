@@ -12,6 +12,7 @@ model Tenant {
   name                   String
   slug                   String                  @unique
   category               BusinessCategory
+  status                 TenantStatus            @default(PENDING) // PENDING until email verified
   logoUrl                String?
   address                String?
   phoneNumber            String?
@@ -140,22 +141,28 @@ model Payment {
 }
 
 model User {
-  id                     String                  @id @default(uuid())
-  firstName              String
-  lastName               String
-  email                  String?                 @unique
-  phoneNumber            String?
-  notes                  String?
-  photoUrl               String? // Main profile photo
-  photos                 Json?   // Array of additional photo URLs for future features
-  role                   Role?   // Platform-level roles (SUPER_ADMIN, OWNER, MANAGER, STAFF)
-  tenantId               String? // Current tenant context
-  businessData           Json?
-  deletedAt              DateTime?
-  deletedBy              String?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  password               String?
+  id                        String                  @id @default(uuid())
+  firstName                 String
+  lastName                  String
+  email                     String?                 @unique
+  phoneNumber               String?
+  notes                     String?
+  photoUrl                  String? // Main profile photo
+  photos                    Json?   // Array of additional photo URLs for future features
+  role                      Role?   // Platform-level roles (SUPER_ADMIN, OWNER, MANAGER, STAFF)
+  tenantId                  String? // Current tenant context
+  businessData              Json?
+  deletedAt                 DateTime?
+  deletedBy                 String?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  password                  String?
+  
+  // Email verification fields
+  emailVerified             Boolean                 @default(false)
+  emailVerificationToken    String?                 @unique
+  emailVerificationExpiry   DateTime?
+  emailVerifiedAt           DateTime?
   tenant                 Tenant?                 @relation(fields: [tenantId], references: [id])
   gymMemberSubscriptions GymMemberSubscription[] @relation("GymMemberSubscriptions")
   customerTransactions   CustomerTransaction[]   @relation("CustomerTransactions")
@@ -486,6 +493,13 @@ enum BusinessCategory {
   COFFEE_SHOP
   ECOMMERCE
   OTHER
+}
+
+enum TenantStatus {
+  PENDING    // Email not verified yet
+  ACTIVE     // Email verified, can use system
+  SUSPENDED  // Admin suspended
+  CANCELLED  // Owner cancelled
 }
 
 // Global roles for platform-wide access

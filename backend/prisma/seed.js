@@ -58,6 +58,7 @@ async function main() {
         firstName: 'Super',
         lastName: 'Admin',
         role: 'SUPER_ADMIN',
+        emailVerified: true, // Seeded users are pre-verified
       },
     });
     
@@ -169,6 +170,7 @@ async function main() {
           lastName: tenantInfo.owner.lastName,
           role: 'OWNER',
           tenantId: tenant.id, // Set tenant context for owner
+          emailVerified: true, // Seeded users are pre-verified
         }
       });
 
