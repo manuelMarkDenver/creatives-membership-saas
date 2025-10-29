@@ -31,6 +31,7 @@
 - **NO CONSOLE LOG SPAM**: Remove debug console logs after fixing issues - keep code clean
 - **CONSISTENT QUERY KEYS**: Always match React Query keys between hooks and mutations for proper cache invalidation
 - **COMMIT MESSAGES**: After every milestone or significant feature completion, provide a concise git commit message that user can copy-paste
+- **GIT WORKFLOW**: Agent can commit changes using `git commit`, but NEVER push to remote - User handles all `git push` operations
 - **SHORTHAND REFERENCES**:
   - **"a-doc"** = This AGENT.md file (`/home/mhackeedev/_apps/creatives-saas/AGENT.md`)
   - **"b-logs"** = Browser console logs (`/home/mhackeedev/console.log`)
@@ -133,6 +134,7 @@ npx prisma migrate deploy
 - [x] **GymBossLab Rebranding**: Complete rebrand with new logo and gradient theme ✅
 - [x] **Wasabi Storage Migration**: Migrated from Supabase to Wasabi S3 for photos ✅
 - [x] **Analytics Branch Filtering**: Fixed subscription tracking for accurate analytics ✅
+- [x] **Complete Onboarding Flow**: Full new tenant onboarding with forced setup steps ✅ **DEPLOYED**
 - [ ] **Member Subscription Management**: Create, assign, and manage member subscriptions to plans
 - [ ] **Payment Integration**: Handle membership payments and renewals
 - [ ] **MVP Launch Preparation**: End-to-end functionality verification, production testing
@@ -147,6 +149,66 @@ npx prisma migrate deploy
 ---
 
 ## 🚀 Recent Updates & Fixes
+
+### **Version: October 29, 2025**
+
+#### ✅ **Complete Onboarding Flow Implementation - DEPLOYED** 
+**Comprehensive new tenant onboarding with forced setup steps**
+
+**🚀 Production Deployment Status:**
+- **Backend**: ✅ Deployed to Railway (https://happy-respect-production.up.railway.app)
+- **Frontend**: ✅ Deployed to Vercel (https://frontend-xhg121xdx-manuelmarkdenvers-projects.vercel.app)
+- **Status**: 🟢 All Systems Operational
+
+**🏛️ Architecture:**
+
+1. **Backend Onboarding APIs** ✅
+   - `GET /api/v1/tenants/:id/onboarding-status` - Get complete onboarding progress
+   - `POST /api/v1/tenants/:id/mark-password-changed` - Mark password setup complete  
+   - `POST /api/v1/tenants/:id/complete-onboarding` - Mark entire onboarding complete
+   - `POST /api/v1/auth/set-initial-password` - Change from temporary to secure password
+
+2. **Frontend Modal Components** ✅
+   - `SetPasswordModal` - Non-dismissible initial password setup with validation
+   - `CustomizeBranchModal` - Customize auto-created "Main Branch" details
+   - `CreateMembershipPlanModal` - Create first membership plan (required)
+   - `AddFirstMemberModal` - Optional first member addition (with skip button)
+   - `OnboardingProgress` - Visual step-by-step progress indicator
+   - `OnboardingWrapper` - Main orchestration component
+
+3. **State Management** ✅
+   - `useOnboarding` hook - Complete flow orchestration
+   - `useOnboardingStatus` - React Query hook for status
+   - `useMarkPasswordChanged` - Mutation for password tracking
+   - `useCompleteOnboarding` - Mutation for completion
+
+4. **Onboarding Flow Sequence** ✅
+   - **Step 1**: Set Password (non-dismissible) - Change temp password to secure one
+   - **Step 2**: Customize Branch (non-dismissible) - Add branch address and details
+   - **Step 3**: Create Plan (non-dismissible) - Set up at least one membership plan
+   - **Step 4**: Add Member (optional) - Optionally add first member or skip
+
+5. **Integration** ✅
+   - Integrated in `MainLayout` for OWNER role only
+   - Automatic status checking on app load
+   - Prevents dashboard access until onboarding complete
+   - Real-time progress tracking with visual indicators
+
+6. **Database Schema** ✅
+   - Added `ownerPasswordChanged: Boolean` to Tenant table
+   - Added `onboardingCompletedAt: DateTime?` to Tenant table
+   - Migration using `prisma db push` (development)
+
+**📚 Documentation:**
+- `/frontend/ONBOARDING-USAGE.md` - Complete usage guide with API reference
+- `/conversations/ONBOARDING-FLOW-IMPLEMENTATION.md` - Detailed implementation plan
+- `/DEPLOYMENT-COMPLETE.md` - Deployment summary and testing instructions
+
+**🔒 Security Features:**
+- Password requirements: 8+ chars, uppercase, lowercase, number, special char
+- Non-dismissible modals for required steps (no escape, no backdrop click)
+- Temporary password must be different from new password
+- Real-time password strength validation
 
 ### **Version: September 29, 2025**
 
@@ -257,6 +319,7 @@ npx prisma migrate deploy
 ## 📊 Current Module Status
 
 ### ✅ **COMPLETED & FUNCTIONAL**
+- **Complete Onboarding Flow** - 🎉 **NEWLY DEPLOYED** - Forced setup flow for new tenant owners with 4 steps
 - **Membership Plans** - Full CRUD with Philippine peso formatting
 - **Member Management UX** - Proper membership plans requirement enforcement with informative modals
 - **Onboarding Tracking** - Complete first-time setup tracking for new tenants
