@@ -11,6 +11,7 @@ export { subscriptionsApi } from './subscriptions'
 export { membersApi } from './gym-members'
 export { gymSubscriptionsApi } from './gym-subscriptions'
 export { businessUnitsApi } from './business-units'
+export { onboardingApi } from './onboarding'
 
 // Export DTOs and types
 export type { CreateTenantDto, UpdateTenantDto, TenantQueryParams } from './tenants'
@@ -64,3 +65,8 @@ export type {
   BusinessUnitStats,
   PaidModeToggleData
 } from './business-units'
+export type {
+  OnboardingStatus,
+  MarkPasswordChangedResponse,
+  CompleteOnboardingResponse
+} from './onboarding'

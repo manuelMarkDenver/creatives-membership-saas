@@ -27,6 +27,7 @@ import { useTenantValidation } from '@/lib/hooks/use-auth-validation'
 import TenantSwitcher from './tenant-switcher'
 import { ExpiringMembersButton } from '@/components/ui/expiring-members-button'
 import { ExpiringMembersAutoPopup } from '@/components/ui/expiring-members-auto-popup'
+import OnboardingWrapper from '@/components/onboarding-wrapper'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -104,7 +105,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
     authManager.logout() // This will clear all auth data and redirect automatically
   }
 
-  return (
+  // Wrap content with OnboardingWrapper for OWNER role only
+  const layoutContent = (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Mobile sidebar */}
       {sidebarOpen && (
@@ -277,4 +279,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
       {/* Auto popup has been disabled as requested */}
     </div>
   )
+
+  // Only wrap with OnboardingWrapper for OWNER role
+  if (profile?.role === 'OWNER' && profile?.tenantId) {
+    return (
+      <OnboardingWrapper tenantId={profile.tenantId}>
+        {layoutContent}
+      </OnboardingWrapper>
+    )
+  }
+
+  return layoutContent
 }

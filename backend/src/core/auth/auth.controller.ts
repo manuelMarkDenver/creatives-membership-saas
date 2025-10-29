@@ -18,6 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
 import { RegisterTenantDto } from './dto/register-tenant.dto';
+import { SetInitialPasswordDto } from './dto/set-initial-password.dto';
 import * as bcrypt from 'bcrypt';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 
@@ -395,6 +396,15 @@ export class AuthController {
   @Get('verify-email/:token')
   async verifyEmail(@Param('token') token: string) {
     return this.authService.verifyEmail(token);
+  }
+
+  /**
+   * Set initial password after email verification
+   * POST /auth/set-initial-password
+   */
+  @Post('set-initial-password')
+  async setInitialPassword(@Body() dto: SetInitialPasswordDto) {
+    return this.authService.setInitialPassword(dto.token, dto.password);
   }
 
   /**
