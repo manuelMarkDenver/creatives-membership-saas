@@ -129,18 +129,28 @@ export class GymSubscriptionsService {
       throw new NotFoundException('Membership plan not found or inactive');
     }
 
-    // Get member details
+    // Get member details with their primary branch
     const member = await this.prisma.user.findFirst({
       where: {
         id: memberId,
         tenantId,
         role: 'CLIENT',
       },
+      include: {
+        gymMemberProfile: {
+          select: {
+            primaryBranchId: true,
+          },
+        },
+      },
     });
 
     if (!member) {
       throw new NotFoundException('Gym member not found');
     }
+
+    // Get primary branch ID
+    const branchId = member.gymMemberProfile?.primaryBranchId || null;
 
     // Check for existing active subscription
     const existingSubscription = await this.getCurrentSubscription(
@@ -174,6 +184,7 @@ export class GymSubscriptionsService {
       data: {
         memberId: memberId,
         tenantId,
+        branchId, // Add member's primary branch
         gymMembershipPlanId,
         status: GymMemberSubscriptionStatus.ACTIVE,
         startDate,
@@ -207,11 +218,12 @@ export class GymSubscriptionsService {
       }
     }
 
-    // Create transaction record
+    // Create transaction record linked to subscription
     await this.prisma.customerTransaction.create({
       data: {
         tenantId,
         customerId: memberId,
+        gymMemberSubscriptionId: subscription.id, // Link to subscription for branch filtering
         businessType: 'gym',
         transactionCategory: 'membership',
         amount: membershipPlan.price,

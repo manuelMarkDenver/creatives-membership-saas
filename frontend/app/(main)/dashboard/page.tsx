@@ -425,6 +425,7 @@ function OwnerDashboard() {
               <SelectValue placeholder="Select period" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="today">Today</SelectItem>
               <SelectItem value="this_week">This Week</SelectItem>
               <SelectItem value="this_month">This Month</SelectItem>
               <SelectItem value="this_year">This Year</SelectItem>
