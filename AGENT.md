@@ -676,14 +676,56 @@ formatPHPWithUnits(1500000) // → ₱1.5M
 
 ---
 
-## 📋 Key Credentials for Testing
-- **Super Admin**: `admin@creatives-saas.com` / `SuperAdmin123!`
-- **Gym Owner (Muscle Mania)**: `owner@muscle-mania.com` / `MuscleManiaOwner123!`
-- **Gym Owner (TEST TENANT)**: `quxifyjisi@mailinator.com` / `82lL#9!9xW1*`
-- **Gym Manager**: `manager@muscle-mania.com` / `Manager123!`
-- **Valid Tenant IDs**:
-  - Muscle Mania: `a6e7a7ee-66ee-44c8-8756-181534506ef7`
-  - TEST TENANT: `b4c93a9a-3a22-4680-b7c0-7fb20e2a1409`
+## 📋 Development Login Credentials
+
+**⚠️ FOR DEVELOPMENT/TESTING ONLY - NOT FOR PRODUCTION USE**
+
+These credentials are seeded into the local development database for testing purposes.
+
+### 🔧 Super Admin
+- **Email**: `admin@creatives-saas.com`
+- **Password**: `SuperAdmin123!`
+- **Access**: Full platform access, all tenants, system administration
+
+### 💪 Muscle Mania (Beta Tester Tenant)
+
+#### Owner Account
+- **Email**: `owner@muscle-mania.com`
+- **Password**: `MuscleManiaOwner123!`
+- **Access**: Full tenant access, all branches, user management, billing
+
+#### Manager Account
+- **Email**: `manager@muscle-mania.com`
+- **Password**: `Manager123!`
+- **Access**: Branch-specific management, staff supervision, client management
+
+#### Staff Accounts
+- **Email**: `staff11@muscle-mania.com`
+- **Password**: `Staff1123!`
+- **Access**: Limited operations, client check-in, basic client administration
+- **Note**: Additional staff accounts available with pattern `staff[N]@muscle-mania.com`
+
+#### Sample Member Accounts
+- **Email**: `john1b1@muscle-mania.com`
+- **Password**: `Member123!`
+- **Access**: Member profile and assigned branch data only
+- **Note**: Many more member accounts available - check seeder output
+
+### 🏢 Valid Tenant IDs
+- **Muscle Mania**: `a6e7a7ee-66ee-44c8-8756-181534506ef7`
+- **TEST TENANT**: `b4c93a9a-3a22-4680-b7c0-7fb20e2a1409`
+
+### 🔑 Branch Access Control (Role-Based)
+- **Owner**: Full access to all branches within their tenant
+- **Manager**: Access to assigned branch only (via GymUserBranch table)
+- **Staff**: Limited to assigned branch only (via GymUserBranch table)
+- **Members**: View own profile and assigned branch data only
+
+### 💡 Testing Tips
+- Try different roles to see branch-based access control in action
+- Use manager/staff accounts to test single-branch vs multi-branch features
+- Test member accounts to verify client-facing features
+- Super admin can switch between tenants for cross-tenant testing
 
 ---
 
