@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenants, useSystemStats } from '@/lib/hooks/use-tenants'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
-import { useRevenueMetrics, useOwnerInsights, useBranchPerformance } from '@/lib/hooks/use-analytics'
+import { useRevenueMetrics, useOwnerInsights, useBranchPerformance, useMemberGrowthStats } from '@/lib/hooks/use-analytics'
 import { formatPHPCompact, formatPHP } from '@/lib/utils/currency'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -323,6 +323,14 @@ function OwnerDashboard() {
   const { data: branchPerformance } = useBranchPerformance({
     period: selectedPeriod,
   })
+  
+  const { data: memberGrowth, isLoading: memberGrowthLoading } = useMemberGrowthStats({
+    branchId: selectedBranch === 'all' ? undefined : selectedBranch,
+    period: selectedPeriod,
+  })
+  
+  // Feature flag for advanced analytics
+  const showAdvancedAnalytics = process.env.NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS === 'true'
 
   if (branchesLoading) {
     return <div className="animate-pulse">Loading Owner Dashboard...</div>
@@ -433,26 +441,38 @@ function OwnerDashboard() {
           growthAmount={revenueMetrics?.growthAmount || 0}
           isLoading={revenueLoading}
         />
-        <MetricCard
-          title="Avg Revenue/Member"
-          value={formatPHP(revenueMetrics?.averageRevenuePerMember || 0)}
-          icon={UserCheck}
-          isLoading={revenueLoading}
-        />
-        <MetricCard
-          title="Collection Rate"
-          value={`${ownerInsights?.collectionRate.toFixed(1) || 0}%`}
-          subtitle="Payments vs expected"
-          icon={Percent}
-          isLoading={insightsLoading}
-        />
-        <MetricCard
-          title="Renewal Rate"
-          value={`${ownerInsights?.subscriptionRenewalRate.toFixed(1) || 0}%`}
-          subtitle="Member retention"
-          icon={TrendingUp}
-          isLoading={insightsLoading}
-        />
+        {showAdvancedAnalytics ? (
+          <>
+            <MetricCard
+              title="Avg Revenue/Member"
+              value={formatPHP(revenueMetrics?.averageRevenuePerMember || 0)}
+              icon={UserCheck}
+              isLoading={revenueLoading}
+            />
+            <MetricCard
+              title="Collection Rate"
+              value={`${ownerInsights?.collectionRate.toFixed(1) || 0}%`}
+              subtitle="Payments vs expected"
+              icon={Percent}
+              isLoading={insightsLoading}
+            />
+            <MetricCard
+              title="Renewal Rate"
+              value={`${ownerInsights?.subscriptionRenewalRate.toFixed(1) || 0}%`}
+              subtitle="Member retention"
+              icon={TrendingUp}
+              isLoading={insightsLoading}
+            />
+          </>
+        ) : (
+          <MetricCard
+            title="Total Members"
+            value={memberGrowth?.totalMembers?.toLocaleString() || '0'}
+            subtitle={selectedBranch === 'all' ? 'All branches' : 'Selected branch'}
+            icon={Users}
+            isLoading={memberGrowthLoading}
+          />
+        )}
       </div>
       
       {/* Top Performing Plans */}
