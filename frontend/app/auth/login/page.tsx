@@ -102,7 +102,7 @@ export default function LoginPage() {
             backgroundImage: `url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=2075&auto=format&fit=crop')`,
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/40 via-teal-600/30 to-slate-900/60" />
+          <div className="absolute inset-0 bg-gradient-to-br from-pink-600/40 via-purple-600/30 to-slate-900/60" />
         </div>
 
         {/* Content Overlay */}
@@ -125,7 +125,7 @@ export default function LoginPage() {
               <h1 className="text-4xl xl:text-5xl font-bold leading-tight break-words text-white drop-shadow-lg">
                 Elevate Your
                 <br />
-                <span className="text-yellow-300 drop-shadow-lg">
+                <span className="bg-gradient-to-r from-pink-300 via-purple-300 to-orange-300 bg-clip-text text-transparent drop-shadow-lg">
                   Gym Business
                 </span>
               </h1>
@@ -151,15 +151,15 @@ export default function LoginPage() {
           {/* Bottom Stats */}
           <div className="grid grid-cols-3 gap-4 xl:gap-8 max-w-lg">
             <div>
-              <div className="text-2xl xl:text-3xl font-bold text-yellow-300 drop-shadow-lg">100+</div>
+              <div className="text-2xl xl:text-3xl font-bold bg-gradient-to-r from-pink-300 to-orange-300 bg-clip-text text-transparent drop-shadow-lg">100+</div>
               <div className="text-xs xl:text-sm text-white font-medium drop-shadow-md break-words">Active Gyms</div>
             </div>
             <div>
-              <div className="text-2xl xl:text-3xl font-bold text-yellow-300 drop-shadow-lg">5K+</div>
+              <div className="text-2xl xl:text-3xl font-bold bg-gradient-to-r from-pink-300 to-orange-300 bg-clip-text text-transparent drop-shadow-lg">5K+</div>
               <div className="text-xs xl:text-sm text-white font-medium drop-shadow-md break-words">Happy Members</div>
             </div>
             <div>
-              <div className="text-2xl xl:text-3xl font-bold text-yellow-300 drop-shadow-lg">99%</div>
+              <div className="text-2xl xl:text-3xl font-bold bg-gradient-to-r from-pink-300 to-orange-300 bg-clip-text text-transparent drop-shadow-lg">99%</div>
               <div className="text-xs xl:text-sm text-white font-medium drop-shadow-md">Uptime</div>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="w-full 2xl:w-1/2 flex items-center justify-center p-4 sm:p-6 xl:p-8 bg-gradient-to-br from-slate-50 via-white to-slate-50 min-h-screen">
+      <div className="w-full 2xl:w-1/2 flex items-center justify-center p-4 sm:p-6 xl:p-8 bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 min-h-screen">
         <div className="w-full max-w-md space-y-4 sm:space-y-6 xl:space-y-8 animate-in fade-in-50 slide-in-from-bottom-4 duration-700">
           {/* Mobile Logo (Hidden on Extra Large Screens) */}
           <div className="2xl:hidden text-center mb-2">
@@ -176,16 +176,16 @@ export default function LoginPage() {
               alt="GymBossLab Logo" 
               className="mx-auto w-14 h-14 rounded-2xl shadow-xl object-cover mb-3"
             />
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 bg-clip-text text-transparent">
               GymBossLab
             </h1>
           </div>
 
           {/* Login Card */}
-          <Card className="border-2 shadow-xl bg-white">
+          <Card className="border-2 shadow-xl bg-white dark:bg-slate-800 dark:border-slate-700">
             <CardHeader className="space-y-1 pb-4 sm:pb-6">
-              <CardTitle className="text-2xl sm:text-3xl font-bold text-slate-900">Welcome Back</CardTitle>
-              <CardDescription className="text-slate-600 text-sm sm:text-base">
+              <CardTitle className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Welcome Back</CardTitle>
+              <CardDescription className="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
                 Sign in to access your business dashboard
               </CardDescription>
             </CardHeader>
@@ -209,7 +209,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
                     disabled={isLoading}
-                    className="h-12 text-base !bg-white !text-slate-900 border-slate-300 focus:border-emerald-500 focus:ring-emerald-500/20 transition-colors"
+                    className="h-12 text-base !bg-white dark:!bg-slate-800 !text-slate-900 dark:!text-white border-slate-300 dark:border-slate-600 focus:border-pink-500 focus:ring-pink-500/20 transition-colors"
                   />
                 </div>
 
@@ -225,13 +225,13 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
                     disabled={isLoading}
-                    className="h-12 text-base !bg-white !text-slate-900 border-slate-300 focus:border-emerald-500 focus:ring-emerald-500/20 transition-colors"
+                    className="h-12 text-base !bg-white dark:!bg-slate-800 !text-slate-900 dark:!text-white border-slate-300 dark:border-slate-600 focus:border-pink-500 focus:ring-pink-500/20 transition-colors"
                   />
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-base shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+                  className="w-full h-12 bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 hover:from-pink-700 hover:via-purple-700 hover:to-orange-600 text-white font-semibold text-base shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -248,8 +248,8 @@ export default function LoginPage() {
           </Card>
 
           {/* Footer */}
-          <div className="text-center text-slate-500 text-sm">
-            <p>© 2024 GymPinoy. All rights reserved.</p>
+          <div className="text-center text-slate-500 dark:text-slate-400 text-sm">
+            <p>© 2025 GymBossLab. All rights reserved.</p>
           </div>
         </div>
       </div>
