@@ -5,7 +5,7 @@ import { PrismaModule } from 'src/core/prisma/prisma.module';
 import { NotificationsModule } from 'src/core/notifications/notifications.module';
 import { TenantsModule } from 'src/core/tenants/tenants.module';
 import { AuthModule } from '../auth/auth.module';
-import { SupabaseModule } from '../supabase/supabase.module';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
   imports: [
@@ -13,8 +13,8 @@ import { SupabaseModule } from '../supabase/supabase.module';
     NotificationsModule,
     TenantsModule,
     AuthModule,
-    SupabaseModule,
-  ], // <-- Needed here
+    StorageModule, // Now using Wasabi instead of Supabase
+  ],
   controllers: [UsersController],
   providers: [UsersService],
 })

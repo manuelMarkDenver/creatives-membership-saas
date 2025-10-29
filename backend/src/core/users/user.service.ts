@@ -1,5 +1,5 @@
 import { NotificationsService } from '../notifications/notifications.service';
-import { SupabaseService } from '../supabase/supabase.service';
+import type { StorageProvider } from '../storage/storage-provider.interface';
 import {
   Injectable,
   NotFoundException,
@@ -7,11 +7,13 @@ import {
   ConflictException,
   InternalServerErrorException,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Prisma, Role } from '@prisma/client';
+import { STORAGE_PROVIDER } from '../storage/storage.module';
 
 @Injectable()
 export class UsersService {
@@ -20,7 +22,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
-    private supabaseService: SupabaseService,
+    @Inject(STORAGE_PROVIDER) private storageService: StorageProvider,
   ) {}
 
   async createUser(data: CreateUserDto) {
@@ -121,8 +123,26 @@ export class UsersService {
         orderBy: { createdAt: 'desc' },
       });
 
+      // Refresh signed URLs for photos
+      const usersWithFreshUrls = await Promise.all(
+        users.map(async (user) => {
+          if (user.photoUrl && user.tenantId) {
+            try {
+              const photoPath = `${user.tenantId}/${user.id}/profile.jpg`;
+              const freshUrl = await this.storageService.getSignedPhotoUrl?.(photoPath);
+              if (freshUrl) {
+                return { ...user, photoUrl: freshUrl };
+              }
+            } catch (error) {
+              this.logger.warn(`Failed to refresh photo URL for user ${user.id}`);
+            }
+          }
+          return user;
+        }),
+      );
+
       this.logger.log(`Retrieved ${users.length} users`);
-      return users;
+      return usersWithFreshUrls;
     } catch (error) {
       this.logger.error(
         `Failed to get all users: ${(error as Error).message}`,
@@ -897,8 +917,8 @@ export class UsersService {
         mimeType: file.mimetype,
       });
 
-      // Upload to Supabase Storage
-      const uploadResult = await this.supabaseService.uploadMemberPhoto(
+      // Upload to storage (Wasabi)
+      const uploadResult = await this.storageService.uploadMemberPhoto(
         userId,
         user.tenantId!, // Use user's tenantId for organizing files
         file,
@@ -968,16 +988,16 @@ export class UsersService {
         };
       }
 
-      // Delete from Supabase Storage
+      // Delete from storage (Wasabi)
       try {
         // Extract the path from the photoUrl or construct it
-        const photoPath = this.supabaseService.extractPhotoPath(user.photoUrl);
+        const photoPath = this.storageService.extractPhotoPath?.(user.photoUrl);
         if (photoPath) {
-          await this.supabaseService.deleteMemberPhoto(photoPath);
+          await this.storageService.deleteMemberPhoto(photoPath);
         } else {
           // If we can't extract the path, try the standard path format
           const standardPath = `${user.tenantId}/${userId}/profile.jpg`;
-          await this.supabaseService.deleteMemberPhoto(standardPath);
+          await this.storageService.deleteMemberPhoto(standardPath);
         }
       } catch (storageError) {
         this.logger.warn(

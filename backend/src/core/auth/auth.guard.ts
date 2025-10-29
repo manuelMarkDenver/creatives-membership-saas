@@ -4,7 +4,6 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
-import { SupabaseService } from '../supabase/supabase.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser } from '../guard/rbac.guard';
 import { Role } from '@prisma/client';
@@ -12,7 +11,6 @@ import { Role } from '@prisma/client';
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
-    private supabaseService: SupabaseService,
     private prisma: PrismaService,
   ) {}
 
