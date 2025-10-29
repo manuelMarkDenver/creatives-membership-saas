@@ -7,65 +7,62 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2 } from 'lucide-react'
+import { Loader2, CheckCircle } from 'lucide-react'
 import { userKeys } from '@/lib/hooks/use-gym-users'
 import { useTenantContext } from '@/lib/providers/tenant-context'
+import { authApi } from '@/lib/api/client'
 import { type BusinessCategory } from '@/types'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
   const router = useRouter()
   const queryClient = useQueryClient()
   const { setCurrentTenant } = useTenantContext()
+  const [activeTab, setActiveTab] = useState('login')
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Login state
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginError, setLoginError] = useState('')
+
+  // Signup state
+  const [signupData, setSignupData] = useState({
+    name: '',
+    category: 'GYM' as BusinessCategory,
+    ownerFirstName: '',
+    ownerLastName: '',
+    ownerEmail: '',
+    ownerPhoneNumber: '',
+  })
+  const [signupLoading, setSignupLoading] = useState(false)
+  const [signupError, setSignupError] = useState('')
+  const [signupSuccess, setSignupSuccess] = useState(false)
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    setError('')
+    setLoginLoading(true)
+    setLoginError('')
 
     try {
-      // Clear any existing auth data before login attempt
       localStorage.removeItem('auth_token')
       localStorage.removeItem('user_data')
       
-      console.log('🔍 Attempting login with:', { email }) // Debug log
-      
-      // Use the environment variable API URL
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
-      const response = await fetch(`${apiUrl}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password })
-      })
+      const result = await authApi.login(loginEmail, loginPassword)
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed')
-      }
-
-      if (data.success && data.data.user && data.data.token) {
-        console.log('✅ Login successful for:', data.data.user.email) // Debug log
+      if (result.success && result.data.user && result.data.token) {
+        localStorage.setItem('auth_token', result.data.token)
+        localStorage.setItem('user_data', JSON.stringify(result.data.user))
         
-        // Store user data and token
-        localStorage.setItem('auth_token', data.data.token)
-        localStorage.setItem('user_data', JSON.stringify(data.data.user))
-        
-        // Set tenant context for users with tenant data
-        if (data.data.user.tenant) {
-          setCurrentTenant(data.data.user.tenant)
-        } else if (data.data.user.tenantId) {
-          // If we have a tenantId but no tenant object, create a basic tenant object
+        if (result.data.user.tenant) {
+          setCurrentTenant(result.data.user.tenant)
+        } else if (result.data.user.tenantId) {
           const basicTenant = {
-            id: data.data.user.tenantId,
-            name: 'Unknown Tenant', // This should be resolved by the backend
-            category: 'GYM' as BusinessCategory, // Default category
+            id: result.data.user.tenantId,
+            name: 'Unknown Tenant',
+            category: 'GYM' as BusinessCategory,
             slug: 'unknown-tenant',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -73,29 +70,40 @@ export default function LoginPage() {
           setCurrentTenant(basicTenant)
         }
         
-        
-        // Clear and refresh profile cache to ensure fresh role data
         queryClient.removeQueries({ queryKey: userKeys.profile() })
         queryClient.invalidateQueries({ queryKey: userKeys.profile() })
         
-        
-        // Redirect to dashboard
         router.push('/dashboard')
-      } else {
-        throw new Error('Invalid response from server')
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during login')
+    } catch (err: any) {
+      setLoginError(err.response?.data?.message || err.message || 'Login failed')
     } finally {
-      setIsLoading(false)
+      setLoginLoading(false)
+    }
+  }
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSignupLoading(true)
+    setSignupError('')
+
+    try {
+      const result = await authApi.registerTenant(signupData)
+      
+      if (result.success) {
+        setSignupSuccess(true)
+      }
+    } catch (err: any) {
+      setSignupError(err.response?.data?.message || err.message || 'Registration failed')
+    } finally {
+      setSignupLoading(false)
     }
   }
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Gym Image - ONLY ON EXTRA LARGE SCREENS */}
+      {/* Left Side - Gym Image */}
       <div className="hidden 2xl:flex 2xl:w-1/2 relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        {/* Gym Image with Overlay */}
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{
@@ -105,9 +113,7 @@ export default function LoginPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-pink-600/40 via-purple-600/30 to-slate-900/60" />
         </div>
 
-        {/* Content Overlay */}
         <div className="relative z-10 flex flex-col justify-between p-8 xl:p-12 text-white w-full">
-          {/* Logo & Brand */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <img 
@@ -119,12 +125,10 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Center Content */}
           <div className="space-y-6 max-w-lg">
             <div className="space-y-4">
               <h1 className="text-4xl xl:text-5xl font-bold leading-tight break-words text-white drop-shadow-lg">
-                Elevate Your
-                <br />
+                Elevate Your<br />
                 <span className="bg-gradient-to-r from-pink-300 via-purple-300 to-orange-300 bg-clip-text text-transparent drop-shadow-lg">
                   Gym Business
                 </span>
@@ -134,7 +138,6 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Feature Pills */}
             <div className="flex flex-wrap gap-2 xl:gap-3">
               <div className="px-3 xl:px-4 py-2 bg-white/20 backdrop-blur-md rounded-full border border-white/40 text-xs xl:text-sm font-semibold whitespace-nowrap text-white drop-shadow-md">
                 💪 Member Management
@@ -148,7 +151,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Bottom Stats */}
           <div className="grid grid-cols-3 gap-4 xl:gap-8 max-w-lg">
             <div>
               <div className="text-2xl xl:text-3xl font-bold bg-gradient-to-r from-pink-300 to-orange-300 bg-clip-text text-transparent drop-shadow-lg">100+</div>
@@ -166,10 +168,10 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
+      {/* Right Side - Forms */}
       <div className="w-full 2xl:w-1/2 flex items-center justify-center p-4 sm:p-6 xl:p-8 bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 min-h-screen">
         <div className="w-full max-w-md space-y-4 sm:space-y-6 xl:space-y-8 animate-in fade-in-50 slide-in-from-bottom-4 duration-700">
-          {/* Mobile Logo (Hidden on Extra Large Screens) */}
+          {/* Mobile Logo */}
           <div className="2xl:hidden text-center mb-2">
             <img 
               src="/gymbosslab-logo.jpeg" 
@@ -181,69 +183,185 @@ export default function LoginPage() {
             </h1>
           </div>
 
-          {/* Login Card */}
+          {/* Tabbed Card */}
           <Card className="border-2 shadow-xl bg-white dark:bg-slate-800 dark:border-slate-700">
             <CardHeader className="space-y-1 pb-4 sm:pb-6">
-              <CardTitle className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Welcome Back</CardTitle>
+              <CardTitle className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                {activeTab === 'login' ? 'Welcome Back' : 'Start Your Free Trial'}
+              </CardTitle>
               <CardDescription className="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
-                Sign in to access your business dashboard
+                {activeTab === 'login' 
+                  ? 'Sign in to access your business dashboard' 
+                  : 'Create your account and get started in minutes'}
               </CardDescription>
             </CardHeader>
+
             <CardContent className="pb-4 sm:pb-6">
-              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-                {error && (
-                  <Alert variant="destructive" className="border-red-200 bg-red-50">
-                    <AlertDescription className="text-red-800">{error}</AlertDescription>
-                  </Alert>
-                )}
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="login">Login</TabsTrigger>
+                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                </TabsList>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-semibold text-slate-700">Email address</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    disabled={isLoading}
-                    className="h-12 text-base !bg-white dark:!bg-slate-800 !text-slate-900 dark:!text-white border-slate-300 dark:border-slate-600 focus:border-pink-500 focus:ring-pink-500/20 transition-colors"
-                  />
-                </div>
+                {/* Login Tab */}
+                <TabsContent value="login">
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    {loginError && (
+                      <Alert variant="destructive" className="border-red-200 bg-red-50">
+                        <AlertDescription className="text-red-800">{loginError}</AlertDescription>
+                      </Alert>
+                    )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-semibold text-slate-700">Password</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    disabled={isLoading}
-                    className="h-12 text-base !bg-white dark:!bg-slate-800 !text-slate-900 dark:!text-white border-slate-300 dark:border-slate-600 focus:border-pink-500 focus:ring-pink-500/20 transition-colors"
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="login-email">Email address</Label>
+                      <Input
+                        id="login-email"
+                        type="email"
+                        required
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        placeholder="Enter your email"
+                        disabled={loginLoading}
+                        className="h-12"
+                      />
+                    </div>
 
-                <Button
-                  type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 hover:from-pink-700 hover:via-purple-700 hover:to-orange-600 text-white font-semibold text-base shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Signing in...
-                    </>
+                    <div className="space-y-2">
+                      <Label htmlFor="login-password">Password</Label>
+                      <Input
+                        id="login-password"
+                        type="password"
+                        required
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        disabled={loginLoading}
+                        className="h-12"
+                      />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full h-12 bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500"
+                      disabled={loginLoading}
+                    >
+                      {loginLoading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Signing in...</> : 'Sign in'}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                {/* Signup Tab */}
+                <TabsContent value="signup">
+                  {signupSuccess ? (
+                    <div className="text-center space-y-4 py-6">
+                      <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">Check Your Email! 📧</h3>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        We've sent a verification link to <strong>{signupData.ownerEmail}</strong>
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Click the link in the email to activate your account.
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => setActiveTab('login')}
+                        className="mt-4"
+                      >
+                        Back to Login
+                      </Button>
+                    </div>
                   ) : (
-                    'Sign in'
+                    <form onSubmit={handleSignup} className="space-y-4">
+                      {signupError && (
+                        <Alert variant="destructive" className="border-red-200 bg-red-50">
+                          <AlertDescription className="text-red-800">{signupError}</AlertDescription>
+                        </Alert>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label htmlFor="business-name">Business Name *</Label>
+                        <Input
+                          id="business-name"
+                          required
+                          value={signupData.name}
+                          onChange={(e) => setSignupData({...signupData, name: e.target.value})}
+                          placeholder="FitZone Gym"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="category">Business Category *</Label>
+                        <Select value={signupData.category} onValueChange={(val) => setSignupData({...signupData, category: val as BusinessCategory})} disabled>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="GYM">Gym & Fitness</SelectItem>
+                            <SelectItem value="COFFEE_SHOP" disabled>Coffee Shop</SelectItem>
+                            <SelectItem value="ECOMMERCE" disabled>E-commerce</SelectItem>
+                            <SelectItem value="OTHER" disabled>Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Currently only available for gyms and fitness centers</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="first-name">First Name *</Label>
+                          <Input
+                            id="first-name"
+                            required
+                            value={signupData.ownerFirstName}
+                            onChange={(e) => setSignupData({...signupData, ownerFirstName: e.target.value})}
+                            placeholder="John"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="last-name">Last Name *</Label>
+                          <Input
+                            id="last-name"
+                            required
+                            value={signupData.ownerLastName}
+                            onChange={(e) => setSignupData({...signupData, ownerLastName: e.target.value})}
+                            placeholder="Doe"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-email">Email Address *</Label>
+                        <Input
+                          id="signup-email"
+                          type="email"
+                          required
+                          value={signupData.ownerEmail}
+                          onChange={(e) => setSignupData({...signupData, ownerEmail: e.target.value})}
+                          placeholder="john@fitzonegym.com"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number (optional)</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          value={signupData.ownerPhoneNumber}
+                          onChange={(e) => setSignupData({...signupData, ownerPhoneNumber: e.target.value})}
+                          placeholder="+63 912 345 6789"
+                        />
+                      </div>
+
+                      <Button
+                        type="submit"
+                        className="w-full h-12 bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500"
+                        disabled={signupLoading}
+                      >
+                        {signupLoading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Creating account...</> : 'Create Account'}
+                      </Button>
+                    </form>
                   )}
-                </Button>
-              </form>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
 
@@ -256,4 +374,3 @@ export default function LoginPage() {
     </div>
   )
 }
-
