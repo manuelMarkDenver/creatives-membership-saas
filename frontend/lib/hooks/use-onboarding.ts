@@ -4,7 +4,7 @@ import { onboardingApi, OnboardingStatus } from '@/lib/api/onboarding'
 import { branchesApi } from '@/lib/api/branches'
 import { createMembershipPlan } from '@/lib/api/membership-plans'
 import { membersApi } from '@/lib/api/gym-members'
-import { usersApi } from '@/lib/api/gym-users'
+import { apiClient } from '@/lib/api/client'
 
 // Query keys
 export const onboardingKeys = {
@@ -110,8 +110,11 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     async (tempPassword: string, newPassword: string) => {
       if (!tenantId) throw new Error('Tenant ID is required')
 
-      // Call the password change endpoint (assumes you have this in usersApi)
-      await usersApi.changePassword({ currentPassword: tempPassword, newPassword })
+      // Call the setInitialPassword endpoint
+      await apiClient.post('/auth/set-initial-password', {
+        temporaryPassword: tempPassword,
+        newPassword,
+      })
 
       // Mark password as changed in onboarding
       await markPasswordChanged.mutateAsync(tenantId)
