@@ -71,6 +71,18 @@ services:
       timeout: 5s
       retries: 5
 
+  # Mailpit - Email Testing Tool for Development
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: creatives-saas-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
 volumes:
   postgres_dev_data:
     driver: local

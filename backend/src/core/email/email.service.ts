@@ -14,40 +14,49 @@ export class EmailService {
   constructor() {
     const isDev = process.env.NODE_ENV !== 'production';
     
-    // Check for production email providers in priority order
-    // Priority: Brevo > SendGrid > Mailgun > Resend
-    if (!isDev) {
-      if (process.env.BREVO_API_KEY) {
-        this.provider = 'brevo';
-        this.logger.log('✅ Email service initialized with Brevo (production)');
-      } else if (process.env.SENDGRID_API_KEY) {
-        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-        this.provider = 'sendgrid';
-        this.logger.log('✅ Email service initialized with SendGrid (production)');
-      } else if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
-        this.provider = 'mailgun';
-        this.logger.log('✅ Email service initialized with Mailgun (production)');
-      } else if (process.env.RESEND_API_KEY) {
-        this.provider = 'resend';
-        this.logger.log('✅ Email service initialized with Resend (production)');
-      } else {
-        this.logger.warn('⚠️  No production email provider configured, falling back to SMTP');
-        this.provider = 'smtp';
-      }
-    }
-    
-    // Development or fallback: Use Mailpit/SMTP
-    if (isDev || this.provider === 'smtp') {
+    // DEVELOPMENT: Always use Mailpit (SMTP)
+    if (isDev) {
+      this.provider = 'smtp';
       this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'localhost',
         port: parseInt(process.env.SMTP_PORT || '1025'),
         secure: false,
         ignoreTLS: true,
       });
+      this.logger.log('🧪 [DEVELOPMENT MODE]');
       this.logger.log(
-        `✅ Email service initialized with SMTP (${process.env.SMTP_HOST || 'localhost'}:${process.env.SMTP_PORT || '1025'})`,
+        `✅ Email service using Mailpit SMTP (${process.env.SMTP_HOST || 'localhost'}:${process.env.SMTP_PORT || '1025'})`,
       );
       this.logger.log('📧 View emails at: http://localhost:8025');
+      return;
+    }
+    
+    // PRODUCTION: Check for email providers in priority order
+    // Priority: Brevo > SendGrid > Mailgun > Resend > SMTP (fallback)
+    if (process.env.BREVO_API_KEY) {
+      this.provider = 'brevo';
+      this.logger.log('✅ [PRODUCTION] Email service using Brevo');
+    } else if (process.env.SENDGRID_API_KEY) {
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      this.provider = 'sendgrid';
+      this.logger.log('✅ [PRODUCTION] Email service using SendGrid');
+    } else if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
+      this.provider = 'mailgun';
+      this.logger.log('✅ [PRODUCTION] Email service using Mailgun');
+    } else if (process.env.RESEND_API_KEY) {
+      this.provider = 'resend';
+      this.logger.log('✅ [PRODUCTION] Email service using Resend');
+    } else {
+      // Fallback to SMTP in production (not recommended)
+      this.logger.warn('⚠️  [PRODUCTION] No email provider configured, falling back to SMTP');
+      this.logger.warn('⚠️  Configure BREVO_API_KEY for production email delivery');
+      this.provider = 'smtp';
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'localhost',
+        port: parseInt(process.env.SMTP_PORT || '1025'),
+        secure: false,
+        ignoreTLS: true,
+      });
     }
   }
 

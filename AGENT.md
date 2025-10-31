@@ -873,6 +873,16 @@ cd frontend && npm run dev
 ### Port Management
 - **Frontend**: Always run on port 3000. Kill any process using it if needed.
 - **Backend**: Always run on port 5000. Kill any process using it if needed.
+- **Mailpit**: Port 1025 (SMTP), Port 8025 (Web UI)
+
+### Email Configuration
+- **Development**: Mailpit (SMTP localhost:1025, UI at http://localhost:8025)
+- **Production**: Brevo (requires BREVO_API_KEY environment variable)
+- **Auto-switching**: Based on NODE_ENV environment variable
+- **Documentation**: See `/EMAIL-CONFIGURATION.md` for complete setup guide
+- **Key Variables**:
+  - Development: `SMTP_HOST=localhost`, `SMTP_PORT=1025`
+  - Production: `BREVO_API_KEY`, `EMAIL_FROM`, `EMAIL_FROM_NAME`
 
 ### Production Infrastructure
 - **Backend**: Railway.com (~$5-20/month) - NestJS + PostgreSQL
