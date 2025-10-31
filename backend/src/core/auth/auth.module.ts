@@ -5,9 +5,10 @@ import { AuthGuard } from './auth.guard';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { EmailModule } from '../email/email.module';
+import { SystemSettingsModule } from '../system-settings/system-settings.module';
 
 @Module({
-  imports: [SupabaseModule, PrismaModule, EmailModule],
+  imports: [SupabaseModule, PrismaModule, EmailModule, SystemSettingsModule],
   controllers: [AuthController],
   providers: [AuthService, AuthGuard],
   exports: [AuthService, AuthGuard],

@@ -15,6 +15,7 @@ import { StatsModule } from './modules/stats/stats.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { GymModule } from './modules/gym/gym.module';
 import { BusinessUnitsModule } from './modules/business-units/business-units.module';
+import { SystemSettingsModule } from './core/system-settings/system-settings.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { BusinessUnitsModule } from './modules/business-units/business-units.mod
     PlansModule,
     GymModule,
     BusinessUnitsModule,
+    SystemSettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

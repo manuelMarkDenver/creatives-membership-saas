@@ -11,6 +11,8 @@ import { RegisterTenantDto } from './dto/register-tenant.dto';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import slugify from 'slugify';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
+import { validatePassword } from '../../common/utils/password-validator';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +21,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private systemSettingsService: SystemSettingsService,
   ) {}
 
   /**
@@ -303,6 +306,17 @@ export class AuthService {
       if (user.initialPasswordSet) {
         throw new BadRequestException(
           'Password already set. Use change password instead.',
+        );
+      }
+
+      // Validate password against system security level
+      const securityLevel =
+        await this.systemSettingsService.getPasswordSecurityLevel();
+      const validation = validatePassword(newPassword, securityLevel);
+
+      if (!validation.valid) {
+        throw new BadRequestException(
+          `Password does not meet security requirements: ${validation.errors.join(', ')}`,
         );
       }
 

@@ -140,6 +140,17 @@ model Payment {
   subscription   Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 }
 
+model SystemSettings {
+  id                     String                 @id @default("system") // Single row with fixed ID
+  passwordSecurityLevel  PasswordSecurityLevel  @default(MEDIUM)
+  // Future settings can be added here:
+  // entityNames            Json?                  // Custom entity names per business type
+  // maxFileUploadSizeMB    Int                    @default(10)
+  // emailDailyLimit        Int                    @default(1000)
+  updatedAt              DateTime               @updatedAt
+  updatedBy              String?                // Super admin user ID who last updated
+}
+
 model User {
   id                        String                  @id @default(uuid())
   firstName                 String
@@ -657,4 +668,10 @@ enum BranchAccessLevel {
   SINGLE_BRANCH    // Can only visit primary branch
   MULTI_BRANCH     // Can visit specific allowed branches
   ALL_BRANCHES     // Can visit any branch (premium memberships)
+}
+
+enum PasswordSecurityLevel {
+  LOW      // 6+ chars, basic requirements
+  MEDIUM   // 8+ chars, mixed case + number
+  HIGH     // 8+ chars, mixed case + number + special char
 }

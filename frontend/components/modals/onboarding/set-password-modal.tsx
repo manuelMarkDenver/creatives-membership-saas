@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,6 +15,8 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Eye, EyeOff, Key, Lock, Shield } from 'lucide-react'
 import { toast } from 'react-toastify'
+import { usePasswordSecurityLevel } from '@/lib/hooks/use-system-settings'
+import { getPasswordRequirements, validatePassword } from '@/lib/utils/password-validator'
 
 interface SetPasswordModalProps {
   open: boolean
@@ -34,15 +36,9 @@ export default function SetPasswordModal({
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const validatePassword = (password: string): boolean => {
-    return (
-      password.length >= 8 &&
-      /[A-Z]/.test(password) &&
-      /[a-z]/.test(password) &&
-      /[0-9]/.test(password) &&
-      /[^A-Za-z0-9]/.test(password)
-    )
-  }
+  // Fetch current password security level
+  const { data: securityLevel, isLoading: isLoadingLevel } = usePasswordSecurityLevel()
+  const requirements = securityLevel ? getPasswordRequirements(securityLevel) : []
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,14 +50,13 @@ export default function SetPasswordModal({
       return
     }
 
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long')
-      return
-    }
-
-    if (!validatePassword(newPassword)) {
-      setError('Password must contain uppercase, lowercase, number, and special character')
-      return
+    // Validate password against current security level
+    if (securityLevel) {
+      const validation = validatePassword(newPassword, securityLevel)
+      if (!validation.valid) {
+        setError(validation.errors.join(', '))
+        return
+      }
     }
 
     if (newPassword !== confirmPassword) {
@@ -172,33 +167,25 @@ export default function SetPasswordModal({
           </div>
 
           {/* Password Strength Indicator */}
-          {newPassword && (
-            <div className="bg-slate-50 p-4 rounded-lg border space-y-2">
+          {newPassword && requirements.length > 0 && (
+            <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border space-y-2">
               <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-slate-600" />
-                <span className="text-sm font-medium text-slate-700">Password Requirements</span>
+                <Lock className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Password Requirements</span>
               </div>
               <div className="space-y-1 text-xs">
-                <div className={`flex items-center gap-2 ${newPassword.length >= 8 ? 'text-green-600' : 'text-slate-500'}`}>
-                  <div className={`w-2 h-2 rounded-full ${newPassword.length >= 8 ? 'bg-green-500' : 'bg-slate-300'}`} />
-                  At least 8 characters
-                </div>
-                <div className={`flex items-center gap-2 ${/[A-Z]/.test(newPassword) ? 'text-green-600' : 'text-slate-500'}`}>
-                  <div className={`w-2 h-2 rounded-full ${/[A-Z]/.test(newPassword) ? 'bg-green-500' : 'bg-slate-300'}`} />
-                  Contains uppercase letter
-                </div>
-                <div className={`flex items-center gap-2 ${/[a-z]/.test(newPassword) ? 'text-green-600' : 'text-slate-500'}`}>
-                  <div className={`w-2 h-2 rounded-full ${/[a-z]/.test(newPassword) ? 'bg-green-500' : 'bg-slate-300'}`} />
-                  Contains lowercase letter
-                </div>
-                <div className={`flex items-center gap-2 ${/[0-9]/.test(newPassword) ? 'text-green-600' : 'text-slate-500'}`}>
-                  <div className={`w-2 h-2 rounded-full ${/[0-9]/.test(newPassword) ? 'bg-green-500' : 'bg-slate-300'}`} />
-                  Contains number
-                </div>
-                <div className={`flex items-center gap-2 ${/[^A-Za-z0-9]/.test(newPassword) ? 'text-green-600' : 'text-slate-500'}`}>
-                  <div className={`w-2 h-2 rounded-full ${/[^A-Za-z0-9]/.test(newPassword) ? 'bg-green-500' : 'bg-slate-300'}`} />
-                  Contains special character
-                </div>
+                {requirements.map((req) => {
+                  const isMet = req.test(newPassword)
+                  return (
+                    <div
+                      key={req.value}
+                      className={`flex items-center gap-2 ${isMet ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}
+                    >
+                      <div className={`w-2 h-2 rounded-full ${isMet ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                      {req.label}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}

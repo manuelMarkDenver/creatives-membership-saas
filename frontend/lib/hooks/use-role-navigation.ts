@@ -106,7 +106,6 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: Shield,
     roles: ['SUPER_ADMIN' as Role],
     description: 'System-wide configuration',
-    isFutureFeature: true
   },
   {
     name: 'Settings',
