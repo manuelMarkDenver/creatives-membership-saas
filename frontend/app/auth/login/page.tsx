@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, CheckCircle } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react'
 import { userKeys } from '@/lib/hooks/use-gym-users'
 import { useTenantContext } from '@/lib/providers/tenant-context'
 import { authApi } from '@/lib/api/client'
@@ -27,6 +28,8 @@ export default function LoginPage() {
   const [loginPassword, setLoginPassword] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
 
   // Signup state
   const [signupData, setSignupData] = useState({
@@ -40,6 +43,17 @@ export default function LoginPage() {
   const [signupLoading, setSignupLoading] = useState(false)
   const [signupError, setSignupError] = useState('')
   const [signupSuccess, setSignupSuccess] = useState(false)
+
+  // Load saved credentials on mount
+  React.useEffect(() => {
+    const savedEmail = localStorage.getItem('remember_email')
+    const savedRemember = localStorage.getItem('remember_me') === 'true'
+    
+    if (savedEmail && savedRemember) {
+      setLoginEmail(savedEmail)
+      setRememberMe(true)
+    }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,6 +69,15 @@ export default function LoginPage() {
       if (result.success && result.data.user && result.data.token) {
         localStorage.setItem('auth_token', result.data.token)
         localStorage.setItem('user_data', JSON.stringify(result.data.user))
+        
+        // Handle remember me
+        if (rememberMe) {
+          localStorage.setItem('remember_email', loginEmail)
+          localStorage.setItem('remember_me', 'true')
+        } else {
+          localStorage.removeItem('remember_email')
+          localStorage.removeItem('remember_me')
+        }
         
         if (result.data.user.tenant) {
           setCurrentTenant(result.data.user.tenant)
@@ -222,22 +245,50 @@ export default function LoginPage() {
                         onChange={(e) => setLoginEmail(e.target.value)}
                         placeholder="Enter your email"
                         disabled={loginLoading}
-                        className="h-12"
+                        className="h-12 bg-white dark:bg-white dark:text-gray-900"
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="login-password">Password</Label>
-                      <Input
-                        id="login-password"
-                        type="password"
-                        required
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        disabled={loginLoading}
-                        className="h-12"
+                      <div className="relative">
+                        <Input
+                          id="login-password"
+                          type={showPassword ? "text" : "password"}
+                          required
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          placeholder="Enter your password"
+                          disabled={loginLoading}
+                          className="h-12 bg-white dark:bg-white dark:text-gray-900 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="remember-me"
+                        checked={rememberMe}
+                        onCheckedChange={(checked) => setRememberMe(checked as boolean)}
                       />
+                      <label
+                        htmlFor="remember-me"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        Remember me
+                      </label>
                     </div>
 
                     <Button

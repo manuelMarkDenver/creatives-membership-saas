@@ -30,8 +30,8 @@
 - **FILE CHANGE INDICATION**: Use **bold** or *italics* for file changes to distinguish from thinking
 - **NO CONSOLE LOG SPAM**: Remove debug console logs after fixing issues - keep code clean
 - **CONSISTENT QUERY KEYS**: Always match React Query keys between hooks and mutations for proper cache invalidation
-- **COMMIT MESSAGES**: After every milestone or significant feature completion, provide a concise git commit message that user can copy-paste
-- **GIT WORKFLOW**: Agent can commit changes using `git commit`, but NEVER push to remote - User handles all `git push` operations
+- **COMMIT MESSAGES**: After every fix/update/change, provide a concise git commit message that user can copy-paste - User handles all git operations (add, commit, push)
+- **GIT WORKFLOW**: Agent NEVER commits or pushes - Agent only provides ready-to-use commit messages for user to execute manually
 - **SHORTHAND REFERENCES**:
   - **"a-doc"** = This AGENT.md file (`/home/mhackeedev/_apps/creatives-saas/AGENT.md`)
   - **"b-logs"** = Browser console logs (`/home/mhackeedev/console.log`)
