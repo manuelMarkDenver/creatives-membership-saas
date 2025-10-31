@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Eye, EyeOff, Key, Lock, Shield } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { usePasswordSecurityLevel } from '@/lib/hooks/use-system-settings'
-import { getPasswordRequirements, validatePassword } from '@/lib/utils/password-validator'
+import { getPasswordRequirements, validatePassword, PASSWORD_REQUIREMENTS_CONFIG } from '@/lib/utils/password-validator'
 
 interface SetPasswordModalProps {
   open: boolean
@@ -39,6 +39,9 @@ export default function SetPasswordModal({
   // Fetch current password security level
   const { data: securityLevel, isLoading: isLoadingLevel } = usePasswordSecurityLevel()
   const requirements = securityLevel ? getPasswordRequirements(securityLevel) : []
+
+  // Get minimum length from security level
+  const minLength = securityLevel ? PASSWORD_REQUIREMENTS_CONFIG[securityLevel].minLength : 8
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,7 +118,7 @@ export default function SetPasswordModal({
                 placeholder="Enter a strong password"
                 className="pr-10"
                 required
-                minLength={8}
+                minLength={minLength}
                 autoComplete="new-password"
               />
               <Button

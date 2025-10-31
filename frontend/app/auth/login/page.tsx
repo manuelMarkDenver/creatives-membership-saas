@@ -255,7 +255,7 @@ export default function LoginPage() {
               <CardDescription className="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
                 {activeTab === "login"
                   ? "Sign in to access your business dashboard"
-                  : "Simplify operations, boost retention, and get real-time insights - — all from one smart dashboard."}
+                  : "Simplify operations, boost retention, and get real-time insights — all from one smart dashboard."}
               </CardDescription>
             </CardHeader>
 

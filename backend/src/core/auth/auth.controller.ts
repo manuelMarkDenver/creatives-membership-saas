@@ -19,6 +19,8 @@ import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
 import { RegisterTenantDto } from './dto/register-tenant.dto';
 import { SetInitialPasswordDto } from './dto/set-initial-password.dto';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
+import { validatePassword } from '../../common/utils/password-validator';
 import * as bcrypt from 'bcrypt';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 
@@ -47,6 +49,7 @@ export class AuthController {
     private readonly supabaseService: SupabaseService,
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
+    private readonly systemSettingsService: SystemSettingsService,
   ) {}
 
   /**
@@ -355,6 +358,16 @@ export class AuthController {
 
       if (!isCurrentPasswordValid) {
         throw new UnauthorizedException('Current password is incorrect');
+      }
+
+      // Validate new password against system security level
+      const securityLevel = await this.systemSettingsService.getPasswordSecurityLevel();
+      const validation = validatePassword(newPassword, securityLevel);
+
+      if (!validation.valid) {
+        throw new BadRequestException(
+          `Password does not meet security requirements: ${validation.errors.join(', ')}`,
+        );
       }
 
       // Hash new password

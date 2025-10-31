@@ -37,11 +37,16 @@ export class SystemSettingsService {
     level: PasswordSecurityLevel,
     updatedBy: string,
   ) {
+    // Get current settings to log the change
+    const currentSettings = await this.getSettings();
+    const previousLevel = currentSettings.passwordSecurityLevel;
+
     const settings = await this.prisma.systemSettings.upsert({
       where: { id: 'system' },
       update: {
         passwordSecurityLevel: level,
         updatedBy,
+        updatedAt: new Date(),
       },
       create: {
         id: 'system',
@@ -50,11 +55,33 @@ export class SystemSettingsService {
       },
     });
 
+    // Enhanced audit logging
     this.logger.log(
-      `Password security level updated to ${level} by user ${updatedBy}`,
+      `🔐 SYSTEM SETTINGS AUDIT: Password security level changed from ${previousLevel} to ${level} by user ${updatedBy}`,
     );
 
+    // Log security impact
+    const impact = this.getSecurityLevelImpact(previousLevel, level);
+    this.logger.log(`🔐 SECURITY IMPACT: ${impact}`);
+
     return settings;
+  }
+
+  private getSecurityLevelImpact(
+    previous: PasswordSecurityLevel,
+    current: PasswordSecurityLevel,
+  ): string {
+    const levels = { LOW: 1, MEDIUM: 2, HIGH: 3 };
+    const prevLevel = levels[previous];
+    const currLevel = levels[current];
+
+    if (currLevel > prevLevel) {
+      return `Security strengthened - new accounts will require stronger passwords`;
+    } else if (currLevel < prevLevel) {
+      return `Security relaxed - new accounts will have weaker password requirements`;
+    } else {
+      return `No security level change`;
+    }
   }
 
   /**
