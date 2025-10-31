@@ -9,21 +9,29 @@
 
 ## 🧪 Development Setup (5 minutes)
 
-### Option 1: Docker Compose (Recommended)
+### Check if Already Running
+```bash
+# Check if Mailpit is already installed
+docker ps | grep mailpit
+
+# If running, you're done! Skip to "View Emails" below
+```
+
+### Option 1: Standalone Docker Container
+```bash
+docker run -d --name mailpit \
+  -p 8025:8025 \
+  -p 1025:1025 \
+  axllent/mailpit
+```
+
+### Option 2: Docker Compose (If using compose for all services)
 ```bash
 # Start Mailpit with other services
 docker compose -f docker-compose.dev.yml up -d mailpit
 
 # Or start everything
 docker compose -f docker-compose.dev.yml up -d
-```
-
-### Option 2: Docker Only
-```bash
-docker run -d --name mailpit \
-  -p 8025:8025 \
-  -p 1025:1025 \
-  axllent/mailpit
 ```
 
 ### View Emails
