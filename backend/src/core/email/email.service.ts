@@ -601,13 +601,34 @@ export class EmailService {
     membershipPlanName?: string,
   ) {
     try {
-      const tenant = await this.prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: { name: true, users: { where: { role: 'OWNER' }, select: { email: true, firstName: true } } },
+      // Check platform-level setting first
+      const systemSettings = await this.prisma.systemSettings.findUnique({
+        where: { id: 'system' },
+        select: { tenantNotificationsEnabled: true },
       });
 
-      if (!tenant?.users?.length) {
-        this.logger.warn(`No owner found for tenant ${tenantId}`);
+      if (!systemSettings?.tenantNotificationsEnabled) {
+        this.logger.log(`Platform tenant notifications disabled, skipping notification for tenant ${tenantId}`);
+        return;
+      }
+
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          name: true,
+          tenantSignupNotificationEnabled: true,
+          adminEmailRecipients: true,
+          users: { where: { role: 'OWNER' }, select: { email: true, firstName: true } }
+        },
+      });
+
+      if (!tenant?.tenantSignupNotificationEnabled) {
+        this.logger.log(`Tenant signup notifications disabled for tenant ${tenantId}`);
+        return;
+      }
+
+      if (!tenant?.adminEmailRecipients?.length) {
+        this.logger.warn(`No admin email recipients configured for tenant ${tenantId}`);
         return;
       }
 
@@ -625,17 +646,16 @@ export class EmailService {
         dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
       };
 
+      const processedSubject = this.processTemplate(template.subject, variables);
       const htmlContent = this.processTemplate(template.htmlContent, variables);
       const textContent = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
 
       const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
       const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
 
-      for (const owner of tenant.users) {
-        if (owner.email) {
-          const recipient = this.getRecipient(owner.email);
-          await this.sendEmail(recipient, template.subject, htmlContent, textContent, fromEmail, fromName, 'tenant_notification', tenantId, template.id);
-        }
+      for (const adminEmail of tenant.adminEmailRecipients) {
+        const recipient = this.getRecipient(adminEmail);
+        await this.sendEmail(recipient, processedSubject, htmlContent, textContent, fromEmail, fromName, 'tenant_notification', tenantId, template.id);
       }
 
       this.logger.log(`✅ Tenant notifications sent for new member: ${memberName}`);

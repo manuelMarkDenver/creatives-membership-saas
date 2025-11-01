@@ -150,6 +150,7 @@ export class TenantsController {
     @GetUser() user: any,
     @Body() body: {
       welcomeEmailEnabled?: boolean;
+      tenantSignupNotificationEnabled?: boolean;
     },
   ) {
     return this.tenantsService.updateTenantSettings(user, body);

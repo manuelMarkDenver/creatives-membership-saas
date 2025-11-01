@@ -30,11 +30,12 @@ model Tenant {
    freeUnitsLimit         Int                     @default(1) // How many free units allowed
    trialDurationDays      Int                     @default(28) // Default trial duration
 
-   // Email notification preferences
-   emailNotificationsEnabled    Boolean                 @default(true)
-   welcomeEmailEnabled          Boolean                 @default(true)
-   adminAlertEmailEnabled       Boolean                 @default(true)
-    tenantNotificationEmailEnabled Boolean               @default(false)
+    // Email notification preferences
+    emailNotificationsEnabled    Boolean                 @default(true)
+    welcomeEmailEnabled          Boolean                 @default(true)
+    adminAlertEmailEnabled       Boolean                 @default(true)
+     tenantNotificationEmailEnabled Boolean               @default(false)
+    tenantSignupNotificationEnabled Boolean              @default(true) // Controls tenant notifications for new member signups
    digestFrequency              String?                 // "daily", "weekly", "monthly"
    adminEmailRecipients         String[]                // Array of admin email addresses
 
@@ -155,11 +156,12 @@ model SystemSettings {
   id                     String                 @id @default("system") // Single row with fixed ID
    passwordSecurityLevel  PasswordSecurityLevel  @default(MEDIUM)
 
-   // Global admin notifications
-   globalAdminEmails      String[]               // Array of global admin email addresses
-   newTenantAlertsEnabled Boolean                @default(true)
-   systemAlertsEnabled    Boolean                @default(true)
-   securityAlertsEnabled  Boolean                @default(true)
+    // Global admin notifications
+    globalAdminEmails      String[]               // Array of global admin email addresses
+    newTenantAlertsEnabled Boolean                @default(true)
+    systemAlertsEnabled    Boolean                @default(true)
+    securityAlertsEnabled  Boolean                @default(true)
+    tenantNotificationsEnabled Boolean            @default(true) // Platform control for tenant notifications
 
    // Future settings can be added here:
    // entityNames            Json?                  // Custom entity names per business type

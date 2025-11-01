@@ -470,6 +470,7 @@ async function main() {
         welcomeEmailEnabled: true,
         adminAlertEmailEnabled: true,
         tenantNotificationEmailEnabled: false,
+        tenantSignupNotificationEnabled: true,
         adminEmailRecipients: []
       }
     });

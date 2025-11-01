@@ -203,29 +203,28 @@ export class GymMembersService {
        // Note: Welcome email is sent by frontend if requested
        // This prevents duplicate emails since frontend handles email sending
 
-      // Send admin notification for new member signup
-      try {
-        if (result.tenant) {
-          const memberName = `${result.user?.firstName} ${result.user?.lastName}`;
-          const membershipPlan = result.subscription?.gymMembershipPlan?.name || 'No Plan';
+       // Send tenant notification for new member signup (if enabled)
+       try {
+         if (result.tenant && result.user) {
+           const memberName = `${result.user.firstName} ${result.user.lastName}`;
+           const membershipPlan = result.subscription?.gymMembershipPlan?.name || 'No Plan';
 
-          await this.emailService.sendNewMemberAlert(
-            result.tenant.name,
-            memberName,
-            result.user?.email || '',
-            membershipPlan,
-            result.tenant.id,
-          );
-        } else {
-          this.logger.warn('Tenant information not available for member notification');
-        }
-      } catch (emailError) {
-        this.logger.error(
-          `Failed to send admin alert for new member: ${emailError.message}`,
-          emailError.stack,
-        );
-        // Don't fail member creation if email fails
-      }
+           await this.emailService.sendTenantNotification(
+             result.tenant.id,
+             memberName,
+             result.user.email || '',
+             membershipPlan,
+           );
+         } else {
+           this.logger.warn('Tenant or user information not available for signup notification');
+         }
+       } catch (emailError) {
+         this.logger.error(
+           `Failed to send tenant notification for new member: ${emailError.message}`,
+           emailError.stack,
+         );
+         // Don't fail member creation if email fails
+       }
 
       return result;
     } catch (error) {

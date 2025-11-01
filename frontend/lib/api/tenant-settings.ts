@@ -7,6 +7,7 @@ export interface TenantSettings {
   emailNotificationsEnabled: boolean
   welcomeEmailEnabled: boolean
   adminAlertEmailEnabled: boolean
+  tenantSignupNotificationEnabled: boolean
 }
 
 export const tenantSettingsApi = {
@@ -25,6 +26,7 @@ export const tenantSettingsApi = {
 
   updateSettings: async (data: {
     welcomeEmailEnabled?: boolean
+    tenantSignupNotificationEnabled?: boolean
   }): Promise<TenantSettings> => {
     const response = await apiClient.put('/tenants/current/settings', data)
     return response.data

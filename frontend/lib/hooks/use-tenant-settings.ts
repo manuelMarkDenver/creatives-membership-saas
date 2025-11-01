@@ -36,6 +36,7 @@ export function useUpdateTenantSettings() {
   return useMutation({
     mutationFn: (data: {
       welcomeEmailEnabled?: boolean
+      tenantSignupNotificationEnabled?: boolean
     }) => tenantSettingsApi.updateSettings(data),
     onSuccess: () => {
       queryClient.invalidateQueries({

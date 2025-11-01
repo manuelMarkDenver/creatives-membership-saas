@@ -1020,6 +1020,7 @@ export class TenantsService {
           emailNotificationsEnabled: true,
           welcomeEmailEnabled: true,
           adminAlertEmailEnabled: true,
+          tenantSignupNotificationEnabled: true,
         },
       });
 
@@ -1080,6 +1081,7 @@ export class TenantsService {
           emailNotificationsEnabled: true,
           welcomeEmailEnabled: true,
           adminAlertEmailEnabled: true,
+          tenantSignupNotificationEnabled: true,
         },
       });
 
@@ -1113,6 +1115,7 @@ export class TenantsService {
     user: any,
     updates: {
       welcomeEmailEnabled?: boolean;
+      tenantSignupNotificationEnabled?: boolean;
     },
   ) {
     try {
@@ -1133,6 +1136,7 @@ export class TenantsService {
           emailNotificationsEnabled: true,
           welcomeEmailEnabled: true,
           adminAlertEmailEnabled: true,
+          tenantSignupNotificationEnabled: true,
         },
       });
 

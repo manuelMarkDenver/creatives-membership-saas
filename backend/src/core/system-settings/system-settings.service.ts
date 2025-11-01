@@ -101,6 +101,7 @@ export class SystemSettingsService {
       newTenantAlertsEnabled?: boolean;
       systemAlertsEnabled?: boolean;
       securityAlertsEnabled?: boolean;
+      tenantNotificationsEnabled?: boolean;
     },
     updatedBy: string,
   ) {
@@ -118,6 +119,7 @@ export class SystemSettingsService {
         newTenantAlertsEnabled: data.newTenantAlertsEnabled ?? true,
         systemAlertsEnabled: data.systemAlertsEnabled ?? true,
         securityAlertsEnabled: data.securityAlertsEnabled ?? true,
+        tenantNotificationsEnabled: data.tenantNotificationsEnabled ?? true,
         updatedBy,
       },
     });

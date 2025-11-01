@@ -20,6 +20,7 @@ export default function TenantSettingsPage() {
   const [adminEmails, setAdminEmails] = useState<string[]>([])
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true)
   const [welcomeEmailEnabled, setWelcomeEmailEnabled] = useState(true)
+  const [tenantSignupNotificationEnabled, setTenantSignupNotificationEnabled] = useState(true)
   const [newEmail, setNewEmail] = useState('')
 
   // Owner's email is always included and cannot be removed
@@ -36,12 +37,13 @@ export default function TenantSettingsPage() {
       }
       setAdminEmails(recipients)
       setEmailNotificationsEnabled(settings.emailNotificationsEnabled ?? true)
+      setTenantSignupNotificationEnabled(settings.tenantSignupNotificationEnabled ?? true)
       setWelcomeEmailEnabled(settings.welcomeEmailEnabled ?? true)
     }
   }, [settings, ownerEmail])
 
-  const handleSaveAdminEmails = () => {
-    if (!hasAdminEmailChanges) return
+  const handleSaveSettings = () => {
+    if (!hasAnyChanges) return
 
     // Always include owner's email
     const emailsToSave = [...additionalEmails]
@@ -53,6 +55,12 @@ export default function TenantSettingsPage() {
       adminEmailRecipients: emailsToSave,
       emailNotificationsEnabled,
     })
+
+    if (hasTenantSignupNotificationChanges) {
+      updateTenantSettingsMutation.mutate({
+        tenantSignupNotificationEnabled,
+      })
+    }
   }
 
   const handleSaveWelcomeEmail = () => {
@@ -80,11 +88,15 @@ export default function TenantSettingsPage() {
     emailNotificationsEnabled !== (settings.emailNotificationsEnabled ?? true)
   )
 
+  const hasTenantSignupNotificationChanges = settings && (
+    tenantSignupNotificationEnabled !== (settings.tenantSignupNotificationEnabled ?? true)
+  )
+
   const hasWelcomeEmailChanges = settings && (
     welcomeEmailEnabled !== (settings.welcomeEmailEnabled ?? true)
   )
 
-  const hasAnyChanges = hasAdminEmailChanges || hasWelcomeEmailChanges
+  const hasAnyChanges = hasAdminEmailChanges || hasWelcomeEmailChanges || hasTenantSignupNotificationChanges
 
   if (isLoading) {
     return (
@@ -184,11 +196,11 @@ export default function TenantSettingsPage() {
 
           <div className="flex items-center space-x-2">
             <Switch
-              id="emailNotifications"
-              checked={emailNotificationsEnabled}
-              onCheckedChange={setEmailNotificationsEnabled}
+              id="tenantSignupNotifications"
+              checked={tenantSignupNotificationEnabled}
+              onCheckedChange={setTenantSignupNotificationEnabled}
             />
-            <Label htmlFor="emailNotifications" className="text-sm">
+            <Label htmlFor="tenantSignupNotifications" className="text-sm">
               Enable email notifications for new member signups
             </Label>
           </div>
@@ -200,10 +212,10 @@ export default function TenantSettingsPage() {
                 <p className="font-medium mb-1">Current Configuration:</p>
                 <ul className="list-disc list-inside space-y-1 text-blue-800 dark:text-blue-200">
                   <li><strong>Owner:</strong> {ownerEmail || 'Not available'}</li>
-                  <li><strong>Additional Recipients:</strong> {additionalEmails.length > 0 ? additionalEmails.join(', ') : 'None'}</li>
-                  <li><strong>Total Recipients:</strong> {adminEmails.length}</li>
-                  <li><strong>Notifications:</strong> {emailNotificationsEnabled ? 'Enabled' : 'Disabled'}</li>
-                  <li><strong>Events:</strong> New member signups, subscription changes</li>
+                   <li><strong>Additional Recipients:</strong> {additionalEmails.length > 0 ? additionalEmails.join(', ') : 'None'}</li>
+                   <li><strong>Total Recipients:</strong> {adminEmails.length}</li>
+                   <li><strong>Signup Notifications:</strong> {tenantSignupNotificationEnabled ? 'Enabled' : 'Disabled'}</li>
+                   <li><strong>Events:</strong> New member signups</li>
                 </ul>
               </div>
             </div>
@@ -224,9 +236,10 @@ export default function TenantSettingsPage() {
                   if (ownerEmail && !recipients.includes(ownerEmail)) {
                     recipients.unshift(ownerEmail)
                   }
-                  setAdminEmails(recipients)
-                  setEmailNotificationsEnabled(settings.emailNotificationsEnabled ?? true)
-                  setNewEmail('')
+                   setAdminEmails(recipients)
+                   setEmailNotificationsEnabled(settings.emailNotificationsEnabled ?? true)
+                   setTenantSignupNotificationEnabled(settings.tenantSignupNotificationEnabled ?? true)
+                   setNewEmail('')
                 }
               }}
               disabled={!hasAdminEmailChanges || updateAdminEmailsMutation.isPending}
@@ -234,8 +247,8 @@ export default function TenantSettingsPage() {
               Reset
             </Button>
             <Button
-              onClick={handleSaveAdminEmails}
-              disabled={!hasAdminEmailChanges || updateAdminEmailsMutation.isPending}
+              onClick={handleSaveSettings}
+              disabled={!hasAnyChanges || updateAdminEmailsMutation.isPending || updateTenantSettingsMutation.isPending}
             >
               {updateAdminEmailsMutation.isPending ? (
                 <>
