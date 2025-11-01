@@ -1,92 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { FileText, Edit, Plus, Eye, Save, X, AlertCircle, CheckCircle2, Code, Eye as EyeIcon } from 'lucide-react'
-// @ts-ignore - react-draft-wysiwyg doesn't have React 19 types yet
-import { Editor } from 'react-draft-wysiwyg'
-// @ts-ignore - draft-js doesn't have React 19 types yet
-import { EditorState, convertToRaw, ContentState, convertFromHTML, Modifier } from 'draft-js'
-// @ts-ignore - draftjs-to-html doesn't have types
-import draftToHtml from 'draftjs-to-html'
-import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css'
+import { FileText, Edit, Plus, Eye, Save, X, AlertCircle, Bold, Italic, Underline, List, ListOrdered } from 'lucide-react'
 
-// Custom styles for the rich text editor with dark mode support
-const editorStyles = `
-  .rdw-editor-wrapper {
-    border: 1px solid hsl(var(--border));
-    border-radius: 6px;
-    background: hsl(var(--background));
-  }
-  .rdw-editor-toolbar {
-    border: none;
-    border-bottom: 1px solid hsl(var(--border));
-    background: hsl(var(--muted));
-    padding: 8px 12px;
-  }
-  .rdw-editor-main {
-    min-height: 300px;
-    padding: 12px 16px;
-    color: hsl(var(--foreground));
-    background: hsl(var(--background));
-  }
-  .rdw-editor-main .public-DraftEditor-content {
-    min-height: 280px;
-    color: hsl(var(--foreground));
-  }
-  .rdw-editor-main .public-DraftEditor-content [data-contents="true"] {
-    color: hsl(var(--foreground));
-  }
-  .rdw-option-wrapper {
-    border: 1px solid hsl(var(--border));
-    background: hsl(var(--background));
-    color: hsl(var(--foreground));
-  }
-  .rdw-option-wrapper:hover {
-    background: hsl(var(--accent));
-  }
-  .rdw-option-active {
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-  }
-  .rdw-dropdown-wrapper {
-    border: 1px solid hsl(var(--border));
-    background: hsl(var(--background));
-  }
-  .rdw-dropdown-optionwrapper {
-    background: hsl(var(--background));
-    border: 1px solid hsl(var(--border));
-  }
-  .rdw-dropdown-optionwrapper:hover {
-    background: hsl(var(--accent));
-  }
-  .rdw-colorpicker-modal {
-    background: hsl(var(--background));
-    border: 1px solid hsl(var(--border));
-    color: hsl(var(--foreground));
-  }
-  .rdw-colorpicker-modal .rdw-colorpicker-cube {
-    border: 1px solid hsl(var(--border));
-  }
-  /* Dark mode specific overrides */
-  .dark .rdw-editor-main {
-    background: hsl(var(--background));
-    color: hsl(var(--foreground));
-  }
-  .dark .rdw-editor-main .public-DraftEditor-content {
-    color: hsl(var(--foreground));
-  }
-  .dark .rdw-editor-main .public-DraftEditor-content [data-contents="true"] {
-    color: hsl(var(--foreground));
-  }
-`
+
 import { useEmailTemplates, useCreateEmailTemplate, useUpdateEmailTemplate, useDeleteEmailTemplate } from '@/lib/hooks/use-email'
 import type { EmailTemplate } from '@/lib/api/email'
 
@@ -105,18 +29,28 @@ const VARIABLE_SUGGESTIONS = [
   { variable: '{{ownerName}}', description: 'Tenant owner name' },
 ]
 
-// Helper functions for rich text editor
-const htmlToEditorState = (html: string): EditorState => {
-  const blocksFromHTML = convertFromHTML(html)
-  const contentState = ContentState.createFromBlockArray(
-    blocksFromHTML.contentBlocks,
-    blocksFromHTML.entityMap
-  )
-  return EditorState.createWithContent(contentState)
-}
-
-const editorStateToHtml = (editorState: EditorState): string => {
-  return draftToHtml(convertToRaw(editorState.getCurrentContent()))
+// Helper functions for HTML formatting
+const insertHtmlTag = (tag: string, content: string): string => {
+  switch (tag) {
+    case 'bold':
+      return `<strong>${content}</strong>`
+    case 'italic':
+      return `<em>${content}</em>`
+    case 'underline':
+      return `<u>${content}</u>`
+    case 'h1':
+      return `<h1>${content}</h1>`
+    case 'h2':
+      return `<h2>${content}</h2>`
+    case 'h3':
+      return `<h3>${content}</h3>`
+    case 'ul':
+      return `<ul><li>${content}</li></ul>`
+    case 'ol':
+      return `<ol><li>${content}</li></ol>`
+    default:
+      return content
+  }
 }
 
 // Helper functions for default content
@@ -227,31 +161,28 @@ export function EmailTemplateEditor({ tenantId }: EmailTemplateEditorProps) {
 
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
-  const [editorState, setEditorState] = useState(EditorState.createEmpty())
+  const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null)
   const [formData, setFormData] = useState({
     templateType: '',
     name: '',
     subject: '',
     htmlContent: '',
     textContent: '',
-    variables: null as Record<string, any> | null,
+    variables: null as Record<string, string> | null,
     isActive: true,
   })
 
   // Reset form when starting to edit/create
   const resetForm = () => {
-    const defaultContent = getDefaultContent('welcome')
     setFormData({
       templateType: 'welcome',
       name: 'Welcome Email Template',
       subject: getDefaultSubject('welcome'),
-      htmlContent: defaultContent,
+      htmlContent: getDefaultContent('welcome'),
       textContent: '',
       variables: null,
       isActive: true,
     })
-    setEditorState(htmlToEditorState(defaultContent))
     setSelectedTemplate(null)
     setIsEditing(false)
   }
@@ -268,14 +199,12 @@ export function EmailTemplateEditor({ tenantId }: EmailTemplateEditorProps) {
       variables: null,
       isActive: true,
     })
-    setEditorState(htmlToEditorState(template.htmlContent))
     setIsEditing(true)
   }
 
   // Handle form submission
   const handleSubmit = async () => {
-    const htmlContent = editorStateToHtml(editorState)
-    if (!formData.templateType || !formData.name || !formData.subject || !htmlContent.trim()) {
+    if (!formData.templateType || !formData.name || !formData.subject || !formData.htmlContent.trim()) {
       return
     }
 
@@ -284,7 +213,7 @@ export function EmailTemplateEditor({ tenantId }: EmailTemplateEditorProps) {
       templateType: formData.templateType,
       name: formData.name,
       subject: formData.subject,
-      htmlContent: htmlContent,
+      htmlContent: formData.htmlContent,
       textContent: null, // Simplified - no text content needed
       variables: null, // Simplified - no custom variables
       isActive: true, // Always active for simplicity
@@ -302,6 +231,26 @@ export function EmailTemplateEditor({ tenantId }: EmailTemplateEditorProps) {
     }
   }
 
+  // Handle template preview
+  const handlePreview = (template: EmailTemplate) => {
+    setPreviewTemplate(template)
+  }
+
+  // Handle template duplication
+  const handleDuplicate = (template: EmailTemplate) => {
+    setFormData({
+      templateType: template.templateType,
+      name: `${template.name} (Copy)`,
+      subject: template.subject,
+      htmlContent: template.htmlContent,
+      textContent: '',
+      variables: null,
+      isActive: true,
+    })
+    setSelectedTemplate(null)
+    setIsEditing(true)
+  }
+
   // Handle template deletion
   const handleDelete = async (template: EmailTemplate) => {
     if (confirm('Are you sure you want to delete this template?')) {
@@ -315,23 +264,49 @@ export function EmailTemplateEditor({ tenantId }: EmailTemplateEditorProps) {
 
   // Insert variable into content
   const insertVariable = (variable: string) => {
-    const contentState = editorState.getCurrentContent()
-    const selection = editorState.getSelection()
-    const text = variable + ' '
+    const textarea = document.getElementById('htmlContent') as HTMLTextAreaElement
+    if (textarea) {
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const text = textarea.value
+      const before = text.substring(0, start)
+      const after = text.substring(end)
+      const newText = before + variable + ' ' + after
+      setFormData(prev => ({ ...prev, htmlContent: newText }))
 
-    const newContentState = Modifier.insertText(
-      contentState,
-      selection,
-      text
-    )
+      // Focus back and set cursor position
+      setTimeout(() => {
+        textarea.focus()
+        textarea.setSelectionRange(start + variable.length + 1, start + variable.length + 1)
+      }, 0)
+    }
+  }
 
-    const newEditorState = EditorState.push(
-      editorState,
-      newContentState,
-      'insert-characters'
-    )
+  // Insert HTML formatting
+  const insertFormatting = (tag: string) => {
+    const textarea = document.getElementById('htmlContent') as HTMLTextAreaElement
+    if (textarea) {
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selectedText = textarea.value.substring(start, end)
+      const text = textarea.value
 
-    setEditorState(newEditorState)
+      let formattedText = selectedText || 'text'
+      formattedText = insertHtmlTag(tag, formattedText)
+
+      const before = text.substring(0, start)
+      const after = text.substring(end)
+      const newText = before + formattedText + after
+
+      setFormData(prev => ({ ...prev, htmlContent: newText }))
+
+      // Focus back and set cursor position
+      setTimeout(() => {
+        textarea.focus()
+        const newCursorPos = start + formattedText.length
+        textarea.setSelectionRange(newCursorPos, newCursorPos)
+      }, 0)
+    }
   }
 
   if (isLoading) {
@@ -343,9 +318,7 @@ export function EmailTemplateEditor({ tenantId }: EmailTemplateEditorProps) {
   }
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: editorStyles }} />
-      <div className="space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -374,33 +347,41 @@ export function EmailTemplateEditor({ tenantId }: EmailTemplateEditorProps) {
                     {template.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedTemplate(template)
-                      setIsPreviewOpen(true)
-                    }}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(template)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(template)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePreview(template)}
+                      title="Preview template"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(template)}
+                      title="Edit template"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDuplicate(template)}
+                      title="Duplicate template"
+                    >
+                      <FileText className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(template)}
+                      className="text-destructive hover:text-destructive"
+                      title="Delete template"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
               </div>
               <CardDescription>
                 Type: {TEMPLATE_TYPES.find(t => t.value === template.templateType)?.label || template.templateType}
@@ -459,7 +440,6 @@ export function EmailTemplateEditor({ tenantId }: EmailTemplateEditorProps) {
                       subject: getDefaultSubject(value),
                       htmlContent: defaultContent
                     }))
-                    setEditorState(htmlToEditorState(defaultContent))
                   }}
                 >
                   <SelectTrigger>
@@ -502,53 +482,126 @@ export function EmailTemplateEditor({ tenantId }: EmailTemplateEditorProps) {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <p className="font-medium mb-2">Available Variables:</p>
-                <div className="flex flex-wrap gap-2">
-                  {VARIABLE_SUGGESTIONS.slice(0, 4).map((suggestion) => (
-                    <Button
-                      key={suggestion.variable}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => insertVariable(suggestion.variable)}
-                      className="text-xs"
-                      title={suggestion.description}
-                    >
-                      {suggestion.variable}
-                    </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  {VARIABLE_SUGGESTIONS.map((suggestion) => (
+                    <div key={suggestion.variable} className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => insertVariable(suggestion.variable)}
+                        className="text-xs flex-1 justify-start"
+                        title={suggestion.description}
+                      >
+                        {suggestion.variable}
+                      </Button>
+                      <span className="text-xs text-muted-foreground truncate" title={suggestion.description}>
+                        {suggestion.description}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </AlertDescription>
             </Alert>
 
-            {/* Email Content - Rich Text Editor */}
+            {/* Email Content */}
             <div className="space-y-2">
-              <Label>Email Content</Label>
-              <div className="border rounded-md">
-                <Editor
-                  editorState={editorState}
-                  onEditorStateChange={(state: any) => {
-                    try {
-                      setEditorState(state)
-                    } catch (error) {
-                      console.error('Editor state update error:', error)
-                    }
-                  }}
-                  toolbar={{
-                    options: ['inline', 'blockType', 'fontSize', 'list', 'textAlign', 'link', 'history'],
-                    inline: {
-                      options: ['bold', 'italic', 'underline', 'strikethrough']
-                    },
-                    blockType: {
-                      options: ['Normal', 'H1', 'H2', 'H3', 'Blockquote']
-                    },
-                    list: {
-                      options: ['unordered', 'ordered']
-                    }
-                  }}
-                  editorClassName="px-4 py-2 min-h-[300px] prose prose-sm max-w-none"
-                  toolbarClassName="border-b px-3 py-2"
-                  wrapperClassName="w-full"
-                />
+              <Label htmlFor="htmlContent">Email Content (HTML)</Label>
+
+              {/* Formatting Toolbar */}
+              <div className="flex flex-wrap gap-1 p-2 bg-muted rounded-t-md border">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertFormatting('bold')}
+                  className="h-8 px-2"
+                  title="Bold"
+                >
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertFormatting('italic')}
+                  className="h-8 px-2"
+                  title="Italic"
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertFormatting('underline')}
+                  className="h-8 px-2"
+                  title="Underline"
+                >
+                  <Underline className="h-4 w-4" />
+                </Button>
+                <div className="w-px h-6 bg-border mx-1" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertFormatting('h1')}
+                  className="h-8 px-2 text-xs"
+                  title="Heading 1"
+                >
+                  H1
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertFormatting('h2')}
+                  className="h-8 px-2 text-xs"
+                  title="Heading 2"
+                >
+                  H2
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertFormatting('h3')}
+                  className="h-8 px-2 text-xs"
+                  title="Heading 3"
+                >
+                  H3
+                </Button>
+                <div className="w-px h-6 bg-border mx-1" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertFormatting('ul')}
+                  className="h-8 px-2"
+                  title="Bullet List"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertFormatting('ol')}
+                  className="h-8 px-2"
+                  title="Numbered List"
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </Button>
               </div>
+
+              <Textarea
+                id="htmlContent"
+                value={formData.htmlContent}
+                onChange={(e) => setFormData(prev => ({ ...prev, htmlContent: e.target.value }))}
+                placeholder="Enter your email content here..."
+                rows={16}
+                className="font-mono text-sm rounded-t-none border-t-0"
+              />
+
               <p className="text-xs text-muted-foreground">
                 Use the toolbar above to format your email. Variables like {'{{memberName}}'} will be replaced when emails are sent.
               </p>
@@ -571,56 +624,120 @@ export function EmailTemplateEditor({ tenantId }: EmailTemplateEditorProps) {
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    {selectedTemplate ? 'Update' : 'Create'} Template
+                    Save Template
                   </>
                 )}
               </Button>
+            </div>
+
+            {/* Email Preview */}
+            <div className="space-y-2">
+              <Label>Preview</Label>
+              <div className="border rounded-md p-4 bg-background min-h-[400px] overflow-y-auto">
+                <style>{`
+                  /* Only override text colors, preserve visual styling */
+                  .email-preview-content [style*="color: #1f2937"],
+                  .email-preview-content [style*="color: #374151"],
+                  .email-preview-content [style*="color: #9ca3af"],
+                  .email-preview-content [style*="color:#1f2937"],
+                  .email-preview-content [style*="color:#374151"],
+                  .email-preview-content [style*="color:#9ca3af"] {
+                    color: hsl(var(--foreground)) !important;
+                  }
+
+                  /* Convert light backgrounds to theme-aware */
+                  .email-preview-content [style*="background: #f3f4f6"],
+                  .email-preview-content [style*="background: #ffffff"],
+                  .email-preview-content [style*="background:#f3f4f6"],
+                  .email-preview-content [style*="background:#ffffff"] {
+                    background: hsl(var(--muted)) !important;
+                  }
+
+                  /* Preserve gradients and complex styling */
+                  .email-preview-content [style*="linear-gradient"],
+                  .email-preview-content [style*="background-clip"],
+                  .email-preview-content [style*="text-fill-color"] {
+                    /* Keep original gradient and text styling */
+                  }
+
+                  /* Links should remain primary color */
+                  .email-preview-content a {
+                    color: hsl(var(--primary)) !important;
+                  }
+                `}</style>
+                <div
+                  dangerouslySetInnerHTML={{ __html: formData.htmlContent }}
+                  className="prose prose-sm max-w-none email-preview-content"
+                />
+              </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Preview Dialog */}
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+      <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
         <DialogContent
-          className="max-h-[90vh] h-[90vh] overflow-y-auto"
-          style={{ width: '70vw', maxWidth: 'none' }}
+          className="max-h-[95vh] h-[95vh] overflow-y-auto"
+          style={{ width: '75vw', maxWidth: 'none' }}
         >
-          <DialogHeader className="!mb-2 !space-y-0.5">
-            <DialogTitle className="!text-sm !leading-tight">Template Preview</DialogTitle>
-            <DialogDescription className="!text-xs !leading-tight !mt-0.5">
-              Preview of the email template content
+          <DialogHeader>
+            <DialogTitle>Preview: {previewTemplate?.name}</DialogTitle>
+            <DialogDescription>
+              Email template preview with applied styling
             </DialogDescription>
           </DialogHeader>
 
-          {selectedTemplate && (
-            <div className="space-y-4">
-              <div>
-                <Label className="text-sm font-medium">Subject:</Label>
-                <p className="text-sm bg-muted p-2 rounded">{selectedTemplate.subject}</p>
-              </div>
-
-               <div>
-                 <Label className="text-sm font-medium">HTML Content:</Label>
-                 <div
-                   className="text-sm bg-muted p-4 rounded max-h-[60vh] overflow-y-auto border"
-                   dangerouslySetInnerHTML={{ __html: selectedTemplate.htmlContent }}
-                 />
-               </div>
-
-               {selectedTemplate.textContent && (
-                 <div>
-                   <Label className="text-sm font-medium">Plain Text Content:</Label>
-                   <pre className="text-sm bg-muted p-4 rounded whitespace-pre-wrap max-h-64 overflow-y-auto border font-mono">
-                     {selectedTemplate.textContent}
-                   </pre>
-                 </div>
-               )}
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium">Subject:</Label>
+              <p className="text-sm text-muted-foreground mt-1">{previewTemplate?.subject}</p>
             </div>
-          )}
+
+            <div>
+              <Label className="text-sm font-medium">Content:</Label>
+              <div className="border rounded-md p-4 bg-background min-h-[400px] overflow-y-auto mt-2">
+                <style>{`
+                  /* Only override text colors, preserve visual styling */
+                  .email-preview-content [style*="color: #1f2937"],
+                  .email-preview-content [style*="color: #374151"],
+                  .email-preview-content [style*="color: #9ca3af"],
+                  .email-preview-content [style*="color:#1f2937"],
+                  .email-preview-content [style*="color:#374151"],
+                  .email-preview-content [style*="color:#9ca3af"] {
+                    color: hsl(var(--foreground)) !important;
+                  }
+
+                  /* Convert light backgrounds to theme-aware */
+                  .email-preview-content [style*="background: #f3f4f6"],
+                  .email-preview-content [style*="background: #ffffff"],
+                  .email-preview-content [style*="background:#f3f4f6"],
+                  .email-preview-content [style*="background:#ffffff"] {
+                    background: hsl(var(--muted)) !important;
+                  }
+
+                  /* Preserve gradients and complex styling */
+                  .email-preview-content [style*="linear-gradient"],
+                  .email-preview-content [style*="background-clip"],
+                  .email-preview-content [style*="text-fill-color"] {
+                    /* Keep original gradient and text styling */
+                  }
+
+                  /* Links should remain primary color */
+                  .email-preview-content a {
+                    color: hsl(var(--primary)) !important;
+                  }
+                `}</style>
+                <div
+                  dangerouslySetInnerHTML={{ __html: previewTemplate?.htmlContent || '' }}
+                  className="prose prose-sm max-w-none email-preview-content"
+                />
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
+
     </div>
-    </>
   )
 }
