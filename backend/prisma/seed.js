@@ -36,6 +36,242 @@ function getRandomRelationship() {
   return relationships[Math.floor(Math.random() * relationships.length)];
 }
 
+async function seedEmailTemplates() {
+  const templates = [
+    {
+      templateType: 'welcome',
+      name: 'Welcome Email',
+      subject: 'Welcome to {{tenantName}}! 🎉',
+      htmlContent: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #f97316 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 32px; margin: 0;">GymBossLab</h1>
+          </div>
+
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 30px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Welcome to {{tenantName}}! 🏋️</h2>
+
+            <p>Hi <strong>{{memberName}}</strong>,</p>
+
+            <p>Welcome to <strong>{{tenantName}}</strong>! We're excited to have you join our fitness community.</p>
+
+            <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #374151;">Your Membership Details:</h3>
+              <p><strong>Membership Plan:</strong> {{membershipPlan}}</p>
+              <p><strong>Status:</strong> Active</p>
+            </div>
+
+            <p>You can now access your member dashboard to:</p>
+            <ul>
+              <li>View your membership details</li>
+              <li>Track your progress</li>
+              <li>Schedule appointments</li>
+              <li>Access exclusive member content</li>
+            </ul>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="{{loginUrl}}" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">Access Your Dashboard</a>
+            </div>
+
+            <p>If you have any questions, feel free to reply to this email or contact our support team.</p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; color: #9ca3af; font-size: 13px;">
+            <p>Questions? Reply to this email or visit our support center.</p>
+            <p style="margin-top: 10px;">Best regards,<br><strong>The {{tenantName}} Team</strong></p>
+          </div>
+        </body>
+        </html>
+      `,
+      textContent: `
+Welcome to {{tenantName}}! 🏋️
+
+Hi {{memberName}},
+
+Welcome to {{tenantName}}! We're excited to have you join our fitness community.
+
+Your Membership Details:
+- Membership Plan: {{membershipPlan}}
+- Status: Active
+
+You can now access your member dashboard to view your membership details, track your progress, schedule appointments, and access exclusive member content.
+
+Access Your Dashboard: {{loginUrl}}
+
+If you have any questions, feel free to reply to this email or contact our support team.
+
+Best regards,
+The {{tenantName}} Team
+      `,
+      variables: {
+        memberName: 'Member full name',
+        tenantName: 'Gym/tenant name',
+        membershipPlan: 'Membership plan name',
+        loginUrl: 'Login URL for member dashboard',
+      },
+    },
+    {
+      templateType: 'admin_alert',
+      name: 'New Tenant Registration Alert',
+      subject: 'New Tenant Registration: {{tenantName}}',
+      htmlContent: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #f97316 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 32px; margin: 0;">GymBossLab</h1>
+          </div>
+
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 30px;">
+            <h2 style="color: #1f2937; margin-top: 0;">New Tenant Registration 🚀</h2>
+
+            <p>A new gym has registered on GymBossLab!</p>
+
+            <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #374151;">Tenant Details:</h3>
+              <p><strong>Gym Name:</strong> {{tenantName}}</p>
+              <p><strong>Owner Email:</strong> {{ownerEmail}}</p>
+              <p><strong>Registration Date:</strong> {{registrationDate}}</p>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="{{adminPanelUrl}}" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">View in Admin Panel</a>
+            </div>
+
+            <p>Please review the registration and ensure everything is set up correctly.</p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; color: #9ca3af; font-size: 13px;">
+            <p>This is an automated notification from GymBossLab.</p>
+          </div>
+        </body>
+        </html>
+      `,
+      textContent: `
+New Tenant Registration 🚀
+
+A new gym has registered on GymBossLab!
+
+Tenant Details:
+- Gym Name: {{tenantName}}
+- Owner Email: {{ownerEmail}}
+- Registration Date: {{registrationDate}}
+
+View in Admin Panel: {{adminPanelUrl}}
+
+Please review the registration and ensure everything is set up correctly.
+
+This is an automated notification from GymBossLab.
+      `,
+      variables: {
+        tenantName: 'New tenant/gym name',
+        ownerEmail: 'Owner email address',
+        registrationDate: 'Date of registration',
+        adminPanelUrl: 'Admin panel URL',
+      },
+    },
+    {
+      templateType: 'tenant_notification',
+      name: 'New Member Notification',
+      subject: 'New Member Joined: {{memberName}}',
+      htmlContent: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #f97316 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 32px; margin: 0;">GymBossLab</h1>
+          </div>
+
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 30px;">
+            <h2 style="color: #1f2937; margin-top: 0;">New Member Joined! 🎉</h2>
+
+            <p>Great news! A new member has joined <strong>{{tenantName}}</strong>.</p>
+
+            <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #374151;">Member Details:</h3>
+              <p><strong>Name:</strong> {{memberName}}</p>
+              <p><strong>Email:</strong> {{memberEmail}}</p>
+              <p><strong>Membership Plan:</strong> {{membershipPlan}}</p>
+              <p><strong>Join Date:</strong> {{joinDate}}</p>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="{{dashboardUrl}}" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">View in Dashboard</a>
+            </div>
+
+            <p>Welcome your new member and help them get started on their fitness journey!</p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; color: #9ca3af; font-size: 13px;">
+            <p>This is an automated notification from GymBossLab.</p>
+          </div>
+        </body>
+        </html>
+      `,
+      textContent: `
+New Member Joined! 🎉
+
+Great news! A new member has joined {{tenantName}}.
+
+Member Details:
+- Name: {{memberName}}
+- Email: {{memberEmail}}
+- Membership Plan: {{membershipPlan}}
+- Join Date: {{joinDate}}
+
+View in Dashboard: {{dashboardUrl}}
+
+Welcome your new member and help them get started on their fitness journey!
+
+This is an automated notification from GymBossLab.
+      `,
+      variables: {
+        tenantName: 'Gym/tenant name',
+        memberName: 'New member full name',
+        memberEmail: 'New member email',
+        membershipPlan: 'Membership plan name',
+        joinDate: 'Date member joined',
+        dashboardUrl: 'Dashboard URL',
+      },
+    },
+  ];
+
+  for (const template of templates) {
+    const existing = await prisma.emailTemplate.findFirst({
+      where: {
+        templateType: template.templateType,
+        tenantId: null, // Global templates
+      },
+    });
+
+    if (!existing) {
+      await prisma.emailTemplate.create({
+        data: {
+          ...template,
+          isActive: true,
+        },
+      });
+      console.log(`✅ Created email template: ${template.name}`);
+    } else {
+      console.log(`⏭️  Email template already exists: ${template.name}`);
+    }
+  }
+}
+
 async function main() {
   console.log('🌱 Starting simplified database seeding...');
 
@@ -996,6 +1232,10 @@ async function main() {
   });
   
   console.log('\n' + '='.repeat(80));
+  // Seed default email templates
+  console.log('📧 Seeding default email templates...');
+  await seedEmailTemplates();
+
   console.log(`📊 Summary:`);
   console.log(`   • 1 Tenant: Muscle Mania`);
   console.log(`   • 1 Branch: Manggahan`);

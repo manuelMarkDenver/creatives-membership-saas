@@ -2,6 +2,7 @@ import sgMail from '@sendgrid/mail';
 import * as nodemailer from 'nodemailer';
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
+import { PrismaService } from '../prisma/prisma.service';
 
 type EmailProvider = 'sendgrid' | 'resend' | 'mailgun' | 'brevo' | 'smtp';
 
@@ -10,10 +11,17 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private transporter: nodemailer.Transporter | null = null;
   private provider: EmailProvider = 'smtp';
+  private settings: any = null;
 
-  constructor() {
+  constructor(private readonly prisma: PrismaService) {
+    // Initialize with environment-based defaults for now
+    // Settings will be loaded lazily when needed
+    this.initializeProviderSync();
+  }
+
+  private initializeProviderSync() {
     const isDev = process.env.NODE_ENV !== 'production';
-    
+
     // DEVELOPMENT: Always use Mailpit (SMTP)
     if (isDev) {
       this.provider = 'smtp';
@@ -30,7 +38,53 @@ export class EmailService {
       this.logger.log('📧 View emails at: http://localhost:8025');
       return;
     }
-    
+
+    // PRODUCTION: Start with environment variables, will load from DB when needed
+    this.configureProviderFromEnv();
+  }
+
+  private async ensureSettingsLoaded() {
+    if (this.settings) return; // Already loaded
+
+    try {
+      const dbSettings = await this.prisma.emailSettings.findFirst();
+      if (dbSettings) {
+        this.settings = dbSettings;
+        this.configureProviderFromSettings(dbSettings);
+        this.logger.log('✅ Email service configured from database settings');
+      }
+    } catch (error) {
+      this.logger.warn('⚠️  Could not load email settings from database, using environment fallback');
+    }
+  }
+
+  private configureProviderFromSettings(settings: any) {
+    // Priority: Brevo > SendGrid > Mailgun > Resend > SMTP
+    if (settings.brevoApiKey) {
+      this.provider = 'brevo';
+      this.logger.log('✅ Email service using Brevo (from database)');
+    } else if (process.env.SENDGRID_API_KEY) {
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      this.provider = 'sendgrid';
+      this.logger.log('✅ Email service using SendGrid');
+    } else {
+      // Fallback to SMTP
+      this.provider = 'smtp';
+      this.transporter = nodemailer.createTransport({
+        host: settings.smtpHost,
+        port: settings.smtpPort,
+        secure: false,
+        ignoreTLS: true,
+        auth: settings.smtpUser ? {
+          user: settings.smtpUser,
+          pass: settings.smtpPassword,
+        } : undefined,
+      });
+      this.logger.log(`✅ Email service using SMTP (${settings.smtpHost}:${settings.smtpPort})`);
+    }
+  }
+
+  private configureProviderFromEnv() {
     // PRODUCTION: Check for email providers in priority order
     // Priority: Brevo > SendGrid > Mailgun > Resend > SMTP (fallback)
     if (process.env.BREVO_API_KEY) {
@@ -147,6 +201,268 @@ export class EmailService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Send welcome email to new member
+   */
+  async sendWelcomeEmail(
+    email: string,
+    name: string,
+    tenantId: string,
+    membershipPlanName?: string,
+  ) {
+    await this.ensureSettingsLoaded();
+
+    try {
+      const recipient = this.getRecipient(email);
+      const template = await this.getEmailTemplate('welcome', tenantId);
+
+      if (!template) {
+        this.logger.warn(`No welcome email template found for tenant ${tenantId}`);
+        return;
+      }
+
+      const variables = {
+        memberName: name,
+        membershipPlan: membershipPlanName || 'Basic Membership',
+        loginUrl: `${process.env.FRONTEND_URL}/auth/login`,
+      };
+
+      const htmlContent = this.processTemplate(template.htmlContent, variables);
+      const textContent = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
+
+      const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
+      const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+
+      await this.sendEmail(recipient, template.subject, htmlContent, textContent, fromEmail, fromName, 'welcome', tenantId, template.id);
+
+      this.logger.log(`✅ Welcome email sent to ${recipient}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to send welcome email: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Send admin alert for new tenant registration
+   */
+  async sendAdminAlert(
+    tenantName: string,
+    ownerEmail: string,
+    tenantId: string,
+  ) {
+    try {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { adminEmailRecipients: true },
+      });
+
+      if (!tenant?.adminEmailRecipients?.length) {
+        this.logger.warn(`No admin email recipients configured for tenant ${tenantId}`);
+        return;
+      }
+
+      const template = await this.getEmailTemplate('admin_alert', tenantId);
+      if (!template) {
+        this.logger.warn(`No admin alert template found for tenant ${tenantId}`);
+        return;
+      }
+
+      const variables = {
+        tenantName,
+        ownerEmail,
+        adminPanelUrl: `${process.env.FRONTEND_URL}/admin`,
+      };
+
+      const htmlContent = this.processTemplate(template.htmlContent, variables);
+      const textContent = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
+
+      const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
+      const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+
+      for (const adminEmail of tenant.adminEmailRecipients) {
+        const recipient = this.getRecipient(adminEmail);
+        await this.sendEmail(recipient, template.subject, htmlContent, textContent, fromEmail, fromName, 'admin_alert', tenantId, template.id);
+      }
+
+      this.logger.log(`✅ Admin alerts sent for new tenant: ${tenantName}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to send admin alert: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Send notification to tenant owner for new member
+   */
+  async sendTenantNotification(
+    tenantId: string,
+    memberName: string,
+    memberEmail: string,
+    membershipPlanName?: string,
+  ) {
+    try {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { name: true, users: { where: { role: 'OWNER' }, select: { email: true, firstName: true } } },
+      });
+
+      if (!tenant?.users?.length) {
+        this.logger.warn(`No owner found for tenant ${tenantId}`);
+        return;
+      }
+
+      const template = await this.getEmailTemplate('tenant_notification', tenantId);
+      if (!template) {
+        this.logger.warn(`No tenant notification template found for tenant ${tenantId}`);
+        return;
+      }
+
+      const variables = {
+        tenantName: tenant.name,
+        memberName,
+        memberEmail,
+        membershipPlan: membershipPlanName || 'Basic Membership',
+        dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
+      };
+
+      const htmlContent = this.processTemplate(template.htmlContent, variables);
+      const textContent = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
+
+      const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
+      const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+
+      for (const owner of tenant.users) {
+        if (owner.email) {
+          const recipient = this.getRecipient(owner.email);
+          await this.sendEmail(recipient, template.subject, htmlContent, textContent, fromEmail, fromName, 'tenant_notification', tenantId, template.id);
+        }
+      }
+
+      this.logger.log(`✅ Tenant notifications sent for new member: ${memberName}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to send tenant notification: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Generic email sending method with logging
+   */
+  private async sendEmail(
+    to: string,
+    subject: string,
+    htmlContent: string,
+    textContent: string | undefined,
+    fromEmail: string,
+    fromName: string,
+    templateType: string,
+    tenantId?: string,
+    templateId?: string,
+  ) {
+    const logEntry = await this.prisma.emailLog.create({
+      data: {
+        tenantId,
+        recipientEmail: to,
+        templateType,
+        templateId,
+        subject,
+        status: 'pending',
+        provider: this.provider,
+      },
+    });
+
+    try {
+      switch (this.provider) {
+        case 'brevo':
+          await this.sendViaBrevo(to, subject, htmlContent, fromEmail, fromName);
+          break;
+        case 'sendgrid':
+          await sgMail.send({
+            to,
+            from: { email: fromEmail, name: fromName },
+            subject,
+            html: htmlContent,
+            text: textContent,
+          });
+          break;
+        case 'mailgun':
+          await this.sendViaMailgun(to, subject, htmlContent, fromEmail, fromName);
+          break;
+        case 'resend':
+          await this.sendViaResend(to, subject, htmlContent, fromEmail, fromName);
+          break;
+        case 'smtp':
+          if (!this.transporter) throw new Error('SMTP transporter not configured');
+          await this.transporter.sendMail({
+            from: `"${fromName}" <${fromEmail}>`,
+            to,
+            subject,
+            html: htmlContent,
+            text: textContent,
+          });
+          break;
+      }
+
+      // Update log on success
+      await this.prisma.emailLog.update({
+        where: { id: logEntry.id },
+        data: {
+          status: 'sent',
+          sentAt: new Date(),
+        },
+      });
+
+    } catch (error) {
+      // Update log on failure
+      await this.prisma.emailLog.update({
+        where: { id: logEntry.id },
+        data: {
+          status: 'failed',
+          errorMessage: error.message,
+        },
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get email template by type and tenant
+   */
+  private async getEmailTemplate(type: string, tenantId?: string) {
+    // Try tenant-specific template first, then global template
+    let template = await this.prisma.emailTemplate.findFirst({
+      where: {
+        templateType: type,
+        tenantId: tenantId,
+        isActive: true,
+      },
+    });
+
+    if (!template) {
+      template = await this.prisma.emailTemplate.findFirst({
+        where: {
+          templateType: type,
+          tenantId: null, // Global template
+          isActive: true,
+        },
+      });
+    }
+
+    return template;
+  }
+
+  /**
+   * Process template variables
+   */
+  private processTemplate(template: string, variables: Record<string, any>): string {
+    let processed = template;
+    for (const [key, value] of Object.entries(variables)) {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      processed = processed.replace(regex, value || '');
+    }
+    return processed;
   }
 
   private getVerificationEmailTemplate(
