@@ -19,7 +19,8 @@
   - **"b-logs"** = Browser console logs (`/home/mhackeedev/console.log`)
   - **"conversations"** = Documentation directory (`/home/mhackeedev/_apps/creatives-saas/conversations/`)
     - `DEPLOYMENT-GUIDE.md` - Complete deployment workflows and CLI reference
-  - **"rules!"** = Agent rules and guidelines (`/home/mhackeedev/_apps/creatives-saas/conversations/rules.md`)
+   - **"rules!"** = Agent rules and guidelines (`/home/mhackeedev/_apps/creatives-saas/conversations/rules.md`)
+   - **"rules-doc"** = This rules file (`/home/mhackeedev/_apps/creatives-saas/conversations/rules.md`) - when I say "rules-doc", I am referring to this and follow my rules here
 - **MILESTONE DOCUMENTATION**: Update a-doc after every milestone or task completion, then provide a copy-paste ready commit message
 
 ## 🏗️ Code Quality Rules

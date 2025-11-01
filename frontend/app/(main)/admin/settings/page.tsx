@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Shield, Lock, AlertCircle, CheckCircle2, Mail, FileText, Send, Settings as SettingsIcon } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Shield, Lock, AlertCircle, CheckCircle2, Mail, Settings as SettingsIcon, RotateCcw } from 'lucide-react'
 import { useSystemSettings, useUpdatePasswordSecurityLevel } from '@/lib/hooks/use-system-settings'
 import { useEmailSettings, useUpdateEmailSettings } from '@/lib/hooks/use-email'
 import { EmailLogsViewer } from '@/components/admin/email-logs-viewer'
@@ -21,6 +23,8 @@ export default function SystemSettingsPage() {
   // Email settings
   const { data: emailSettings, isLoading: emailLoading } = useEmailSettings()
   const updateEmailSettingsMutation = useUpdateEmailSettings()
+  const [emailConfig, setEmailConfig] = useState<'development' | 'production' | 'custom'>('development')
+  const [editMode, setEditMode] = useState(false)
   const [emailForm, setEmailForm] = useState({
     smtpHost: '',
     smtpPort: 1025,
@@ -32,6 +36,30 @@ export default function SystemSettingsPage() {
     mailpitEnabled: true,
   })
 
+  // Preset configurations
+  const emailPresets = {
+    development: {
+      smtpHost: 'localhost',
+      smtpPort: 1025,
+      smtpUser: '',
+      smtpPassword: '',
+      fromEmail: 'noreply@gymbosslab.com',
+      fromName: 'GymBossLab',
+      brevoApiKey: '',
+      mailpitEnabled: true,
+    },
+    production: {
+      smtpHost: 'smtp-relay.brevo.com',
+      smtpPort: 587,
+      smtpUser: 'your-email@gymbosslab.com',
+      smtpPassword: '',
+      fromEmail: 'noreply@gymbosslab.com',
+      fromName: 'GymBossLab',
+      brevoApiKey: '',
+      mailpitEnabled: false,
+    },
+  }
+
   // Update selected level when data loads
   useEffect(() => {
     if (settings && !selectedLevel) {
@@ -42,7 +70,7 @@ export default function SystemSettingsPage() {
   // Update email form when data loads
   useEffect(() => {
     if (emailSettings) {
-      setEmailForm({
+      const currentSettings = {
         smtpHost: emailSettings.smtpHost || '',
         smtpPort: emailSettings.smtpPort || 1025,
         smtpUser: emailSettings.smtpUser || '',
@@ -51,13 +79,53 @@ export default function SystemSettingsPage() {
         fromName: emailSettings.fromName || '',
         brevoApiKey: emailSettings.brevoApiKey || '',
         mailpitEnabled: emailSettings.mailpitEnabled ?? true,
-      })
+      }
+
+      // Determine if current settings match a preset
+      const isDevelopment = JSON.stringify(currentSettings) === JSON.stringify(emailPresets.development)
+      const isProduction = emailSettings.brevoApiKey && !emailSettings.mailpitEnabled
+
+      if (isDevelopment) {
+        setEmailConfig('development')
+        setEditMode(false)
+      } else if (isProduction) {
+        setEmailConfig('production')
+        setEditMode(false)
+      } else {
+        setEmailConfig('custom')
+        setEditMode(true)
+      }
+
+      setEmailForm(currentSettings)
     }
   }, [emailSettings])
 
   const handleSavePasswordSecurity = () => {
     if (selectedLevel) {
       updatePasswordSecurity.mutate(selectedLevel)
+    }
+  }
+
+  // Handle email configuration change
+  const handleEmailConfigChange = (config: 'development' | 'production' | 'custom') => {
+    setEmailConfig(config)
+    if (config === 'development') {
+      setEmailForm(emailPresets.development)
+      setEditMode(false)
+    } else if (config === 'production') {
+      setEmailForm(emailPresets.production)
+      setEditMode(false)
+    } else {
+      setEditMode(true)
+    }
+  }
+
+  // Handle restore to default
+  const handleRestoreDefault = () => {
+    if (emailConfig === 'development') {
+      setEmailForm(emailPresets.development)
+    } else if (emailConfig === 'production') {
+      setEmailForm(emailPresets.production)
     }
   }
 
@@ -262,6 +330,58 @@ export default function SystemSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Configuration Type Selector */}
+          <div className="space-y-2">
+            <Label>Email Configuration</Label>
+            <Select value={emailConfig} onValueChange={handleEmailConfigChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="development">
+                  🧪 Development (Mailpit) - Local testing
+                </SelectItem>
+                <SelectItem value="production">
+                  🚀 Production (Brevo) - Live email delivery
+                </SelectItem>
+                <SelectItem value="custom">
+                  ⚙️ Custom Configuration - Advanced settings
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {emailConfig === 'development' && 'Uses Mailpit for local email testing. View emails at http://localhost:8025'}
+              {emailConfig === 'production' && 'Uses Brevo for reliable production email delivery'}
+              {emailConfig === 'custom' && 'Configure custom SMTP or email provider settings'}
+            </p>
+          </div>
+
+          {/* Edit Mode Toggle */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="edit-mode"
+                checked={editMode}
+                onCheckedChange={setEditMode}
+              />
+              <Label htmlFor="edit-mode" className="text-sm">
+                Edit configuration manually
+              </Label>
+            </div>
+            {emailConfig !== 'custom' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRestoreDefault}
+                className="flex items-center gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Restore Default
+              </Button>
+            )}
+          </div>
+
+          {/* Configuration Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="smtpHost">SMTP Host</Label>
@@ -269,6 +389,7 @@ export default function SystemSettingsPage() {
                 id="smtpHost"
                 value={emailForm.smtpHost}
                 onChange={(e) => setEmailForm(prev => ({ ...prev, smtpHost: e.target.value }))}
+                disabled={!editMode}
                 placeholder="localhost"
               />
             </div>
@@ -279,26 +400,29 @@ export default function SystemSettingsPage() {
                 type="number"
                 value={emailForm.smtpPort}
                 onChange={(e) => setEmailForm(prev => ({ ...prev, smtpPort: parseInt(e.target.value) || 1025 }))}
+                disabled={!editMode}
                 placeholder="1025"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="smtpUser">SMTP Username (Optional)</Label>
+              <Label htmlFor="smtpUser">SMTP Username</Label>
               <Input
                 id="smtpUser"
                 value={emailForm.smtpUser}
                 onChange={(e) => setEmailForm(prev => ({ ...prev, smtpUser: e.target.value }))}
-                placeholder="username"
+                disabled={!editMode}
+                placeholder="username (optional)"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="smtpPassword">SMTP Password (Optional)</Label>
+              <Label htmlFor="smtpPassword">SMTP Password</Label>
               <Input
                 id="smtpPassword"
                 type="password"
                 value={emailForm.smtpPassword}
                 onChange={(e) => setEmailForm(prev => ({ ...prev, smtpPassword: e.target.value }))}
-                placeholder="password"
+                disabled={!editMode}
+                placeholder="password (optional)"
               />
             </div>
             <div className="space-y-2">
@@ -307,6 +431,7 @@ export default function SystemSettingsPage() {
                 id="fromEmail"
                 value={emailForm.fromEmail}
                 onChange={(e) => setEmailForm(prev => ({ ...prev, fromEmail: e.target.value }))}
+                disabled={!editMode}
                 placeholder="noreply@gymbosslab.com"
               />
             </div>
@@ -316,37 +441,44 @@ export default function SystemSettingsPage() {
                 id="fromName"
                 value={emailForm.fromName}
                 onChange={(e) => setEmailForm(prev => ({ ...prev, fromName: e.target.value }))}
+                disabled={!editMode}
                 placeholder="GymBossLab"
               />
             </div>
           </div>
 
+          {/* Brevo API Key */}
           <div className="space-y-2">
-            <Label htmlFor="brevoApiKey">Brevo API Key (Optional)</Label>
+            <Label htmlFor="brevoApiKey">Brevo API Key</Label>
             <Input
               id="brevoApiKey"
               value={emailForm.brevoApiKey}
               onChange={(e) => setEmailForm(prev => ({ ...prev, brevoApiKey: e.target.value }))}
-              placeholder="xkeysib-..."
+              disabled={!editMode}
+              placeholder="xkeysib-... (leave empty for SMTP)"
             />
             <p className="text-xs text-muted-foreground">
-              For production email delivery. Leave empty to use SMTP/Mailpit.
+              Required for production email delivery. Get your API key from Brevo dashboard.
             </p>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="mailpitEnabled"
-              checked={emailForm.mailpitEnabled}
-              onChange={(e) => setEmailForm(prev => ({ ...prev, mailpitEnabled: e.target.checked }))}
-              className="rounded"
-            />
-            <Label htmlFor="mailpitEnabled" className="text-sm">
-              Enable Mailpit for development (port 8025)
-            </Label>
+          {/* Status Indicator */}
+          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-900 dark:text-blue-100">
+                <p className="font-medium mb-1">Current Configuration:</p>
+                <ul className="list-disc list-inside space-y-1 text-blue-800 dark:text-blue-200">
+                  <li><strong>Provider:</strong> {emailConfig === 'development' ? 'Mailpit (Development)' : emailConfig === 'production' ? 'Brevo (Production)' : 'Custom SMTP'}</li>
+                  <li><strong>Host:</strong> {emailForm.smtpHost}:{emailForm.smtpPort}</li>
+                  <li><strong>From:</strong> {emailForm.fromName} &lt;{emailForm.fromEmail}&gt;</li>
+                  {emailForm.brevoApiKey && <li><strong>API Key:</strong> Configured ✓</li>}
+                </ul>
+              </div>
+            </div>
           </div>
 
+          {/* Action Buttons */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             {hasEmailChanges && (
               <p className="text-sm text-muted-foreground mr-auto">
@@ -357,7 +489,7 @@ export default function SystemSettingsPage() {
               variant="outline"
               onClick={() => {
                 if (emailSettings) {
-                  setEmailForm({
+                  const currentSettings = {
                     smtpHost: emailSettings.smtpHost || '',
                     smtpPort: emailSettings.smtpPort || 1025,
                     smtpUser: emailSettings.smtpUser || '',
@@ -366,7 +498,8 @@ export default function SystemSettingsPage() {
                     fromName: emailSettings.fromName || '',
                     brevoApiKey: emailSettings.brevoApiKey || '',
                     mailpitEnabled: emailSettings.mailpitEnabled ?? true,
-                  })
+                  }
+                  setEmailForm(currentSettings)
                 }
               }}
               disabled={!hasEmailChanges || updateEmailSettingsMutation.isPending}
