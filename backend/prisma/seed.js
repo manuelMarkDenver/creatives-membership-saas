@@ -59,6 +59,9 @@ async function main() {
         lastName: 'Admin',
         role: 'SUPER_ADMIN',
         emailVerified: true, // Seeded users are pre-verified
+        // Email preferences
+        emailNotificationsEnabled: true,
+        marketingEmailsEnabled: false,
       },
     });
     
@@ -154,7 +157,13 @@ async function main() {
         category: tenantInfo.category,
         address: tenantInfo.address,
         email: tenantInfo.email,
-        phoneNumber: tenantInfo.phoneNumber
+        phoneNumber: tenantInfo.phoneNumber,
+        // Email notification preferences
+        emailNotificationsEnabled: true,
+        welcomeEmailEnabled: true,
+        adminAlertEmailEnabled: true,
+        tenantNotificationEmailEnabled: true,
+        adminEmailRecipients: []
       }
     });
     
@@ -171,6 +180,9 @@ async function main() {
           role: 'OWNER',
           tenantId: tenant.id, // Set tenant context for owner
           emailVerified: true, // Seeded users are pre-verified
+          // Email preferences
+          emailNotificationsEnabled: true,
+          marketingEmailsEnabled: false,
         }
       });
 
@@ -411,6 +423,9 @@ async function main() {
           lastName: 'Cruz',
           role: 'MANAGER',
           tenantId: tenant.id, // Set tenant context for manager
+          // Email preferences
+          emailNotificationsEnabled: true,
+          marketingEmailsEnabled: false,
         }
       });
 
@@ -615,6 +630,9 @@ async function main() {
             lastName: memberInfo.lastName,
             role: 'CLIENT', // Global role for end users
             tenantId: tenant.id, // Set tenant context for gym members
+            // Email preferences
+            emailNotificationsEnabled: true,
+            marketingEmailsEnabled: false,
           }
         });
 

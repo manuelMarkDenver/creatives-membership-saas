@@ -40,7 +40,7 @@
   - **"b-logs"** = Browser console logs (`/home/mhackeedev/console.log`)
   - **"conversations"** = Documentation directory (`/home/mhackeedev/_apps/creatives-saas/conversations/`)
     - `DEPLOYMENT-GUIDE.md` - Complete deployment workflows and CLI reference
-  - **"rules!"** = Agent rules and guidelines (`/home/mhackeedev/_apps/creatives-saas/conversations/rules.md`)
+  - **"rules!"** = Agent rules and guidelines (`/home/mhackeedev/_apps/creatives-saas/conversation/rules.md`)
 - **MILESTONE DOCUMENTATION**: Update a-doc after every milestone or task completion, then provide a copy-paste ready commit message
 
 ### 🏗️ Code Quality Rules

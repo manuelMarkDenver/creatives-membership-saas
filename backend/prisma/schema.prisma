@@ -26,19 +26,30 @@ model Tenant {
   freeBranchOverride     Int                     @default(0)
   onboardingCompletedAt  DateTime?               // When tenant completed initial setup
   ownerPasswordChanged   Boolean                 @default(false) // Track if owner changed from temp password
-  paidModeEnabled        Boolean                 @default(false) // Global paid mode toggle
-  freeUnitsLimit         Int                     @default(1) // How many free units allowed
-  trialDurationDays      Int                     @default(28) // Default trial duration
-  branches               Branch[]
+   paidModeEnabled        Boolean                 @default(false) // Global paid mode toggle
+   freeUnitsLimit         Int                     @default(1) // How many free units allowed
+   trialDurationDays      Int                     @default(28) // Default trial duration
+
+   // Email notification preferences
+   emailNotificationsEnabled    Boolean                 @default(true)
+   welcomeEmailEnabled          Boolean                 @default(true)
+   adminAlertEmailEnabled       Boolean                 @default(true)
+   tenantNotificationEmailEnabled Boolean               @default(true)
+   digestFrequency              String?                 // "daily", "weekly", "monthly"
+   adminEmailRecipients         String[]                // Array of admin email addresses
+
+   branches               Branch[]
   businessUnits          BusinessUnit[]
   gymMemberSubscriptions GymMemberSubscription[]
   customerTransactions   CustomerTransaction[]
   gymMembershipPlans     GymMembershipPlan[]     // Gym-specific plans
-  platformRevenues       PlatformRevenue[]
-  users                  User[]
-  gymMemberProfiles      GymMemberProfile[]
-  coffeeCustomerProfiles CoffeeCustomerProfile[]
-  gymUserBranches        GymUserBranch[]
+   platformRevenues       PlatformRevenue[]
+   users                  User[]
+   gymMemberProfiles      GymMemberProfile[]
+   coffeeCustomerProfiles CoffeeCustomerProfile[]
+   gymUserBranches        GymUserBranch[]
+   emailTemplates         EmailTemplate[]
+   emailLogs              EmailLog[]
 }
 
 model Branch {
@@ -167,10 +178,14 @@ model User {
   deletedBy                 String?
   createdAt                 DateTime                @default(now())
   updatedAt                 DateTime                @updatedAt
-  password                  String?
-  initialPasswordSet        Boolean                 @default(false) // Track if user has set their own password
-  
-  // Email verification fields
+   password                  String?
+   initialPasswordSet        Boolean                 @default(false) // Track if user has set their own password
+
+   // Email preferences
+   emailNotificationsEnabled Boolean                 @default(true)
+   marketingEmailsEnabled    Boolean                 @default(false)
+
+   // Email verification fields
   emailVerified             Boolean                 @default(false)
   emailVerificationToken    String?                 @unique
   emailVerificationExpiry   DateTime?
@@ -463,9 +478,66 @@ model MemberAuditLog {
   member        User              @relation("MemberAuditLogs", fields: [memberId], references: [id], onDelete: Cascade)
   performer     User?             @relation("PerformedAuditLogs", fields: [performedBy], references: [id])
 
-  @@index([memberId])
-  @@index([performedAt])
-  @@index([action])
+   @@index([memberId])
+   @@index([performedAt])
+   @@index([action])
+}
+
+model EmailSettings {
+  id             String   @id @default(uuid())
+  smtpHost       String
+  smtpPort       Int
+  smtpUser       String?
+  smtpPassword   String?
+  fromEmail      String
+  fromName       String
+  brevoApiKey    String?
+  mailpitEnabled Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model EmailTemplate {
+  id           String    @id @default(uuid())
+  tenantId     String?
+  templateType String    // "welcome", "admin_alert", "tenant_notification", "digest"
+  name         String
+  subject      String
+  htmlContent  String
+  textContent  String?
+  variables    Json?     // Available variables for template
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  tenant       Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  emailLogs    EmailLog[]
+
+  @@index([tenantId])
+  @@index([templateType])
+  @@index([isActive])
+}
+
+model EmailLog {
+  id             String       @id @default(uuid())
+  tenantId       String?
+  recipientEmail String
+  recipientName  String?
+  templateType   String
+  templateId     String?
+  subject        String
+  status         String       // "sent", "failed", "pending"
+  errorMessage   String?
+  sentAt         DateTime?
+  provider       String       // "mailpit", "brevo"
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  tenant         Tenant?      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  template       EmailTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([tenantId])
+  @@index([templateId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model SaasSubscription {
