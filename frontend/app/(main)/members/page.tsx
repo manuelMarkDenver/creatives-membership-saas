@@ -39,6 +39,7 @@ import { User, Role } from '@/types'
 import { MemberInfoModal } from '@/components/modals/member-info-modal'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MembershipPlansRequiredModal } from '@/components/modals/membership-plans-required-modal'
+import { ChangePlanModal } from '@/components/modals/change-plan-modal'
 import { MemberCard } from '@/components/members/member-card'
 import { StatsOverview } from '@/components/members/stats-overview'
 import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-gym-member-actions'
@@ -66,6 +67,8 @@ export default function MembersPage() {
   const [showTransactionModal, setShowTransactionModal] = useState(false)
   const [selectedMemberForTransactions, setSelectedMemberForTransactions] = useState<User | null>(null)
   const [showPlansRequiredModal, setShowPlansRequiredModal] = useState(false)
+  const [showChangePlanModal, setShowChangePlanModal] = useState(false)
+  const [selectedMemberForChangePlan, setSelectedMemberForChangePlan] = useState<User | null>(null)
 
   const isSuperAdmin = profile?.role === 'SUPER_ADMIN'
 
@@ -497,14 +500,18 @@ export default function MembersPage() {
                     setSelectedMemberForTransactions(member)
                     setShowTransactionModal(true)
                   }}
-                  onRenewSubscription={(member) => {
-                    setSelectedMemberForAction(member)
-                    setShowRenewalModal(true)
-                  }}
-                  onCancelSubscription={(member) => {
-                    setSelectedMemberForAction(member)
-                    setShowCancellationModal(true)
-                  }}
+                   onRenewSubscription={(member) => {
+                     setSelectedMemberForAction(member)
+                     setShowRenewalModal(true)
+                   }}
+                   onCancelSubscription={(member) => {
+                     setSelectedMemberForAction(member)
+                     setShowCancellationModal(true)
+                   }}
+                   onChangePlan={(member) => {
+                     setSelectedMemberForChangePlan(member)
+                     setShowChangePlanModal(true)
+                   }}
                   onMemberDeleted={async () => {
                     // Refresh members list after deletion
                     await refreshMembersData()
@@ -548,6 +555,22 @@ export default function MembersPage() {
         open={showPlansRequiredModal}
         onOpenChange={setShowPlansRequiredModal}
         tenantName={profile?.tenant?.name || 'your gym'}
+      />
+
+      {/* Change Plan Modal */}
+      <ChangePlanModal
+        isOpen={showChangePlanModal}
+        onClose={() => {
+          setShowChangePlanModal(false)
+          setSelectedMemberForChangePlan(null)
+        }}
+        member={selectedMemberForChangePlan}
+        onPlanChanged={async () => {
+          // Refresh members data to show updated plan
+          await refreshMembersData()
+          setShowChangePlanModal(false)
+          setSelectedMemberForChangePlan(null)
+        }}
       />
 
       {/* Membership Renewal Modal */}

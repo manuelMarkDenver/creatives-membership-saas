@@ -266,6 +266,117 @@ export class GymSubscriptionsService {
   }
 
   /**
+   * Change gym membership plan for a member
+   */
+  async changePlan(
+    memberId: string,
+    gymMembershipPlanId: string,
+    paymentAmount: number,
+    paymentMethod: string,
+    tenantId: string,
+    processedBy: string,
+  ) {
+    // Get current active subscription
+    const currentSubscription = await this.prisma.gymMemberSubscription.findFirst({
+      where: {
+        memberId: memberId,
+        tenantId,
+        status: GymMemberSubscriptionStatus.ACTIVE,
+      },
+      include: {
+        gymMembershipPlan: true,
+      },
+    });
+
+    if (!currentSubscription) {
+      throw new NotFoundException('No active subscription found for this gym member');
+    }
+
+    // Get the new membership plan
+    const newPlan = await this.prisma.gymMembershipPlan.findFirst({
+      where: {
+        id: gymMembershipPlanId,
+        tenantId,
+        isActive: true,
+      },
+    });
+
+    if (!newPlan) {
+      throw new NotFoundException('New membership plan not found or inactive');
+    }
+
+    // Prevent changing to the same plan
+    if (currentSubscription.gymMembershipPlanId === gymMembershipPlanId) {
+      throw new BadRequestException('Member is already on this plan');
+    }
+
+    // Calculate new end date from today
+    const changeDate = new Date();
+    const newEndDate = new Date(changeDate);
+    newEndDate.setDate(newEndDate.getDate() + newPlan.duration);
+
+    // Update the subscription with new plan
+    const updatedSubscription = await this.prisma.gymMemberSubscription.update({
+      where: { id: currentSubscription.id },
+      data: {
+        gymMembershipPlanId,
+        price: newPlan.price,
+        endDate: newEndDate,
+        updatedAt: new Date(),
+      },
+      include: {
+        gymMembershipPlan: true,
+        member: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Validate processedBy user exists if provided
+    let validProcessedBy: string | null = null;
+    if (processedBy) {
+      const processor = await this.prisma.user.findUnique({
+        where: { id: processedBy },
+      });
+      if (processor) {
+        validProcessedBy = processedBy;
+      }
+    }
+
+    // Create transaction record for the plan change
+    await this.prisma.customerTransaction.create({
+      data: {
+        tenantId,
+        customerId: memberId,
+        gymMemberSubscriptionId: updatedSubscription.id,
+        businessType: 'gym',
+        transactionCategory: 'membership',
+        amount: paymentAmount,
+        netAmount: paymentAmount,
+        paymentMethod,
+        transactionType: TransactionType.PAYMENT,
+        status: TransactionStatus.COMPLETED,
+        relatedEntityType: 'membership_plan_change',
+        relatedEntityId: updatedSubscription.id,
+        relatedEntityName: newPlan.name,
+        description: `Plan changed from ${currentSubscription.gymMembershipPlan.name} to ${newPlan.name}`,
+        processedBy: validProcessedBy,
+      },
+    });
+
+    return {
+      success: true,
+      subscription: updatedSubscription,
+      message: `Membership plan changed successfully. New plan: ${newPlan.name}, valid until ${newEndDate.toLocaleDateString()}`,
+    };
+  }
+
+  /**
    * Cancel gym membership for a member
    */
   async cancelMembership(

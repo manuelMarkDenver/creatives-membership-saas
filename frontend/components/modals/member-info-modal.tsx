@@ -46,6 +46,7 @@ import { gymMemberPhotosApi } from '@/lib/api/gym-member-photos'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { BranchTransferModal } from './branch-transfer-modal'
+import { ChangePlanModal } from './change-plan-modal'
 
 interface MemberInfoModalProps {
   isOpen: boolean
@@ -98,6 +99,7 @@ export function MemberInfoModal({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [showBranchTransferModal, setShowBranchTransferModal] = useState(false)
+  const [showChangePlanModal, setShowChangePlanModal] = useState(false)
   
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
@@ -767,18 +769,28 @@ export function MemberInfoModal({
                     </div>
                   )}
                   
-                  {/* Transfer to Branch Button */}
-                  <div className="flex justify-end mt-3 pt-2 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowBranchTransferModal(true)}
-                      className="flex items-center gap-2 text-xs"
-                    >
-                      <ArrowRightLeft className="h-3 w-3" />
-                      Transfer Branch
-                    </Button>
-                  </div>
+                   {/* Action Buttons */}
+                   <div className="flex justify-end gap-2 mt-3 pt-2 border-t">
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={() => setShowChangePlanModal(true)}
+                       className="flex items-center gap-2 text-xs"
+                       disabled={member.gymSubscriptions?.[0]?.status !== 'ACTIVE'}
+                     >
+                       <CreditCard className="h-3 w-3" />
+                       Change Plan
+                     </Button>
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={() => setShowBranchTransferModal(true)}
+                       className="flex items-center gap-2 text-xs"
+                     >
+                       <ArrowRightLeft className="h-3 w-3" />
+                       Transfer Branch
+                     </Button>
+                   </div>
                 </div>
               </div>
             </div>
@@ -859,6 +871,17 @@ export function MemberInfoModal({
       member={member}
       onTransferComplete={() => {
         setShowBranchTransferModal(false)
+        onMemberUpdated?.()
+      }}
+    />
+
+    {/* Change Plan Modal */}
+    <ChangePlanModal
+      isOpen={showChangePlanModal}
+      onClose={() => setShowChangePlanModal(false)}
+      member={member}
+      onPlanChanged={() => {
+        setShowChangePlanModal(false)
         onMemberUpdated?.()
       }}
     />

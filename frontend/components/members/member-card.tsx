@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { User } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Calendar, 
-  MoreHorizontal, 
-  Users, 
-  Receipt, 
-  Edit, 
+import {
+  Calendar,
+  MoreHorizontal,
+  Users,
+  Receipt,
+  Edit,
   Trash2,
   History,
   UserCheck,
@@ -22,7 +22,8 @@ import {
   Info,
   Building,
   Eye,
-  Lock
+  Lock,
+  Settings
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -62,6 +63,7 @@ interface MemberCardProps {
   onViewTransactions: (member: User) => void
   onRenewSubscription: (member: User) => void
   onCancelSubscription: (member: User) => void
+  onChangePlan?: (member: User) => void
   onMemberDeleted?: () => void
 }
 
@@ -72,6 +74,7 @@ export function MemberCard({
   onViewTransactions,
   onRenewSubscription,
   onCancelSubscription,
+  onChangePlan,
   onMemberDeleted
 }: MemberCardProps) {
   const [showTransactionModal, setShowTransactionModal] = useState(false)
@@ -465,16 +468,25 @@ export function MemberCard({
                     </DropdownMenuItem>
                   )
                 
-                case 'ACTIVE':
-                  return (
-                    <DropdownMenuItem 
-                      className="text-orange-600"
-                      onClick={() => openMemberActionModal('cancel')}
-                    >
-                      <UserX className="mr-2 h-4 w-4" />
-                      Cancel Membership
-                    </DropdownMenuItem>
-                  )
+                 case 'ACTIVE':
+                   return (
+                     <>
+                       <DropdownMenuItem
+                         className="text-blue-600"
+                         onClick={() => onChangePlan?.(member)}
+                       >
+                         <Settings className="mr-2 h-4 w-4" />
+                         Change Plan
+                       </DropdownMenuItem>
+                       <DropdownMenuItem
+                         className="text-orange-600"
+                         onClick={() => openMemberActionModal('cancel')}
+                       >
+                         <UserX className="mr-2 h-4 w-4" />
+                         Cancel Membership
+                       </DropdownMenuItem>
+                     </>
+                   )
                 
                 case 'NO_SUBSCRIPTION':
                 case 'SUSPENDED':

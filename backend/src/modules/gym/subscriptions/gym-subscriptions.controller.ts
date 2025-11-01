@@ -13,6 +13,7 @@ import { AuthGuard } from '../../../core/auth/auth.guard';
 import { RBACGuard, RequiredRoles } from '../../../core/guard/rbac.guard';
 import { Role } from '@prisma/client';
 import { Request } from 'express';
+import { ChangePlanDto } from './dto/change-plan.dto';
 
 interface RequestWithUser extends Request {
   user?: {
@@ -172,6 +173,35 @@ export class GymSubscriptionsController {
       tenantId,
       userId,
       renewDto.paymentMethod || 'cash',
+    );
+  }
+
+  @Post(':memberId/change-plan')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  changePlan(
+    @Param('memberId') memberId: string,
+    @Body() changePlanDto: ChangePlanDto,
+    @Req() req: RequestWithUser,
+  ) {
+    const tenantId =
+      req.user?.tenantId || (req.headers['x-tenant-id'] as string);
+    const userId = req.user?.id;
+
+    if (!tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    return this.gymSubscriptionsService.changePlan(
+      memberId,
+      changePlanDto.gymMembershipPlanId,
+      changePlanDto.paymentAmount,
+      changePlanDto.paymentMethod,
+      tenantId,
+      userId,
     );
   }
 

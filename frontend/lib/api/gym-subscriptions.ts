@@ -10,6 +10,12 @@ export interface GymMemberSubscriptionCancellationData {
   cancellationNotes?: string
 }
 
+export interface GymMemberSubscriptionChangePlanData {
+  gymMembershipPlanId: string
+  paymentAmount: number
+  paymentMethod: string
+}
+
 export interface GymSubscriptionResponse {
   message: string
   subscription?: {
@@ -85,4 +91,8 @@ export const gymSubscriptionsApi = {
   // Cancel gym member membership
   cancelMembership: (memberId: string, data: GymMemberSubscriptionCancellationData): Promise<GymSubscriptionResponse> =>
     apiClient.post(`/gym/subscriptions/${memberId}/cancel`, data).then(res => res.data),
+
+  // Change gym member plan
+  changePlan: (memberId: string, data: GymMemberSubscriptionChangePlanData): Promise<GymSubscriptionResponse> =>
+    apiClient.post(`/gym/subscriptions/${memberId}/change-plan`, data).then(res => res.data),
 }

@@ -33,13 +33,14 @@
 - **FILE CHANGE INDICATION**: Use **bold** or *italics* for file changes to distinguish from thinking
 - **NO CONSOLE LOG SPAM**: Remove debug console logs after fixing issues - keep code clean
 - **CONSISTENT QUERY KEYS**: Always match React Query keys between hooks and mutations for proper cache invalidation
-- **COMMIT MESSAGES**: After every fix/update/change, provide a concise git commit message that user can copy-paste - User handles all git operations (add, commit, push)
+- **COMMIT MESSAGES**: After every fix/update/change, provide a concise git commit message that user can copy-paste. When user says "commit!", provide a commit message for recent changes - User handles all git operations (add, commit, push)
 - **GIT WORKFLOW**: Agent NEVER commits or pushes - Agent only provides ready-to-use commit messages for user to execute manually
 - **SHORTHAND REFERENCES**:
   - **"a-doc"** = This AGENT.md file (`/home/mhackeedev/_apps/creatives-saas/AGENT.md`)
   - **"b-logs"** = Browser console logs (`/home/mhackeedev/console.log`)
   - **"conversations"** = Documentation directory (`/home/mhackeedev/_apps/creatives-saas/conversations/`)
     - `DEPLOYMENT-GUIDE.md` - Complete deployment workflows and CLI reference
+  - **"rules!"** = Agent rules and guidelines (`/home/mhackeedev/_apps/creatives-saas/conversations/rules.md`)
 - **MILESTONE DOCUMENTATION**: Update a-doc after every milestone or task completion, then provide a copy-paste ready commit message
 
 ### 🏗️ Code Quality Rules
