@@ -18,7 +18,7 @@ import { EditorState, convertToRaw, ContentState, convertFromHTML, Modifier } fr
 import draftToHtml from 'draftjs-to-html'
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css'
 
-// Custom styles for the rich text editor
+// Custom styles for the rich text editor with dark mode support
 const editorStyles = `
   .rdw-editor-wrapper {
     border: 1px solid hsl(var(--border));
@@ -35,13 +35,19 @@ const editorStyles = `
     min-height: 300px;
     padding: 12px 16px;
     color: hsl(var(--foreground));
+    background: hsl(var(--background));
   }
   .rdw-editor-main .public-DraftEditor-content {
     min-height: 280px;
+    color: hsl(var(--foreground));
+  }
+  .rdw-editor-main .public-DraftEditor-content [data-contents="true"] {
+    color: hsl(var(--foreground));
   }
   .rdw-option-wrapper {
     border: 1px solid hsl(var(--border));
     background: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
   .rdw-option-wrapper:hover {
     background: hsl(var(--accent));
@@ -52,10 +58,33 @@ const editorStyles = `
   }
   .rdw-dropdown-wrapper {
     border: 1px solid hsl(var(--border));
+    background: hsl(var(--background));
+  }
+  .rdw-dropdown-optionwrapper {
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+  }
+  .rdw-dropdown-optionwrapper:hover {
+    background: hsl(var(--accent));
   }
   .rdw-colorpicker-modal {
     background: hsl(var(--background));
     border: 1px solid hsl(var(--border));
+    color: hsl(var(--foreground));
+  }
+  .rdw-colorpicker-modal .rdw-colorpicker-cube {
+    border: 1px solid hsl(var(--border));
+  }
+  /* Dark mode specific overrides */
+  .dark .rdw-editor-main {
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+  .dark .rdw-editor-main .public-DraftEditor-content {
+    color: hsl(var(--foreground));
+  }
+  .dark .rdw-editor-main .public-DraftEditor-content [data-contents="true"] {
+    color: hsl(var(--foreground));
   }
 `
 import { useEmailTemplates, useCreateEmailTemplate, useUpdateEmailTemplate, useDeleteEmailTemplate } from '@/lib/hooks/use-email'
@@ -496,9 +525,15 @@ export function EmailTemplateEditor({ tenantId }: EmailTemplateEditorProps) {
               <div className="border rounded-md">
                 <Editor
                   editorState={editorState}
-                  onEditorStateChange={setEditorState}
+                  onEditorStateChange={(state: any) => {
+                    try {
+                      setEditorState(state)
+                    } catch (error) {
+                      console.error('Editor state update error:', error)
+                    }
+                  }}
                   toolbar={{
-                    options: ['inline', 'blockType', 'fontSize', 'list', 'textAlign', 'colorPicker', 'link', 'image', 'history'],
+                    options: ['inline', 'blockType', 'fontSize', 'list', 'textAlign', 'link', 'history'],
                     inline: {
                       options: ['bold', 'italic', 'underline', 'strikethrough']
                     },
