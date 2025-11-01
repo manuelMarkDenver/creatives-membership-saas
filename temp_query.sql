@@ -1,1 +1,0 @@
-SELECT u."firstName", u."lastName", u.email, gmp."status", gms."status" as subscription_status, gms."startDate", gms."endDate", gmp."primaryBranchId" FROM "User" u LEFT JOIN "GymMemberProfile" gmp ON u.id = gmp."userId" LEFT JOIN "GymMemberSubscription" gms ON u.id = gms."memberId" WHERE u."firstName" = 'Barbara' AND u."lastName" = 'Hyde';
