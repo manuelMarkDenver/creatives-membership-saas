@@ -482,7 +482,7 @@ export class GymMembersService {
       // Create audit log
       await this.createAuditLog({
         memberId,
-        action: 'PLAN_ASSIGNED',
+        action: 'SUBSCRIPTION_STARTED',
         reason: 'Manual plan assignment',
         notes: `Assigned ${membershipPlan.name} plan`,
         previousState: 'NO_SUBSCRIPTION',

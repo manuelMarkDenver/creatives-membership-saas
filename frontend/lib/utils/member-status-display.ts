@@ -80,11 +80,11 @@ export const getMemberStatusDisplay = (status: string): StatusDisplay => {
       
     case 'NO_SUBSCRIPTION':
       return {
-        label: 'No Membership',
-        color: 'gray',
-        description: 'No active subscription found',
-        icon: '❓',
-        buttonVariant: 'secondary'
+        label: 'Assign Membership Plan',
+        color: 'blue',
+        description: 'Member needs a membership plan assigned',
+        icon: '📋',
+        buttonVariant: 'default'
       }
     
     default:
@@ -218,12 +218,12 @@ export const getAvailableActions = (
 
     case 'NO_SUBSCRIPTION':
       actions.push({
-        label: 'Start Membership',
-        action: 'renew',
+        label: 'Assign Membership Plan',
+        action: 'assign_plan',
         permission: 'STAFF+',
-        description: 'Create new membership with selected plan',
+        description: 'Assign a membership plan to this member',
         variant: 'default',
-        icon: '✨'
+        icon: '📋'
       })
       break
 

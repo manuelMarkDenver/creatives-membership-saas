@@ -323,21 +323,22 @@ export function MemberCard({
                return () => toast.info('You can only manage members from your assigned branches')
              }
 
-             switch (memberStatus.displayStatus) {
-               case 'DELETED':
-                 return () => openMemberActionModal('restore')
-               case 'CANCELLED':
-                 return () => openMemberActionModal('activate')
-               case 'EXPIRED':
-                 return () => onRenewSubscription(member)
-               case 'EXPIRING':
-                 return () => onRenewSubscription(member)
-               case 'ACTIVE':
-                 return () => onCancelSubscription(member)
-               case 'NO_SUBSCRIPTION':
-               case 'SUSPENDED':
-               default:
-                 return () => openMemberActionModal('activate')
+              switch (memberStatus.displayStatus) {
+                case 'DELETED':
+                  return () => openMemberActionModal('restore')
+                case 'CANCELLED':
+                  return () => openMemberActionModal('activate')
+                case 'EXPIRED':
+                  return () => onRenewSubscription(member)
+                case 'EXPIRING':
+                  return () => onRenewSubscription(member)
+                case 'ACTIVE':
+                  return () => onCancelSubscription(member)
+                case 'NO_SUBSCRIPTION':
+                  return () => openMemberActionModal('assign_plan')
+                case 'SUSPENDED':
+                default:
+                  return () => openMemberActionModal('activate')
              }
            }
 

@@ -232,7 +232,7 @@ export function MemberActionsModal({
   }
 
   const isLoading = memberLoading || reasonsLoading
-  const isMutating = activateMutation.isPending || cancelMutation.isPending || restoreMutation.isPending || renewMutation.isPending
+  const isMutating = activateMutation.isPending || cancelMutation.isPending || restoreMutation.isPending || renewMutation.isPending || assignPlanMutation.isPending
 
   // Early return with loading state
   if (isLoading) {
@@ -428,11 +428,11 @@ export function MemberActionsModal({
           <Button variant="outline" onClick={onClose} disabled={isMutating}>
             Cancel
           </Button>
-          <Button 
-            variant={config.buttonVariant}
-            onClick={handleSubmit}
-            disabled={!reason || (actionType === 'renew' && !selectedPlanId) || isMutating}
-          >
+           <Button
+             variant={config.buttonVariant}
+             onClick={handleSubmit}
+             disabled={(actionType !== 'assign_plan' && !reason) || ((actionType === 'renew' || actionType === 'assign_plan') && !selectedPlanId) || isMutating}
+           >
             <IconComponent className="w-4 h-4 mr-2" />
             {isMutating ? `${config.buttonText.split(' ')[0]}ing...` : config.buttonText}
           </Button>
