@@ -80,6 +80,7 @@ export class TenantsService {
             primaryColor: data.primaryColor,
             secondaryColor: data.secondaryColor,
             freeBranchOverride: data.freeBranchOverride || 0,
+            adminEmailRecipients: [data.ownerEmail], // Default to owner's email
           },
         });
 

@@ -6,31 +6,62 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { Mail, Settings as SettingsIcon, CheckCircle2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Mail, Settings as SettingsIcon, CheckCircle2, Crown, X } from 'lucide-react'
 import { useTenantSettings, useUpdateTenantAdminEmails } from '@/lib/hooks/use-tenant-settings'
+import { useAuthValidation } from '@/lib/hooks/use-auth-validation'
 
 export default function TenantSettingsPage() {
   const { data: settings, isLoading } = useTenantSettings()
   const updateAdminEmailsMutation = useUpdateTenantAdminEmails()
+  const { user } = useAuthValidation()
 
   const [adminEmails, setAdminEmails] = useState<string[]>([])
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true)
+  const [newEmail, setNewEmail] = useState('')
+
+  // Owner's email is always included and cannot be removed
+  const ownerEmail = user?.email || ''
+  const additionalEmails = adminEmails.filter(email => email !== ownerEmail)
 
   // Update form when data loads
   useEffect(() => {
     if (settings) {
-      setAdminEmails(settings.adminEmailRecipients || [])
+      // Ensure owner's email is always included
+      const recipients = settings.adminEmailRecipients || []
+      if (ownerEmail && !recipients.includes(ownerEmail)) {
+        recipients.unshift(ownerEmail) // Add owner's email first
+      }
+      setAdminEmails(recipients)
       setEmailNotificationsEnabled(settings.emailNotificationsEnabled ?? true)
     }
-  }, [settings])
+  }, [settings, ownerEmail])
 
   const handleSaveAdminEmails = () => {
     if (!hasAdminEmailChanges) return
 
+    // Always include owner's email
+    const emailsToSave = [...additionalEmails]
+    if (ownerEmail && !emailsToSave.includes(ownerEmail)) {
+      emailsToSave.unshift(ownerEmail)
+    }
+
     updateAdminEmailsMutation.mutate({
-      adminEmailRecipients: adminEmails,
+      adminEmailRecipients: emailsToSave,
       emailNotificationsEnabled,
     })
+  }
+
+  const addEmail = () => {
+    if (newEmail.trim() && !adminEmails.includes(newEmail.trim())) {
+      setAdminEmails([...adminEmails, newEmail.trim()])
+      setNewEmail('')
+    }
+  }
+
+  const removeEmail = (emailToRemove: string) => {
+    if (emailToRemove === ownerEmail) return // Cannot remove owner's email
+    setAdminEmails(adminEmails.filter(email => email !== emailToRemove))
   }
 
   const hasAdminEmailChanges = settings && (
@@ -70,19 +101,68 @@ export default function TenantSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="adminEmails">Admin Email Recipients</Label>
-            <Input
-              id="adminEmails"
-              value={adminEmails.join(', ')}
-              onChange={(e) => setAdminEmails(
-                e.target.value.split(',').map(email => email.trim()).filter(email => email)
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium">Admin Email Recipients</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Email addresses that will receive notifications about new member signups and gym activities
+              </p>
+
+              {/* Owner's email - always included and cannot be removed */}
+              {ownerEmail && (
+                <div className="mb-3">
+                  <Label className="text-xs text-muted-foreground mb-2 block">Owner (Default)</Label>
+                  <Badge variant="secondary" className="flex items-center gap-2 w-fit">
+                    <Crown className="h-3 w-3" />
+                    {ownerEmail}
+                    <span className="text-xs opacity-70">(cannot be removed)</span>
+                  </Badge>
+                </div>
               )}
-              placeholder="owner@gym.com, manager@gym.com"
-            />
-            <p className="text-xs text-muted-foreground">
-              Comma-separated list of email addresses that will receive gym notifications
-            </p>
+
+              {/* Additional admin emails */}
+              <div>
+                <Label className="text-xs text-muted-foreground mb-2 block">Additional Recipients</Label>
+                <div className="flex gap-2 mb-2">
+                  <Input
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="manager@gym.com"
+                    onKeyPress={(e) => e.key === 'Enter' && addEmail()}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addEmail}
+                    disabled={!newEmail.trim() || adminEmails.includes(newEmail.trim())}
+                  >
+                    Add
+                  </Button>
+                </div>
+
+                {/* Display additional emails */}
+                {additionalEmails.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {additionalEmails.map((email) => (
+                      <Badge key={email} variant="outline" className="flex items-center gap-2">
+                        {email}
+                        <button
+                          onClick={() => removeEmail(email)}
+                          className="hover:bg-destructive/20 rounded-full p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {additionalEmails.length === 0 && (
+                  <p className="text-xs text-muted-foreground italic">No additional recipients added</p>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -102,7 +182,9 @@ export default function TenantSettingsPage() {
               <div className="text-sm text-blue-900 dark:text-blue-100">
                 <p className="font-medium mb-1">Current Configuration:</p>
                 <ul className="list-disc list-inside space-y-1 text-blue-800 dark:text-blue-200">
-                  <li><strong>Recipients:</strong> {adminEmails.length > 0 ? adminEmails.join(', ') : 'None configured'}</li>
+                  <li><strong>Owner:</strong> {ownerEmail || 'Not available'}</li>
+                  <li><strong>Additional Recipients:</strong> {additionalEmails.length > 0 ? additionalEmails.join(', ') : 'None'}</li>
+                  <li><strong>Total Recipients:</strong> {adminEmails.length}</li>
                   <li><strong>Notifications:</strong> {emailNotificationsEnabled ? 'Enabled' : 'Disabled'}</li>
                   <li><strong>Events:</strong> New member signups, subscription changes</li>
                 </ul>
@@ -120,8 +202,14 @@ export default function TenantSettingsPage() {
               variant="outline"
               onClick={() => {
                 if (settings) {
-                  setAdminEmails(settings.adminEmailRecipients || [])
+                  // Reset to original settings, ensuring owner's email is included
+                  const recipients = settings.adminEmailRecipients || []
+                  if (ownerEmail && !recipients.includes(ownerEmail)) {
+                    recipients.unshift(ownerEmail)
+                  }
+                  setAdminEmails(recipients)
                   setEmailNotificationsEnabled(settings.emailNotificationsEnabled ?? true)
+                  setNewEmail('')
                 }
               }}
               disabled={!hasAdminEmailChanges || updateAdminEmailsMutation.isPending}

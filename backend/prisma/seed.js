@@ -422,9 +422,17 @@ async function main() {
         }
       });
 
-     // Note: Owner gym profile will be created after branch creation
-    
-    console.log(`✅ Created owner: ${owner.email}`);
+      // Update tenant with owner's email as default admin recipient
+      await prisma.tenant.update({
+        where: { id: tenant.id },
+        data: {
+          adminEmailRecipients: [owner.email]
+        }
+      });
+
+      // Note: Owner gym profile will be created after branch creation
+
+      console.log(`✅ Created owner: ${owner.email}`);
     loginCredentials.push({
       email: owner.email || '',
       password: tenantInfo.owner.password,
