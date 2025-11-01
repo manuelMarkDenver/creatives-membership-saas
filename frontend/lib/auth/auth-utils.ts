@@ -150,14 +150,14 @@ export class AuthManager {
       // Choose appropriate validation endpoint based on role
       switch (role) {
         case 'OWNER':
-          // Owners should be able to access tenant management
-          validationEndpoint = `/tenants/${tenantId}`
-          break
         case 'MANAGER':
         case 'STAFF':
-        case 'CLIENT':
-          // Staff/managers/clients should be able to access gym users for their tenant
+          // Owners/managers/staff should be able to access gym users for their tenant
           validationEndpoint = `/gym/users/tenant/${tenantId}?limit=1`
+          break
+        case 'CLIENT':
+          // Clients should be able to access their own profile
+          validationEndpoint = `/auth/me`
           break
         default:
           return { isValid: false, reason: `Unknown role: ${role}` }

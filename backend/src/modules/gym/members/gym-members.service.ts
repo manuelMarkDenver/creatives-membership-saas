@@ -200,6 +200,25 @@ export class GymMembersService {
         `Created gym member: ${result.user?.firstName || 'Unknown'} ${result.user?.lastName || 'User'} (${result.userId}) with subscription: ${!!result.subscription}`,
       );
 
+      // Send welcome email to new member
+      try {
+        if (result.user?.email && result.tenant?.id) {
+          const memberName = `${result.user.firstName || 'Member'} ${result.user.lastName || ''}`.trim();
+          await this.emailService.sendWelcomeEmail(
+            result.user.email,
+            memberName,
+            result.tenant.id,
+            result.subscription?.gymMembershipPlan?.name || 'Basic Membership',
+          );
+        }
+      } catch (emailError) {
+        this.logger.error(
+          `Failed to send welcome email to member: ${emailError.message}`,
+          emailError.stack,
+        );
+        // Don't fail member creation if email fails
+      }
+
       // Send admin notification for new member signup
       try {
         if (result.tenant) {

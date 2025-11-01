@@ -24,7 +24,7 @@ export class AuthGuard implements CanActivate {
       // Check for specific user email in bypass header
       const bypassUserEmail =
         request.headers['x-bypass-user'] || request.headers['X-Bypass-User'] ||
-        request.headers['x-bypass-auth'] || request.headers['X-Bypass-Auth'];
+        request.headers['x-user-email'] || request.headers['X-User-Email'];
 
       let bypassUser: AuthenticatedUser;
 
@@ -94,48 +94,37 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Access token is required');
     }
 
-    console.log('🔐 Processing JWT token');
-
-    // For development/testing, decode JWT or use stored user context
+    // Decode the base64 token to get user information
     try {
-      // TODO: Implement proper JWT decoding here
-      // For now, we need to identify the actual user from the token
-      // Since we don't have proper JWT decoding yet, let's check localStorage context
-      // This is a temporary workaround until proper JWT auth is implemented
-      
-      // Try to get user email from a custom header (set by frontend)
-      const userEmail = request.headers['x-user-email'] || request.headers['X-User-Email'];
-      
-      let targetUser;
-      if (userEmail) {
-        targetUser = await this.prisma.user.findFirst({
-          where: { email: userEmail },
-          include: {
-            gymUserBranches: { include: { branch: true } },
-            gymMemberProfile: true,
-          },
-        });
+      // Extract user info from the base64 encoded token
+      const tokenPayload = JSON.parse(Buffer.from(token, 'base64').toString());
+
+      if (!tokenPayload.userId || !tokenPayload.email) {
+        throw new UnauthorizedException('Invalid token format');
       }
-      
-      // Fallback to owner if no specific user found
-      if (!targetUser) {
-        targetUser = await this.prisma.user.findFirst({
-          where: { email: 'owner@muscle-mania.com' },
-          include: {
-            gymUserBranches: { include: { branch: true } },
-            gymMemberProfile: true,
-          },
-        });
-      }
+
+      // Verify the user still exists and get fresh data
+      const targetUser = await this.prisma.user.findUnique({
+        where: { id: tokenPayload.userId },
+        include: {
+          gymUserBranches: { include: { branch: true } },
+          gymMemberProfile: true,
+        },
+      });
 
       if (!targetUser) {
         throw new UnauthorizedException('User not found');
       }
 
+      // Verify email matches (extra security check)
+      if (targetUser.email !== tokenPayload.email) {
+        throw new UnauthorizedException('Token email mismatch');
+      }
+
       const authenticatedUser: AuthenticatedUser = {
         id: targetUser.id,
-        email: targetUser.email || 'owner@muscle-mania.com',
-        role: (targetUser.role as Role) || Role.OWNER,
+        email: targetUser.email || tokenPayload.email,
+        role: (targetUser.role as Role),
         tenantId: targetUser.tenantId || targetUser.gymMemberProfile?.tenantId || null,
         branchAccess: targetUser.gymUserBranches.map((ub) => ({
           branchId: ub.branchId,

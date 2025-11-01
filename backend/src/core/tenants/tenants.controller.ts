@@ -21,6 +21,7 @@ import {
 } from '../guard/rbac.guard';
 import { AuthGuard } from '../auth/auth.guard';
 import { Role, AccessLevel } from '@prisma/client';
+import { GetUser } from '../auth/decorators/get-user.decorator';
 
 @Controller('tenants')
 @UseGuards(AuthGuard, RBACGuard)
@@ -123,19 +124,21 @@ export class TenantsController {
   // Tenant settings endpoints - accessible by owners for their own tenant
   @Get('current/settings')
   @RequiredRoles(Role.OWNER)
-  async getTenantSettings() {
-    return this.tenantsService.getTenantSettings();
+  async getTenantSettings(@GetUser() user: any) {
+    return this.tenantsService.getTenantSettings(user);
   }
 
   @Put('current/admin-emails')
   @RequiredRoles(Role.OWNER)
   async updateTenantAdminEmails(
+    @GetUser() user: any,
     @Body() body: {
       adminEmailRecipients: string[];
       emailNotificationsEnabled: boolean;
     },
   ) {
     return this.tenantsService.updateTenantAdminEmails(
+      user,
       body.adminEmailRecipients,
       body.emailNotificationsEnabled,
     );

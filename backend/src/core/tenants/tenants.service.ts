@@ -1004,10 +1004,8 @@ export class TenantsService {
   /**
    * Get tenant settings for the current user's tenant (OWNER access)
    */
-  async getTenantSettings() {
+  async getTenantSettings(user: any) {
     try {
-      // Get current user from context (set by RBAC guard)
-      const user = (global as any).currentUser;
       if (!user?.tenantId) {
         throw new BadRequestException('User tenant context not found');
       }
@@ -1051,12 +1049,11 @@ export class TenantsService {
    * Update tenant admin email settings (OWNER access)
    */
   async updateTenantAdminEmails(
+    user: any,
     adminEmailRecipients: string[],
     emailNotificationsEnabled: boolean,
   ) {
     try {
-      // Get current user from context (set by RBAC guard)
-      const user = (global as any).currentUser;
       if (!user?.tenantId) {
         throw new BadRequestException('User tenant context not found');
       }

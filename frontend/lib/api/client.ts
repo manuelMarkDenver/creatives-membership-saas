@@ -2,12 +2,6 @@ import axios from 'axios'
 
 // Get API URL from environment with fallback for development
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
-// SECURITY: Bypass auth should NEVER be enabled in production
-const BYPASS_AUTH = process.env.NODE_ENV === 'production'
-  ? false
-  : process.env.NEXT_PUBLIC_API_BYPASS_AUTH === 'true'
-
-
 if (!API_URL || API_URL === 'undefined') {
   throw new Error('NEXT_PUBLIC_API_URL is not defined. Please check your .env.local file.')
 }
@@ -34,81 +28,39 @@ export const getTenantContext = () => currentTenantId
 // Request interceptor to add auth token and tenant context
 apiClient.interceptors.request.use(
   async (config) => {
-    let useBypass = false;
-    let storedUser = null;
-
     // Only check for stored auth on client side
     if (typeof window !== 'undefined') {
       try {
-        const userData = localStorage.getItem('user_data');
-        if (userData) {
-          storedUser = JSON.parse(userData);
-        }
         const storedToken = localStorage.getItem('auth_token');
 
-        // Use bypass auth when BYPASS_AUTH is enabled (development mode)
-        if (BYPASS_AUTH) {
-          useBypass = true;
-          config.headers['x-bypass-auth'] = 'true';
-        } else if (storedToken) {
+        if (storedToken) {
           // Use real authentication token
           config.headers.Authorization = `Bearer ${storedToken}`;
-        } else {
-          // Try Supabase session as fallback
-          try {
-            const { getSession } = await import('@/lib/auth/supabase')
-            const { session } = await getSession()
-            if (session?.access_token) {
-              config.headers.Authorization = `Bearer ${session.access_token}`
-            } else if (BYPASS_AUTH) {
-              useBypass = true;
-              config.headers['x-bypass-auth'] = 'true';
-            }
-          } catch (error) {
-            if (BYPASS_AUTH) {
-              useBypass = true;
-              config.headers['x-bypass-auth'] = 'true';
-            }
-          }
         }
       } catch (error) {
-        if (BYPASS_AUTH) {
-          useBypass = true;
-          config.headers['x-bypass-auth'] = 'true';
-        }
+        // Ignore localStorage errors
       }
-    } else if (BYPASS_AUTH) {
-      // Server-side and bypass enabled
-      useBypass = true;
-      config.headers['x-bypass-auth'] = 'true';
     }
 
     // Add tenant context from multiple sources
     let tenantId = currentTenantId;
-    
+
     // If no tenant context is set but we have stored user data, try to get tenant from there
-    if (!tenantId && storedUser?.tenantId) {
-      tenantId = storedUser.tenantId;
+    if (!tenantId && typeof window !== 'undefined') {
+      try {
+        const userData = localStorage.getItem('user_data');
+        if (userData) {
+          const storedUser = JSON.parse(userData);
+          tenantId = storedUser?.tenantId;
+        }
+      } catch (error) {
+        // Ignore localStorage errors
+      }
     }
-    
+
     // Add tenant header if available
     if (tenantId) {
       config.headers['x-tenant-id'] = tenantId;
-    }
-    
-    // Add user email for backend identification (temporary until proper JWT)
-    if (storedUser?.email) {
-      config.headers['x-user-email'] = storedUser.email;
-    }
-
-    // For bypass auth with specific user (if we have stored user email)
-    if (useBypass) {
-      if (storedUser?.email) {
-        config.headers['x-bypass-user'] = storedUser.email;
-      } else {
-        // Use super admin email for tenant management and general admin functions
-        config.headers['x-bypass-user'] = 'admin@creatives-saas.com';
-      }
     }
 
     return config;
@@ -161,20 +113,28 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 403) {
       const errorMessage = error.response?.data?.message || 'Access denied'
       console.warn('Access forbidden:', errorMessage)
-      
+
       // Don't logout for business logic errors - only for auth errors
-      // Business logic errors: role, permission, subscription limits, branch limits, etc.
+      // Business logic errors: role, permission, subscription limits, branch limits, RBAC, etc.
       if (
-        errorMessage.includes('role') || 
+        errorMessage.includes('role') ||
         errorMessage.includes('permission') ||
         errorMessage.includes('limit') ||
         errorMessage.includes('subscription') ||
         errorMessage.includes('branch') ||
-        errorMessage.includes('Upgrade')
+        errorMessage.includes('Upgrade') ||
+        errorMessage.includes('RBAC') ||
+        errorMessage.includes('Unauthorized') ||
+        errorMessage.includes('Forbidden') ||
+        errorMessage.includes('Access denied') ||
+        errorMessage.includes('OWNER') ||
+        errorMessage.includes('MANAGER') ||
+        errorMessage.includes('STAFF') ||
+        errorMessage.includes('SUPER_ADMIN')
       ) {
         return Promise.reject(new Error(`Access denied: ${errorMessage}`))
       }
-      
+
       // For other 403 errors, it might be an auth issue
       authManager.handleAuthFailure('Access denied - invalid permissions')
       return Promise.reject(new Error('Access denied. Please log in again.'))
