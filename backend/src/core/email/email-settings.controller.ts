@@ -1,10 +1,11 @@
 import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { RBACGuard } from '../guard/rbac.guard';
+import { AuthGuard } from '../auth/auth.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('admin/email-settings')
-@UseGuards(RBACGuard)
+@UseGuards(AuthGuard, RoleGuard)
 @Roles('SUPER_ADMIN')
 export class EmailSettingsController {
   constructor(private readonly prisma: PrismaService) {}

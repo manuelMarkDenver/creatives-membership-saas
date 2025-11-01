@@ -11,11 +11,12 @@ import {
 } from '@nestjs/common';
 import { EmailService } from './email.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { RBACGuard } from '../guard/rbac.guard';
+import { AuthGuard } from '../auth/auth.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('email')
-@UseGuards(RBACGuard)
+@UseGuards(AuthGuard, RoleGuard)
 export class EmailController {
   constructor(
     private readonly emailService: EmailService,

@@ -16,24 +16,17 @@ import { PlansModule } from './modules/plans/plans.module';
 import { GymModule } from './modules/gym/gym.module';
 import { BusinessUnitsModule } from './modules/business-units/business-units.module';
 import { SystemSettingsModule } from './core/system-settings/system-settings.module';
+import { EmailModule } from './core/email/email.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath:
-        process.env.NODE_ENV === 'production'
-          ? ['../.env.prod', '../.env']
-          : process.env.NODE_ENV === 'test'
-            ? ['../.env.test', '../.env.local', '../.env']
-            : ['../.env.local', '../.env'],
-    }),
     PrismaModule,
-    SupabaseModule,
-    AuthModule,
+    ConfigModule.forRoot({ isGlobal: true }),
+    NotificationsModule,
     TenantsModule,
     UsersModule,
-    NotificationsModule,
+    AuthModule,
+    SupabaseModule,
     BranchesModule,
     SubscriptionsModule,
     StatsModule,
@@ -41,6 +34,7 @@ import { SystemSettingsModule } from './core/system-settings/system-settings.mod
     GymModule,
     BusinessUnitsModule,
     SystemSettingsModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

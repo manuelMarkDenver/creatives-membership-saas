@@ -87,6 +87,13 @@ export interface Tenant {
   websiteUrl?: string
   description?: string
   freeBranchOverride?: number
+  // Email notification preferences
+  emailNotificationsEnabled?: boolean
+  welcomeEmailEnabled?: boolean
+  adminAlertEmailEnabled?: boolean
+  tenantNotificationEmailEnabled?: boolean
+  digestFrequency?: string
+  adminEmailRecipients?: string[]
   createdAt: string
   updatedAt: string
   users?: User[]

@@ -1,12 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Shield, Lock, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Shield, Lock, AlertCircle, CheckCircle2, Mail, FileText, Send, Settings as SettingsIcon } from 'lucide-react'
 import { useSystemSettings, useUpdatePasswordSecurityLevel } from '@/lib/hooks/use-system-settings'
+import { useEmailSettings, useUpdateEmailSettings } from '@/lib/hooks/use-email'
+import { EmailLogsViewer } from '@/components/admin/email-logs-viewer'
+import { EmailTemplateEditor } from '@/components/admin/email-template-editor'
 import type { PasswordSecurityLevel } from '@/lib/api/system-settings'
 
 export default function SystemSettingsPage() {
@@ -14,20 +18,65 @@ export default function SystemSettingsPage() {
   const updatePasswordSecurity = useUpdatePasswordSecurityLevel()
   const [selectedLevel, setSelectedLevel] = useState<PasswordSecurityLevel>()
 
+  // Email settings
+  const { data: emailSettings, isLoading: emailLoading } = useEmailSettings()
+  const updateEmailSettingsMutation = useUpdateEmailSettings()
+  const [emailForm, setEmailForm] = useState({
+    smtpHost: '',
+    smtpPort: 1025,
+    smtpUser: '',
+    smtpPassword: '',
+    fromEmail: '',
+    fromName: '',
+    brevoApiKey: '',
+    mailpitEnabled: true,
+  })
+
   // Update selected level when data loads
-  useState(() => {
+  useEffect(() => {
     if (settings && !selectedLevel) {
       setSelectedLevel(settings.passwordSecurityLevel)
     }
-  })
+  }, [settings, selectedLevel])
 
-  const handleSave = () => {
+  // Update email form when data loads
+  useEffect(() => {
+    if (emailSettings) {
+      setEmailForm({
+        smtpHost: emailSettings.smtpHost || '',
+        smtpPort: emailSettings.smtpPort || 1025,
+        smtpUser: emailSettings.smtpUser || '',
+        smtpPassword: emailSettings.smtpPassword || '',
+        fromEmail: emailSettings.fromEmail || '',
+        fromName: emailSettings.fromName || '',
+        brevoApiKey: emailSettings.brevoApiKey || '',
+        mailpitEnabled: emailSettings.mailpitEnabled ?? true,
+      })
+    }
+  }, [emailSettings])
+
+  const handleSavePasswordSecurity = () => {
     if (selectedLevel) {
       updatePasswordSecurity.mutate(selectedLevel)
     }
   }
 
-  const hasChanges = selectedLevel && settings && selectedLevel !== settings.passwordSecurityLevel
+  const handleSaveEmailSettings = () => {
+    updateEmailSettingsMutation.mutate(emailForm)
+  }
+
+  const hasPasswordChanges = selectedLevel && settings && selectedLevel !== settings.passwordSecurityLevel
+
+  const hasEmailChanges = emailSettings && (
+    emailForm.smtpHost !== (emailSettings.smtpHost || '') ||
+    emailForm.smtpPort !== (emailSettings.smtpPort || 1025) ||
+    emailForm.smtpUser !== (emailSettings.smtpUser || '') ||
+    emailForm.smtpPassword !== (emailSettings.smtpPassword || '') ||
+    emailForm.fromEmail !== (emailSettings.fromEmail || '') ||
+    emailForm.fromName !== (emailSettings.fromName || '') ||
+    emailForm.brevoApiKey !== (emailSettings.brevoApiKey || '') ||
+    emailForm.mailpitEnabled !== (emailSettings.mailpitEnabled ?? true)
+  )
 
   const securityLevels: Array<{
     value: PasswordSecurityLevel
@@ -74,7 +123,7 @@ export default function SystemSettingsPage() {
     },
   ]
 
-  if (isLoading) {
+  if (isLoading || emailLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -83,10 +132,10 @@ export default function SystemSettingsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 max-w-4xl space-y-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Shield className="h-8 w-8 text-primary" />
+          <SettingsIcon className="h-8 w-8 text-primary" />
           System Settings
         </h1>
         <p className="text-muted-foreground mt-2">
@@ -94,6 +143,7 @@ export default function SystemSettingsPage() {
         </p>
       </div>
 
+      {/* Password Security Settings */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -171,7 +221,7 @@ export default function SystemSettingsPage() {
           </RadioGroup>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
-            {hasChanges && (
+            {hasPasswordChanges && (
               <p className="text-sm text-muted-foreground mr-auto">
                 You have unsaved changes
               </p>
@@ -179,13 +229,13 @@ export default function SystemSettingsPage() {
             <Button
               variant="outline"
               onClick={() => setSelectedLevel(settings?.passwordSecurityLevel)}
-              disabled={!hasChanges || updatePasswordSecurity.isPending}
+              disabled={!hasPasswordChanges || updatePasswordSecurity.isPending}
             >
               Reset
             </Button>
             <Button
-              onClick={handleSave}
-              disabled={!hasChanges || updatePasswordSecurity.isPending}
+              onClick={handleSavePasswordSecurity}
+              disabled={!hasPasswordChanges || updatePasswordSecurity.isPending}
             >
               {updatePasswordSecurity.isPending ? (
                 <>
@@ -200,10 +250,156 @@ export default function SystemSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Future settings sections can be added here */}
-      <div className="mt-6 p-4 border border-dashed rounded-lg text-center text-muted-foreground">
+      {/* Email Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Email Configuration
+          </CardTitle>
+          <CardDescription>
+            Configure email providers and settings for system notifications
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="smtpHost">SMTP Host</Label>
+              <Input
+                id="smtpHost"
+                value={emailForm.smtpHost}
+                onChange={(e) => setEmailForm(prev => ({ ...prev, smtpHost: e.target.value }))}
+                placeholder="localhost"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="smtpPort">SMTP Port</Label>
+              <Input
+                id="smtpPort"
+                type="number"
+                value={emailForm.smtpPort}
+                onChange={(e) => setEmailForm(prev => ({ ...prev, smtpPort: parseInt(e.target.value) || 1025 }))}
+                placeholder="1025"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="smtpUser">SMTP Username (Optional)</Label>
+              <Input
+                id="smtpUser"
+                value={emailForm.smtpUser}
+                onChange={(e) => setEmailForm(prev => ({ ...prev, smtpUser: e.target.value }))}
+                placeholder="username"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="smtpPassword">SMTP Password (Optional)</Label>
+              <Input
+                id="smtpPassword"
+                type="password"
+                value={emailForm.smtpPassword}
+                onChange={(e) => setEmailForm(prev => ({ ...prev, smtpPassword: e.target.value }))}
+                placeholder="password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fromEmail">From Email</Label>
+              <Input
+                id="fromEmail"
+                value={emailForm.fromEmail}
+                onChange={(e) => setEmailForm(prev => ({ ...prev, fromEmail: e.target.value }))}
+                placeholder="noreply@gymbosslab.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fromName">From Name</Label>
+              <Input
+                id="fromName"
+                value={emailForm.fromName}
+                onChange={(e) => setEmailForm(prev => ({ ...prev, fromName: e.target.value }))}
+                placeholder="GymBossLab"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="brevoApiKey">Brevo API Key (Optional)</Label>
+            <Input
+              id="brevoApiKey"
+              value={emailForm.brevoApiKey}
+              onChange={(e) => setEmailForm(prev => ({ ...prev, brevoApiKey: e.target.value }))}
+              placeholder="xkeysib-..."
+            />
+            <p className="text-xs text-muted-foreground">
+              For production email delivery. Leave empty to use SMTP/Mailpit.
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="mailpitEnabled"
+              checked={emailForm.mailpitEnabled}
+              onChange={(e) => setEmailForm(prev => ({ ...prev, mailpitEnabled: e.target.checked }))}
+              className="rounded"
+            />
+            <Label htmlFor="mailpitEnabled" className="text-sm">
+              Enable Mailpit for development (port 8025)
+            </Label>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+            {hasEmailChanges && (
+              <p className="text-sm text-muted-foreground mr-auto">
+                You have unsaved changes
+              </p>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (emailSettings) {
+                  setEmailForm({
+                    smtpHost: emailSettings.smtpHost || '',
+                    smtpPort: emailSettings.smtpPort || 1025,
+                    smtpUser: emailSettings.smtpUser || '',
+                    smtpPassword: emailSettings.smtpPassword || '',
+                    fromEmail: emailSettings.fromEmail || '',
+                    fromName: emailSettings.fromName || '',
+                    brevoApiKey: emailSettings.brevoApiKey || '',
+                    mailpitEnabled: emailSettings.mailpitEnabled ?? true,
+                  })
+                }
+              }}
+              disabled={!hasEmailChanges || updateEmailSettingsMutation.isPending}
+            >
+              Reset
+            </Button>
+            <Button
+              onClick={handleSaveEmailSettings}
+              disabled={!hasEmailChanges || updateEmailSettingsMutation.isPending}
+            >
+              {updateEmailSettingsMutation.isPending ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+       {/* Email Templates */}
+       <EmailTemplateEditor />
+
+       {/* Email Logs */}
+       <EmailLogsViewer />
+
+       {/* Future settings placeholder */}
+      <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground">
         <p className="text-sm">More system settings coming soon...</p>
-        <p className="text-xs mt-1">Entity naming, file limits, email settings, etc.</p>
+        <p className="text-xs mt-1">Email templates, notification settings, etc.</p>
       </div>
     </div>
   )

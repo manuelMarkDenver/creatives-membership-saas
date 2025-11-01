@@ -32,6 +32,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -80,7 +81,14 @@ export default function TenantsPage() {
     ownerEmail: '',
     ownerPhoneNumber: '',
     // Settings
-    freeBranchOverride: 0
+    freeBranchOverride: 0,
+    // Email Notification Preferences
+    emailNotificationsEnabled: true,
+    welcomeEmailEnabled: true,
+    adminAlertEmailEnabled: true,
+    tenantNotificationEmailEnabled: true,
+    digestFrequency: '',
+    adminEmailRecipients: [] as string[]
   })
 
   // All hooks must be called before any conditional returns
@@ -192,7 +200,7 @@ export default function TenantsPage() {
     
     setEditFormData({
       // Basic Information
-      name: tenant.name,
+      name: tenant.name || '',
       description: tenant.description || '',
       address: tenant.address || '',
       phoneNumber: tenant.phoneNumber || '',
@@ -209,7 +217,14 @@ export default function TenantsPage() {
       ownerEmail: ownerData?.email || '',
       ownerPhoneNumber: ownerData?.phoneNumber || '',
       // Settings
-      freeBranchOverride: tenant.freeBranchOverride || 0
+      freeBranchOverride: tenant.freeBranchOverride || 0,
+      // Email Notification Preferences
+      emailNotificationsEnabled: tenant.emailNotificationsEnabled ?? true,
+      welcomeEmailEnabled: tenant.welcomeEmailEnabled ?? true,
+      adminAlertEmailEnabled: tenant.adminAlertEmailEnabled ?? true,
+      tenantNotificationEmailEnabled: tenant.tenantNotificationEmailEnabled ?? true,
+      digestFrequency: tenant.digestFrequency || '',
+      adminEmailRecipients: tenant.adminEmailRecipients || []
     })
     setEditDialogOpen(true)
   }
@@ -229,7 +244,14 @@ export default function TenantsPage() {
         logoUrl: editFormData.logoUrl.trim() || undefined,
         primaryColor: editFormData.primaryColor.trim() || undefined,
         secondaryColor: editFormData.secondaryColor.trim() || undefined,
-        freeBranchOverride: editFormData.freeBranchOverride
+        freeBranchOverride: editFormData.freeBranchOverride,
+        // Email Notification Preferences
+        emailNotificationsEnabled: editFormData.emailNotificationsEnabled,
+        welcomeEmailEnabled: editFormData.welcomeEmailEnabled,
+        adminAlertEmailEnabled: editFormData.adminAlertEmailEnabled,
+        tenantNotificationEmailEnabled: editFormData.tenantNotificationEmailEnabled,
+        digestFrequency: editFormData.digestFrequency || undefined,
+        adminEmailRecipients: editFormData.adminEmailRecipients
       }
       
       // Update tenant information
@@ -723,12 +745,121 @@ export default function TenantsPage() {
                       onChange={(e) => setEditFormData({ ...editFormData, freeBranchOverride: parseInt(e.target.value) || 0 })}
                       className="w-full"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Total free branches: {1 + editFormData.freeBranchOverride} (1 standard + {editFormData.freeBranchOverride} override)
-                    </p>
-                  </div>
-                </div>
-              </TabsContent>
+                     <p className="text-xs text-muted-foreground">
+                       Total free branches: {1 + editFormData.freeBranchOverride} (1 standard + {editFormData.freeBranchOverride} override)
+                     </p>
+                   </div>
+
+                   {/* Email Notification Preferences */}
+                   <div className="border-t pt-6 mt-6">
+                     <div className="flex items-center gap-2 mb-4">
+                       <Settings className="h-4 w-4 text-blue-500" />
+                       <h3 className="text-sm font-medium">Email Notification Preferences</h3>
+                     </div>
+
+                     <div className="space-y-4">
+                       <div className="flex items-center justify-between">
+                         <div className="space-y-0.5">
+                           <Label htmlFor="edit-emailNotificationsEnabled">Enable Email Notifications</Label>
+                           <p className="text-xs text-muted-foreground">
+                             Allow this tenant to receive email notifications
+                           </p>
+                         </div>
+                         <Switch
+                           id="edit-emailNotificationsEnabled"
+                           checked={editFormData.emailNotificationsEnabled}
+                           onCheckedChange={(checked) => setEditFormData({ ...editFormData, emailNotificationsEnabled: checked })}
+                         />
+                       </div>
+
+                       <div className="flex items-center justify-between">
+                         <div className="space-y-0.5">
+                           <Label htmlFor="edit-welcomeEmailEnabled">Welcome Emails</Label>
+                           <p className="text-xs text-muted-foreground">
+                             Send welcome emails to new members
+                           </p>
+                         </div>
+                         <Switch
+                           id="edit-welcomeEmailEnabled"
+                           checked={editFormData.welcomeEmailEnabled}
+                           onCheckedChange={(checked) => setEditFormData({ ...editFormData, welcomeEmailEnabled: checked })}
+                           disabled={!editFormData.emailNotificationsEnabled}
+                         />
+                       </div>
+
+                       <div className="flex items-center justify-between">
+                         <div className="space-y-0.5">
+                           <Label htmlFor="edit-adminAlertEmailEnabled">Admin Alerts</Label>
+                           <p className="text-xs text-muted-foreground">
+                             Send alerts when new tenants register
+                           </p>
+                         </div>
+                         <Switch
+                           id="edit-adminAlertEmailEnabled"
+                           checked={editFormData.adminAlertEmailEnabled}
+                           onCheckedChange={(checked) => setEditFormData({ ...editFormData, adminAlertEmailEnabled: checked })}
+                           disabled={!editFormData.emailNotificationsEnabled}
+                         />
+                       </div>
+
+                       <div className="flex items-center justify-between">
+                         <div className="space-y-0.5">
+                           <Label htmlFor="edit-tenantNotificationEmailEnabled">Tenant Notifications</Label>
+                           <p className="text-xs text-muted-foreground">
+                             Send notifications for member updates
+                           </p>
+                         </div>
+                         <Switch
+                           id="edit-tenantNotificationEmailEnabled"
+                           checked={editFormData.tenantNotificationEmailEnabled}
+                           onCheckedChange={(checked) => setEditFormData({ ...editFormData, tenantNotificationEmailEnabled: checked })}
+                           disabled={!editFormData.emailNotificationsEnabled}
+                         />
+                       </div>
+
+                       <div className="grid gap-2">
+                         <Label htmlFor="edit-digestFrequency">Digest Frequency</Label>
+                         <Select
+                           value={editFormData.digestFrequency}
+                           onValueChange={(value) => setEditFormData({ ...editFormData, digestFrequency: value })}
+                           disabled={!editFormData.emailNotificationsEnabled}
+                         >
+                           <SelectTrigger>
+                             <SelectValue placeholder="No digest emails" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             <SelectItem value="">No digest emails</SelectItem>
+                             <SelectItem value="daily">Daily</SelectItem>
+                             <SelectItem value="weekly">Weekly</SelectItem>
+                             <SelectItem value="monthly">Monthly</SelectItem>
+                           </SelectContent>
+                         </Select>
+                         <p className="text-xs text-muted-foreground">
+                           Send periodic summary emails of tenant activity
+                         </p>
+                       </div>
+
+                       <div className="grid gap-2">
+                         <Label htmlFor="edit-adminEmailRecipients">Admin Email Recipients</Label>
+                         <Textarea
+                           id="edit-adminEmailRecipients"
+                           placeholder="admin@example.com, support@example.com"
+                           value={editFormData.adminEmailRecipients.join(', ')}
+                           onChange={(e) => {
+                             const emails = e.target.value.split(',').map(email => email.trim()).filter(email => email)
+                             setEditFormData({ ...editFormData, adminEmailRecipients: emails })
+                           }}
+                           disabled={!editFormData.emailNotificationsEnabled}
+                           rows={2}
+                         />
+                         <p className="text-xs text-muted-foreground">
+                           Comma-separated list of email addresses to receive admin alerts
+                         </p>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               </TabsContent>
 
               <TabsContent value="branding" className="space-y-6 mt-6">
                 <div className="grid gap-6">

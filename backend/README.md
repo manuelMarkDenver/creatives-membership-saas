@@ -23,7 +23,25 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Creatives SaaS Backend - A multi-tenant SaaS platform built with [NestJS](https://github.com/nestjs/nest) framework.
+
+### Features
+
+- **Multi-tenant Architecture**: Support for Gym, Coffee Shop, and E-commerce businesses
+- **Email Notification System**: Dual provider support (Mailpit/Brevo) with customizable templates
+- **User Management**: Role-based access control with tenant isolation
+- **Subscription Management**: Flexible pricing plans and billing
+- **Real-time Analytics**: Business intelligence and reporting
+- **File Storage**: S3-compatible storage with Wasabi integration
+
+### Key Modules
+
+- **Auth**: JWT-based authentication with tenant context
+- **Tenants**: Multi-tenant management and configuration
+- **Users**: User profiles and role management
+- **Email**: Notification system with template management
+- **Subscriptions**: Plan management and billing
+- **Analytics**: Business metrics and reporting
 
 ## Project setup
 

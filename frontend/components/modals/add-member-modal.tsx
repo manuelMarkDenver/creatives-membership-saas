@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useMembershipPlans } from '@/lib/hooks/use-membership-plans'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
+import { useSendWelcomeEmail } from '@/lib/hooks/use-email'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -59,7 +60,10 @@ export function AddMemberModal({
 }: AddMemberModalProps) {
   const { data: profile } = useProfile()
   const queryClient = useQueryClient()
-  
+
+  // Email hooks
+  const sendWelcomeEmailMutation = useSendWelcomeEmail()
+
   // Create gym member mutation (creates both User + GymMemberProfile)
   const createGymMemberMutation = useMutation({
     mutationFn: (data: any) => membersApi.createGymMember(data),
@@ -280,7 +284,23 @@ export function AddMemberModal({
       onSuccess: async (createdGymMember) => {
         try {
           console.log('✅ Gym member created successfully:', createdGymMember)
-          
+
+          // Send welcome email if requested
+          if (formData.sendWelcomeEmail && formData.email) {
+            try {
+              await sendWelcomeEmailMutation.mutateAsync({
+                email: formData.email,
+                name: `${formData.firstName} ${formData.lastName}`,
+                tenantId: profile?.tenantId || '',
+                membershipPlanName: selectedPlan?.name,
+              })
+              console.log('✅ Welcome email sent successfully')
+            } catch (emailError) {
+              console.warn('Welcome email failed to send, but member was created:', emailError)
+              // Don't fail the entire process if email fails
+            }
+          }
+
           // Upload photo if provided
           if (formData.photoFile) {
             try {
