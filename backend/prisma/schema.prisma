@@ -153,12 +153,19 @@ model Payment {
 
 model SystemSettings {
   id                     String                 @id @default("system") // Single row with fixed ID
-  passwordSecurityLevel  PasswordSecurityLevel  @default(MEDIUM)
-  // Future settings can be added here:
-  // entityNames            Json?                  // Custom entity names per business type
-  // maxFileUploadSizeMB    Int                    @default(10)
-  // emailDailyLimit        Int                    @default(1000)
-  updatedAt              DateTime               @updatedAt
+   passwordSecurityLevel  PasswordSecurityLevel  @default(MEDIUM)
+
+   // Global admin notifications
+   globalAdminEmails      String[]               // Array of global admin email addresses
+   newTenantAlertsEnabled Boolean                @default(true)
+   systemAlertsEnabled    Boolean                @default(true)
+   securityAlertsEnabled  Boolean                @default(true)
+
+   // Future settings can be added here:
+   // entityNames            Json?                  // Custom entity names per business type
+   // maxFileUploadSizeMB    Int                    @default(10)
+   // emailDailyLimit        Int                    @default(1000)
+   updatedAt              DateTime               @updatedAt
   updatedBy              String?                // Super admin user ID who last updated
 }
 

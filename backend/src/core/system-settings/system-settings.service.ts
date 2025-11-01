@@ -91,4 +91,57 @@ export class SystemSettingsService {
     const settings = await this.getSettings();
     return settings.passwordSecurityLevel;
   }
+
+  /**
+   * Update global admin notification settings
+   */
+  async updateGlobalAdminSettings(
+    data: {
+      globalAdminEmails?: string[];
+      newTenantAlertsEnabled?: boolean;
+      systemAlertsEnabled?: boolean;
+      securityAlertsEnabled?: boolean;
+    },
+    updatedBy: string,
+  ) {
+    const settings = await this.prisma.systemSettings.upsert({
+      where: { id: 'system' },
+      update: {
+        ...data,
+        updatedBy,
+        updatedAt: new Date(),
+      },
+      create: {
+        id: 'system',
+        passwordSecurityLevel: 'MEDIUM',
+        globalAdminEmails: data.globalAdminEmails || [],
+        newTenantAlertsEnabled: data.newTenantAlertsEnabled ?? true,
+        systemAlertsEnabled: data.systemAlertsEnabled ?? true,
+        securityAlertsEnabled: data.securityAlertsEnabled ?? true,
+        updatedBy,
+      },
+    });
+
+    this.logger.log(
+      `📧 SYSTEM SETTINGS AUDIT: Global admin settings updated by user ${updatedBy}`,
+    );
+
+    return settings;
+  }
+
+  /**
+   * Get global admin emails for notifications
+   */
+  async getGlobalAdminEmails(): Promise<string[]> {
+    const settings = await this.getSettings();
+    return settings.globalAdminEmails || [];
+  }
+
+  /**
+   * Check if new tenant alerts are enabled
+   */
+  async areNewTenantAlertsEnabled(): Promise<boolean> {
+    const settings = await this.getSettings();
+    return settings.newTenantAlertsEnabled ?? true;
+  }
 }

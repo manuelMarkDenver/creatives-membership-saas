@@ -54,4 +54,34 @@ export class SystemSettingsController {
       userId,
     );
   }
+
+  /**
+   * PUT /system-settings/global-admin
+   * Update global admin notification settings (SUPER_ADMIN only)
+   */
+  @Put('global-admin')
+  @Roles('SUPER_ADMIN')
+  async updateGlobalAdminSettings(
+    @Body() dto: {
+      globalAdminEmails?: string[];
+      newTenantAlertsEnabled?: boolean;
+      systemAlertsEnabled?: boolean;
+      securityAlertsEnabled?: boolean;
+    },
+    @Request() req: any,
+  ) {
+    const userId = req.user?.id || 'system';
+    return this.systemSettingsService.updateGlobalAdminSettings(dto, userId);
+  }
+
+  /**
+   * GET /system-settings/global-admin-emails
+   * Get global admin emails for notifications (SUPER_ADMIN only)
+   */
+  @Get('global-admin-emails')
+  @Roles('SUPER_ADMIN')
+  async getGlobalAdminEmails() {
+    const emails = await this.systemSettingsService.getGlobalAdminEmails();
+    return { globalAdminEmails: emails };
+  }
 }

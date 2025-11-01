@@ -37,3 +37,23 @@ export function useUpdatePasswordSecurityLevel() {
     },
   })
 }
+
+export function useUpdateGlobalAdminSettings() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: {
+      globalAdminEmails?: string[]
+      newTenantAlertsEnabled?: boolean
+      systemAlertsEnabled?: boolean
+      securityAlertsEnabled?: boolean
+    }) => systemSettingsApi.updateGlobalAdminSettings(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: systemSettingsKeys.all })
+      toast.success('Global admin notification settings updated successfully')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to update global admin settings')
+    },
+  })
+}

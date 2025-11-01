@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Shield, Lock, AlertCircle, CheckCircle2, Mail, Settings as SettingsIcon, RotateCcw } from 'lucide-react'
-import { useSystemSettings, useUpdatePasswordSecurityLevel } from '@/lib/hooks/use-system-settings'
+import { useSystemSettings, useUpdatePasswordSecurityLevel, useUpdateGlobalAdminSettings } from '@/lib/hooks/use-system-settings'
 import { useEmailSettings, useUpdateEmailSettings } from '@/lib/hooks/use-email'
 import { EmailLogsViewer } from '@/components/admin/email-logs-viewer'
 import { EmailTemplateEditor } from '@/components/admin/email-template-editor'
@@ -23,6 +23,16 @@ export default function SystemSettingsPage() {
   // Email settings
   const { data: emailSettings, isLoading: emailLoading } = useEmailSettings()
   const updateEmailSettingsMutation = useUpdateEmailSettings()
+
+  // Global admin settings
+  const { data: systemSettings } = useSystemSettings()
+  const updateGlobalAdminMutation = useUpdateGlobalAdminSettings()
+  const [globalAdminForm, setGlobalAdminForm] = useState({
+    emails: [] as string[],
+    newTenantAlertsEnabled: true,
+    systemAlertsEnabled: true,
+    securityAlertsEnabled: true,
+  })
   const [emailConfig, setEmailConfig] = useState<'development' | 'production' | 'custom'>('development')
   const [editMode, setEditMode] = useState(false)
   const [emailForm, setEmailForm] = useState({
@@ -96,6 +106,18 @@ export default function SystemSettingsPage() {
     }
   }, [emailSettings])
 
+  // Update global admin form when system settings load
+  useEffect(() => {
+    if (systemSettings) {
+      setGlobalAdminForm({
+        emails: systemSettings.globalAdminEmails || [],
+        newTenantAlertsEnabled: systemSettings.newTenantAlertsEnabled ?? true,
+        systemAlertsEnabled: systemSettings.systemAlertsEnabled ?? true,
+        securityAlertsEnabled: systemSettings.securityAlertsEnabled ?? true,
+      })
+    }
+  }, [systemSettings])
+
   const handleSavePasswordSecurity = () => {
     if (selectedLevel) {
       updatePasswordSecurity.mutate(selectedLevel)
@@ -125,6 +147,18 @@ export default function SystemSettingsPage() {
     }
   }
 
+  // Handle save global admin settings
+  const handleSaveGlobalAdminSettings = () => {
+    if (!hasGlobalAdminChanges) return
+
+    updateGlobalAdminMutation.mutate({
+      globalAdminEmails: globalAdminForm.emails,
+      newTenantAlertsEnabled: globalAdminForm.newTenantAlertsEnabled,
+      systemAlertsEnabled: globalAdminForm.systemAlertsEnabled,
+      securityAlertsEnabled: globalAdminForm.securityAlertsEnabled,
+    })
+  }
+
   const handleSaveEmailSettings = () => {
     updateEmailSettingsMutation.mutate(emailForm)
   }
@@ -139,6 +173,13 @@ export default function SystemSettingsPage() {
     emailForm.fromEmail !== (emailSettings.fromEmail || '') ||
     emailForm.fromName !== (emailSettings.fromName || '') ||
     emailForm.mailpitEnabled !== (emailSettings.mailpitEnabled ?? true)
+  )
+
+  const hasGlobalAdminChanges = systemSettings && (
+    JSON.stringify(globalAdminForm.emails) !== JSON.stringify(systemSettings.globalAdminEmails || []) ||
+    globalAdminForm.newTenantAlertsEnabled !== (systemSettings.newTenantAlertsEnabled ?? true) ||
+    globalAdminForm.systemAlertsEnabled !== (systemSettings.systemAlertsEnabled ?? true) ||
+    globalAdminForm.securityAlertsEnabled !== (systemSettings.securityAlertsEnabled ?? true)
   )
 
   const securityLevels: Array<{
@@ -508,10 +549,138 @@ export default function SystemSettingsPage() {
        {/* Email Templates */}
        <EmailTemplateEditor />
 
-       {/* Email Logs */}
-       <EmailLogsViewer />
+        {/* Email Logs */}
+        <EmailLogsViewer />
 
-       {/* Future settings placeholder */}
+        {/* Global Admin Notifications */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Global Admin Notifications
+            </CardTitle>
+            <CardDescription>
+              Configure system-wide notifications sent to global administrators
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="globalAdminEmails">Admin Email Recipients</Label>
+              <Input
+                id="globalAdminEmails"
+                value={globalAdminForm.emails.join(', ')}
+                onChange={(e) => setGlobalAdminForm(prev => ({
+                  ...prev,
+                  emails: e.target.value.split(',').map(email => email.trim()).filter(email => email)
+                }))}
+                placeholder="admin@gymbosslab.com, alerts@company.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                Comma-separated list of email addresses that will receive system notifications
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <Label>Alert Types</Label>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="newTenantAlerts"
+                  checked={globalAdminForm.newTenantAlertsEnabled}
+                  onCheckedChange={(checked) => setGlobalAdminForm(prev => ({
+                    ...prev,
+                    newTenantAlertsEnabled: checked
+                  }))}
+                />
+                <Label htmlFor="newTenantAlerts" className="text-sm">
+                  New Tenant Registrations - Get notified when new gyms sign up
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="systemAlerts"
+                  checked={globalAdminForm.systemAlertsEnabled}
+                  onCheckedChange={(checked) => setGlobalAdminForm(prev => ({
+                    ...prev,
+                    systemAlertsEnabled: checked
+                  }))}
+                />
+                <Label htmlFor="systemAlerts" className="text-sm">
+                  System Alerts - Maintenance, updates, and system events
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="securityAlerts"
+                  checked={globalAdminForm.securityAlertsEnabled}
+                  onCheckedChange={(checked) => setGlobalAdminForm(prev => ({
+                    ...prev,
+                    securityAlertsEnabled: checked
+                  }))}
+                />
+                <Label htmlFor="securityAlerts" className="text-sm">
+                  Security Alerts - Failed logins, suspicious activity, breaches
+                </Label>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-900 dark:text-blue-100">
+                  <p className="font-medium mb-1">Current Configuration:</p>
+                  <ul className="list-disc list-inside space-y-1 text-blue-800 dark:text-blue-200">
+                    <li><strong>Recipients:</strong> {globalAdminForm.emails.length > 0 ? globalAdminForm.emails.join(', ') : 'None configured'}</li>
+                    <li><strong>New Tenant Alerts:</strong> {globalAdminForm.newTenantAlertsEnabled ? 'Enabled' : 'Disabled'}</li>
+                    <li><strong>System Alerts:</strong> {globalAdminForm.systemAlertsEnabled ? 'Enabled' : 'Disabled'}</li>
+                    <li><strong>Security Alerts:</strong> {globalAdminForm.securityAlertsEnabled ? 'Enabled' : 'Disabled'}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t">
+              {hasGlobalAdminChanges && (
+                <p className="text-sm text-muted-foreground mr-auto">
+                  You have unsaved changes
+                </p>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (systemSettings) {
+                    setGlobalAdminForm({
+                      emails: systemSettings.globalAdminEmails || [],
+                      newTenantAlertsEnabled: systemSettings.newTenantAlertsEnabled ?? true,
+                      systemAlertsEnabled: systemSettings.systemAlertsEnabled ?? true,
+                      securityAlertsEnabled: systemSettings.securityAlertsEnabled ?? true,
+                    })
+                  }
+                }}
+                disabled={!hasGlobalAdminChanges || updateGlobalAdminMutation.isPending}
+              >
+                Reset
+              </Button>
+              <Button
+                onClick={handleSaveGlobalAdminSettings}
+                disabled={!hasGlobalAdminChanges || updateGlobalAdminMutation.isPending}
+              >
+                {updateGlobalAdminMutation.isPending ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Future settings placeholder */}
       <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground">
         <p className="text-sm">More system settings coming soon...</p>
         <p className="text-xs mt-1">Email templates, notification settings, etc.</p>

@@ -301,6 +301,97 @@ export class EmailService {
   }
 
   /**
+   * Send global admin alert for system-wide events
+   */
+  async sendGlobalAdminAlert(
+    subject: string,
+    message: string,
+    eventType: 'new_tenant' | 'system_alert' | 'security_event' = 'system_alert',
+  ) {
+    try {
+      // Import SystemSettingsService to get global admin emails
+      const { SystemSettingsService } = await import('../system-settings/system-settings.service');
+      const systemSettingsService = new SystemSettingsService(this.prisma);
+
+      const globalAdminEmails = await systemSettingsService.getGlobalAdminEmails();
+
+      if (!globalAdminEmails.length) {
+        this.logger.warn('⚠️ No global admin emails configured for notifications');
+        return;
+      }
+
+      // Check if alerts are enabled for this event type
+      if (eventType === 'new_tenant') {
+        const enabled = await systemSettingsService.areNewTenantAlertsEnabled();
+        if (!enabled) {
+          this.logger.log('ℹ️ New tenant alerts disabled, skipping notification');
+          return;
+        }
+      }
+
+      const variables = {
+        subject,
+        message,
+        eventType,
+        timestamp: new Date().toISOString(),
+        adminPanelUrl: `${process.env.FRONTEND_URL}/admin`,
+      };
+
+      // Use a generic admin alert template or create a simple HTML message
+      const htmlContent = this.createGlobalAdminAlertHtml(variables);
+      const textContent = `System Alert: ${subject}\n\n${message}\n\nEvent Type: ${eventType}\nTimestamp: ${variables.timestamp}`;
+
+      const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
+      const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab System';
+
+      for (const adminEmail of globalAdminEmails) {
+        const recipient = this.getRecipient(adminEmail);
+        await this.sendEmail(recipient, subject, htmlContent, textContent, fromEmail, fromName, 'system_alert', null, null);
+      }
+
+      this.logger.log(`✅ Global admin alerts sent to ${globalAdminEmails.length} recipients for: ${subject}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to send global admin alert: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Create HTML content for global admin alerts
+   */
+  private createGlobalAdminAlertHtml(variables: any): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #f97316 100%); padding: 20px; text-align: center; border-radius: 12px 12px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">🏢 GymBossLab System Alert</h1>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 0 0 12px 12px; padding: 30px;">
+          <h2 style="color: #1f2937; margin-top: 0;">${variables.subject}</h2>
+
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; color: #374151;"><strong>Message:</strong></p>
+            <p style="margin: 10px 0 0 0; color: #1f2937;">${variables.message}</p>
+          </div>
+
+          <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Event Type:</strong> ${variables.eventType}</p>
+            <p style="margin: 5px 0;"><strong>Timestamp:</strong> ${new Date(variables.timestamp).toLocaleString()}</p>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${variables.adminPanelUrl}" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">View Admin Panel</a>
+          </div>
+
+          <p style="color: #9ca3af; font-size: 13px; text-align: center; margin-top: 30px;">
+            This is an automated system notification. Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
    * Send notification to tenant owner for new member
    */
   async sendTenantNotification(

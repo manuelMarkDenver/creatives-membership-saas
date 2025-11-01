@@ -131,9 +131,26 @@ export class AuthService {
         // Don't fail the registration if email fails
       }
 
-      this.logger.log(`New tenant registered: ${result.tenant.name} (${result.tenant.id})`);
+       this.logger.log(`New tenant registered: ${result.tenant.name} (${result.tenant.id})`);
 
-      return {
+       // Send global admin notification for new tenant registration
+       try {
+         const { EmailService } = await import('../email/email.service');
+         const emailService = new EmailService(this.prisma);
+         await emailService.sendGlobalAdminAlert(
+           'New Tenant Registration',
+           `A new tenant "${result.tenant.name}" has registered. Owner: ${data.ownerEmail}`,
+           'new_tenant'
+         );
+       } catch (alertError) {
+         this.logger.error(
+           `Failed to send global admin alert: ${alertError.message}`,
+           alertError.stack,
+         );
+         // Don't fail registration if admin alert fails
+       }
+
+       return {
         success: true,
         message:
           'Registration successful! Please check your email to verify your account.',
