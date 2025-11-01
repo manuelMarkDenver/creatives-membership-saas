@@ -230,19 +230,27 @@ export class EmailService {
         return;
       }
 
+      // Get tenant name for template variables
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { name: true },
+      });
+
       const variables = {
         memberName: name,
+        tenantName: tenant?.name || 'Our Gym',
         membershipPlan: membershipPlanName || 'Basic Membership',
         loginUrl: `${process.env.FRONTEND_URL}/auth/login`,
       };
 
-      const htmlContent = this.processTemplate(template.htmlContent, variables);
-      const textContent = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
+       const processedSubject = this.processTemplate(template.subject, variables);
+       const htmlContent = this.processTemplate(template.htmlContent, variables);
+       const textContent = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
 
-      const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
-      const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+       const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
+       const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
 
-      await this.sendEmail(recipient, template.subject, htmlContent, textContent, fromEmail, fromName, 'welcome', tenantId, template.id);
+       await this.sendEmail(recipient, processedSubject, htmlContent, textContent, fromEmail, fromName, 'welcome', tenantId, template.id);
 
       this.logger.log(`✅ Welcome email sent to ${recipient}`);
     } catch (error) {

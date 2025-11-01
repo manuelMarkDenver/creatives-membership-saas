@@ -304,6 +304,75 @@ Authentication system now works reliably with proper user context, tenant settin
 
 **Status**: 🟢 **FULLY IMPLEMENTED AND TESTED** - Tenant admin notifications now work for new member signups.
 
+#### ✅ **FIXED: Admin Email Recipients for Existing Tenants - COMPLETED**
+
+**Issue**: Existing tenants had empty `adminEmailRecipients` arrays, preventing tenant owners from receiving new member signup notifications.
+
+**Root Cause**: Seeder only set `adminEmailRecipients` for new tenants, not existing ones created before this feature.
+
+**Solution**: Created migration script to update all existing tenants with their owner's email in `adminEmailRecipients`.
+
+**Implementation**:
+- ✅ **Database Fix**: Updated 11 existing tenants to include owner emails
+- ✅ **Verification**: Confirmed "Yetta Salinas" tenant (nasadysowi@mailinator.com) now has proper recipients
+- ✅ **Email Flow**: Tenant owners will now receive `tenant_notification` emails for new member signups
+- ✅ **Template Ready**: `tenant_notification` template exists with member details and dashboard links
+
+**Files Modified**:
+- `/backend/fix-admin-emails.js` - Migration script (temporary, removed after execution)
+- Database updated with owner emails in admin recipients
+
+**Result**: All tenant owners now receive admin notifications for new member registrations.
+
+#### ✅ **FIXED: Duplicate Welcome Emails - COMPLETED**
+
+**Issue**: Members were receiving 2 welcome emails instead of 1.
+
+**Root Cause**: Both backend (automatic) and frontend (manual) were sending welcome emails, causing duplicates.
+
+**Solution**:
+- ✅ **Removed automatic email sending** from backend member creation service
+- ✅ **Updated welcome email template** to remove member dashboard access text (since members don't have dashboard yet)
+- ✅ **Frontend handles email sending** exclusively through the "Send welcome email" checkbox
+- ✅ **Updated template content** to be more appropriate for members without dashboard access
+
+**Files Modified**:
+- `/backend/src/modules/gym/members/gym-members.service.ts` - Removed automatic welcome email sending
+- Database email templates updated to remove dashboard access references
+
+**Result**: Members now receive exactly 1 welcome email (when checkbox is checked) with appropriate content.
+
+#### ✅ **FIXED: Email Template Variables Not Replaced - COMPLETED**
+
+**Issue**: Email templates showed placeholder variables like `{{tenantName}}` instead of actual values.
+
+**Root Cause**: `sendWelcomeEmail` method was missing `tenantName` variable in the variables object.
+
+**Solution**:
+- ✅ **Added tenant lookup** in `sendWelcomeEmail` method to get tenant name
+- ✅ **Added tenantName variable** to template variables object
+- ✅ **Template variables now complete**: `memberName`, `tenantName`, `membershipPlan`, `loginUrl`
+
+**Files Modified**:
+- `/backend/src/core/email/email.service.ts` - Added tenant name lookup and variable
+
+**Result**: Email templates now properly replace all variables with actual tenant and member information.
+
+#### ✅ **FIXED: Email Subject Template Variables - COMPLETED**
+
+**Issue**: Email subject line showed `{{tenantName}}` instead of actual tenant name.
+
+**Root Cause**: Subject line was not being processed through template variable replacement.
+
+**Solution**:
+- ✅ **Added subject processing** using `processTemplate(template.subject, variables)`
+- ✅ **Subject now replaces variables** just like HTML and text content
+
+**Files Modified**:
+- `/backend/src/core/email/email.service.ts` - Added subject template processing
+
+**Result**: Email subjects now properly display actual tenant names instead of placeholder variables.
+
 ## 🔧 **FIXED: Authentication System Cleanup**
 
 **Problem**: User was getting logged out when accessing `/tenant-settings` due to leftover Supabase authentication code.

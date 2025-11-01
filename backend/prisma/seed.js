@@ -67,17 +67,11 @@ async function seedEmailTemplates() {
               <p><strong>Status:</strong> Active</p>
             </div>
 
-            <p>You can now access your member dashboard to:</p>
-            <ul>
-              <li>View your membership details</li>
-              <li>Track your progress</li>
-              <li>Schedule appointments</li>
-              <li>Access exclusive member content</li>
-            </ul>
+             <p>We're excited to help you achieve your fitness goals! Our team will be in touch soon with more details about your membership.</p>
 
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="{{loginUrl}}" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">Access Your Dashboard</a>
-            </div>
+             <div style="text-align: center; margin: 30px 0;">
+               <p style="color: #6b7280; font-size: 14px;">Questions? Feel free to reply to this email.</p>
+             </div>
 
             <p>If you have any questions, feel free to reply to this email or contact our support team.</p>
           </div>
