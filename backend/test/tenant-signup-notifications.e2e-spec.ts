@@ -151,8 +151,8 @@ describe('Tenant Signup Notifications (e2e)', () => {
         .expect(201);
 
       // Verify member was created
-      expect(response.body.user.firstName).toBe('Jane');
-      expect(response.body.user.lastName).toBe('Doe');
+      expect(response.body.user.firstName).toBe('Alice');
+      expect(response.body.user.lastName).toBe('Johnson');
       expect(response.body.tenant.id).toBe(tenantId);
     });
 
@@ -311,8 +311,8 @@ describe('Tenant Signup Notifications (e2e)', () => {
         .expect(201);
 
       // Verify member creation and that admin recipients are configured
-      expect(response.body.user.firstName).toBe('Test');
-      expect(response.body.user.lastName).toBe('Recipient');
+      expect(response.body.user.firstName).toBe('No');
+      expect(response.body.user.lastName).toBe('Recipients');
 
       // Verify tenant has the expected admin recipients
       const tenant = await prisma.tenant.findUnique({
