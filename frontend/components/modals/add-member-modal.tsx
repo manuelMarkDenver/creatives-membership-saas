@@ -293,6 +293,9 @@ export function AddMemberModal({
                 name: `${formData.firstName} ${formData.lastName}`,
                 tenantId: profile?.tenantId || '',
                 membershipPlanName: selectedPlan?.name,
+                registrationDate: new Date().toLocaleDateString(),
+                startDate: createdGymMember.subscription?.startDate ? new Date(createdGymMember.subscription.startDate).toLocaleDateString() : new Date().toLocaleDateString(),
+                endDate: createdGymMember.subscription?.endDate ? new Date(createdGymMember.subscription.endDate).toLocaleDateString() : 'N/A',
               })
               console.log('✅ Welcome email sent successfully')
             } catch (emailError) {

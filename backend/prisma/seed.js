@@ -65,6 +65,9 @@ async function seedEmailTemplates() {
               <h3 style="margin-top: 0; color: #374151;">Your Membership Details:</h3>
               <p><strong>Membership Plan:</strong> {{membershipPlan}}</p>
               <p><strong>Status:</strong> Active</p>
+              <p><strong>Registration Date:</strong> {{registrationDate}}</p>
+              <p><strong>Start Date:</strong> {{startDate}}</p>
+              <p><strong>End Date:</strong> {{endDate}}</p>
             </div>
 
              <p>We're excited to help you achieve your fitness goals! Our team will be in touch soon with more details about your membership.</p>
@@ -239,6 +242,80 @@ This is an automated notification from GymBossLab.
         memberEmail: 'New member email',
         membershipPlan: 'Membership plan name',
         joinDate: 'Date member joined',
+        dashboardUrl: 'Dashboard URL',
+      },
+    },
+    {
+      templateType: 'membership_renewal',
+      name: 'Membership Renewal Notification',
+      subject: 'Membership Renewed: {{memberName}} - {{tenantName}}',
+      htmlContent: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #f97316 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 32px; margin: 0;">GymBossLab</h1>
+          </div>
+
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 30px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Membership Renewed! 🎉</h2>
+
+            <p>Great news! A membership has been renewed at <strong>{{tenantName}}</strong>.</p>
+
+            <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #374151;">Renewal Details:</h3>
+              <p><strong>Member:</strong> {{memberName}}</p>
+              <p><strong>Email:</strong> {{memberEmail}}</p>
+              <p><strong>Membership Plan:</strong> {{membershipPlan}}</p>
+              <p><strong>New Start Date:</strong> {{startDate}}</p>
+              <p><strong>New End Date:</strong> {{endDate}}</p>
+              <p><strong>Renewal Date:</strong> {{renewalDate}}</p>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="{{dashboardUrl}}" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">View in Dashboard</a>
+            </div>
+
+            <p>The member can continue enjoying all the benefits of their membership!</p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; color: #9ca3af; font-size: 13px;">
+            <p>This is an automated notification from GymBossLab.</p>
+          </div>
+        </body>
+        </html>
+      `,
+      textContent: `
+Membership Renewed! 🎉
+
+Great news! A membership has been renewed at {{tenantName}}.
+
+Renewal Details:
+- Member: {{memberName}}
+- Email: {{memberEmail}}
+- Membership Plan: {{membershipPlan}}
+- New Start Date: {{startDate}}
+- New End Date: {{endDate}}
+- Renewal Date: {{renewalDate}}
+
+View in Dashboard: {{dashboardUrl}}
+
+The member can continue enjoying all the benefits of their membership!
+
+This is an automated notification from GymBossLab.
+      `,
+      variables: {
+        tenantName: 'Gym/tenant name',
+        memberName: 'Member full name',
+        memberEmail: 'Member email',
+        membershipPlan: 'Membership plan name',
+        startDate: 'New membership start date',
+        endDate: 'New membership end date',
+        renewalDate: 'Date of renewal',
         dashboardUrl: 'Dashboard URL',
       },
     },

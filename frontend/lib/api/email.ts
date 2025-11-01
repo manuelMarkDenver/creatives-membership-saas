@@ -75,6 +75,9 @@ export const sendWelcomeEmail = (data: {
   name: string
   tenantId: string
   membershipPlanName?: string
+  registrationDate?: string
+  startDate?: string
+  endDate?: string
 }) =>
   apiClient.post('/email/send-welcome', data).then(res => res.data)
 

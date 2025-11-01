@@ -662,6 +662,25 @@ export class GymMembersService {
       },
     });
 
+    // Send renewal notification emails
+    try {
+      await this.emailService.sendMembershipRenewalEmail(
+        member.email,
+        `${member.firstName} ${member.lastName}`.trim(),
+        member.tenantId!,
+        membershipPlan.name,
+        startDate.toLocaleDateString(),
+        endDate.toLocaleDateString(),
+        new Date().toLocaleDateString(),
+      );
+    } catch (emailError) {
+      this.logger.error(
+        `Failed to send renewal email for member ${memberId}: ${emailError.message}`,
+        emailError.stack,
+      );
+      // Don't fail renewal if email fails
+    }
+
     return {
       success: true,
       message: 'Membership renewed successfully',

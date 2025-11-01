@@ -218,6 +218,9 @@ export class EmailService {
     name: string,
     tenantId: string,
     membershipPlanName?: string,
+    registrationDate?: string,
+    startDate?: string,
+    endDate?: string,
   ) {
     await this.ensureSettingsLoaded();
 
@@ -240,6 +243,9 @@ export class EmailService {
         memberName: name,
         tenantName: tenant?.name || 'Our Gym',
         membershipPlan: membershipPlanName || 'Basic Membership',
+        registrationDate: registrationDate || new Date().toLocaleDateString(),
+        startDate: startDate || new Date().toLocaleDateString(),
+        endDate: endDate || 'N/A',
         loginUrl: `${process.env.FRONTEND_URL}/auth/login`,
       };
 
@@ -255,6 +261,104 @@ export class EmailService {
       this.logger.log(`✅ Welcome email sent to ${recipient}`);
     } catch (error) {
       this.logger.error(`❌ Failed to send welcome email: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Send renewal notification to member and tenant admins
+   */
+  async sendMembershipRenewalEmail(
+    memberEmail: string,
+    memberName: string,
+    tenantId: string,
+    membershipPlan: string,
+    startDate: string,
+    endDate: string,
+    renewalDate: string,
+  ) {
+    await this.ensureSettingsLoaded();
+
+    try {
+      // Get tenant info
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { name: true, adminEmailRecipients: true, tenantNotificationEmailEnabled: true },
+      });
+
+      if (!tenant) {
+        this.logger.warn(`Tenant ${tenantId} not found for renewal email`);
+        return;
+      }
+
+      // Check if tenant notifications are enabled
+      if (!tenant.tenantNotificationEmailEnabled) {
+        this.logger.log(`Tenant notifications disabled for ${tenantId}, skipping renewal email`);
+        return;
+      }
+
+      // Send email to member
+      const memberRecipient = this.getRecipient(memberEmail);
+      const memberTemplate = await this.getEmailTemplate('membership_renewal', tenantId);
+
+      if (memberTemplate) {
+        const memberVariables = {
+          memberName,
+          tenantName: tenant.name,
+          memberEmail,
+          membershipPlan,
+          startDate,
+          endDate,
+          renewalDate,
+          dashboardUrl: `${process.env.FRONTEND_URL}/auth/login`,
+        };
+
+        const memberProcessedSubject = this.processTemplate(memberTemplate.subject, memberVariables);
+        const memberHtmlContent = this.processTemplate(memberTemplate.htmlContent, memberVariables);
+        const memberTextContent = memberTemplate.textContent ? this.processTemplate(memberTemplate.textContent, memberVariables) : undefined;
+
+        const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
+        const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+
+        await this.sendEmail(memberRecipient, memberProcessedSubject, memberHtmlContent, memberTextContent, fromEmail, fromName, 'membership_renewal', tenantId, memberTemplate.id);
+
+        this.logger.log(`✅ Renewal email sent to member: ${memberEmail}`);
+      }
+
+      // Send email to tenant admins
+      if (tenant.adminEmailRecipients?.length) {
+        const adminTemplate = await this.getEmailTemplate('membership_renewal', tenantId);
+
+        if (adminTemplate) {
+          const adminVariables = {
+            memberName,
+            tenantName: tenant.name,
+            memberEmail,
+            membershipPlan,
+            startDate,
+            endDate,
+            renewalDate,
+            dashboardUrl: `${process.env.FRONTEND_URL}/members`,
+          };
+
+          const adminProcessedSubject = this.processTemplate(adminTemplate.subject, adminVariables);
+          const adminHtmlContent = this.processTemplate(adminTemplate.htmlContent, adminVariables);
+          const adminTextContent = adminTemplate.textContent ? this.processTemplate(adminTemplate.textContent, adminVariables) : undefined;
+
+          const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
+          const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+
+          for (const adminEmail of tenant.adminEmailRecipients) {
+            const adminRecipient = this.getRecipient(adminEmail);
+            await this.sendEmail(adminRecipient, adminProcessedSubject, adminHtmlContent, adminTextContent, fromEmail, fromName, 'membership_renewal', tenantId, adminTemplate.id);
+          }
+
+          this.logger.log(`✅ Renewal admin emails sent for tenant: ${tenant.name}`);
+        }
+      }
+
+    } catch (error) {
+      this.logger.error(`❌ Failed to send renewal email: ${error.message}`, error.stack);
       throw error;
     }
   }

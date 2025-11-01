@@ -373,6 +373,47 @@ Authentication system now works reliably with proper user context, tenant settin
 
 **Result**: Email subjects now properly display actual tenant names instead of placeholder variables.
 
+#### ✅ **FIXED: Member Welcome Email Dates - COMPLETED**
+
+**Issue**: Member welcome emails showed incorrect join date (today's date) instead of actual membership start/end dates.
+
+**Solution**:
+- ✅ **Updated welcome email template** to include registration date, start date, and end date
+- ✅ **Modified sendWelcomeEmail method** to accept additional date parameters
+- ✅ **Updated frontend** to pass actual subscription dates when sending welcome emails
+- ✅ **Template now shows**: Registration Date, Start Date, End Date instead of just "Join Date"
+
+**Files Modified**:
+- `/backend/src/core/email/email.service.ts` - Added date parameters to sendWelcomeEmail
+- `/frontend/lib/api/email.ts` - Updated API client to accept date parameters
+- `/frontend/components/modals/add-member-modal.tsx` - Pass actual subscription dates
+- Database email templates updated with new date fields
+
+**Result**: Member welcome emails now show accurate membership dates.
+
+#### ✅ **ADDED: Membership Renewal Email System - COMPLETED**
+
+**New Feature**: Automatic email notifications for membership renewals sent to both member and tenant admins.
+
+**Implementation**:
+- ✅ **Created renewal email template** (`membership_renewal`) with member and admin versions
+- ✅ **Added sendMembershipRenewalEmail method** to email service
+- ✅ **Integrated with renewal process** in gym-members.service.ts
+- ✅ **Respects email notification settings** - only sends if `tenantNotificationEmailEnabled` is true
+- ✅ **Sends to both parties**: Member receives confirmation, tenant admins receive notification
+
+**Email Flow for Renewals**:
+1. **Member Email**: Confirmation with new membership dates
+2. **Tenant Admin Email**: Notification of successful renewal
+3. **Conditional Sending**: Only sent if tenant notifications are enabled
+
+**Files Modified**:
+- `/backend/prisma/seed.js` - Added membership_renewal email template
+- `/backend/src/core/email/email.service.ts` - Added sendMembershipRenewalEmail method
+- `/backend/src/modules/gym/members/gym-members.service.ts` - Integrated email sending in renewal process
+
+**Result**: Complete renewal notification system that keeps both members and gym owners informed of membership renewals.
+
 ## 🔧 **FIXED: Authentication System Cleanup**
 
 **Problem**: User was getting logged out when accessing `/tenant-settings` due to leftover Supabase authentication code.
