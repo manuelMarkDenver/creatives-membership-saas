@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useMembershipPlans } from '@/lib/hooks/use-membership-plans'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
 import { useSendWelcomeEmail } from '@/lib/hooks/use-email'
+import { useTenantSettings } from '@/lib/hooks/use-tenant-settings'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -59,6 +60,7 @@ export function AddMemberModal({
   onMemberAdded
 }: AddMemberModalProps) {
   const { data: profile } = useProfile()
+  const { data: tenantSettings } = useTenantSettings()
   const queryClient = useQueryClient()
 
   // Email hooks
@@ -120,6 +122,13 @@ export function AddMemberModal({
 
   const { data: membershipPlans, isLoading: plansLoading } = useMembershipPlans()
   const { data: branches, isLoading: branchesLoading } = useBranchesByTenant(profile?.tenantId || '')
+
+  // Update sendWelcomeEmail default based on tenant settings
+  useEffect(() => {
+    if (tenantSettings?.welcomeEmailEnabled !== undefined) {
+      setFormData(prev => ({ ...prev, sendWelcomeEmail: tenantSettings.welcomeEmailEnabled }))
+    }
+  }, [tenantSettings?.welcomeEmailEnabled])
   
   // Ensure membershipPlans is always an array
   const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
@@ -771,7 +780,7 @@ export function AddMemberModal({
               {(process.env.NEXT_PUBLIC_FEATURE_WELCOME_EMAIL === 'true' || process.env.NEXT_PUBLIC_FEATURE_CREATE_ACCOUNT === 'true') && (
                 <div className="border-t pt-4 space-y-4">
                   <h4 className="font-medium">Member Options</h4>
-                  
+
                   {process.env.NEXT_PUBLIC_FEATURE_WELCOME_EMAIL === 'true' && (
                     <div className="flex items-center space-x-2">
                       <Switch
@@ -782,7 +791,7 @@ export function AddMemberModal({
                       <Label htmlFor="sendWelcomeEmail">Send welcome email to member</Label>
                     </div>
                   )}
-                  
+
                   {process.env.NEXT_PUBLIC_FEATURE_CREATE_ACCOUNT === 'true' && (
                     <div className="flex items-center space-x-2">
                       <Switch

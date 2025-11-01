@@ -391,6 +391,33 @@ Authentication system now works reliably with proper user context, tenant settin
 
 **Result**: Member welcome emails now show accurate membership dates.
 
+#### ✅ **ADDED: Tenant-Level Welcome Email Toggle with Per-Member Override - COMPLETED**
+
+**New Feature**: Tenant managers can control welcome email behavior with per-member override capability.
+
+**Implementation**:
+- ✅ **Schema Update**: Added `welcomeEmailEnabled` boolean field to Tenant model (defaults to true)
+- ✅ **Seeder Update**: Updated Prisma seeders to include welcome email toggle for all tenants
+- ✅ **Backend Logic**: Modified member creation service to send welcome emails automatically when `welcomeEmailEnabled` is true
+- ✅ **Frontend Integration**: Enhanced add-member modal with tenant settings fetch and welcome email checkbox
+- ✅ **Per-Member Override**: Checkbox defaults to tenant setting but allows individual member override
+- ✅ **Database Sync**: Applied schema changes with `prisma db push` following AGENT.md rules
+
+**Email Flow**:
+1. **Tenant Setting**: `welcomeEmailEnabled` controls default behavior for the gym
+2. **Per-Member Override**: Checkbox in add-member modal allows override of tenant default
+3. **Automatic Sending**: Welcome emails sent when both tenant setting is enabled AND member checkbox is checked
+4. **Separation**: Welcome emails independent from tenant notification emails (`tenantNotificationEmailEnabled`)
+
+**Files Modified**:
+- `/backend/prisma/schema.prisma` - Added `welcomeEmailEnabled` field to Tenant model
+- `/backend/prisma/seed.js` - Updated seeder with welcome email toggle
+- `/backend/src/modules/gym/members/gym-members.service.ts` - Automatic welcome email sending logic
+- `/frontend/components/modals/add-member-modal.tsx` - Tenant settings integration and checkbox logic
+- `/frontend/lib/hooks/use-tenant-settings.ts` - Existing hook used for settings fetch
+
+**Result**: Tenant managers have full control over welcome email behavior with flexible per-member override options.
+
 #### ✅ **ADDED: Membership Renewal Email System - COMPLETED**
 
 **New Feature**: Automatic email notifications for membership renewals sent to both member and tenant admins.
