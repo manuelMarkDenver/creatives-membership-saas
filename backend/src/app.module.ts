@@ -8,7 +8,6 @@ import { TenantsModule } from './core/tenants/tenants.module';
 import { TenantMiddleware } from './core/middleware/tenants.middleware';
 import { UsersModule } from './core/users/user.module';
 import { AuthModule } from './core/auth/auth.module';
-import { SupabaseModule } from './core/supabase/supabase.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { StatsModule } from './modules/stats/stats.module';
@@ -26,7 +25,6 @@ import { EmailModule } from './core/email/email.module';
     TenantsModule,
     UsersModule,
     AuthModule,
-    SupabaseModule,
     BranchesModule,
     SubscriptionsModule,
     StatsModule,

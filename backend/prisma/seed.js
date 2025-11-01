@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
+require('dotenv').config({ path: '../../.env' });
 
 const prisma = new PrismaClient();
 
@@ -110,6 +111,9 @@ The {{tenantName}} Team
         memberName: 'Member full name',
         tenantName: 'Gym/tenant name',
         membershipPlan: 'Membership plan name',
+        registrationDate: 'Date of member registration',
+        startDate: 'Membership start date',
+        endDate: 'Membership end date',
         loginUrl: 'Login URL for member dashboard',
       },
     },
@@ -200,10 +204,11 @@ This is an automated notification from GymBossLab.
 
             <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="margin-top: 0; color: #374151;">Member Details:</h3>
-              <p><strong>Name:</strong> {{memberName}}</p>
-              <p><strong>Email:</strong> {{memberEmail}}</p>
-              <p><strong>Membership Plan:</strong> {{membershipPlan}}</p>
-              <p><strong>Join Date:</strong> {{joinDate}}</p>
+               <p><strong>Name:</strong> {{memberName}}</p>
+               <p><strong>Email:</strong> {{memberEmail}}</p>
+               <p><strong>Membership Plan:</strong> {{membershipPlan}}</p>
+               <p><strong>Start Date:</strong> {{startDate}}</p>
+               <p><strong>End Date:</strong> {{endDate}}</p>
             </div>
 
             <div style="text-align: center; margin: 30px 0;">
@@ -228,7 +233,8 @@ Member Details:
 - Name: {{memberName}}
 - Email: {{memberEmail}}
 - Membership Plan: {{membershipPlan}}
-- Join Date: {{joinDate}}
+- Start Date: {{startDate}}
+- End Date: {{endDate}}
 
 View in Dashboard: {{dashboardUrl}}
 
@@ -241,7 +247,8 @@ This is an automated notification from GymBossLab.
         memberName: 'New member full name',
         memberEmail: 'New member email',
         membershipPlan: 'Membership plan name',
-        joinDate: 'Date member joined',
+        startDate: 'Membership start date',
+        endDate: 'Membership end date',
         dashboardUrl: 'Dashboard URL',
       },
     },

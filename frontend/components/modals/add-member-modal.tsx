@@ -294,17 +294,31 @@ export function AddMemberModal({
         try {
           console.log('✅ Gym member created successfully:', createdGymMember)
 
-          // Send welcome email if requested
+           // Send welcome email if requested
           if (formData.sendWelcomeEmail && formData.email) {
+            console.log('🎯 SENDING WELCOME EMAIL - formData.sendWelcomeEmail is true');
+            console.log('📧 Member creation response:', createdGymMember);
             try {
+              // Try to get subscription data from the member creation response
+              let startDate: string | undefined;
+              let endDate: string | undefined;
+
+              if (createdGymMember.subscription) {
+                startDate = new Date(createdGymMember.subscription.startDate).toLocaleDateString();
+                endDate = new Date(createdGymMember.subscription.endDate).toLocaleDateString();
+                console.log('📧 Using subscription dates from API response:', { startDate, endDate });
+              } else {
+                console.warn('📧 No subscription data in API response, backend will fetch from database');
+              }
+
               await sendWelcomeEmailMutation.mutateAsync({
                 email: formData.email,
                 name: `${formData.firstName} ${formData.lastName}`,
                 tenantId: profile?.tenantId || '',
                 membershipPlanName: selectedPlan?.name,
                 registrationDate: new Date().toLocaleDateString(),
-                startDate: createdGymMember.subscription?.startDate ? new Date(createdGymMember.subscription.startDate).toLocaleDateString() : new Date().toLocaleDateString(),
-                endDate: createdGymMember.subscription?.endDate ? new Date(createdGymMember.subscription.endDate).toLocaleDateString() : 'N/A',
+                startDate,
+                endDate,
               })
               console.log('✅ Welcome email sent successfully')
             } catch (emailError) {

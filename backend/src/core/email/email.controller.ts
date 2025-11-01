@@ -117,13 +117,21 @@ export class EmailController {
       name: string;
       tenantId: string;
       membershipPlanName?: string;
+      registrationDate?: string;
+      startDate?: string;
+      endDate?: string;
     },
   ) {
+    console.log('🎯 CONTROLLER: Welcome email API received:', data);
+
     await this.emailService.sendWelcomeEmail(
       data.email,
       data.name,
       data.tenantId,
       data.membershipPlanName,
+      data.registrationDate,
+      data.startDate,
+      data.endDate,
     );
     return { success: true, message: 'Welcome email sent successfully' };
   }

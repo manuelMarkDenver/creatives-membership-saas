@@ -541,6 +541,20 @@ adminEmailRecipients: [data.ownerEmail.trim().toLowerCase()], // Default to owne
 
 **Result**: Authentication works properly without Supabase, users stay logged in when accessing restricted pages.
 
+## 🔧 **FIXED: Supabase Service Disabled**
+
+**Problem**: Backend was throwing "Supabase URL and key must be provided in production" error during startup.
+
+**Root Cause**: SupabaseService was required in production mode but no longer used (switched to Wasabi S3).
+
+**Solution**: Complete Supabase service disable:
+- ✅ **Modified** `SupabaseService` to allow running without configuration in all environments
+- ✅ **Removed** `SupabaseModule` from `app.module.ts` to prevent service initialization
+- ✅ **Removed** unused `SupabaseService` dependency from `GymMembersService`
+- ✅ **Added** null checks to all OAuth methods to throw appropriate errors when Supabase unavailable
+
+**Result**: Backend starts without Supabase errors, OAuth features disabled but won't crash the app.
+
 ## 🔧 **FIXED: User Context Header Issue**
 
 **Problem**: API client wasn't consistently setting `x-user-email` header, causing backend to fall back to default owner user and log users out.

@@ -222,6 +222,7 @@ export class EmailService {
     startDate?: string,
     endDate?: string,
   ) {
+    console.log('🎯 BACKEND: sendWelcomeEmail called with:', { email, name, registrationDate, startDate, endDate });
     await this.ensureSettingsLoaded();
 
     try {
@@ -249,15 +250,64 @@ export class EmailService {
         return;
       }
 
+      // If dates are not provided, try to fetch subscription data
+      let finalRegistrationDate = registrationDate;
+      let finalStartDate = startDate;
+      let finalEndDate = endDate;
+
+      console.log('📧 Welcome email input:', { email, startDate, endDate });
+
+      if ((!finalStartDate || !finalEndDate) && email) {
+        try {
+          console.log('📧 Fetching subscription data for email:', email);
+          // Find the user and their latest subscription
+          const user = await this.prisma.user.findFirst({
+            where: { email: email },
+            include: {
+              gymMemberSubscriptions: {
+                include: { gymMembershipPlan: true },
+                orderBy: { createdAt: 'desc' },
+                take: 1
+              }
+            }
+          });
+
+          console.log('📧 Found user:', !!user, 'email match:', user?.email === email, 'subscriptions:', user?.gymMemberSubscriptions?.length || 0);
+
+          if (user && user.gymMemberSubscriptions && user.gymMemberSubscriptions.length > 0) {
+            const subscription = user.gymMemberSubscriptions[0];
+            finalStartDate = finalStartDate || new Date(subscription.startDate).toLocaleDateString();
+            finalEndDate = finalEndDate || new Date(subscription.endDate).toLocaleDateString();
+            console.log('📧 Found subscription data for welcome email:', {
+              startDate: finalStartDate,
+              endDate: finalEndDate,
+              rawStartDate: subscription.startDate,
+              rawEndDate: subscription.endDate
+            });
+          } else {
+            console.log('📧 No subscriptions found for user');
+          }
+        } catch (error) {
+          console.warn('Could not fetch subscription data for welcome email:', error.message);
+        }
+      }
+
       const variables = {
         memberName: name,
         tenantName: tenant?.name || 'Our Gym',
         membershipPlan: membershipPlanName || 'Basic Membership',
-        registrationDate: registrationDate || new Date().toLocaleDateString(),
-        startDate: startDate || new Date().toLocaleDateString(),
-        endDate: endDate || 'N/A',
+        registrationDate: finalRegistrationDate || new Date().toLocaleDateString(),
+        startDate: finalStartDate || new Date().toLocaleDateString(),
+        endDate: finalEndDate || 'N/A',
         loginUrl: `${process.env.FRONTEND_URL}/auth/login`,
       };
+
+      console.log('📧 WELCOME EMAIL FINAL VARIABLES:', {
+        email,
+        registrationDate: variables.registrationDate,
+        startDate: variables.startDate,
+        endDate: variables.endDate
+      });
 
        const processedSubject = this.processTemplate(template.subject, variables);
        const htmlContent = this.processTemplate(template.htmlContent, variables);
@@ -599,6 +649,8 @@ export class EmailService {
     memberName: string,
     memberEmail: string,
     membershipPlanName?: string,
+    startDate?: Date,
+    endDate?: Date,
   ) {
     try {
       // Check platform-level setting first
@@ -643,6 +695,8 @@ export class EmailService {
         memberName,
         memberEmail,
         membershipPlan: membershipPlanName || 'Basic Membership',
+        startDate: startDate ? startDate.toLocaleDateString() : 'N/A',
+        endDate: endDate ? endDate.toLocaleDateString() : 'N/A',
         dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
       };
 

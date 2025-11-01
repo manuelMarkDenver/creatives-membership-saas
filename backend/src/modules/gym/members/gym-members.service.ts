@@ -6,7 +6,6 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../core/prisma/prisma.service';
-import { SupabaseService } from '../../../core/supabase/supabase.service';
 import { S3UploadService } from '../../../core/supabase/s3-upload.service';
 import { NotificationsService } from '../../../core/notifications/notifications.service';
 import { EmailService } from '../../../core/email/email.service';
@@ -17,7 +16,6 @@ export class GymMembersService {
 
   constructor(
     private prisma: PrismaService,
-    private supabaseService: SupabaseService,
     private s3UploadService: S3UploadService,
     private notificationsService: NotificationsService,
     private emailService: EmailService,
@@ -186,14 +184,43 @@ export class GymMembersService {
           },
         });
 
-        return {
+        // Ensure subscription data is included (fetch if not available)
+        let finalSubscription = subscription;
+        if (!finalSubscription && planId) {
+          // If subscription was supposed to be created but isn't available, fetch it
+          finalSubscription = await tx.gymMemberSubscription.findFirst({
+            where: {
+              memberId: user.id,
+              gymMembershipPlanId: planId,
+              tenantId: tenantId
+            },
+            include: {
+              gymMembershipPlan: true
+            }
+          });
+        }
+
+        const result = {
           ...fullGymProfile,
-          subscription,
+          subscription: finalSubscription,
           branch: {
             id: branch.id,
             name: branch.name,
           },
         };
+
+        console.log('🏋️ Member creation result:', {
+          userId: result.userId,
+          hasSubscription: !!result.subscription,
+          subscription: result.subscription ? {
+            id: result.subscription.id,
+            startDate: result.subscription.startDate,
+            endDate: result.subscription.endDate,
+            planName: result.subscription.gymMembershipPlan?.name
+          } : null
+        });
+
+        return result;
       });
 
       this.logger.log(
@@ -209,12 +236,14 @@ export class GymMembersService {
            const memberName = `${result.user.firstName} ${result.user.lastName}`;
            const membershipPlan = result.subscription?.gymMembershipPlan?.name || 'No Plan';
 
-           await this.emailService.sendTenantNotification(
-             result.tenant.id,
-             memberName,
-             result.user.email || '',
-             membershipPlan,
-           );
+            await this.emailService.sendTenantNotification(
+              result.tenant.id,
+              memberName,
+              result.user.email || '',
+              membershipPlan,
+              result.subscription?.startDate,
+              result.subscription?.endDate,
+            );
          } else {
            this.logger.warn('Tenant or user information not available for signup notification');
          }

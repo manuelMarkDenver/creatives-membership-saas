@@ -72,9 +72,11 @@ export class SupabaseService {
         this.supabase = null;
       }
     } else {
-      // Production requires Supabase
+      // Production - try to use Supabase if configured, otherwise disable
       if (!supabaseUrl || !keyToUse) {
-        throw new Error('Supabase URL and key must be provided in production');
+        this.logger.warn('Supabase not configured - OAuth features will be disabled');
+        this.supabase = null;
+        return;
       }
       try {
         this.supabase = createClient(supabaseUrl, keyToUse, {
