@@ -248,14 +248,14 @@ export default function CreateMembershipPlanModal({
           {/* Access Level */}
           <div className="space-y-2">
             <Label htmlFor="accessLevel" className="flex items-center gap-2">
-              Access Level <span className="text-red-500">*</span>
+              Access Level
             </Label>
             <Select
               value={formData.accessLevel}
-              onValueChange={(value) => handleInputChange('accessLevel', value)}
+              disabled={true}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select access level" />
+              <SelectTrigger className="bg-gray-50 dark:bg-gray-800 cursor-not-allowed">
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {ACCESS_LEVEL_OPTIONS.map((option) => (
@@ -269,7 +269,7 @@ export default function CreateMembershipPlanModal({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Determine which branches members can access with this plan.
+              During onboarding, all plans default to "All Branches" access. You can modify this later in plan settings.
             </p>
           </div>
 
