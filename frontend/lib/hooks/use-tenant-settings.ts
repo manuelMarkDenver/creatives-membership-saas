@@ -28,3 +28,19 @@ export function useUpdateTenantAdminEmails() {
     },
   })
 }
+
+export function useUpdateTenantSettings() {
+  const queryClient = useQueryClient()
+  const { user } = useAuthValidation()
+
+  return useMutation({
+    mutationFn: (data: {
+      welcomeEmailEnabled?: boolean
+    }) => tenantSettingsApi.updateSettings(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['tenant-settings', user?.tenantId]
+      })
+    },
+  })
+}

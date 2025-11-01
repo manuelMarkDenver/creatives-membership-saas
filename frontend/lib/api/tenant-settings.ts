@@ -22,4 +22,11 @@ export const tenantSettingsApi = {
     const response = await apiClient.put('/tenants/current/admin-emails', data)
     return response.data
   },
+
+  updateSettings: async (data: {
+    welcomeEmailEnabled?: boolean
+  }): Promise<TenantSettings> => {
+    const response = await apiClient.put('/tenants/current/settings', data)
+    return response.data
+  },
 }

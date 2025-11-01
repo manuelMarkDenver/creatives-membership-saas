@@ -96,15 +96,6 @@ npx prisma migrate dev
 npx prisma migrate deploy
 ```
 
-**Schema Change Workflow:**
-
-1. Update `prisma/schema.prisma`
-2. Run `npx prisma db push`
-3. Update seeders if schema changes affect seeding
-4. Run seeders to maintain updated data
-5. Test changes thoroughly
-6. Commit to git
-
 **CRITICAL: Database Regeneration After Seeder Changes**
 
 - ⚠️ **EVERY seeder update requires database regeneration** during development

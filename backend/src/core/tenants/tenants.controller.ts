@@ -143,4 +143,15 @@ export class TenantsController {
       body.emailNotificationsEnabled,
     );
   }
+
+  @Put('current/settings')
+  @RequiredRoles(Role.OWNER)
+  async updateTenantSettings(
+    @GetUser() user: any,
+    @Body() body: {
+      welcomeEmailEnabled?: boolean;
+    },
+  ) {
+    return this.tenantsService.updateTenantSettings(user, body);
+  }
 }

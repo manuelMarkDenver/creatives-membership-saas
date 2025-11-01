@@ -1105,4 +1105,57 @@ export class TenantsService {
       );
     }
   }
+
+  /**
+   * Update tenant settings (OWNER access)
+   */
+  async updateTenantSettings(
+    user: any,
+    updates: {
+      welcomeEmailEnabled?: boolean;
+    },
+  ) {
+    try {
+      if (!user?.tenantId) {
+        throw new BadRequestException('User tenant context not found');
+      }
+
+      const updatedTenant = await this.prisma.tenant.update({
+        where: { id: user.tenantId },
+        data: {
+          ...updates,
+          updatedAt: new Date(),
+        },
+        select: {
+          id: true,
+          name: true,
+          adminEmailRecipients: true,
+          emailNotificationsEnabled: true,
+          welcomeEmailEnabled: true,
+          adminAlertEmailEnabled: true,
+        },
+      });
+
+      this.logger.log(
+        `Updated tenant settings for tenant: ${updatedTenant.name} (${updatedTenant.id})`,
+      );
+
+      return updatedTenant;
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to update tenant settings: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to update tenant settings. Please try again.',
+      );
+    }
+  }
 }
