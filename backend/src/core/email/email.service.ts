@@ -347,17 +347,29 @@ export class EmailService {
           name: true,
           adminEmailRecipients: true,
           emailNotificationsEnabled: true,
-          tenantNotificationEmailEnabled: true
+          tenantNotificationEmailEnabled: true,
+          users: {
+            where: { role: 'OWNER' },
+            select: { email: true },
+            take: 1
+          }
         },
       });
 
-      if (!tenant?.adminEmailRecipients?.length) {
-        this.logger.warn(`No admin email recipients configured for tenant ${tenantId}`);
+      // Use adminEmailRecipients if configured, otherwise fallback to owner's email
+      let adminRecipients = tenant?.adminEmailRecipients;
+      if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
+        adminRecipients = [tenant.users[0].email];
+        this.logger.log(`Using owner email as fallback for admin notifications: ${tenant.users[0].email}`);
+      }
+
+      if (!adminRecipients?.length) {
+        this.logger.warn(`No admin email recipients configured and no owner found for tenant ${tenantId}`);
         return;
       }
 
       // Check if email notifications are enabled globally and tenant notifications specifically
-      if (!tenant.emailNotificationsEnabled || !tenant.tenantNotificationEmailEnabled) {
+      if (!tenant!.emailNotificationsEnabled || !tenant!.tenantNotificationEmailEnabled) {
         this.logger.log(`Tenant notifications disabled for ${tenantId}, skipping renewal email`);
         return;
       }
@@ -369,7 +381,7 @@ export class EmailService {
       if (memberTemplate) {
         const memberVariables = {
           memberName,
-          tenantName: tenant.name,
+          tenantName: tenant!.name,
           memberEmail,
           membershipPlan,
           startDate,
@@ -391,13 +403,13 @@ export class EmailService {
       }
 
       // Send email to tenant admins
-      if (tenant.adminEmailRecipients?.length) {
+      if (adminRecipients?.length) {
         const adminTemplate = await this.getEmailTemplate('membership_renewal', tenantId);
 
         if (adminTemplate) {
           const adminVariables = {
             memberName,
-            tenantName: tenant.name,
+            tenantName: tenant!.name,
             memberEmail,
             membershipPlan,
             startDate,
@@ -413,12 +425,12 @@ export class EmailService {
           const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
           const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
 
-          for (const adminEmail of tenant.adminEmailRecipients) {
+      for (const adminEmail of adminRecipients) {
             const adminRecipient = this.getRecipient(adminEmail);
             await this.sendEmail(adminRecipient, adminProcessedSubject, adminHtmlContent, adminTextContent, fromEmail, fromName, 'membership_renewal', tenantId, adminTemplate.id);
           }
 
-          this.logger.log(`✅ Renewal admin emails sent for tenant: ${tenant.name}`);
+          this.logger.log(`✅ Renewal admin emails sent for tenant: ${tenant!.name}`);
         }
       }
 
@@ -446,16 +458,28 @@ export class EmailService {
           emailNotificationsEnabled: true,
           tenantNotificationEmailEnabled: true,
           adminEmailRecipients: true,
+          users: {
+            where: { role: 'OWNER' },
+            select: { email: true },
+            take: 1
+          }
         },
       });
 
-      if (!tenant?.adminEmailRecipients?.length) {
-        this.logger.warn(`No admin email recipients configured for tenant ${tenantId}`);
+      // Use adminEmailRecipients if configured, otherwise fallback to owner's email
+      let adminRecipients = tenant?.adminEmailRecipients;
+      if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
+        adminRecipients = [tenant.users[0].email];
+        this.logger.log(`Using owner email as fallback for admin notifications: ${tenant.users[0].email}`);
+      }
+
+      if (!adminRecipients?.length) {
+        this.logger.warn(`No admin email recipients configured and no owner found for tenant ${tenantId}`);
         return;
       }
 
       // Check if email notifications are enabled globally and tenant notifications specifically
-      if (!tenant.emailNotificationsEnabled || !tenant.tenantNotificationEmailEnabled) {
+      if (!tenant!.emailNotificationsEnabled || !tenant!.tenantNotificationEmailEnabled) {
         this.logger.log(`Tenant notifications disabled for ${tenantId}, skipping new member alert`);
         return;
       }
@@ -482,7 +506,7 @@ export class EmailService {
       const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
       const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
 
-      for (const adminEmail of tenant.adminEmailRecipients) {
+      for (const adminEmail of adminRecipients!) {
         const recipient = this.getRecipient(adminEmail);
         await this.sendEmail(recipient, processedSubject, htmlContent, textContent, fromEmail, fromName, 'tenant_notification', tenantId, template.id);
       }
@@ -531,7 +555,7 @@ export class EmailService {
       const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
       const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
 
-      for (const adminEmail of tenant.adminEmailRecipients) {
+      for (const adminEmail of tenant!.adminEmailRecipients!) {
         const recipient = this.getRecipient(adminEmail);
         await this.sendEmail(recipient, template.subject, htmlContent, textContent, fromEmail, fromName, 'admin_alert', tenantId, template.id);
       }
@@ -679,8 +703,15 @@ export class EmailService {
         return;
       }
 
-      if (!tenant?.adminEmailRecipients?.length) {
-        this.logger.warn(`No admin email recipients configured for tenant ${tenantId}`);
+      // Use adminEmailRecipients if configured, otherwise fallback to owner's email
+      let adminRecipients = tenant?.adminEmailRecipients;
+      if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
+        adminRecipients = [tenant.users[0].email];
+        this.logger.log(`Using owner email as fallback for tenant notifications: ${tenant.users[0].email}`);
+      }
+
+      if (!adminRecipients?.length) {
+        this.logger.warn(`No admin email recipients configured and no owner found for tenant ${tenantId}`);
         return;
       }
 
@@ -691,7 +722,7 @@ export class EmailService {
       }
 
       const variables = {
-        tenantName: tenant.name,
+        tenantName: tenant!.name,
         memberName,
         memberEmail,
         membershipPlan: membershipPlanName || 'Basic Membership',
@@ -707,7 +738,7 @@ export class EmailService {
       const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
       const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
 
-      for (const adminEmail of tenant.adminEmailRecipients) {
+      for (const adminEmail of adminRecipients!) {
         const recipient = this.getRecipient(adminEmail);
         await this.sendEmail(recipient, processedSubject, htmlContent, textContent, fromEmail, fromName, 'tenant_notification', tenantId, template.id);
       }

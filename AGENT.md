@@ -516,6 +516,35 @@ adminEmailRecipients: [data.ownerEmail.trim().toLowerCase()], // Default to owne
 
 **✅ VERIFIED**: Test tenant creation confirms adminEmailRecipients is now properly set to include the owner's email.
 
+#### ✅ **FIXED: Admin Email Recipients Fallback for Existing Tenants - COMPLETED**
+
+**Issue**: Existing tenants with null or empty `adminEmailRecipients` arrays were not receiving email notifications for new member signups and other tenant events.
+
+**Root Cause**: Email service methods checked `if (!tenant?.adminEmailRecipients?.length)` and skipped sending emails if no recipients were configured, even when the tenant owner should receive notifications.
+
+**Solution**: Modified email service methods to automatically fallback to the tenant owner's email when `adminEmailRecipients` is null or empty:
+
+- `sendMembershipRenewalEmail` - For member renewal notifications to tenant admins
+- `sendNewMemberAlert` - For new member signup notifications to tenant admins  
+- `sendTenantNotification` - For tenant signup notifications
+
+**Implementation**: Added fallback logic in each method:
+```typescript
+// Use adminEmailRecipients if configured, otherwise fallback to owner's email
+let adminRecipients = tenant?.adminEmailRecipients;
+if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
+  adminRecipients = [tenant.users[0].email];
+  this.logger.log(`Using owner email as fallback for admin notifications: ${tenant.users[0].email}`);
+}
+```
+
+**Files Modified**:
+- `/backend/src/core/email/email.service.ts` - Updated tenant notification methods to use owner email fallback
+
+**Result**: Existing tenants with null/empty adminEmailRecipients now automatically receive notifications at their owner's email address, ensuring no tenant misses important notifications.
+
+**✅ VERIFIED**: Code compiles successfully and fallback logic is properly implemented.
+
 ## 🔧 **FIXED: Authentication System Cleanup**
 
 **Problem**: User was getting logged out when accessing `/tenant-settings` due to leftover Supabase authentication code.
