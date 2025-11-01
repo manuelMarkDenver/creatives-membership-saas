@@ -283,11 +283,22 @@ export class EmailService {
       // Get tenant info
       const tenant = await this.prisma.tenant.findUnique({
         where: { id: tenantId },
-        select: { name: true, adminEmailRecipients: true, tenantNotificationEmailEnabled: true },
+        select: {
+          name: true,
+          adminEmailRecipients: true,
+          emailNotificationsEnabled: true,
+          tenantNotificationEmailEnabled: true
+        },
       });
 
-      if (!tenant) {
-        this.logger.warn(`Tenant ${tenantId} not found for renewal email`);
+      if (!tenant?.adminEmailRecipients?.length) {
+        this.logger.warn(`No admin email recipients configured for tenant ${tenantId}`);
+        return;
+      }
+
+      // Check if email notifications are enabled globally and tenant notifications specifically
+      if (!tenant.emailNotificationsEnabled || !tenant.tenantNotificationEmailEnabled) {
+        this.logger.log(`Tenant notifications disabled for ${tenantId}, skipping new member alert`);
         return;
       }
 
@@ -399,6 +410,7 @@ export class EmailService {
         dashboardUrl: `${process.env.FRONTEND_URL}/members`,
       };
 
+      const processedSubject = this.processTemplate(template.subject, variables);
       const htmlContent = this.processTemplate(template.htmlContent, variables);
       const textContent = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
 
@@ -407,7 +419,7 @@ export class EmailService {
 
       for (const adminEmail of tenant.adminEmailRecipients) {
         const recipient = this.getRecipient(adminEmail);
-        await this.sendEmail(recipient, template.subject, htmlContent, textContent, fromEmail, fromName, 'tenant_notification', tenantId, template.id);
+        await this.sendEmail(recipient, processedSubject, htmlContent, textContent, fromEmail, fromName, 'tenant_notification', tenantId, template.id);
       }
 
       this.logger.log(`✅ New member alerts sent for tenant: ${tenantName}`);
