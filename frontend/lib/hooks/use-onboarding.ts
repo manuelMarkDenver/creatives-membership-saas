@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { onboardingApi, OnboardingStatus } from '@/lib/api/onboarding'
 import { branchesApi } from '@/lib/api/branches'
-import { createMembershipPlan } from '@/lib/api/membership-plans'
+import { createMembershipPlan, getActiveMembershipPlans } from '@/lib/api/membership-plans'
 import { membersApi } from '@/lib/api/gym-members'
 import { apiClient } from '@/lib/api/client'
 
@@ -201,9 +201,25 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
       email: string
       phoneNumber?: string
       gender?: string
+      membershipPlanId?: string
     }) => {
-      // Add the member
-      await membersApi.createGymMember(data)
+      // Auto-assign the first available membership plan if any exist
+      let memberData = { ...data }
+      try {
+        const plansResponse = await getActiveMembershipPlans()
+        if (plansResponse.success && plansResponse.data && plansResponse.data.length > 0) {
+          // Auto-assign the first active plan
+          const firstPlan = plansResponse.data[0]
+          memberData.membershipPlanId = firstPlan.id
+          console.log(`Auto-assigning membership plan "${firstPlan.name}" to new member`)
+        }
+      } catch (error) {
+        console.warn('Failed to fetch membership plans for auto-assignment:', error)
+        // Continue without plan assignment if fetching fails
+      }
+
+      // Add the member (with or without auto-assigned plan)
+      await membersApi.createGymMember(memberData)
 
       // Close member modal and complete onboarding
       setShowMemberModal(false)
