@@ -217,6 +217,16 @@ export function useAssignMembershipPlan() {
       queryClient.invalidateQueries({
         queryKey: ['gym-subscriptions', 'stats']
       })
+
+      // Invalidate analytics data for dashboard auto-update
+      queryClient.invalidateQueries({
+        queryKey: ['analytics']
+      })
+
+      // Invalidate branch data (used for member/revenue calculations on dashboard)
+      queryClient.invalidateQueries({
+        queryKey: ['branches']
+      })
     },
     onError: (error: any, { memberId }) => {
       // Handle error with toast

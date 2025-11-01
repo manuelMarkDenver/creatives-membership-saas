@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenants, useSystemStats } from '@/lib/hooks/use-tenants'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
@@ -303,32 +303,45 @@ function OwnerDashboard() {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [selectedBranch, setSelectedBranch] = useState<string>('all')
   const [selectedPeriod, setSelectedPeriod] = useState<'this_week' | 'this_month' | 'this_year'>('this_month')
-  
+
   const { data: profile } = useProfile()
-  const { data: branchesData, isLoading: branchesLoading } = useBranchesByTenant(
+  const { data: branchesData, isLoading: branchesLoading, refetch: refetchBranches } = useBranchesByTenant(
     profile?.tenantId || ''
   )
   const branches = branchesData || []
-  
-  const { data: revenueMetrics, isLoading: revenueLoading } = useRevenueMetrics({
+
+  const { data: revenueMetrics, isLoading: revenueLoading, refetch: refetchRevenue } = useRevenueMetrics({
     branchId: selectedBranch === 'all' ? undefined : selectedBranch,
     period: selectedPeriod,
   })
-  
-  const { data: ownerInsights, isLoading: insightsLoading } = useOwnerInsights({
+
+  const { data: ownerInsights, isLoading: insightsLoading, refetch: refetchInsights } = useOwnerInsights({
     branchId: selectedBranch === 'all' ? undefined : selectedBranch,
     period: selectedPeriod,
   })
-  
-  const { data: branchPerformance } = useBranchPerformance({
+
+  const { data: branchPerformance, refetch: refetchPerformance } = useBranchPerformance({
     period: selectedPeriod,
   })
-  
-  const { data: memberGrowth, isLoading: memberGrowthLoading } = useMemberGrowthStats({
+
+  const { data: memberGrowth, isLoading: memberGrowthLoading, refetch: refetchGrowth } = useMemberGrowthStats({
     branchId: selectedBranch === 'all' ? undefined : selectedBranch,
     period: selectedPeriod,
   })
-  
+
+  // Force refetch dashboard data when component mounts
+  useEffect(() => {
+    // Small delay to ensure navigation is complete
+    const timer = setTimeout(() => {
+      refetchBranches()
+      refetchRevenue()
+      refetchInsights()
+      refetchPerformance()
+      refetchGrowth()
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [refetchBranches, refetchRevenue, refetchInsights, refetchPerformance, refetchGrowth])
+
   // Feature flag for advanced analytics
   const showAdvancedAnalytics = process.env.NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS === 'true'
 

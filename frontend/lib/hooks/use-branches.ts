@@ -26,13 +26,15 @@ export function useBranches(params?: BranchQueryParams) {
 
 // Get branches by tenant
 export function useBranchesByTenant(
-  tenantId: string, 
+  tenantId: string,
   params?: Omit<BranchQueryParams, 'tenantId'>
 ) {
   return useQuery({
     queryKey: branchKeys.byTenant(tenantId, params),
     queryFn: () => branchesApi.getByTenant(tenantId, params),
     enabled: !!tenantId,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   })
 }
 

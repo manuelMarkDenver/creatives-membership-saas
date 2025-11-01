@@ -127,6 +127,8 @@ export function useRevenueMetrics(params: AnalyticsQueryParams = {}) {
       );
       return response.data;
     },
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -144,6 +146,8 @@ export function useBranchPerformance(params: AnalyticsQueryParams = {}) {
       );
       return response.data;
     },
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -162,6 +166,8 @@ export function useMemberGrowthStats(params: AnalyticsQueryParams = {}) {
       );
       return response.data;
     },
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -180,5 +186,7 @@ export function useOwnerInsights(params: AnalyticsQueryParams = {}) {
       );
       return response.data;
     },
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 }
