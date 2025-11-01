@@ -168,6 +168,14 @@ npm run start:dev
 ./backend/test-email-curl.sh
 ```
 
+### **Future Enhancement: Named Email Configurations**
+- **Planned**: Multiple named email configurations (e.g., "Development - Mailpit", "Production - Brevo", "Staging - Custom SMTP")
+- **Database Schema**: Add `name`, `environment`, `isActive` fields to EmailSettings model
+- **UI Enhancement**: Configuration picker with save/load named presets
+- **Provider Flexibility**: Support for multiple email providers beyond Brevo
+- **Environment Management**: Separate configurations per environment (dev/staging/prod)
+- **Status**: 📋 **PLANNED** - Documented in `/conversations/EMAIL-CONFIGURATION-ENHANCEMENT.md`
+
 ### **Production Deployment**
 - Environment variables configured for Brevo integration
 - Domain authentication setup guide provided

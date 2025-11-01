@@ -32,7 +32,6 @@ export default function SystemSettingsPage() {
     smtpPassword: '',
     fromEmail: '',
     fromName: '',
-    brevoApiKey: '',
     mailpitEnabled: true,
   })
 
@@ -45,7 +44,6 @@ export default function SystemSettingsPage() {
       smtpPassword: '',
       fromEmail: 'noreply@gymbosslab.com',
       fromName: 'GymBossLab',
-      brevoApiKey: '',
       mailpitEnabled: true,
     },
     production: {
@@ -55,7 +53,6 @@ export default function SystemSettingsPage() {
       smtpPassword: '',
       fromEmail: 'noreply@gymbosslab.com',
       fromName: 'GymBossLab',
-      brevoApiKey: '',
       mailpitEnabled: false,
     },
   }
@@ -77,7 +74,6 @@ export default function SystemSettingsPage() {
         smtpPassword: emailSettings.smtpPassword || '',
         fromEmail: emailSettings.fromEmail || '',
         fromName: emailSettings.fromName || '',
-        brevoApiKey: emailSettings.brevoApiKey || '',
         mailpitEnabled: emailSettings.mailpitEnabled ?? true,
       }
 
@@ -142,7 +138,6 @@ export default function SystemSettingsPage() {
     emailForm.smtpPassword !== (emailSettings.smtpPassword || '') ||
     emailForm.fromEmail !== (emailSettings.fromEmail || '') ||
     emailForm.fromName !== (emailSettings.fromName || '') ||
-    emailForm.brevoApiKey !== (emailSettings.brevoApiKey || '') ||
     emailForm.mailpitEnabled !== (emailSettings.mailpitEnabled ?? true)
   )
 
@@ -447,20 +442,7 @@ export default function SystemSettingsPage() {
             </div>
           </div>
 
-          {/* Brevo API Key */}
-          <div className="space-y-2">
-            <Label htmlFor="brevoApiKey">Brevo API Key</Label>
-            <Input
-              id="brevoApiKey"
-              value={emailForm.brevoApiKey}
-              onChange={(e) => setEmailForm(prev => ({ ...prev, brevoApiKey: e.target.value }))}
-              disabled={!editMode}
-              placeholder="xkeysib-... (leave empty for SMTP)"
-            />
-            <p className="text-xs text-muted-foreground">
-              Required for production email delivery. Get your API key from Brevo dashboard.
-            </p>
-          </div>
+
 
           {/* Status Indicator */}
           <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
@@ -472,7 +454,7 @@ export default function SystemSettingsPage() {
                   <li><strong>Provider:</strong> {emailConfig === 'development' ? 'Mailpit (Development)' : emailConfig === 'production' ? 'Brevo (Production)' : 'Custom SMTP'}</li>
                   <li><strong>Host:</strong> {emailForm.smtpHost}:{emailForm.smtpPort}</li>
                   <li><strong>From:</strong> {emailForm.fromName} &lt;{emailForm.fromEmail}&gt;</li>
-                  {emailForm.brevoApiKey && <li><strong>API Key:</strong> Configured ✓</li>}
+                  <li><strong>Environment:</strong> API keys configured via environment variables</li>
                 </ul>
               </div>
             </div>

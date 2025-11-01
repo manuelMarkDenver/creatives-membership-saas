@@ -59,16 +59,23 @@ export class EmailService {
   }
 
   private configureProviderFromSettings(settings: any) {
-    // Priority: Brevo > SendGrid > Mailgun > Resend > SMTP
-    if (settings.brevoApiKey) {
+    // Priority: Environment variables first, then database settings
+    // API keys should be in environment variables for security
+    if (process.env.BREVO_API_KEY) {
       this.provider = 'brevo';
-      this.logger.log('✅ Email service using Brevo (from database)');
+      this.logger.log('✅ Email service using Brevo (from environment)');
     } else if (process.env.SENDGRID_API_KEY) {
       sgMail.setApiKey(process.env.SENDGRID_API_KEY);
       this.provider = 'sendgrid';
-      this.logger.log('✅ Email service using SendGrid');
+      this.logger.log('✅ Email service using SendGrid (from environment)');
+    } else if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
+      this.provider = 'mailgun';
+      this.logger.log('✅ Email service using Mailgun (from environment)');
+    } else if (process.env.RESEND_API_KEY) {
+      this.provider = 'resend';
+      this.logger.log('✅ Email service using Resend (from environment)');
     } else {
-      // Fallback to SMTP
+      // Fallback to SMTP from database settings
       this.provider = 'smtp';
       this.transporter = nodemailer.createTransport({
         host: settings.smtpHost,
