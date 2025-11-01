@@ -135,9 +135,7 @@ export class AuthService {
 
        // Send global admin notification for new tenant registration
        try {
-         const { EmailService } = await import('../email/email.service');
-         const emailService = new EmailService(this.prisma);
-         await emailService.sendGlobalAdminAlert(
+         await this.emailService.sendGlobalAdminAlert(
            'New Tenant Registration',
            `A new tenant "${result.tenant.name}" has registered. Owner: ${data.ownerEmail}`,
            'new_tenant'

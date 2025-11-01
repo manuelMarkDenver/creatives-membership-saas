@@ -17,6 +17,23 @@
 - **Theme**: Pink→Purple→Orange gradient theme
 - **Localization**: Philippine Peso (₱) currency formatting
 
+### **White-Labeling Architecture Decision**
+
+**Current Implementation**: Separate Deployments per Customer
+- ✅ **Full Isolation**: Each white-label customer gets their own complete stack (database, server, domain)
+- ✅ **Independent Scaling**: Each customer scales separately
+- ✅ **Custom Branding**: Each can have their own domain, colors, features
+- ✅ **Code Ready**: Current architecture supports this perfectly (isolated SystemSettings per deployment)
+- ❌ **High Cost**: Requires separate infrastructure per customer (~$5-20/month each on Railway + Vercel)
+
+**Alternative Considered**: Multi-Tenant Single Deployment
+- ✅ **Cost Effective**: Single infrastructure serves all customers
+- ✅ **Easier Management**: One codebase, one database to maintain
+- ❌ **Schema Changes Required**: Need PlatformOwner model, scoped SystemSettings, tenant isolation
+- ❌ **Less Isolation**: Shared resources, harder customization
+
+**Decision**: Stick with separate deployments for true white-labeling. The current codebase already supports this architecture perfectly. Cost concern noted - may need to evaluate multi-tenant approach if customer acquisition requires it.
+
 ---
 
 ## ⚠️ Important Agent Rules & Development Guidelines

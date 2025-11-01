@@ -309,11 +309,18 @@ export class EmailService {
     eventType: 'new_tenant' | 'system_alert' | 'security_event' = 'system_alert',
   ) {
     try {
-      // Import SystemSettingsService to get global admin emails
-      const { SystemSettingsService } = await import('../system-settings/system-settings.service');
-      const systemSettingsService = new SystemSettingsService(this.prisma);
+      // Get system settings directly to avoid circular dependency
+      const systemSettings = await this.prisma.systemSettings.findUnique({
+        where: { id: 'system' },
+        select: {
+          globalAdminEmails: true,
+          newTenantAlertsEnabled: true,
+          systemAlertsEnabled: true,
+          securityAlertsEnabled: true,
+        },
+      });
 
-      const globalAdminEmails = await systemSettingsService.getGlobalAdminEmails();
+      const globalAdminEmails = systemSettings?.globalAdminEmails || [];
 
       if (!globalAdminEmails.length) {
         this.logger.warn('⚠️ No global admin emails configured for notifications');
@@ -322,7 +329,7 @@ export class EmailService {
 
       // Check if alerts are enabled for this event type
       if (eventType === 'new_tenant') {
-        const enabled = await systemSettingsService.areNewTenantAlertsEnabled();
+        const enabled = systemSettings?.newTenantAlertsEnabled ?? true;
         if (!enabled) {
           this.logger.log('ℹ️ New tenant alerts disabled, skipping notification');
           return;
@@ -346,7 +353,7 @@ export class EmailService {
 
       for (const adminEmail of globalAdminEmails) {
         const recipient = this.getRecipient(adminEmail);
-        await this.sendEmail(recipient, subject, htmlContent, textContent, fromEmail, fromName, 'system_alert', null, null);
+        await this.sendEmail(recipient, subject, htmlContent, textContent, fromEmail, fromName, 'system_alert', undefined, undefined);
       }
 
       this.logger.log(`✅ Global admin alerts sent to ${globalAdminEmails.length} recipients for: ${subject}`);
