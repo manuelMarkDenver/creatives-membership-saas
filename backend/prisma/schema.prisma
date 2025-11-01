@@ -34,7 +34,7 @@ model Tenant {
    emailNotificationsEnabled    Boolean                 @default(true)
    welcomeEmailEnabled          Boolean                 @default(true)
    adminAlertEmailEnabled       Boolean                 @default(true)
-   tenantNotificationEmailEnabled Boolean               @default(true)
+    tenantNotificationEmailEnabled Boolean               @default(false)
    digestFrequency              String?                 // "daily", "weekly", "monthly"
    adminEmailRecipients         String[]                // Array of admin email addresses
 

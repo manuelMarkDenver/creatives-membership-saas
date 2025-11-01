@@ -86,7 +86,7 @@ export default function TenantsPage() {
     emailNotificationsEnabled: true,
     welcomeEmailEnabled: true,
     adminAlertEmailEnabled: true,
-    tenantNotificationEmailEnabled: true,
+    tenantNotificationEmailEnabled: false,
     digestFrequency: '',
     adminEmailRecipients: [] as string[]
   })
@@ -222,7 +222,7 @@ export default function TenantsPage() {
       emailNotificationsEnabled: tenant.emailNotificationsEnabled ?? true,
       welcomeEmailEnabled: tenant.welcomeEmailEnabled ?? true,
       adminAlertEmailEnabled: tenant.adminAlertEmailEnabled ?? true,
-      tenantNotificationEmailEnabled: tenant.tenantNotificationEmailEnabled ?? true,
+      tenantNotificationEmailEnabled: tenant.tenantNotificationEmailEnabled ?? false,
       digestFrequency: tenant.digestFrequency || '',
       adminEmailRecipients: tenant.adminEmailRecipients || []
     })

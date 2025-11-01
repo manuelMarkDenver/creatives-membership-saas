@@ -211,8 +211,8 @@ export class EmailService {
   }
 
   /**
-   * Send welcome email to new member
-   */
+    * Send welcome email to new member
+    */
   async sendWelcomeEmail(
     email: string,
     name: string,
@@ -225,6 +225,22 @@ export class EmailService {
     await this.ensureSettingsLoaded();
 
     try {
+      // Check if email notifications are enabled globally and welcome emails specifically
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          name: true,
+          emailNotificationsEnabled: true,
+          welcomeEmailEnabled: true,
+          adminEmailRecipients: true,
+        },
+      });
+
+      if (!tenant?.emailNotificationsEnabled || !tenant?.welcomeEmailEnabled) {
+        this.logger.log(`Welcome email disabled for tenant ${tenantId}, skipping welcome email`);
+        return;
+      }
+
       const recipient = this.getRecipient(email);
       const template = await this.getEmailTemplate('welcome', tenantId);
 
@@ -232,12 +248,6 @@ export class EmailService {
         this.logger.warn(`No welcome email template found for tenant ${tenantId}`);
         return;
       }
-
-      // Get tenant name for template variables
-      const tenant = await this.prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: { name: true },
-      });
 
       const variables = {
         memberName: name,
@@ -298,12 +308,6 @@ export class EmailService {
 
       // Check if email notifications are enabled globally and tenant notifications specifically
       if (!tenant.emailNotificationsEnabled || !tenant.tenantNotificationEmailEnabled) {
-        this.logger.log(`Tenant notifications disabled for ${tenantId}, skipping new member alert`);
-        return;
-      }
-
-      // Check if tenant notifications are enabled
-      if (!tenant.tenantNotificationEmailEnabled) {
         this.logger.log(`Tenant notifications disabled for ${tenantId}, skipping renewal email`);
         return;
       }
@@ -375,8 +379,8 @@ export class EmailService {
   }
 
   /**
-   * Send admin alert for new member signup
-   */
+    * Send admin alert for new member signup
+    */
   async sendNewMemberAlert(
     tenantName: string,
     memberName: string,
@@ -387,11 +391,22 @@ export class EmailService {
     try {
       const tenant = await this.prisma.tenant.findUnique({
         where: { id: tenantId },
-        select: { adminEmailRecipients: true },
+        select: {
+          name: true,
+          emailNotificationsEnabled: true,
+          tenantNotificationEmailEnabled: true,
+          adminEmailRecipients: true,
+        },
       });
 
       if (!tenant?.adminEmailRecipients?.length) {
         this.logger.warn(`No admin email recipients configured for tenant ${tenantId}`);
+        return;
+      }
+
+      // Check if email notifications are enabled globally and tenant notifications specifically
+      if (!tenant.emailNotificationsEnabled || !tenant.tenantNotificationEmailEnabled) {
+        this.logger.log(`Tenant notifications disabled for ${tenantId}, skipping new member alert`);
         return;
       }
 
