@@ -184,5 +184,13 @@ export const membersApi = {
   async getActionReasons(): Promise<any> {
     const response = await apiClient.get('/gym/members/action-reasons')
     return response.data
+  },
+
+  // Assign membership plan to existing member
+  async assignMembershipPlan(memberId: string, membershipPlanId: string): Promise<MemberActionResponse> {
+    const response = await apiClient.post(`/gym/members/${memberId}/assign-plan`, {
+      membershipPlanId
+    })
+    return response.data
   }
 }

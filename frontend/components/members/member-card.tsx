@@ -141,7 +141,7 @@ export function MemberCard({
   // Helper function to determine the appropriate action based on member state
   const getAppropriateAction = (): MemberActionType => {
     const currentState = getMemberStatus()
-    
+
     switch (currentState) {
       case 'CANCELLED':
         return 'activate' // Cancelled members can be activated
@@ -154,9 +154,10 @@ export function MemberCard({
       case 'ACTIVE':
         return 'cancel' // Active members can be cancelled
       case 'NO_SUBSCRIPTION':
+        return 'assign_plan' // Members without subscription need plan assignment
       case 'SUSPENDED':
       default:
-        return 'activate' // Default to activate for members without subscription or suspended
+        return 'activate' // Default to activate for suspended members
     }
   }
   
@@ -359,10 +360,11 @@ export function MemberCard({
                 return `${baseClasses} bg-red-700 dark:bg-red-400 text-white dark:text-black border-red-700 dark:border-red-400 hover:bg-red-800 dark:hover:bg-red-500 hover:border-red-800 dark:hover:border-red-500 hover:shadow-md`
                case 'EXPIRING':
                  return `${baseClasses} bg-amber-700 dark:bg-amber-400 text-white dark:text-black border-amber-700 dark:border-amber-400 hover:bg-amber-800 dark:hover:bg-amber-500 hover:border-amber-800 dark:hover:border-500 hover:shadow-md`
-               case 'NO_SUBSCRIPTION':
-               case 'SUSPENDED':
-               default:
-                 return `${baseClasses} bg-slate-700 dark:bg-slate-400 text-white dark:text-black border-slate-700 dark:border-slate-400 hover:bg-slate-800 dark:hover:bg-slate-500 hover:border-slate-800 dark:hover:border-slate-500 hover:shadow-md`
+                case 'NO_SUBSCRIPTION':
+                  return `${baseClasses} bg-blue-700 dark:bg-blue-400 text-white dark:text-black border-blue-700 dark:border-blue-400 hover:bg-blue-800 dark:hover:bg-blue-500 hover:border-blue-800 dark:hover:border-blue-500 hover:shadow-md`
+                case 'SUSPENDED':
+                default:
+                  return `${baseClasses} bg-slate-700 dark:bg-slate-400 text-white dark:text-black border-slate-700 dark:border-slate-400 hover:bg-slate-800 dark:hover:bg-slate-500 hover:border-slate-800 dark:hover:border-slate-500 hover:shadow-md`
              }
            }
 
@@ -488,16 +490,25 @@ export function MemberCard({
                      </>
                    )
                 
-                case 'NO_SUBSCRIPTION':
-                case 'SUSPENDED':
-                default:
-                  return (
-                    <DropdownMenuItem 
-                      className="text-green-600"
-                      onClick={() => openMemberActionModal('activate')}
-                    >
-                      <UserCheck className="mr-2 h-4 w-4" />
-                      Activate Member
+                 case 'NO_SUBSCRIPTION':
+                   return (
+                     <DropdownMenuItem
+                       className="text-blue-600"
+                       onClick={() => openMemberActionModal('assign_plan')}
+                     >
+                       <UserPlus className="mr-2 h-4 w-4" />
+                       Assign Membership Plan
+                     </DropdownMenuItem>
+                   )
+                 case 'SUSPENDED':
+                 default:
+                   return (
+                     <DropdownMenuItem
+                       className="text-green-600"
+                       onClick={() => openMemberActionModal('activate')}
+                     >
+                       <UserCheck className="mr-2 h-4 w-4" />
+                       Activate Member
                     </DropdownMenuItem>
                   )
               }

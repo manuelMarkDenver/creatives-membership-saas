@@ -33,11 +33,11 @@ import {
   Calendar
 } from 'lucide-react'
 import { toast } from 'react-toastify'
-import { useMemberStatus, useActionReasons, useActivateMember, useCancelMember, useRestoreMember, useRenewMemberSubscription } from '@/lib/hooks/use-gym-member-actions'
+import { useMemberStatus, useActionReasons, useActivateMember, useCancelMember, useRestoreMember, useRenewMemberSubscription, useAssignMembershipPlan } from '@/lib/hooks/use-gym-member-actions'
 import type { MemberActionRequest } from '@/lib/api/gym-members'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
 
-export type MemberActionType = 'activate' | 'cancel' | 'restore' | 'renew'
+export type MemberActionType = 'activate' | 'cancel' | 'restore' | 'renew' | 'assign_plan'
 
 interface MemberActionsModalProps {
   isOpen: boolean
@@ -78,6 +78,14 @@ const actionConfig = {
     icon: RefreshCw,
     color: 'text-purple-500',
     buttonText: 'Renew Membership',
+    buttonVariant: 'default' as const,
+  },
+  assign_plan: {
+    title: 'Assign Membership Plan',
+    description: 'Assign a membership plan to this member',
+    icon: UserPlus,
+    color: 'text-blue-500',
+    buttonText: 'Assign Plan',
     buttonVariant: 'default' as const,
   },
 }
@@ -125,6 +133,7 @@ export function MemberActionsModal({
   const cancelMutation = useCancelMember()
   const restoreMutation = useRestoreMember()
   const renewMutation = useRenewMemberSubscription()
+  const assignPlanMutation = useAssignMembershipPlan()
 
   // Get relevant reasons for the current action
   const relevantReasons = Array.from(new Set(
@@ -133,11 +142,13 @@ export function MemberActionsModal({
         case 'activate':
           return category.category === 'ACCOUNT'
         case 'cancel':
-          return category.category === 'SUBSCRIPTION' 
+          return category.category === 'SUBSCRIPTION'
         case 'restore':
           return category.category === 'ACCOUNT'
         case 'renew':
           return category.category === 'SUBSCRIPTION'
+        case 'assign_plan':
+          return false // No reasons needed for assign_plan
         default:
           return false
       }
@@ -154,12 +165,13 @@ export function MemberActionsModal({
   }, [isOpen])
 
   const handleSubmit = async () => {
-    if (!reason) {
+    // For assign_plan, we don't need reason, just plan selection
+    if (actionType !== 'assign_plan' && !reason) {
       toast.error('Please select a reason')
       return
     }
 
-    if (actionType === 'renew' && !selectedPlanId) {
+    if ((actionType === 'renew' || actionType === 'assign_plan') && !selectedPlanId) {
       toast.error('Please select a membership plan')
       return
     }
@@ -198,6 +210,14 @@ export function MemberActionsModal({
             data: { gymMembershipPlanId: selectedPlanId }
           })
           toast.success(`Successfully renewed ${memberName}'s membership`)
+          break
+
+        case 'assign_plan':
+          await assignPlanMutation.mutateAsync({
+            memberId,
+            membershipPlanId: selectedPlanId
+          })
+          toast.success(`Successfully assigned membership plan to ${memberName}`)
           break
       }
 
@@ -306,10 +326,10 @@ export function MemberActionsModal({
             </div>
           )}
 
-          {/* Membership Plan Selection (for renewal) */}
-          {actionType === 'renew' && (
+          {/* Membership Plan Selection (for renewal and assign_plan) */}
+          {(actionType === 'renew' || actionType === 'assign_plan') && (
             <div className="space-y-2">
-              <Label>Select New Membership Plan</Label>
+              <Label>{actionType === 'assign_plan' ? 'Select Membership Plan to Assign' : 'Select New Membership Plan'}</Label>
               <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a membership plan" />
@@ -356,9 +376,10 @@ export function MemberActionsModal({
             </div>
           )}
 
-          {/* Reason Selection */}
-          <div className="space-y-2">
-            <Label>Reason *</Label>
+          {/* Reason Selection (not needed for assign_plan) */}
+          {actionType !== 'assign_plan' && (
+            <div className="space-y-2">
+              <Label>Reason *</Label>
             <Select value={reason} onValueChange={setReason}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a reason" />
@@ -375,20 +396,23 @@ export function MemberActionsModal({
                     </SelectItem>
                   ))
                 )}
-              </SelectContent>
-            </Select>
-          </div>
+               </SelectContent>
+             </Select>
+            </div>
+          )}
 
-          {/* Additional Notes */}
-          <div className="space-y-2">
-            <Label>Additional Notes (Optional)</Label>
-            <Textarea
-              placeholder="Add any additional notes or context..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-            />
-          </div>
+          {/* Additional Notes (not needed for assign_plan) */}
+          {actionType !== 'assign_plan' && (
+            <div className="space-y-2">
+              <Label>Additional Notes (Optional)</Label>
+              <Textarea
+                placeholder="Add any additional notes or context..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          )}
 
           {/* Action Warning/Info */}
           {actionType === 'cancel' && (

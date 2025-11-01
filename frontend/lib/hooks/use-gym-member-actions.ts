@@ -185,3 +185,61 @@ export function useRenewMemberSubscription() {
     },
   })
 }
+
+// Assign membership plan mutation
+export function useAssignMembershipPlan() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ memberId, membershipPlanId }: { memberId: string; membershipPlanId: string }) =>
+      membersApi.assignMembershipPlan(memberId, membershipPlanId),
+    onSuccess: (_, { memberId }) => {
+      // Invalidate member status and history
+      queryClient.invalidateQueries({ queryKey: memberKeys.status(memberId) })
+      queryClient.invalidateQueries({
+        queryKey: [...memberKeys.all, 'history', memberId]
+      })
+
+      // Invalidate user data to refresh member list
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'tenant'] })
+
+      // Invalidate gym subscription data
+      queryClient.invalidateQueries({
+        queryKey: ['gym-subscriptions', 'subscription', memberId]
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['gym-subscriptions', 'history', memberId]
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['gym-subscriptions', 'transactions', memberId]
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['gym-subscriptions', 'stats']
+      })
+    },
+    onError: (error: any, { memberId }) => {
+      // Handle error with toast
+      import('react-toastify').then(({ toast }) => {
+        let errorMessage = 'Failed to assign membership plan'
+
+        if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message
+        } else if (error?.data?.message) {
+          errorMessage = error.data.message
+        } else if (error?.message) {
+          errorMessage = error.message
+        }
+
+        toast.error(errorMessage, {
+          position: 'top-center',
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        })
+      })
+    },
+  })
+}

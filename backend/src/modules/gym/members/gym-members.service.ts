@@ -401,6 +401,109 @@ export class GymMembersService {
     };
   }
 
+  async assignMembershipPlan(
+    memberId: string,
+    planId: string,
+    performedBy: string,
+  ) {
+    const member = await this.getMemberById(memberId);
+    const currentState = await this.getMemberState(member);
+
+    // Only allow assignment if member has no subscription
+    if (currentState !== 'NO_SUBSCRIPTION') {
+      throw new BadRequestException(
+        `Cannot assign plan to member in ${currentState} state. Member must have no active subscription.`,
+      );
+    }
+
+    // Get the membership plan
+    const membershipPlan = await this.prisma.gymMembershipPlan.findUnique({
+      where: { id: planId },
+    });
+
+    if (!membershipPlan) {
+      throw new BadRequestException(`Membership plan with ID ${planId} not found`);
+    }
+
+    // Verify the plan belongs to the same tenant
+    if (membershipPlan.tenantId !== member.tenantId) {
+      throw new BadRequestException('Membership plan does not belong to this tenant');
+    }
+
+    // Get the member's primary branch
+    const primaryBranchId = member.gymMemberProfile?.primaryBranchId;
+    if (!primaryBranchId) {
+      throw new BadRequestException('Member does not have a primary branch assigned');
+    }
+
+    // Create subscription in a transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Use provided start date or default to current date
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + membershipPlan.duration);
+
+      // Create the subscription
+      const subscription = await tx.gymMemberSubscription.create({
+        data: {
+          tenantId: member.tenantId!,
+          memberId: memberId,
+          gymMembershipPlanId: planId,
+          branchId: primaryBranchId,
+          status: 'ACTIVE',
+          startDate: startDate,
+          endDate: endDate,
+          price: membershipPlan.price,
+          currency: 'PHP',
+          autoRenew: false,
+        },
+      });
+
+      // Create payment transaction
+      await tx.customerTransaction.create({
+        data: {
+          tenantId: member.tenantId!,
+          customerId: memberId,
+          gymMemberSubscriptionId: subscription.id,
+          businessType: 'gym',
+          transactionCategory: 'membership',
+          amount: membershipPlan.price,
+          currency: 'PHP',
+          netAmount: membershipPlan.price,
+          paymentMethod: 'cash', // Default for manual assignment
+          transactionType: 'PAYMENT',
+          status: 'COMPLETED',
+          description: `Plan assignment: ${membershipPlan.name}`,
+          processedBy: performedBy,
+          createdAt: new Date(),
+        },
+      });
+
+      // Create audit log
+      await this.createAuditLog({
+        memberId,
+        action: 'PLAN_ASSIGNED',
+        reason: 'Manual plan assignment',
+        notes: `Assigned ${membershipPlan.name} plan`,
+        previousState: 'NO_SUBSCRIPTION',
+        newState: 'ACTIVE',
+        performedBy,
+      });
+
+      return subscription;
+    });
+
+    this.logger.log(
+      `Assigned membership plan "${membershipPlan.name}" to member: ${member.firstName} ${member.lastName} (${memberId})`,
+    );
+
+    return {
+      success: true,
+      message: `Successfully assigned ${membershipPlan.name} plan to member`,
+      subscription: result,
+    };
+  }
+
   async renewMemberSubscription(
     memberId: string,
     planId: string,

@@ -199,6 +199,31 @@ export class GymMembersController {
     );
   }
 
+  @Post(':id/assign-plan')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  async assignMembershipPlan(
+    @Param('id') id: string,
+    @Body() body: { membershipPlanId: string },
+    @Req() req: RequestWithUser,
+  ) {
+    const { membershipPlanId } = body;
+    const performedBy = req.user?.id;
+
+    if (!performedBy) {
+      throw new Error('User not authenticated');
+    }
+
+    if (!membershipPlanId) {
+      throw new Error('Membership plan ID is required');
+    }
+
+    return this.gymMembersService.assignMembershipPlan(
+      id,
+      membershipPlanId,
+      performedBy,
+    );
+  }
+
   @Post(':id/soft-delete')
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   async softDeleteMember(
