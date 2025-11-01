@@ -434,6 +434,24 @@ Authentication system now works reliably with proper user context, tenant settin
 
 **Result**: Complete renewal notification system that keeps both members and gym owners informed of membership renewals.
 
+#### ✅ **FIXED: Tenant Creation Admin Email Recipients - COMPLETED**
+
+**Issue**: New tenants created through the `register-tenant` endpoint were not getting their `adminEmailRecipients` field populated with the owner's email, preventing tenant signup notifications from working.
+
+**Root Cause**: The `registerTenant` method in `auth.service.ts` was only setting basic tenant fields but not including `adminEmailRecipients: [data.ownerEmail]` like the `createTenant` method did.
+
+**Solution**: Updated `registerTenant` method to automatically set admin email recipients:
+```typescript
+adminEmailRecipients: [data.ownerEmail.trim().toLowerCase()], // Default to owner's email
+```
+
+**Files Modified**:
+- `/backend/src/core/auth/auth.service.ts` - Added adminEmailRecipients initialization in registerTenant method
+
+**Result**: All new tenants created through registration now automatically have their owner's email configured for admin notifications, ensuring tenant signup notifications work immediately after tenant creation.
+
+**✅ VERIFIED**: Test tenant creation confirms adminEmailRecipients is now properly set to include the owner's email.
+
 ## 🔧 **FIXED: Authentication System Cleanup**
 
 **Problem**: User was getting logged out when accessing `/tenant-settings` due to leftover Supabase authentication code.

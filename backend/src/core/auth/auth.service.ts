@@ -69,6 +69,7 @@ export class AuthService {
             slug,
             category: data.category,
             status: 'PENDING', // Will be activated after email verification
+            adminEmailRecipients: [data.ownerEmail.trim().toLowerCase()], // Default to owner's email
           },
         });
 
