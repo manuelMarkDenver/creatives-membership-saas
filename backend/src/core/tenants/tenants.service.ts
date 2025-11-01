@@ -1000,4 +1000,111 @@ export class TenantsService {
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
   }
+
+  /**
+   * Get tenant settings for the current user's tenant (OWNER access)
+   */
+  async getTenantSettings() {
+    try {
+      // Get current user from context (set by RBAC guard)
+      const user = (global as any).currentUser;
+      if (!user?.tenantId) {
+        throw new BadRequestException('User tenant context not found');
+      }
+
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: user.tenantId },
+        select: {
+          id: true,
+          name: true,
+          adminEmailRecipients: true,
+          emailNotificationsEnabled: true,
+          welcomeEmailEnabled: true,
+          adminAlertEmailEnabled: true,
+        },
+      });
+
+      if (!tenant) {
+        throw new NotFoundException('Tenant not found');
+      }
+
+      return tenant;
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to get tenant settings: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to retrieve tenant settings. Please try again.',
+      );
+    }
+  }
+
+  /**
+   * Update tenant admin email settings (OWNER access)
+   */
+  async updateTenantAdminEmails(
+    adminEmailRecipients: string[],
+    emailNotificationsEnabled: boolean,
+  ) {
+    try {
+      // Get current user from context (set by RBAC guard)
+      const user = (global as any).currentUser;
+      if (!user?.tenantId) {
+        throw new BadRequestException('User tenant context not found');
+      }
+
+      // Validate email addresses
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const invalidEmails = adminEmailRecipients.filter(email => !emailRegex.test(email));
+      if (invalidEmails.length > 0) {
+        throw new BadRequestException(`Invalid email addresses: ${invalidEmails.join(', ')}`);
+      }
+
+      const updatedTenant = await this.prisma.tenant.update({
+        where: { id: user.tenantId },
+        data: {
+          adminEmailRecipients,
+          emailNotificationsEnabled,
+          updatedAt: new Date(),
+        },
+        select: {
+          id: true,
+          name: true,
+          adminEmailRecipients: true,
+          emailNotificationsEnabled: true,
+          welcomeEmailEnabled: true,
+          adminAlertEmailEnabled: true,
+        },
+      });
+
+      this.logger.log(
+        `Updated admin email settings for tenant: ${updatedTenant.name} (${updatedTenant.id})`,
+      );
+
+      return updatedTenant;
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Failed to update tenant admin emails: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to update tenant settings. Please try again.',
+      );
+    }
+  }
 }

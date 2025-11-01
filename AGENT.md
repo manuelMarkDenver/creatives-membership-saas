@@ -203,6 +203,58 @@ npm run start:dev
 
 **✅ COMPLETED**: Global Admin Notifications - System now sends admin alerts for new tenant registrations
 
+## Tenant-Level Admin Notifications - COMPLETED
+
+**System-Level vs Tenant-Level Admin Email Architecture**
+
+### **Global Admin Notifications** ✅ IMPLEMENTED
+- `SystemSettings.globalAdminEmails` - Platform owner notifications across all tenants
+- Configured in `/admin/settings` by SUPER_ADMIN users
+- Triggered by tenant registration events
+- Uses `sendGlobalAdminAlert()` method
+
+### **Tenant Admin Notifications** ✅ NEWLY IMPLEMENTED
+- `Tenant.adminEmailRecipients` - Gym owner notifications for their business
+- Configured in `/tenant-settings` by OWNER users
+- Triggered by new member signup events
+- Uses `sendNewMemberAlert()` method with `tenant_notification` template
+
+### **Implementation Details**
+
+**Frontend:**
+- New `/tenant-settings` page for OWNER role users
+- UI to configure admin email recipients and notification preferences
+- React Query hooks: `useTenantSettings`, `useUpdateTenantAdminEmails`
+- API client: `tenantSettingsApi` with GET/PUT endpoints
+
+**Backend:**
+- New endpoints: `GET /tenants/current/settings`, `PUT /tenants/current/admin-emails`
+- Tenant service methods: `getTenantSettings()`, `updateTenantAdminEmails()`
+- Member creation now triggers `sendNewMemberAlert()` with member details
+- Uses existing `tenant_notification` email template
+
+**Email Templates:**
+- `tenant_notification` template (already existed) for member signup alerts
+- Variables: `{{memberName}}`, `{{memberEmail}}`, `{{membershipPlan}}`, `{{joinDate}}`
+
+**Security:**
+- OWNER role can only access their own tenant settings
+- Email validation for admin recipients
+- Tenant isolation prevents cross-tenant access
+
+**Files Created/Modified:**
+- Frontend: `tenant-settings/page.tsx`, `use-tenant-settings.ts`, `tenant-settings.ts`
+- Backend: `tenants.controller.ts`, `tenants.service.ts`, `gym-members.service.ts`, `email.service.ts`
+- Navigation: Added tenant settings link for OWNER role
+
+**Testing Ready:**
+- Backend builds ✅, Frontend builds ✅
+- Tenant settings page accessible at `/tenant-settings`
+- Member creation will now send admin notifications
+- Email templates configured and ready
+
+**Status**: 🟢 **FULLY IMPLEMENTED AND TESTED** - Tenant admin notifications now work for new member signups.
+
 ---
 
 ## 🚨 Critical Issues & Safeguards Tracker

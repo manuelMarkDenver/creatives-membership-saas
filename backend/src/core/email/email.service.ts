@@ -252,6 +252,60 @@ export class EmailService {
   }
 
   /**
+   * Send admin alert for new member signup
+   */
+  async sendNewMemberAlert(
+    tenantName: string,
+    memberName: string,
+    memberEmail: string,
+    membershipPlan: string,
+    tenantId: string,
+  ) {
+    try {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { adminEmailRecipients: true },
+      });
+
+      if (!tenant?.adminEmailRecipients?.length) {
+        this.logger.warn(`No admin email recipients configured for tenant ${tenantId}`);
+        return;
+      }
+
+      const template = await this.getEmailTemplate('tenant_notification', tenantId);
+      if (!template) {
+        this.logger.warn(`No tenant notification template found for tenant ${tenantId}`);
+        return;
+      }
+
+      const variables = {
+        tenantName,
+        memberName,
+        memberEmail,
+        membershipPlan,
+        joinDate: new Date().toLocaleDateString(),
+        dashboardUrl: `${process.env.FRONTEND_URL}/members`,
+      };
+
+      const htmlContent = this.processTemplate(template.htmlContent, variables);
+      const textContent = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
+
+      const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
+      const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+
+      for (const adminEmail of tenant.adminEmailRecipients) {
+        const recipient = this.getRecipient(adminEmail);
+        await this.sendEmail(recipient, template.subject, htmlContent, textContent, fromEmail, fromName, 'tenant_notification', tenantId, template.id);
+      }
+
+      this.logger.log(`✅ New member alerts sent for tenant: ${tenantName}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to send new member alert: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
    * Send admin alert for new tenant registration
    */
   async sendAdminAlert(

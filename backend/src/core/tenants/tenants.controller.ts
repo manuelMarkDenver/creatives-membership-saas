@@ -119,4 +119,25 @@ export class TenantsController {
   async markPasswordChanged(@Param('id') id: string) {
     return this.tenantsService.markOwnerPasswordChanged(id);
   }
+
+  // Tenant settings endpoints - accessible by owners for their own tenant
+  @Get('current/settings')
+  @RequiredRoles(Role.OWNER)
+  async getTenantSettings() {
+    return this.tenantsService.getTenantSettings();
+  }
+
+  @Put('current/admin-emails')
+  @RequiredRoles(Role.OWNER)
+  async updateTenantAdminEmails(
+    @Body() body: {
+      adminEmailRecipients: string[];
+      emailNotificationsEnabled: boolean;
+    },
+  ) {
+    return this.tenantsService.updateTenantAdminEmails(
+      body.adminEmailRecipients,
+      body.emailNotificationsEnabled,
+    );
+  }
 }

@@ -9,6 +9,7 @@ import { PrismaService } from '../../../core/prisma/prisma.service';
 import { SupabaseService } from '../../../core/supabase/supabase.service';
 import { S3UploadService } from '../../../core/supabase/s3-upload.service';
 import { NotificationsService } from '../../../core/notifications/notifications.service';
+import { EmailService } from '../../../core/email/email.service';
 
 @Injectable()
 export class GymMembersService {
@@ -19,6 +20,7 @@ export class GymMembersService {
     private supabaseService: SupabaseService,
     private s3UploadService: S3UploadService,
     private notificationsService: NotificationsService,
+    private emailService: EmailService,
   ) {}
 
   // ========================================
@@ -197,6 +199,31 @@ export class GymMembersService {
       this.logger.log(
         `Created gym member: ${result.user?.firstName || 'Unknown'} ${result.user?.lastName || 'User'} (${result.userId}) with subscription: ${!!result.subscription}`,
       );
+
+      // Send admin notification for new member signup
+      try {
+        if (result.tenant) {
+          const memberName = `${result.user?.firstName} ${result.user?.lastName}`;
+          const membershipPlan = result.subscription?.gymMembershipPlan?.name || 'No Plan';
+
+          await this.emailService.sendNewMemberAlert(
+            result.tenant.name,
+            memberName,
+            result.user?.email || '',
+            membershipPlan,
+            result.tenant.id,
+          );
+        } else {
+          this.logger.warn('Tenant information not available for member notification');
+        }
+      } catch (emailError) {
+        this.logger.error(
+          `Failed to send admin alert for new member: ${emailError.message}`,
+          emailError.stack,
+        );
+        // Don't fail member creation if email fails
+      }
+
       return result;
     } catch (error) {
       this.logger.error(

@@ -108,6 +108,13 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     description: 'System-wide configuration',
   },
   {
+    name: 'Tenant Settings',
+    href: '/tenant-settings',
+    icon: Settings,
+    roles: ['OWNER' as Role],
+    description: 'Configure your gym settings',
+  },
+  {
     name: 'Settings',
     href: '/settings',
     icon: Settings,
