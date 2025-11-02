@@ -94,7 +94,6 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showBranchModal, setShowBranchModal] = useState(false)
   const [showPlanModal, setShowPlanModal] = useState(false)
-  const [showMemberModal, setShowMemberModal] = useState(false)
 
   // Track current main branch for customization
   const [mainBranch, setMainBranch] = useState<any>(null)
@@ -119,7 +118,6 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     setShowPasswordModal(false)
     setShowBranchModal(false)
     setShowPlanModal(false)
-    setShowMemberModal(false)
 
     // If onboarding is complete, don't show any modals
     if (status.isOnboardingComplete) return
@@ -144,9 +142,6 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     } else if (!status.hasMembershipPlans) {
       // After branch is customized, show plan modal
       setShowPlanModal(true)
-    } else if (!status.hasMembers) {
-      // After plans are created, optionally show member modal
-      setShowMemberModal(true)
     }
   }, [status, isLoading, user, tenantId, markPasswordChanged])
 
@@ -231,45 +226,8 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
       // Create the membership plan
       await createMembershipPlan(data)
 
-      // Close plan modal and refresh status
+      // Close plan modal and complete onboarding
       setShowPlanModal(false)
-      await refetch()
-    },
-    [refetch]
-  )
-
-  /**
-   * Handle first member addition
-   */
-  const handleMemberAdded = useCallback(
-    async (data: {
-      firstName: string
-      lastName: string
-      email: string
-      phoneNumber?: string
-      gender?: string
-      membershipPlanId?: string
-    }) => {
-      // Auto-assign the first available membership plan if any exist
-      let memberData = { ...data }
-      try {
-        const plansResponse = await getActiveMembershipPlans()
-        if (plansResponse.success && plansResponse.data && plansResponse.data.length > 0) {
-          // Auto-assign the first active plan
-          const firstPlan = plansResponse.data[0]
-          memberData.membershipPlanId = firstPlan.id
-          console.log(`Auto-assigning membership plan "${firstPlan.name}" to new member`)
-        }
-      } catch (error) {
-        console.warn('Failed to fetch membership plans for auto-assignment:', error)
-        // Continue without plan assignment if fetching fails
-      }
-
-      // Add the member (with or without auto-assigned plan)
-      await membersApi.createGymMember(memberData)
-
-      // Close member modal and complete onboarding
-      setShowMemberModal(false)
       if (tenantId) {
         await completeOnboarding.mutateAsync(tenantId)
       }
@@ -278,16 +236,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     [tenantId, completeOnboarding, refetch]
   )
 
-  /**
-   * Handle skipping member addition
-   */
-  const handleSkipMember = useCallback(async () => {
-    setShowMemberModal(false)
-    if (tenantId) {
-      await completeOnboarding.mutateAsync(tenantId)
-    }
-    await refetch()
-  }, [tenantId, completeOnboarding, refetch])
+
 
   /**
    * Fetch main branch for customization
@@ -321,7 +270,6 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     showPasswordModal,
     showBranchModal,
     showPlanModal,
-    showMemberModal,
 
     // Data
     mainBranch,
@@ -330,8 +278,6 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     handlePasswordSet,
     handleBranchCustomized,
     handlePlanCreated,
-    handleMemberAdded,
-    handleSkipMember,
 
     // Utils
     refetchStatus: refetch,

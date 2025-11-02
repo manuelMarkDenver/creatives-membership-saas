@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Lock, Shield, Building2, CreditCard, UserPlus } from 'lucide-react'
+import { Check, Lock, Shield, Building2, CreditCard } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface OnboardingStep {
@@ -156,7 +156,7 @@ export function createOnboardingSteps(status: {
       title: 'Customize Your Branch',
       description: 'Add details about your location',
       icon: Building2,
-      completed: status.hasChangedPassword, // Assuming branch is customized after password
+      completed: status.hasChangedPassword, // Branch is customized after password
       current: status.hasChangedPassword && !status.hasMembershipPlans,
     },
     {
@@ -166,14 +166,6 @@ export function createOnboardingSteps(status: {
       icon: CreditCard,
       completed: status.hasMembershipPlans,
       current: status.hasChangedPassword && !status.hasMembershipPlans,
-    },
-    {
-      id: 'member',
-      title: 'Add Your First Member (Optional)',
-      description: 'Start building your member database',
-      icon: UserPlus,
-      completed: status.hasMembers || status.isOnboardingComplete,
-      current: status.hasMembershipPlans && !status.hasMembers && !status.isOnboardingComplete,
     },
   ]
 

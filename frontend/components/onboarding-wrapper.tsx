@@ -4,7 +4,6 @@ import { useOnboardingFlow } from '@/lib/hooks/use-onboarding'
 import SetPasswordModal from '@/components/modals/onboarding/set-password-modal'
 import CustomizeBranchModal from '@/components/modals/onboarding/customize-branch-modal'
 import CreateMembershipPlanModal from '@/components/modals/onboarding/create-membership-plan-modal'
-import AddFirstMemberModal from '@/components/modals/onboarding/add-first-member-modal'
 import OnboardingProgress, { createOnboardingSteps } from '@/components/onboarding-progress'
 
 interface OnboardingWrapperProps {
@@ -34,13 +33,10 @@ export default function OnboardingWrapper({ tenantId, children }: OnboardingWrap
     showPasswordModal,
     showBranchModal,
     showPlanModal,
-    showMemberModal,
     mainBranch,
     handlePasswordSet,
     handleBranchCustomized,
     handlePlanCreated,
-    handleMemberAdded,
-    handleSkipMember,
   } = useOnboardingFlow(tenantId)
 
   // Show loading state while checking onboarding status
@@ -80,7 +76,7 @@ export default function OnboardingWrapper({ tenantId, children }: OnboardingWrap
               steps={createOnboardingSteps({
                 hasChangedPassword: status.hasChangedPassword,
                 hasMembershipPlans: status.hasMembershipPlans,
-                hasMembers: status.hasMembers,
+                hasMembers: false, // No longer used
                 isOnboardingComplete: status.isOnboardingComplete,
               })}
             />
@@ -102,12 +98,6 @@ export default function OnboardingWrapper({ tenantId, children }: OnboardingWrap
         <CreateMembershipPlanModal
           open={showPlanModal}
           onPlanCreated={handlePlanCreated}
-        />
-
-        <AddFirstMemberModal
-          open={showMemberModal}
-          onMemberAdded={handleMemberAdded}
-          onSkip={handleSkipMember}
         />
       </div>
     </div>

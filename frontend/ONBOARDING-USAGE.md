@@ -9,7 +9,6 @@ The onboarding flow guides new tenant owners through the initial setup process:
 1. **Set Password** - Change from temporary password to a secure password
 2. **Customize Branch** - Add details to the auto-created "Main Branch"
 3. **Create Membership Plan** - Set up at least one pricing plan
-4. **Add First Member** (Optional) - Start building the member database
 
 ## Architecture
 
@@ -20,7 +19,6 @@ All onboarding modal components are located in `/components/modals/onboarding/`:
 - **SetPasswordModal** - Non-dismissible modal for initial password setup
 - **CustomizeBranchModal** - Modal to customize the Main Branch details
 - **CreateMembershipPlanModal** - Modal to create the first membership plan
-- **AddFirstMemberModal** - Optional modal to add the first member (with skip option)
 
 ### Other Components
 
@@ -77,13 +75,10 @@ export default function MyCustomOnboarding() {
     showPasswordModal,
     showBranchModal,
     showPlanModal,
-    showMemberModal,
     mainBranch,
     handlePasswordSet,
     handleBranchCustomized,
     handlePlanCreated,
-    handleMemberAdded,
-    handleSkipMember,
   } = useOnboardingFlow(tenantId)
 
   if (isOnboardingComplete) {
@@ -140,7 +135,6 @@ Returns:
   isOnboardingComplete: boolean
   hasChangedPassword: boolean
   hasMembershipPlans: boolean
-  hasMembers: boolean
   onboardingCompletedAt: string | null
   nextSteps: string[]
 }
@@ -160,17 +154,14 @@ const {
   showPasswordModal,
   showBranchModal,
   showPlanModal,
-  showMemberModal,
-  
+
   // Data
   mainBranch,          // Branch object
-  
+
   // Handlers
   handlePasswordSet,
   handleBranchCustomized,
   handlePlanCreated,
-  handleMemberAdded,
-  handleSkipMember,
   
   // Utils
   refetchStatus,
@@ -222,22 +213,7 @@ interface CreateMembershipPlanModalProps {
 }
 ```
 
-### AddFirstMemberModal
 
-```typescript
-interface AddFirstMemberModalProps {
-  open: boolean
-  onMemberAdded: (data: {
-    firstName: string
-    lastName: string
-    email: string
-    phoneNumber?: string
-    gender?: string
-  }) => Promise<void>
-  onSkip: () => void
-  isLoading?: boolean
-}
-```
 
 ## Customization
 
