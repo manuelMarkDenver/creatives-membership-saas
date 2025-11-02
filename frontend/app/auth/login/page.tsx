@@ -23,12 +23,13 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { Loader2, CheckCircle, Eye, EyeOff, Mail } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { userKeys } from "@/lib/hooks/use-gym-users";
 import { useTenantContext } from "@/lib/providers/tenant-context";
 import { authApi } from "@/lib/api/client";
 import { type BusinessCategory } from "@/types";
+import { toast } from "react-toastify";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -57,6 +58,8 @@ export default function LoginPage() {
   const [signupLoading, setSignupLoading] = useState(false);
   const [signupError, setSignupError] = useState("");
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendDisabled, setResendDisabled] = useState(false);
 
   // Load saved credentials on mount
   React.useEffect(() => {
@@ -144,6 +147,23 @@ export default function LoginPage() {
       );
     } finally {
       setSignupLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!signupData.ownerEmail || resendDisabled) return;
+
+    setResendLoading(true);
+    try {
+      await authApi.resendVerification(signupData.ownerEmail);
+      toast.success("Verification email sent! Please check your inbox.");
+      setResendDisabled(true);
+      // Re-enable after 2 minutes
+      setTimeout(() => setResendDisabled(false), 2 * 60 * 1000);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to resend email");
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -408,16 +428,49 @@ export default function LoginPage() {
                         We've sent a verification link to{" "}
                         <strong>{signupData.ownerEmail}</strong>
                       </p>
-                      <p className="text-sm text-gray-500">
-                        Click the link in the email to activate your account.
-                      </p>
-                      <Button
-                        variant="outline"
-                        onClick={() => setActiveTab("login")}
-                        className="mt-4"
-                      >
-                        Back to Login
-                      </Button>
+                       <p className="text-sm text-gray-500">
+                         Click the link in the email to activate your account.
+                       </p>
+
+                       {/* Resend Verification Email */}
+                       <div className="mt-6 space-y-4">
+                         <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                             Didn't receive the email? Check your spam folder or request a new one.
+                           </p>
+                           <Button
+                             onClick={handleResendVerification}
+                             disabled={resendLoading || resendDisabled}
+                             variant="outline"
+                             className="w-full"
+                           >
+                             {resendLoading ? (
+                               <>
+                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                 Sending...
+                               </>
+                             ) : resendDisabled ? (
+                               <>
+                                 <Mail className="mr-2 h-4 w-4" />
+                                 Resend Available in 2 Minutes
+                               </>
+                             ) : (
+                               <>
+                                 <Mail className="mr-2 h-4 w-4" />
+                                 Resend Verification Email
+                               </>
+                             )}
+                           </Button>
+                         </div>
+                       </div>
+
+                       <Button
+                         variant="outline"
+                         onClick={() => setActiveTab("login")}
+                         className="mt-4"
+                       >
+                         Back to Login
+                       </Button>
                     </div>
                   ) : (
                     <form onSubmit={handleSignup} className="space-y-4">

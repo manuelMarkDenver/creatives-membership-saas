@@ -44,6 +44,31 @@ See [./conversations/rules.md](./conversations/rules.md) for all agent rules and
 
 ---
 
+## 📧 **Email Verification Enhancements - COMPLETED** (November 2, 2025)
+
+**Improved user experience for email verification with resend functionality and better expiration handling**
+
+### **Features Implemented:**
+- ✅ **30-Second Resend Timer**: Added countdown timer on `/auth/verify-email` page, shows resend button after 30 seconds to prevent spam
+- ✅ **Always-Available Resend**: Resend button appears regardless of verification status after timer expires
+- ✅ **Enhanced Error Messages**: Clear messaging for expired tokens with immediate resend option
+- ✅ **Signup Success Resend**: Added resend button on login page after successful signup for better UX
+- ✅ **Rate Limiting**: 2-minute cooldown after resend to prevent spam (client-side)
+- ✅ **Better UI Feedback**: Replaced alerts with toast notifications for resend actions
+- ✅ **Token Expiration**: Maintained 24-hour expiration (industry standard)
+
+### **Files Modified:**
+- `frontend/app/auth/verify-email/page.tsx`: Added timer logic, resend rate limiting, toast notifications
+- `frontend/app/auth/login/page.tsx`: Added resend button on signup success screen with rate limiting and toast
+- `frontend/lib/api/tenants.ts`: Updated UpdateTenantDto interface (category → businessCategory → category)
+
+### **Best Practices for Expired Emails:**
+- Allow unlimited resends with reasonable delays
+- Provide clear messaging about expiration
+- Consider alternative verification methods if needed (not implemented yet)
+
+---
+
 ## 🚀 **E2E Testing Infrastructure - COMPLETED** (November 2, 2025)
 
 **Isolated test database and comprehensive tenant signup notification testing**

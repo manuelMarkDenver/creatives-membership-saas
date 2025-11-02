@@ -9,7 +9,7 @@ import { useTenants, useCreateTenant, useDeleteTenant, useUpdateTenant, useTenan
 import { useUpdateFreeBranchOverride } from '@/lib/hooks/use-subscription'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenantContext } from '@/lib/providers/tenant-context'
-import { Tenant } from '@/types'
+import { Tenant, BusinessCategory } from '@/types'
 import { MoreHorizontal, Plus, Edit, Trash2, Crown, Gift, LogIn, ExternalLink, Building2, User, Palette, Settings, Copy, CheckCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -240,7 +240,7 @@ export default function TenantsPage() {
         phoneNumber: editFormData.phoneNumber.trim() || undefined,
         email: editFormData.email.trim() || undefined,
         websiteUrl: editFormData.websiteUrl.trim() || undefined,
-        category: editFormData.category,
+        category: editFormData.category as BusinessCategory,
         logoUrl: editFormData.logoUrl.trim() || undefined,
         primaryColor: editFormData.primaryColor.trim() || undefined,
         secondaryColor: editFormData.secondaryColor.trim() || undefined,

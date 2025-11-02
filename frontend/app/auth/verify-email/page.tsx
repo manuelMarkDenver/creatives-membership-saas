@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { authApi } from '@/lib/api/client'
 import { Loader2, CheckCircle, XCircle, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'react-toastify'
 
 function VerifyEmailContent() {
   const router = useRouter()
@@ -16,6 +17,7 @@ function VerifyEmailContent() {
   const [email, setEmail] = useState('')
   const [showResend, setShowResend] = useState(false)
   const [resendTimer, setResendTimer] = useState(30)
+  const [resendDisabled, setResendDisabled] = useState(false)
 
   useEffect(() => {
     if (!token) {
@@ -82,16 +84,19 @@ function VerifyEmailContent() {
   }
 
   const handleResendEmail = async () => {
-    if (!email) {
-      alert('Please enter your email address')
+    if (!email || resendDisabled) {
+      if (!email) toast.error('Please enter your email address')
       return
     }
 
     try {
       await authApi.resendVerification(email)
-      alert('Verification email sent! Please check your inbox.')
+      toast.success('Verification email sent! Please check your inbox.')
+      setResendDisabled(true)
+      // Re-enable after 2 minutes
+      setTimeout(() => setResendDisabled(false), 2 * 60 * 1000)
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to resend email')
+      toast.error(error.response?.data?.message || 'Failed to resend email')
     }
   }
 
@@ -169,9 +174,10 @@ function VerifyEmailContent() {
 
                   <Button
                     onClick={handleResendEmail}
+                    disabled={resendDisabled}
                     className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 hover:opacity-90"
                   >
-                    Resend Verification Email
+                    {resendDisabled ? 'Resend Available in 2 Minutes' : 'Resend Verification Email'}
                   </Button>
                 </div>
               </div>
