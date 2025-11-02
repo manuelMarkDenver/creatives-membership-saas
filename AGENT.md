@@ -25,7 +25,7 @@
 - ✅ **Independent Scaling**: Each customer scales separately
 - ✅ **Custom Branding**: Each can have their own domain, colors, features
 - ✅ **Code Ready**: Current architecture supports this perfectly (isolated SystemSettings per deployment)
-- ❌ **High Cost**: Requires separate infrastructure per customer (~$5-20/month each on Railway + Vercel)
+- ❌ **High Cost**: Requires separate infrastructure per customer (~₱5-20/month each on Railway + Vercel)
 
 **Alternative Considered**: Multi-Tenant Single Deployment
 
@@ -1645,11 +1645,11 @@ cd frontend && npm run dev
 
 ### Production Infrastructure
 
-- **Backend**: Railway.com (~$5-20/month) - NestJS + PostgreSQL
+- **Backend**: Railway.com (~₱5-20/month) - NestJS + PostgreSQL
 - **Frontend**: Vercel.com (free tier) - Next.js with SSR compatibility
 - **Database**: Railway PostgreSQL with business units and gym subscriptions
 - **File Storage**: Supabase Storage for member photos (free tier)
-- **Total Cost**: ~$5-20/month (bootstrap-friendly)
+- **Total Cost**: ~₱5-20/month (bootstrap-friendly)
 - **Repository**: https://github.com/manuelMarkDenver/creatives-membership-saas.git
 - **Deployment Guide**: See `DEPLOYMENT.md` for complete production deployment instructions
 
@@ -2226,7 +2226,7 @@ Owner → Signs Up → Receives Email → Verifies Email → Auto-Login → Star
 **Why Email-Only for MVP:**
 
 - ✅ Simpler implementation (4-5 hours vs 10+ hours with SMS)
-- ✅ Zero cost (SMS costs $0.01 per message minimum)
+- ✅ Zero cost (SMS costs ₱0.01 per message minimum)
 - ✅ Standard practice (all major SaaS use email verification)
 - ✅ Can add SMS later when revenue justifies cost
 
@@ -2769,7 +2769,7 @@ vercel --prod
 
 **Per Location:**
 
-- Total revenue (formatted as currency, e.g., $1,200)
+- Total revenue (formatted as currency, e.g., ₱1,200)
 - Average revenue per member
 - Member growth rate (+/- percentage with trend icon)
 - Active subscription rate (percentage)
