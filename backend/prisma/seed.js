@@ -1,6 +1,8 @@
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env.local') });
+
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
-require('dotenv').config({ path: '../../.env.local' });
 
 const prisma = new PrismaClient();
 

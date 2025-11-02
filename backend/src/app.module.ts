@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './core/prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
+import * as path from 'path';
 import { NotificationsModule } from './core/notifications/notifications.module';
 import { TenantsModule } from './core/tenants/tenants.module';
 import { TenantMiddleware } from './core/middleware/tenants.middleware';
@@ -20,7 +21,10 @@ import { EmailModule } from './core/email/email.module';
 @Module({
   imports: [
     PrismaModule,
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: path.resolve(__dirname, '../../.env.local')
+    }),
     NotificationsModule,
     TenantsModule,
     UsersModule,
