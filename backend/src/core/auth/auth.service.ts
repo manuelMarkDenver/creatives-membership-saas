@@ -294,6 +294,77 @@ export class AuthService {
   }
 
   /**
+   * Set initial password for Google OAuth users (no token required)
+   */
+  async setGoogleUserPassword(userId: string, newPassword: string) {
+    try {
+      // Find user by ID
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Check if user is Google OAuth user
+      if (user.authProvider !== AuthProvider.GOOGLE) {
+        throw new BadRequestException(
+          'This endpoint is only for Google OAuth users',
+        );
+      }
+
+      // Check if password already set
+      if (user.initialPasswordSet) {
+        throw new BadRequestException(
+          'Password already set. Use change password instead.',
+        );
+      }
+
+      // Validate password against system security level
+      const securityLevel =
+        await this.systemSettingsService.getPasswordSecurityLevel();
+      const validation = validatePassword(newPassword, securityLevel);
+
+      if (!validation.valid) {
+        throw new BadRequestException(
+          `Password does not meet security requirements: ${validation.errors.join(', ')}`,
+        );
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      // Update user with new password
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          password: hashedPassword,
+          initialPasswordSet: true,
+        },
+      });
+
+      this.logger.log(
+        `Initial password set for Google OAuth user: ${user.email}`,
+      );
+
+      return {
+        success: true,
+        message: 'Password set successfully! You can now login.',
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(
+        `Set Google user password failed: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException('Failed to set password');
+    }
+  }
+
+  /**
    * Set initial password after email verification
    */
   async setInitialPassword(token: string, newPassword: string) {
@@ -424,23 +495,19 @@ export class AuthService {
     };
   }
 
-
-
   /**
    * Create new tenant and owner user from Google OAuth
    * Skips email verification but requires onboarding
    */
-  async createTenantFromGoogleUser(
-    googleUser: {
-      googleId: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-      displayName?: string;
-      profilePicture?: string;
-      provider?: string;
-    },
-  ) {
+  async createTenantFromGoogleUser(googleUser: {
+    googleId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    displayName?: string;
+    profilePicture?: string;
+    provider?: string;
+  }) {
     try {
       // Check if email already exists
       const existingUser = await this.prisma.user.findUnique({
@@ -466,7 +533,9 @@ export class AuthService {
         // If slug exists, append a number
         let counter = 1;
         let uniqueSlug = slug;
-        while (await this.prisma.tenant.findUnique({ where: { slug: uniqueSlug } })) {
+        while (
+          await this.prisma.tenant.findUnique({ where: { slug: uniqueSlug } })
+        ) {
           uniqueSlug = `${slug}-${counter}`;
           counter++;
         }
@@ -556,7 +625,10 @@ export class AuthService {
       ) {
         throw error;
       }
-      this.logger.error(`Create tenant from Google failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Create tenant from Google failed: ${error.message}`,
+        error.stack,
+      );
       throw new BadRequestException('Failed to create account');
     }
   }
@@ -635,7 +707,9 @@ export class AuthService {
         }
       } else {
         // New user - create new tenant and owner account
-        this.logger.log(`Creating new tenant for Google user: ${googleUser.email}`);
+        this.logger.log(
+          `Creating new tenant for Google user: ${googleUser.email}`,
+        );
         return this.createTenantFromGoogleUser(googleUser);
       }
 

@@ -4,12 +4,32 @@ import { onboardingApi, OnboardingStatus } from '@/lib/api/onboarding'
 import { branchesApi } from '@/lib/api/branches'
 import { createMembershipPlan, getActiveMembershipPlans } from '@/lib/api/membership-plans'
 import { membersApi } from '@/lib/api/gym-members'
-import { apiClient } from '@/lib/api/client'
+import { apiClient, authApi } from '@/lib/api/client'
+
+// Query keys
+export const userKeys = {
+  all: ['user'] as const,
+  me: () => [...userKeys.all, 'me'] as const,
+}
 
 // Query keys
 export const onboardingKeys = {
   all: ['onboarding'] as const,
   status: (tenantId: string) => [...onboardingKeys.all, 'status', tenantId] as const,
+}
+
+/**
+ * Hook to get current user info
+ */
+export function useUser() {
+  return useQuery({
+    queryKey: userKeys.me(),
+    queryFn: async () => {
+      const response = await apiClient.get('/auth/me')
+      return response.data?.user
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
 }
 
 /**
@@ -66,6 +86,7 @@ export function useCompleteOnboarding() {
  */
 export function useOnboardingFlow(tenantId: string | null | undefined) {
   const { data: status, isLoading, refetch } = useOnboardingStatus(tenantId)
+  const { data: user } = useUser()
   const markPasswordChanged = useMarkPasswordChanged()
   const completeOnboarding = useCompleteOnboarding()
 
@@ -80,7 +101,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
 
   // Determine which modal should be shown based on onboarding status
   useEffect(() => {
-    if (!status || isLoading) return
+    if (!status || isLoading || !user) return
 
     // Close all modals first
     setShowPasswordModal(false)
@@ -90,6 +111,13 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
 
     // If onboarding is complete, don't show any modals
     if (status.isOnboardingComplete) return
+
+    // For Google OAuth users, skip password setup and mark as changed
+    if (!status.hasChangedPassword && user.authProvider === 'GOOGLE') {
+      // Automatically mark password as changed for Google OAuth users
+      markPasswordChanged.mutateAsync(tenantId!).catch(console.error)
+      return
+    }
 
     // Show modals in sequence based on what's been completed
     if (!status.hasChangedPassword) {
@@ -101,7 +129,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
       // After plans are created, optionally show member modal
       setShowMemberModal(true)
     }
-  }, [status, isLoading])
+  }, [status, isLoading, user, tenantId, markPasswordChanged])
 
   /**
    * Handle password setup
@@ -109,37 +137,37 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
   const handlePasswordSet = useCallback(
     async (newPassword: string) => {
       if (!tenantId) throw new Error('Tenant ID is required')
+      if (!user) throw new Error('User information not available')
 
-      // Try to get verification token from localStorage first
-      let verificationToken = localStorage.getItem('verification_token')
-      
-      // If token not found, try to get it from the user record in the database
-      if (!verificationToken) {
-        try {
-          const response = await apiClient.get('/auth/me')
-          const user = response.data?.user
-          
-          // If user has emailVerificationToken still set, use it
-          if (user?.emailVerificationToken) {
-            verificationToken = user.emailVerificationToken
-          }
-        } catch (error) {
-          console.error('Failed to fetch user data:', error)
+      // Check if user is Google OAuth user
+      if (user.authProvider === 'GOOGLE') {
+        // Use Google OAuth password endpoint (no token required)
+        await apiClient.post('/auth/set-google-password', {
+          password: newPassword,
+        })
+      } else {
+        // Use regular email verification flow
+        // Try to get verification token from localStorage first
+        let verificationToken = localStorage.getItem('verification_token')
+
+        // If token not found, try to get it from the user record in the database
+        if (!verificationToken && user.emailVerificationToken) {
+          verificationToken = user.emailVerificationToken
         }
+
+        if (!verificationToken) {
+          throw new Error('Verification token not found. Please contact support or try registering again.')
+        }
+
+        // Call the set initial password endpoint
+        await apiClient.post('/auth/set-initial-password', {
+          token: verificationToken,
+          password: newPassword,
+        })
+
+        // Clear the verification token after use
+        localStorage.removeItem('verification_token')
       }
-
-      if (!verificationToken) {
-        throw new Error('Verification token not found. Please contact support or try registering again.')
-      }
-
-      // Call the set initial password endpoint
-      await apiClient.post('/auth/set-initial-password', {
-        token: verificationToken,
-        password: newPassword,
-      })
-
-      // Clear the verification token after use
-      localStorage.removeItem('verification_token')
 
       // Mark password as changed in onboarding
       await markPasswordChanged.mutateAsync(tenantId)
@@ -148,7 +176,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
       setShowPasswordModal(false)
       await refetch()
     },
-    [tenantId, markPasswordChanged, refetch]
+    [tenantId, user, markPasswordChanged, refetch]
   )
 
   /**

@@ -210,6 +210,12 @@ export const authApi = {
     const response = await apiClient.post('/auth/create-google-user', data)
     return response.data
   },
+
+  // Set password for Google OAuth users
+  setGooglePassword: async (password: string) => {
+    const response = await apiClient.post('/auth/set-google-password', { password })
+    return response.data
+  },
 }
 
 export default apiClient

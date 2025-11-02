@@ -91,6 +91,13 @@ class CreateGoogleUserDto {
   tenantId: string;
 }
 
+class SetGooglePasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  password: string;
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -465,6 +472,27 @@ export class AuthController {
   }
 
   /**
+   * Set initial password for Google OAuth users
+   * POST /auth/set-google-password
+   */
+  @Post('set-google-password')
+  @UseGuards(AuthGuard)
+  async setGoogleUserPassword(
+    @Req() request: Request,
+    @Body() dto: SetGooglePasswordDto,
+  ) {
+    const authenticatedUser = (request as any).user;
+    if (!authenticatedUser) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+
+    return this.authService.setGoogleUserPassword(
+      authenticatedUser.id,
+      dto.password,
+    );
+  }
+
+  /**
    * Resend verification email
    * POST /auth/resend-verification
    */
@@ -475,6 +503,4 @@ export class AuthController {
     }
     return this.authService.resendVerificationEmail(body.email);
   }
-
-
 }
