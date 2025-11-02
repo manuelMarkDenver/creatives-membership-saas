@@ -61,12 +61,12 @@ export function AddMemberModal({
 }: AddMemberModalProps) {
   const { data: profile } = useProfile()
   const { data: tenantSettings } = useTenantSettings()
-  const queryClient = useQueryClient()
+   const queryClient = useQueryClient()
 
-  // Email hooks
-  const sendWelcomeEmailMutation = useSendWelcomeEmail()
+   // Email hooks
+   const sendWelcomeEmailMutation = useSendWelcomeEmail()
 
-  // Create gym member mutation (creates both User + GymMemberProfile)
+   // Create gym member mutation (creates both User + GymMemberProfile)
   const createGymMemberMutation = useMutation({
     mutationFn: (data: any) => membersApi.createGymMember(data),
     onSuccess: () => {
@@ -115,20 +115,14 @@ export function AddMemberModal({
     paymentAmount: '',
     paymentMethod: 'CASH',
     
-    // Options
-    sendWelcomeEmail: true,
-    createAccountForMember: false
+     // Options
+     createAccountForMember: false
   })
 
   const { data: membershipPlans, isLoading: plansLoading } = useMembershipPlans()
   const { data: branches, isLoading: branchesLoading } = useBranchesByTenant(profile?.tenantId || '')
 
-  // Update sendWelcomeEmail default based on tenant settings
-  useEffect(() => {
-    if (tenantSettings?.welcomeEmailEnabled !== undefined) {
-      setFormData(prev => ({ ...prev, sendWelcomeEmail: tenantSettings.welcomeEmailEnabled }))
-    }
-  }, [tenantSettings?.welcomeEmailEnabled])
+
   
   // Ensure membershipPlans is always an array
   const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
@@ -294,9 +288,9 @@ export function AddMemberModal({
         try {
           console.log('✅ Gym member created successfully:', createdGymMember)
 
-           // Send welcome email if requested
-          if (formData.sendWelcomeEmail && formData.email) {
-            console.log('🎯 SENDING WELCOME EMAIL - formData.sendWelcomeEmail is true');
+           // Send welcome email if enabled in tenant settings
+           if (tenantSettings?.welcomeEmailEnabled && formData.email) {
+            console.log('🎯 SENDING WELCOME EMAIL - enabled in tenant settings');
             console.log('📧 Member creation response:', createdGymMember);
             try {
               // Try to get subscription data from the member creation response
@@ -394,9 +388,8 @@ export function AddMemberModal({
       selectedBranchId: '',
       membershipStartDate: '',
       paymentAmount: '',
-      paymentMethod: 'CASH',
-      sendWelcomeEmail: true,
-      createAccountForMember: false
+       paymentMethod: 'CASH',
+       createAccountForMember: false
     })
     setPhotoPreview(null)
     onClose()
@@ -864,42 +857,19 @@ export function AddMemberModal({
                       </div>
                      )}
 
-                     {/* Welcome Email Toggle in Summary */}
-                     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded p-3">
-                       <div className="flex items-center justify-between">
-                         <div>
-                           <h6 className="font-medium text-amber-900 dark:text-amber-100">Welcome Email</h6>
-                           <p className="text-sm text-amber-700 dark:text-amber-300">
-                             Send a welcome email to the new member
-                           </p>
-                         </div>
-                         <Switch
-                           id="sendWelcomeEmailSummary"
-                           checked={formData.sendWelcomeEmail}
-                           onCheckedChange={(checked) => handleInputChange('sendWelcomeEmail', checked)}
-                         />
-                       </div>
-                     </div>
 
-                     {(formData.sendWelcomeEmail || formData.createAccountForMember) && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3">
-                        <h6 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Additional Actions</h6>
-                        <div className="space-y-1 text-sm text-blue-700 dark:text-blue-300">
-                          {formData.sendWelcomeEmail && (
-                            <div className="flex items-center gap-2">
-                              <Check className="h-3 w-3" />
-                              <span>Send welcome email</span>
-                            </div>
-                          )}
-                          {formData.createAccountForMember && (
-                            <div className="flex items-center gap-2">
-                              <Check className="h-3 w-3" />
-                              <span>Create member login account</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
+
+                      {formData.createAccountForMember && (
+                       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3">
+                         <h6 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Additional Actions</h6>
+                         <div className="space-y-1 text-sm text-blue-700 dark:text-blue-300">
+                           <div className="flex items-center gap-2">
+                             <Check className="h-3 w-3" />
+                             <span>Create member login account</span>
+                           </div>
+                         </div>
+                       </div>
+                     )}
                   </div>
                 </div>
               </div>
