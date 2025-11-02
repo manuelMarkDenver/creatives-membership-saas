@@ -546,14 +546,15 @@ export class AuthService {
       const result = await this.prisma.$transaction(async (tx) => {
         // 1. Create tenant with ACTIVE status (skip email verification)
         const tenant = await tx.tenant.create({
-          data: {
-            name: tenantName,
-            slug,
-            category: 'GYM',
-            status: 'ACTIVE', // Skip email verification, go straight to active
-            adminEmailRecipients: [googleUser.email], // Default to owner's email
-            onboardingCompletedAt: null, // Requires onboarding
-          },
+           data: {
+             name: tenantName,
+             slug,
+             category: 'GYM',
+             status: 'ACTIVE', // Skip email verification, go straight to active
+             adminEmailRecipients: [googleUser.email], // Default to owner's email
+             ownerPasswordChanged: true, // Google OAuth users don't need password change
+             onboardingCompletedAt: null, // Requires onboarding
+           },
         });
 
         // 2. Create owner user
@@ -568,11 +569,11 @@ export class AuthService {
             googleId: googleUser.googleId,
             profilePicture: googleUser.profilePicture,
             role: 'OWNER', // Owner role for new tenant creators
-            authProvider: AuthProvider.GOOGLE,
-            emailVerified: true, // Google verifies emails
-            emailVerifiedAt: new Date(),
-            initialPasswordSet: false, // Requires password setup in onboarding
-            onboardingCompletedAt: null, // Requires onboarding
+             authProvider: AuthProvider.GOOGLE,
+             emailVerified: true, // Google verifies emails
+             emailVerifiedAt: new Date(),
+             initialPasswordSet: true, // Google OAuth users don't need password setup
+             onboardingCompletedAt: null, // Requires onboarding
           },
         });
 
