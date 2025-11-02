@@ -1,6 +1,7 @@
 'use client'
 
-import { useOnboardingFlow } from '@/lib/hooks/use-onboarding'
+import { useOnboardingFlow, useUser } from '@/lib/hooks/use-onboarding'
+import BusinessDetailsModal from '@/components/modals/onboarding/business-details-modal'
 import SetPasswordModal from '@/components/modals/onboarding/set-password-modal'
 import CustomizeBranchModal from '@/components/modals/onboarding/customize-branch-modal'
 import CreateMembershipPlanModal from '@/components/modals/onboarding/create-membership-plan-modal'
@@ -26,14 +27,17 @@ interface OnboardingWrapperProps {
  * ```
  */
 export default function OnboardingWrapper({ tenantId, children }: OnboardingWrapperProps) {
+  const { data: user } = useUser()
   const {
     status,
     isLoading,
     isOnboardingComplete,
+    showBusinessModal,
     showPasswordModal,
     showBranchModal,
     showPlanModal,
     mainBranch,
+    handleBusinessDetailsSet,
     handlePasswordSet,
     handleBranchCustomized,
     handlePlanCreated,
@@ -78,12 +82,19 @@ export default function OnboardingWrapper({ tenantId, children }: OnboardingWrap
                 hasMembershipPlans: status.hasMembershipPlans,
                 hasMembers: false, // No longer used
                 isOnboardingComplete: status.isOnboardingComplete,
+                user: user,
               })}
             />
           </div>
         )}
 
         {/* Onboarding Modals */}
+        <BusinessDetailsModal
+          open={showBusinessModal}
+          user={user}
+          onBusinessDetailsSet={handleBusinessDetailsSet}
+        />
+
         <SetPasswordModal
           open={showPasswordModal}
           onPasswordSet={handlePasswordSet}

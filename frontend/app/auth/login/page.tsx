@@ -445,6 +445,7 @@ export default function LoginPage() {
                             })
                           }
                           placeholder="FitZone Gym"
+                          autoComplete="organization"
                         />
                       </div>
 

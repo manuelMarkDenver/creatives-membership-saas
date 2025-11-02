@@ -28,8 +28,10 @@ export interface CreateTenantDto {
 
 export interface UpdateTenantDto {
   name?: string
-  businessCategory?: BusinessCategory
+  category?: BusinessCategory
   description?: string
+  address?: string
+  phoneNumber?: string
 }
 
 export interface TenantQueryParams {
@@ -61,6 +63,12 @@ export const tenantsApi = {
   // Update tenant
   update: async (id: string, data: UpdateTenantDto): Promise<Tenant> => {
     const response = await apiClient.put(`/tenants/${id}`, data)
+    return response.data
+  },
+
+  // Update current tenant (for owners)
+  updateCurrent: async (data: UpdateTenantDto): Promise<Tenant> => {
+    const response = await apiClient.put('/tenants/current', data)
     return response.data
   },
 

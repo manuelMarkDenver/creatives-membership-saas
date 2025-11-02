@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Lock, Shield, Building2, CreditCard } from 'lucide-react'
+import { Check, Lock, Shield, Building2, CreditCard, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface OnboardingStep {
@@ -141,33 +141,68 @@ export function createOnboardingSteps(status: {
   hasMembershipPlans: boolean
   hasMembers: boolean
   isOnboardingComplete: boolean
+  user?: any
 }): OnboardingStep[] {
-  const steps: OnboardingStep[] = [
-    {
-      id: 'password',
-      title: 'Set Your Password',
-      description: 'Secure your account with a strong password',
-      icon: Shield,
-      completed: status.hasChangedPassword,
-      current: !status.hasChangedPassword,
-    },
-    {
-      id: 'branch',
-      title: 'Customize Your Branch',
-      description: 'Add details about your location',
-      icon: Building2,
-      completed: status.hasChangedPassword, // Branch is customized after password
-      current: status.hasChangedPassword && !status.hasMembershipPlans,
-    },
-    {
-      id: 'plans',
-      title: 'Create Membership Plans',
-      description: 'Set up pricing and membership options',
-      icon: CreditCard,
-      completed: status.hasMembershipPlans,
-      current: status.hasChangedPassword && !status.hasMembershipPlans,
-    },
-  ]
+  const isOAuth = status.user?.authProvider === 'GOOGLE'
+  const steps: OnboardingStep[] = []
+
+  if (isOAuth) {
+    // For OAuth users: business details -> branch -> plans
+    steps.push(
+      {
+        id: 'business',
+        title: 'Set Up Your Business',
+        description: 'Customize your business name and details',
+        icon: Settings,
+        completed: status.hasChangedPassword, // Business details are set after password
+        current: status.hasChangedPassword && !status.hasMembershipPlans,
+      },
+      {
+        id: 'branch',
+        title: 'Customize Your Branch',
+        description: 'Add details about your location',
+        icon: Building2,
+        completed: status.hasChangedPassword, // Branch is customized after business details
+        current: status.hasChangedPassword && !status.hasMembershipPlans,
+      },
+      {
+        id: 'plans',
+        title: 'Create Membership Plans',
+        description: 'Set up pricing and membership options',
+        icon: CreditCard,
+        completed: status.hasMembershipPlans,
+        current: status.hasChangedPassword && !status.hasMembershipPlans,
+      }
+    )
+  } else {
+    // For regular users: password -> branch -> plans
+    steps.push(
+      {
+        id: 'password',
+        title: 'Set Your Password',
+        description: 'Secure your account with a strong password',
+        icon: Shield,
+        completed: status.hasChangedPassword,
+        current: !status.hasChangedPassword,
+      },
+      {
+        id: 'branch',
+        title: 'Customize Your Branch',
+        description: 'Add details about your location',
+        icon: Building2,
+        completed: status.hasChangedPassword, // Branch is customized after password
+        current: status.hasChangedPassword && !status.hasMembershipPlans,
+      },
+      {
+        id: 'plans',
+        title: 'Create Membership Plans',
+        description: 'Set up pricing and membership options',
+        icon: CreditCard,
+        completed: status.hasMembershipPlans,
+        current: status.hasChangedPassword && !status.hasMembershipPlans,
+      }
+    )
+  }
 
   return steps
 }

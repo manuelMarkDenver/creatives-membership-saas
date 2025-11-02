@@ -5,6 +5,9 @@ import { branchesApi } from '@/lib/api/branches'
 import { createMembershipPlan, getActiveMembershipPlans } from '@/lib/api/membership-plans'
 import { membersApi } from '@/lib/api/gym-members'
 import { apiClient, authApi } from '@/lib/api/client'
+import { tenantsApi } from '@/lib/api/tenants'
+import { usersApi } from '@/lib/api/gym-users'
+import { BusinessCategory } from '@/types'
 
 // Query keys
 export const userKeys = {
@@ -91,6 +94,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
   const completeOnboarding = useCompleteOnboarding()
 
   // Modal states
+  const [showBusinessModal, setShowBusinessModal] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showBranchModal, setShowBranchModal] = useState(false)
   const [showPlanModal, setShowPlanModal] = useState(false)
@@ -101,12 +105,16 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
   // Track if we've already handled Google OAuth password skip
   const [googlePasswordSkipped, setGooglePasswordSkipped] = useState(false)
 
+  // Track if business details have been set
+  const [businessDetailsSet, setBusinessDetailsSet] = useState(false)
+
   // Track if branch has been customized
   const [branchCustomized, setBranchCustomized] = useState(false)
 
   // Reset flags when tenantId changes
   useEffect(() => {
     setGooglePasswordSkipped(false)
+    setBusinessDetailsSet(false)
     setBranchCustomized(false)
   }, [tenantId])
 
@@ -115,6 +123,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     if (!status || isLoading || !user) return
 
     // Close all modals first
+    setShowBusinessModal(false)
     setShowPasswordModal(false)
     setShowBranchModal(false)
     setShowPlanModal(false)
@@ -130,24 +139,51 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
         console.error('Failed to mark password as changed for Google OAuth user:', error)
         setGooglePasswordSkipped(false) // Reset on error to allow retry
       })
-      return
+      // Don't return - allow the flow to continue and show business modal after password is marked changed
     }
 
     // Show modals in sequence based on what's been completed
     if (!status.hasChangedPassword) {
       setShowPasswordModal(true)
+    } else if (user.authProvider === 'GOOGLE' && !businessDetailsSet) {
+      // For Google OAuth users, show business details modal first
+      setShowBusinessModal(true)
     } else if (!branchCustomized) {
-      // After password is set, show branch modal for customization
+      // After business details or password is set, show branch modal for customization
       setShowBranchModal(true)
     } else if (!status.hasMembershipPlans) {
       // After branch is customized, show plan modal
       setShowPlanModal(true)
     }
-  }, [status, isLoading, user, tenantId, markPasswordChanged])
+  }, [status, isLoading, user, tenantId, markPasswordChanged, businessDetailsSet])
 
   /**
-   * Handle password setup
-   */
+    * Handle business details setup
+    */
+  const handleBusinessDetailsSet = useCallback(
+    async (data: { name: string; category: BusinessCategory; phoneNumber?: string; address?: string }) => {
+      if (!tenantId) throw new Error('Tenant ID is required')
+      if (!user) throw new Error('User information not available')
+
+      // Update tenant name, category, address, and phone
+      await tenantsApi.updateCurrent({
+        name: data.name,
+        category: data.category,
+        address: data.address,
+        phoneNumber: data.phoneNumber,
+      })
+
+      // Mark business details as set
+      setBusinessDetailsSet(true)
+      setShowBusinessModal(false)
+      await refetch()
+    },
+    [tenantId, user, refetch]
+  )
+
+  /**
+    * Handle password setup
+    */
   const handlePasswordSet = useCallback(
     async (newPassword: string) => {
       if (!tenantId) throw new Error('Tenant ID is required')
@@ -270,6 +306,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     isOnboardingComplete: status?.isOnboardingComplete || false,
 
     // Modal states
+    showBusinessModal,
     showPasswordModal,
     showBranchModal,
     showPlanModal,
@@ -278,6 +315,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     mainBranch,
 
     // Handlers
+    handleBusinessDetailsSet,
     handlePasswordSet,
     handleBranchCustomized,
     handlePlanCreated,

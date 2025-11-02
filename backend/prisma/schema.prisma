@@ -196,11 +196,11 @@ model User {
    emailNotificationsEnabled Boolean                 @default(true)
    marketingEmailsEnabled    Boolean                 @default(false)
 
-    // Email verification fields
-   emailVerified             Boolean                 @default(false)
-   emailVerificationToken    String?                 @unique
-   emailVerificationExpiry   DateTime?
-   emailVerifiedAt           DateTime?
+     // Email verification fields
+    emailVerified             Boolean                 @default(false)
+    emailVerificationToken    String?                 @unique
+    emailVerificationExpiry   DateTime?
+    emailVerifiedAt           DateTime?
 
     // OAuth fields
      googleId                  String?                 @unique

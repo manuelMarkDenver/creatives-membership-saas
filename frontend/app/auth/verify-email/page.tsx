@@ -14,15 +14,32 @@ function VerifyEmailContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
   const [email, setEmail] = useState('')
+  const [showResend, setShowResend] = useState(false)
+  const [resendTimer, setResendTimer] = useState(30)
 
   useEffect(() => {
     if (!token) {
       setStatus('error')
       setMessage('No verification token provided')
+      setShowResend(true)
       return
     }
 
     verifyEmail()
+
+    // Start resend timer
+    const timer = setInterval(() => {
+      setResendTimer((prev) => {
+        if (prev <= 1) {
+          setShowResend(true)
+          clearInterval(timer)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
   }, [token])
 
   const verifyEmail = async () => {
@@ -132,14 +149,16 @@ function VerifyEmailContent() {
             </p>
 
             {/* Resend Email Option */}
-            {(message.includes('expired') || message.includes('invalid')) && (
+            {showResend && (
               <div className="mt-6 space-y-4">
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                   <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 mb-4">
                     <Mail className="h-5 w-5" />
-                    <span className="font-medium">Need a new verification link?</span>
+                    <span className="font-medium">
+                      {message.includes('expired') ? 'Your verification link has expired. Request a new one:' : 'Need a new verification link?'}
+                    </span>
                   </div>
-                  
+
                   <input
                     type="email"
                     placeholder="Enter your email"
@@ -147,7 +166,7 @@ function VerifyEmailContent() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white mb-3"
                   />
-                  
+
                   <Button
                     onClick={handleResendEmail}
                     className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 hover:opacity-90"
@@ -155,6 +174,14 @@ function VerifyEmailContent() {
                     Resend Verification Email
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {!showResend && (
+              <div className="mt-6 text-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                  Didn't receive the email? You can request a new link in {resendTimer} seconds.
+                </p>
               </div>
             )}
 
