@@ -360,6 +360,7 @@ export class AuthController {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role, // Return platform role
+        authProvider: user.authProvider, // Include auth provider for onboarding logic
         tenantId: effectiveTenantId,
         tenant: effectiveTenant,
         created_at: user.createdAt,

@@ -522,23 +522,24 @@ export class AuthService {
 
       // Generate tenant name from user's name
       const tenantName = `${googleUser.firstName}'s Gym`;
-      const slug = slugify(tenantName, { lower: true, strict: true });
+      let slug = slugify(tenantName, { lower: true, strict: true });
 
-      // Check if slug already exists
-      const existingTenant = await this.prisma.tenant.findUnique({
+      // Check if slug already exists and generate unique slug
+      let existingTenant = await this.prisma.tenant.findUnique({
         where: { slug },
       });
 
       if (existingTenant) {
-        // If slug exists, append a number
+        // If slug exists, append a number until we find a unique one
         let counter = 1;
-        let uniqueSlug = slug;
+        let uniqueSlug = `${slug}-${counter}`;
         while (
           await this.prisma.tenant.findUnique({ where: { slug: uniqueSlug } })
         ) {
-          uniqueSlug = `${slug}-${counter}`;
           counter++;
+          uniqueSlug = `${slug}-${counter}`;
         }
+        slug = uniqueSlug;
       }
 
       // Create tenant and owner user in transaction

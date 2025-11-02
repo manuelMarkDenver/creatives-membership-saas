@@ -99,6 +99,18 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
   // Track current main branch for customization
   const [mainBranch, setMainBranch] = useState<any>(null)
 
+  // Track if we've already handled Google OAuth password skip
+  const [googlePasswordSkipped, setGooglePasswordSkipped] = useState(false)
+
+  // Track if branch has been customized
+  const [branchCustomized, setBranchCustomized] = useState(false)
+
+  // Reset flags when tenantId changes
+  useEffect(() => {
+    setGooglePasswordSkipped(false)
+    setBranchCustomized(false)
+  }, [tenantId])
+
   // Determine which modal should be shown based on onboarding status
   useEffect(() => {
     if (!status || isLoading || !user) return
@@ -112,19 +124,26 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     // If onboarding is complete, don't show any modals
     if (status.isOnboardingComplete) return
 
-    // For Google OAuth users, skip password setup and mark as changed
-    if (!status.hasChangedPassword && user.authProvider === 'GOOGLE') {
+    // For Google OAuth users, skip password setup and mark as changed (only once)
+    if (!status.hasChangedPassword && user.authProvider === 'GOOGLE' && !googlePasswordSkipped) {
       // Automatically mark password as changed for Google OAuth users
-      markPasswordChanged.mutateAsync(tenantId!).catch(console.error)
+      setGooglePasswordSkipped(true)
+      markPasswordChanged.mutateAsync(tenantId!).catch((error) => {
+        console.error('Failed to mark password as changed for Google OAuth user:', error)
+        setGooglePasswordSkipped(false) // Reset on error to allow retry
+      })
       return
     }
 
     // Show modals in sequence based on what's been completed
     if (!status.hasChangedPassword) {
       setShowPasswordModal(true)
-    } else if (!status.hasMembershipPlans) {
-      // After password is set, show branch modal, then plan modal
+    } else if (!branchCustomized) {
+      // After password is set, show branch modal for customization
       setShowBranchModal(true)
+    } else if (!status.hasMembershipPlans) {
+      // After branch is customized, show plan modal
+      setShowPlanModal(true)
     } else if (!status.hasMembers) {
       // After plans are created, optionally show member modal
       setShowMemberModal(true)
@@ -189,9 +208,9 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
       // Update the branch
       await branchesApi.update(mainBranch.id, data)
 
-      // Close branch modal and move to next step
+      // Mark branch as customized and move to next step
+      setBranchCustomized(true)
       setShowBranchModal(false)
-      setShowPlanModal(true)
       await refetch()
     },
     [mainBranch, refetch]
@@ -276,7 +295,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
   useEffect(() => {
     const fetchMainBranch = async () => {
       if (!tenantId || !status) return
-      if (status.hasMembershipPlans) return // Already past this step
+      if (status.hasMembershipPlans || branchCustomized) return // Already past this step
 
       try {
         const branches = await branchesApi.getByTenant(tenantId)
@@ -290,7 +309,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     }
 
     fetchMainBranch()
-  }, [tenantId, status])
+  }, [tenantId, status, branchCustomized])
 
   return {
     // Status
