@@ -914,7 +914,9 @@ export class TenantsService {
         throw new BadRequestException('Invalid tenant ID format');
       }
 
-      this.logger.log(`🎯 Starting onboarding completion for tenant ${tenantId}`);
+      this.logger.log(
+        `🎯 Starting onboarding completion for tenant ${tenantId}`,
+      );
 
       const updatedTenant = await this.prisma.tenant.update({
         where: { id: tenantId },
@@ -950,7 +952,9 @@ export class TenantsService {
         if (owner && owner.email) {
           const ownerName = `${owner.firstName} ${owner.lastName}`.trim();
 
-          this.logger.log(`🎯 Sending welcome email to ${owner.email} for tenant ${tenantId}`);
+          this.logger.log(
+            `🎯 Sending welcome email to ${owner.email} for tenant ${tenantId}`,
+          );
 
           // Send welcome email to tenant owner
           await this.emailService.sendTenantWelcomeEmail(
@@ -959,9 +963,13 @@ export class TenantsService {
             tenantId,
           );
 
-          this.logger.log(`✅ Welcome email sent successfully to ${owner.email}`);
+          this.logger.log(
+            `✅ Welcome email sent successfully to ${owner.email}`,
+          );
         } else {
-          this.logger.warn(`No owner found for tenant ${tenantId} or owner has no email`);
+          this.logger.warn(
+            `No owner found for tenant ${tenantId} or owner has no email`,
+          );
         }
       } catch (emailError) {
         this.logger.error(

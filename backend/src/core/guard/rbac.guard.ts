@@ -43,11 +43,17 @@ export class RBACGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
+    // Check if RBAC should be skipped for this endpoint
+    const skipRBAC = this.reflector.getAllAndOverride<boolean>('skipRBAC', [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (skipRBAC) {
+      return true;
+    }
+
     if (!user) {
-      // Check if bypass auth is enabled
-      if (request.headers['x-bypass-auth'] === 'true') {
-        return true;
-      }
       throw new ForbiddenException('User not authenticated');
     }
 

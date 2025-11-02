@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Patch,
+  ForbiddenException,
 } from '@nestjs/common';
 import { TenantsService } from './tenants.service';
 import { TenantQueryDto } from './dto/tenant-query.dto';
@@ -20,11 +21,12 @@ import {
   RequiredAccessLevel,
 } from '../guard/rbac.guard';
 import { AuthGuard } from '../auth/auth.guard';
+import type { User } from '@prisma/client';
 import { Role, AccessLevel } from '@prisma/client';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 
 @Controller('tenants')
-@UseGuards(AuthGuard, RBACGuard)
+@UseGuards(AuthGuard)
 export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}
 
@@ -59,6 +61,7 @@ export class TenantsController {
   }
 
   @Put(':id')
+  @UseGuards(RBACGuard)
   @RequiredRoles(Role.SUPER_ADMIN)
   async update(
     @Param('id') id: string,
@@ -68,12 +71,14 @@ export class TenantsController {
   }
 
   @Delete(':id')
+  @UseGuards(RBACGuard)
   @RequiredRoles(Role.SUPER_ADMIN)
   async delete(@Param('id') id: string) {
     return this.tenantsService.deleteTenant(id);
   }
 
   @Patch(':id/free-branch-override')
+  @UseGuards(RBACGuard)
   @RequiredRoles(Role.SUPER_ADMIN)
   async updateFreeBranchOverride(
     @Param('id') id: string,
@@ -83,6 +88,7 @@ export class TenantsController {
   }
 
   @Get(':id/owner')
+  @UseGuards(RBACGuard)
   @RequiredRoles(Role.SUPER_ADMIN)
   async getTenantOwner(@Param('id') id: string) {
     return this.tenantsService.getTenantOwner(id);

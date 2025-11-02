@@ -521,11 +521,11 @@ export class AuthService {
       }
 
       // Generate tenant name from user's name
-      const tenantName = `${googleUser.firstName}'s Gym`;
+      const tenantName = googleUser.displayName || `${googleUser.firstName}'s Gym`;
       let slug = slugify(tenantName, { lower: true, strict: true });
 
       // Check if slug already exists and generate unique slug
-      let existingTenant = await this.prisma.tenant.findUnique({
+      const existingTenant = await this.prisma.tenant.findUnique({
         where: { slug },
       });
 
@@ -546,15 +546,15 @@ export class AuthService {
       const result = await this.prisma.$transaction(async (tx) => {
         // 1. Create tenant with ACTIVE status (skip email verification)
         const tenant = await tx.tenant.create({
-           data: {
-             name: tenantName,
-             slug,
-             category: 'GYM',
-             status: 'ACTIVE', // Skip email verification, go straight to active
-             adminEmailRecipients: [googleUser.email], // Default to owner's email
-             ownerPasswordChanged: true, // Google OAuth users don't need password change
-             onboardingCompletedAt: null, // Requires onboarding
-           },
+          data: {
+            name: tenantName,
+            slug,
+            category: 'GYM',
+            status: 'ACTIVE', // Skip email verification, go straight to active
+            adminEmailRecipients: [googleUser.email], // Default to owner's email
+            ownerPasswordChanged: true, // Google OAuth users don't need password change
+            onboardingCompletedAt: null, // Requires onboarding
+          },
         });
 
         // 2. Create owner user
@@ -569,11 +569,11 @@ export class AuthService {
             googleId: googleUser.googleId,
             profilePicture: googleUser.profilePicture,
             role: 'OWNER', // Owner role for new tenant creators
-             authProvider: AuthProvider.GOOGLE,
-             emailVerified: true, // Google verifies emails
-             emailVerifiedAt: new Date(),
-             initialPasswordSet: true, // Google OAuth users don't need password setup
-             onboardingCompletedAt: null, // Requires onboarding
+            authProvider: AuthProvider.GOOGLE,
+            emailVerified: true, // Google verifies emails
+            emailVerifiedAt: new Date(),
+            initialPasswordSet: true, // Google OAuth users don't need password setup
+            onboardingCompletedAt: null, // Requires onboarding
           },
         });
 

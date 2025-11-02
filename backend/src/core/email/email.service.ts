@@ -257,7 +257,9 @@ export class EmailService {
       tenantId,
     });
 
-    this.logger.log(`📧 Starting tenant welcome email send to ${email} for tenant ${tenantId}`);
+    this.logger.log(
+      `📧 Starting tenant welcome email send to ${email} for tenant ${tenantId}`,
+    );
 
     try {
       // Get tenant info
@@ -294,9 +296,17 @@ export class EmailService {
       };
 
       // Process template
-      const processedSubject = this.processTemplate(template.subject, variables);
-      const processedHtml = this.processTemplate(template.htmlContent, variables);
-      const processedText = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
+      const processedSubject = this.processTemplate(
+        template.subject,
+        variables,
+      );
+      const processedHtml = this.processTemplate(
+        template.htmlContent,
+        variables,
+      );
+      const processedText = template.textContent
+        ? this.processTemplate(template.textContent, variables)
+        : undefined;
 
       // Send email
       await this.sendEmail(
@@ -304,16 +314,23 @@ export class EmailService {
         processedSubject,
         processedHtml,
         processedText,
-        this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com',
+        this.settings?.fromEmail ||
+          process.env.EMAIL_FROM ||
+          'noreply@gymbosslab.com',
         this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab',
         'tenant_welcome',
         tenantId,
         template.id,
       );
 
-      this.logger.log(`✅ Tenant welcome email sent to ${email} for tenant ${tenant.name}`);
+      this.logger.log(
+        `✅ Tenant welcome email sent to ${email} for tenant ${tenant.name}`,
+      );
     } catch (error: any) {
-      this.logger.error(`❌ Failed to send tenant welcome email: ${error.message}`, error.stack);
+      this.logger.error(
+        `❌ Failed to send tenant welcome email: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

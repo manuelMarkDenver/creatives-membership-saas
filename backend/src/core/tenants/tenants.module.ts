@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { TenantsService } from './tenants.service';
 import { TenantsController } from './tenants.controller';
+import { OwnerTenantsController } from './owner-tenants.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { SupabaseModule } from '../supabase/supabase.module';
@@ -9,8 +10,14 @@ import { SubscriptionsModule } from '../../modules/subscriptions/subscriptions.m
 
 @Global()
 @Module({
-  imports: [PrismaModule, AuthModule, SupabaseModule, EmailModule, SubscriptionsModule],
-  controllers: [TenantsController],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    SupabaseModule,
+    EmailModule,
+    SubscriptionsModule,
+  ],
+  controllers: [OwnerTenantsController, TenantsController],
   providers: [TenantsService],
   exports: [TenantsService],
 })
