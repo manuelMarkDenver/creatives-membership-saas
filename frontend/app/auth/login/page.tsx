@@ -24,6 +24,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 import { userKeys } from "@/lib/hooks/use-gym-users";
 import { useTenantContext } from "@/lib/providers/tenant-context";
 import { authApi } from "@/lib/api/client";
@@ -42,6 +43,7 @@ export default function LoginPage() {
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // Signup state
   const [signupData, setSignupData] = useState({
@@ -117,6 +119,12 @@ export default function LoginPage() {
     } finally {
       setLoginLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    setGoogleLoading(true);
+    // Redirect to Google OAuth endpoint
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -350,6 +358,39 @@ export default function LoginPage() {
                         </>
                       ) : (
                         "Sign in"
+                      )}
+                    </Button>
+
+                    {/* Divider */}
+                    <div className="relative my-6">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-gray-300 dark:border-gray-600" />
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">
+                          or
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Google Sign-In Button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleGoogleLogin}
+                      disabled={googleLoading || loginLoading}
+                      className="w-full h-12 border-2 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      {googleLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Connecting to Google...
+                        </>
+                      ) : (
+                        <>
+                          <FcGoogle className="mr-2 h-5 w-5" />
+                          Continue with Google
+                        </>
                       )}
                     </Button>
                   </form>

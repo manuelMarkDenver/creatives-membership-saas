@@ -46,9 +46,9 @@ export default function RootLayout({
           <ReactQueryProvider>
             <TenantProvider>
               {children}
+              <ClientToastContainer />
             </TenantProvider>
           </ReactQueryProvider>
-           <ClientToastContainer />
         </ThemeProvider>
       </body>
     </html>

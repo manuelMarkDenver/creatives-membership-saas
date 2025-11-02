@@ -198,6 +198,18 @@ export const authApi = {
     const response = await apiClient.get('/auth/me')
     return response.data
   },
+
+  // Create Google user with tenant selection
+  createGoogleUser: async (data: {
+    googleId: string
+    email: string
+    firstName: string
+    lastName: string
+    tenantId: string
+  }) => {
+    const response = await apiClient.post('/auth/create-google-user', data)
+    return response.data
+  },
 }
 
 export default apiClient
