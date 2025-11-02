@@ -63,13 +63,18 @@ export class AuthService {
       // Create tenant, owner, and main branch in transaction
       const result = await this.prisma.$transaction(async (tx) => {
         // 1. Create tenant with PENDING status
+        const ownerEmail = data.ownerEmail?.trim()?.toLowerCase();
+        if (!ownerEmail) {
+          throw new BadRequestException('Owner email is required');
+        }
+
         const tenant = await tx.tenant.create({
           data: {
             name: data.name.trim(),
             slug,
             category: data.category,
             status: 'PENDING', // Will be activated after email verification
-            adminEmailRecipients: [data.ownerEmail.trim().toLowerCase()], // Default to owner's email
+            adminEmailRecipients: [ownerEmail], // Default to owner's email
           },
         });
 

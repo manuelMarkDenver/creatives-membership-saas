@@ -66,6 +66,11 @@ export class TenantsService {
         }
 
         // 1. Create the tenant
+        const ownerEmail = data.ownerEmail?.trim();
+        if (!ownerEmail) {
+          throw new BadRequestException('Owner email is required');
+        }
+
         const tenant = await tx.tenant.create({
           data: {
             name: data.name.trim(),
@@ -80,7 +85,7 @@ export class TenantsService {
             primaryColor: data.primaryColor,
             secondaryColor: data.secondaryColor,
             freeBranchOverride: data.freeBranchOverride || 0,
-            adminEmailRecipients: [data.ownerEmail], // Default to owner's email
+            adminEmailRecipients: [ownerEmail], // Default to owner's email
           },
         });
 
@@ -295,6 +300,11 @@ export class TenantsService {
           _count: {
             select: { users: true },
           },
+          users: {
+            where: { role: 'OWNER' },
+            select: { email: true },
+            take: 1
+          }
         },
       });
 
@@ -302,7 +312,32 @@ export class TenantsService {
         throw new NotFoundException(`Tenant with ID '${id}' not found`);
       }
 
-      return tenant;
+      // Ensure adminEmailRecipients contains valid emails, fallback to owner's email if not
+      let adminEmailRecipients = tenant.adminEmailRecipients;
+      const ownerEmail = tenant.users?.[0]?.email;
+
+      if (ownerEmail) {
+        // Check if adminEmailRecipients is null, empty, or contains only invalid emails
+        const hasValidEmails = adminEmailRecipients &&
+          adminEmailRecipients.length > 0 &&
+          adminEmailRecipients.some(email => email && email.trim() !== '');
+
+        if (!hasValidEmails) {
+          adminEmailRecipients = [ownerEmail];
+          this.logger.log(`Fixing adminEmailRecipients for tenant ${tenant.name}: setting to owner email ${ownerEmail}`);
+
+          // Update the tenant in database
+          await this.prisma.tenant.update({
+            where: { id: tenant.id },
+            data: { adminEmailRecipients }
+          });
+        }
+      }
+
+      return {
+        ...tenant,
+        adminEmailRecipients
+      };
     } catch (error) {
       if (
         error instanceof BadRequestException ||
@@ -1021,6 +1056,11 @@ export class TenantsService {
           welcomeEmailEnabled: true,
           adminAlertEmailEnabled: true,
           tenantSignupNotificationEnabled: true,
+          users: {
+            where: { role: 'OWNER' },
+            select: { email: true },
+            take: 1
+          }
         },
       });
 
@@ -1028,7 +1068,32 @@ export class TenantsService {
         throw new NotFoundException('Tenant not found');
       }
 
-      return tenant;
+      // Ensure adminEmailRecipients contains valid emails, fallback to owner's email if not
+      let adminEmailRecipients = tenant.adminEmailRecipients;
+      const ownerEmail = tenant.users?.[0]?.email;
+
+      if (ownerEmail) {
+        // Check if adminEmailRecipients is null, empty, or contains only invalid emails
+        const hasValidEmails = adminEmailRecipients &&
+          adminEmailRecipients.length > 0 &&
+          adminEmailRecipients.some(email => email && email.trim() !== '');
+
+        if (!hasValidEmails) {
+          adminEmailRecipients = [ownerEmail];
+          this.logger.log(`Fixing adminEmailRecipients for tenant ${tenant.name}: setting to owner email ${ownerEmail}`);
+
+          // Update the tenant in database
+          await this.prisma.tenant.update({
+            where: { id: tenant.id },
+            data: { adminEmailRecipients }
+          });
+        }
+      }
+
+      return {
+        ...tenant,
+        adminEmailRecipients
+      };
     } catch (error) {
       if (
         error instanceof BadRequestException ||

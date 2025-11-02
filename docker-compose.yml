@@ -41,7 +41,7 @@ services:
       # Node Environment
       NODE_ENV: "production"
     env_file:
-      - .env
+      - .env.prod
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5000/api/v1/health || exit 1"]
       interval: 30s
@@ -71,7 +71,7 @@ services:
     environment:
       NODE_ENV: "production"
     env_file:
-      - .env
+      - .env.prod
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
       interval: 30s

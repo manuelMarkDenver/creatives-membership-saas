@@ -6,9 +6,8 @@
 ENV=${1:-"local"}
 
 if [ "$ENV" = "local" ]; then
-    echo "🔄 Switching to LOCAL development environment..."
-    cp .env.local .env
-    echo "✅ Copied .env.local to .env"
+    echo "🔄 LOCAL development environment active..."
+    echo "📋 Using .env.local for development"
     echo "📋 To start development:"
     echo "   # 1. Start PostgreSQL in Docker:"
     echo "   docker compose -f docker-compose.dev.yml up -d postgres"
@@ -23,9 +22,8 @@ if [ "$ENV" = "local" ]; then
     echo "   Backend: http://localhost:5000/api/v1"
     echo "   PostgreSQL: localhost:5432"
 elif [ "$ENV" = "prod" ]; then
-    echo "🔄 Switching to PRODUCTION environment..."
-    cp .env.prod .env
-    echo "✅ Copied .env.prod to .env"
+    echo "🔄 PRODUCTION environment active..."
+    echo "📋 Using .env.prod for production"
     echo "📋 To start production:"
     echo "   docker compose up -d"
     echo "📋 To run seeds (with prod DB):"
@@ -37,5 +35,7 @@ else
 fi
 
 echo ""
-echo "🔍 Current .env file contents:"
-head -10 .env
+echo "🔍 Environment files:"
+echo "   .env.local (development)"
+echo "   .env.test (testing)"
+echo "   .env.prod (production)"

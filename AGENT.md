@@ -545,6 +545,64 @@ if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
 
 **✅ VERIFIED**: Code compiles successfully and fallback logic is properly implemented.
 
+#### ✅ **FIXED: Tenant Settings Auto-Fix for adminEmailRecipients - COMPLETED**
+
+**Issue**: Existing tenants had `adminEmailRecipients` as null or empty, causing the tenant settings page to not show the owner's email and potentially causing issues with email notifications.
+
+**Root Cause**: While new tenant creation sets `adminEmailRecipients` correctly, existing tenants created before this feature had null values.
+
+**Solution**: Modified `getTenantSettings` method in `tenants.service.ts` to automatically detect and fix null/empty `adminEmailRecipients`:
+
+- Added owner user lookup to the tenant query
+- Check if `adminEmailRecipients` is null or empty
+- If so, update the tenant record to set `adminEmailRecipients` to `[owner.email]`
+- Return the corrected data to the frontend
+
+**Files Modified**:
+- `/backend/src/core/tenants/tenants.service.ts` - Updated getTenantSettings method with auto-fix logic
+
+**Result**: When owners access their tenant settings, any missing or invalid `adminEmailRecipients` is automatically populated with their email address. This ensures the settings page always shows the correct data and prevents notification issues.
+
+**✅ VERIFIED**: Code compiles successfully and auto-fix logic is properly implemented.
+
+#### ✅ **FIXED: Tenant Creation Admin Email Validation - COMPLETED**
+
+**Issue**: New tenants were being created with invalid `adminEmailRecipients` (containing null, empty strings, or invalid emails) because the creation methods didn't validate that `ownerEmail` was properly set.
+
+**Root Cause**: The `registerTenant` and `createTenant` methods set `adminEmailRecipients: [data.ownerEmail]` without validating that `data.ownerEmail` was a valid non-empty string.
+
+**Solution**: Added validation in both tenant creation methods to ensure `ownerEmail` is trimmed and non-empty before setting `adminEmailRecipients`:
+
+- `registerTenant` in `auth.service.ts`: Validates `data.ownerEmail` before creating tenant
+- `createTenant` in `tenants.service.ts`: Validates `data.ownerEmail` before creating tenant
+
+**Files Modified**:
+- `/backend/src/core/auth/auth.service.ts` - Added ownerEmail validation in registerTenant
+- `/backend/src/core/tenants/tenants.service.ts` - Added ownerEmail validation in createTenant
+
+**Result**: All new tenants are now created with valid `adminEmailRecipients` containing the owner's email. Prevents invalid email configurations from the start.
+
+**✅ VERIFIED**: Code compiles successfully and validation is properly implemented.
+
+#### ✅ **FIXED: Tenant Detail API Auto-Fix for adminEmailRecipients - COMPLETED**
+
+**Issue**: The `getTenant` API (used by super admins to view tenant details) was returning raw database data with potentially invalid `adminEmailRecipients`, showing empty arrays to admins.
+
+**Root Cause**: The `getTenant` method returned unprocessed tenant data without checking or fixing `adminEmailRecipients`.
+
+**Solution**: Modified `getTenant` method to include owner user lookup and auto-fix invalid `adminEmailRecipients`, similar to `getTenantSettings`:
+
+- Added owner user query to tenant detail fetch
+- Applied same validation and auto-fix logic as `getTenantSettings`
+- Ensures super admins see correct admin email data
+
+**Files Modified**:
+- `/backend/src/core/tenants/tenants.service.ts` - Updated getTenant method with adminEmailRecipients auto-fix
+
+**Result**: Super admins viewing tenant details now see correct `adminEmailRecipients` data. Invalid configurations are automatically fixed when accessed.
+
+**✅ VERIFIED**: Code compiles successfully and auto-fix logic is properly implemented.
+
 ## 🔧 **FIXED: Authentication System Cleanup**
 
 **Problem**: User was getting logged out when accessing `/tenant-settings` due to leftover Supabase authentication code.
@@ -1550,10 +1608,10 @@ cd frontend && npm run dev
 
 ### Environment Configuration
 
-- **Root .env**: Project root contains main `.env` file with database URLs
+- **Root .env.local**: Project root contains `.env.local` file with development database URLs
 - **Frontend .env.local**: `/frontend/.env.local` contains `NEXT_PUBLIC_API_URL`
-- **Prisma Access**: Backend Prisma commands read from root `.env` file
-- **Database Push**: Run `npx prisma db push` from `/backend` directory (reads from `../.env`)
+- **Prisma Access**: Backend Prisma commands read from root `.env.local` file for development
+- **Database Push**: Run `npx prisma db push` from `/backend` directory (reads from `../.env.local`)
 
 ### Browser Console Logs
 
@@ -2907,7 +2965,7 @@ GET /api/v1/gym/analytics/owner-insights?period=this_year
 
 - Auto-logout fixed by disabling aggressive tenant validation in `useAuthValidation` and API client interceptors; network errors no longer trigger logout. Verified after dev server restart.
 - Branch/Location features implemented end-to-end: `isMainBranch` field and swap logic, subscription limit checks (create/restore), UI badges and checkbox, create disabled when limit reached, restore hidden when limit reached.
-- Documentation updated: `.env` lives in repo root; browser console logs at `/home/mhackeedev/console.log`.
+- Documentation updated: `.env.local` lives in repo root for development; browser console logs at `/home/mhackeedev/console.log`.
 
 #### 🔥 High Priority TODOs (Oct 24, 2025)
 
