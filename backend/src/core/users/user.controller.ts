@@ -187,6 +187,7 @@ export class UsersController {
   @Post(':id/photo')
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
+  @SkipBusinessTypeGuard()
   @AllowedBusinessTypes(BusinessCategory.GYM)
   @UseInterceptors(
     FileInterceptor('photo', {
@@ -218,6 +219,7 @@ export class UsersController {
   @Delete(':id/photo')
   @RequiredRoles(Role.OWNER, Role.MANAGER)
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
+  @SkipBusinessTypeGuard()
   @AllowedBusinessTypes(BusinessCategory.GYM)
   async deleteUserPhoto(@Param('id') userId: string, @Req() req: any) {
     return this.usersService.deleteUserPhoto(userId);
