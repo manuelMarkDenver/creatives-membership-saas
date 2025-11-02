@@ -194,11 +194,15 @@ model User {
    emailNotificationsEnabled Boolean                 @default(true)
    marketingEmailsEnabled    Boolean                 @default(false)
 
-   // Email verification fields
-  emailVerified             Boolean                 @default(false)
-  emailVerificationToken    String?                 @unique
-  emailVerificationExpiry   DateTime?
-  emailVerifiedAt           DateTime?
+    // Email verification fields
+   emailVerified             Boolean                 @default(false)
+   emailVerificationToken    String?                 @unique
+   emailVerificationExpiry   DateTime?
+   emailVerifiedAt           DateTime?
+
+    // OAuth fields
+    googleId                  String?                 @unique
+    authProvider              AuthProvider            @default(LOCAL)
   tenant                 Tenant?                 @relation(fields: [tenantId], references: [id])
   gymMemberSubscriptions GymMemberSubscription[] @relation("GymMemberSubscriptions")
   customerTransactions   CustomerTransaction[]   @relation("CustomerTransactions")
@@ -755,4 +759,9 @@ enum PasswordSecurityLevel {
   LOW      // 6+ chars, basic requirements
   MEDIUM   // 8+ chars, mixed case + number
   HIGH     // 8+ chars, mixed case + number + special char
+}
+
+enum AuthProvider {
+  LOCAL    // Email/password authentication
+  GOOGLE   // Google OAuth authentication
 }

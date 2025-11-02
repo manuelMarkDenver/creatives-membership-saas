@@ -22,7 +22,34 @@ import { SetInitialPasswordDto } from './dto/set-initial-password.dto';
 import { SystemSettingsService } from '../system-settings/system-settings.service';
 import { validatePassword } from '../../common/utils/password-validator';
 import * as bcrypt from 'bcrypt';
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsNotEmpty } from 'class-validator';
+import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
+
+// Simple in-memory rate limiter for OAuth endpoints
+const oauthRateLimit = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX = 5; // 5 attempts per window
+
+function checkRateLimit(identifier: string): boolean {
+  const now = Date.now();
+  const record = oauthRateLimit.get(identifier);
+
+  if (!record || now > record.resetTime) {
+    // First attempt or window expired
+    oauthRateLimit.set(identifier, {
+      count: 1,
+      resetTime: now + RATE_LIMIT_WINDOW,
+    });
+    return true;
+  }
+
+  if (record.count >= RATE_LIMIT_MAX) {
+    return false; // Rate limit exceeded
+  }
+
+  record.count++;
+  return true;
+}
 
 class LoginDto {
   @IsEmail()
@@ -41,6 +68,27 @@ class ChangePasswordDto {
   @IsString()
   @MinLength(8, { message: 'New password must be at least 8 characters long' })
   newPassword: string;
+}
+
+class CreateGoogleUserDto {
+  @IsString()
+  @IsNotEmpty()
+  googleId: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  firstName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  lastName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  tenantId: string;
 }
 
 @Controller('auth')
@@ -129,91 +177,82 @@ export class AuthController {
   }
 
   /**
-   * Initiate OAuth login
-   * GET /auth/login?provider=google&redirect_to=http://localhost:3000/dashboard
+   * Initiate Google OAuth login
+   * GET /auth/google
    */
-  @Get('login')
-  async login(
-    @Query('provider') provider: string,
-    @Res() res: Response,
-    @Query('redirect_to') redirectTo?: string,
-  ) {
-    if (!provider || !['google', 'facebook', 'twitter'].includes(provider)) {
+  @Get('google')
+  @UseGuards(PassportAuthGuard('google'))
+  googleAuth(@Req() req: Request) {
+    // Basic rate limiting for OAuth attempts
+    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    if (!checkRateLimit(`oauth_${clientIP}`)) {
       throw new BadRequestException(
-        'Valid provider (google, facebook, twitter) is required',
+        'Too many OAuth attempts. Please try again later.',
       );
     }
 
-    try {
-      const oauthUrl = await this.supabaseService.getOAuthUrl(
-        provider as 'google' | 'facebook' | 'twitter',
-        redirectTo,
-      );
-
-      // Redirect user to OAuth provider
-      return res.redirect(oauthUrl);
-    } catch (error) {
-      throw new InternalServerErrorException(
-        `OAuth initiation failed: ${error.message}`,
-      );
-    }
+    // Passport handles the redirect to Google
   }
 
   /**
-   * Handle OAuth callback
-   * GET /auth/callback?code=AUTH_CODE&state=STATE
+   * Handle Google OAuth callback
+   * GET /auth/google/callback
    */
-  @Get('callback')
-  async callback(
-    @Query('code') code: string,
-    @Res() res: Response,
-    @Query('error') error?: string,
-    @Query('error_description') errorDescription?: string,
-  ) {
-    // Handle OAuth errors
-    if (error) {
-      const message = errorDescription || error;
-      console.error('OAuth callback error:', message);
+  @Get('google/callback')
+  @UseGuards(PassportAuthGuard('google'))
+  async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
+    // Rate limiting for callback attempts
+    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    if (!checkRateLimit(`oauth_callback_${clientIP}`)) {
       return res.redirect(
-        `${process.env.FRONTEND_URL}/auth/error?message=${encodeURIComponent(message)}`,
+        `${process.env.FRONTEND_URL}/auth/error?message=${encodeURIComponent('Too many authentication attempts. Please try again later.')}`,
       );
     }
-
-    if (!code) {
-      throw new BadRequestException('Authorization code is required');
-    }
-
     try {
-      // Exchange code for session
-      const session = await this.supabaseService.exchangeCodeForSession(code);
+      // Passport attaches the user to the request
+      const googleUser = req.user as any;
 
-      if (!session.session) {
-        throw new Error('Failed to create session');
+      if (!googleUser) {
+        throw new Error('No user data from Google OAuth');
       }
 
-      const { access_token, refresh_token, user } = session.session;
+      // Handle Google login through auth service
+      const result = await this.authService.handleGoogleLogin(googleUser);
 
-      // In a real app, you might want to:
-      // 1. Create/update user record in your database
-      // 2. Set secure HTTP-only cookies
-      // 3. Create JWT tokens for your app
+      if (result.requiresTenantSelection) {
+        // New user needs tenant selection
+        const params = new URLSearchParams({
+          requires_tenant: 'true',
+          google_id: result.googleUser.googleId,
+          email: result.googleUser.email,
+          first_name: result.googleUser.firstName,
+          last_name: result.googleUser.lastName,
+        });
+        return res.redirect(
+          `${process.env.FRONTEND_URL}/auth/google-tenant-selection?${params.toString()}`,
+        );
+      }
 
-      // For now, redirect to frontend with tokens (not recommended for production)
+      if (!result.success || !result.data) {
+        throw new Error('Google login failed');
+      }
+
+      // Successful login - redirect to dashboard with token
       const params = new URLSearchParams({
-        access_token,
-        refresh_token: refresh_token || '',
-        user_id: user.id,
-        email: user.email || '',
-        name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+        token: result.data.token,
+        user_id: result.data.user.id,
+        email: result.data.user.email,
       });
 
       return res.redirect(
         `${process.env.FRONTEND_URL}/auth/success?${params.toString()}`,
       );
     } catch (error) {
-      console.error('OAuth callback processing error:', error);
+      console.error('Google OAuth callback error:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Google authentication failed';
       return res.redirect(
-        `${process.env.FRONTEND_URL}/auth/error?message=${encodeURIComponent('Authentication failed')}`,
+        `${process.env.FRONTEND_URL}/auth/error?message=${encodeURIComponent(errorMessage)}`,
       );
     }
   }
@@ -436,5 +475,30 @@ export class AuthController {
       throw new BadRequestException('Email is required');
     }
     return this.authService.resendVerificationEmail(body.email);
+  }
+
+  /**
+   * Create Google user with tenant selection
+   * POST /auth/create-google-user
+   */
+  @Post('create-google-user')
+  async createGoogleUser(@Body() createGoogleUserDto: CreateGoogleUserDto) {
+    try {
+      return this.authService.createGoogleUserWithTenant(
+        {
+          googleId: createGoogleUserDto.googleId,
+          email: createGoogleUserDto.email,
+          firstName: createGoogleUserDto.firstName,
+          lastName: createGoogleUserDto.lastName,
+        },
+        createGoogleUserDto.tenantId,
+      );
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      console.error('Create Google user error:', error);
+      throw new InternalServerErrorException('Failed to create account');
+    }
   }
 }

@@ -1,7 +1,6 @@
 import {
   Injectable,
   BadRequestException,
-  UnauthorizedException,
   ConflictException,
   Logger,
 } from '@nestjs/common';
@@ -13,6 +12,7 @@ import * as jwt from 'jsonwebtoken';
 import slugify from 'slugify';
 import { SystemSettingsService } from '../system-settings/system-settings.service';
 import { validatePassword } from '../../common/utils/password-validator';
+import { AuthProvider } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -422,6 +422,172 @@ export class AuthService {
       success: true,
       message: 'Verification email sent. Please check your inbox.',
     };
+  }
+
+  /**
+   * Handle Google OAuth login - create or link user account
+   */
+  async handleGoogleLogin(googleUser: {
+    googleId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    displayName?: string;
+  }) {
+    try {
+      // Check if user already exists with this Google ID
+      let user = await this.prisma.user.findUnique({
+        where: { googleId: googleUser.googleId },
+        include: { tenant: true },
+      });
+
+      if (user) {
+        // User exists with Google ID - return login token
+        this.logger.log(`Google login for existing user: ${user.email}`);
+        const loginToken = this.generateLoginToken(user);
+        return {
+          success: true,
+          message: 'Login successful',
+          data: {
+            user: this.formatUserResponse(user),
+            token: loginToken,
+          },
+        };
+      }
+
+      // Check if user exists with same email but different auth provider
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: googleUser.email },
+        include: { tenant: true },
+      });
+
+      if (existingUser) {
+        if (existingUser.authProvider === AuthProvider.GOOGLE) {
+          // This shouldn't happen, but handle it
+          this.logger.warn(
+            `User ${googleUser.email} already linked to Google but not found by googleId`,
+          );
+          const loginToken = this.generateLoginToken(existingUser);
+          return {
+            success: true,
+            message: 'Login successful',
+            data: {
+              user: this.formatUserResponse(existingUser),
+              token: loginToken,
+            },
+          };
+        } else {
+          // User exists with different auth provider - link Google account
+          this.logger.log(
+            `Linking Google account to existing user: ${googleUser.email}`,
+          );
+          user = await this.prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              googleId: googleUser.googleId,
+              authProvider: AuthProvider.GOOGLE,
+              emailVerified: true, // Google verifies emails
+              emailVerifiedAt: new Date(),
+            },
+            include: { tenant: true },
+          });
+        }
+      } else {
+        // New user - this is problematic for multi-tenant system
+        // We need tenant context to create a user
+        // For now, return an error requiring tenant selection
+        return {
+          success: false,
+          requiresTenantSelection: true,
+          message: 'New Google user requires tenant selection',
+          googleUser: {
+            googleId: googleUser.googleId,
+            email: googleUser.email,
+            firstName: googleUser.firstName,
+            lastName: googleUser.lastName,
+          },
+        };
+      }
+
+      // Generate login token
+      const loginToken = this.generateLoginToken(user);
+      return {
+        success: true,
+        message: 'Login successful',
+        data: {
+          user: this.formatUserResponse(user),
+          token: loginToken,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Google login failed: ${error.message}`, error.stack);
+      throw new BadRequestException('Google login failed');
+    }
+  }
+
+  /**
+   * Create new user from Google OAuth with tenant selection
+   */
+  async createGoogleUserWithTenant(
+    googleUser: {
+      googleId: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+    },
+    tenantId: string,
+  ) {
+    try {
+      // Verify tenant exists
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+      });
+
+      if (!tenant) {
+        throw new BadRequestException('Invalid tenant selected');
+      }
+
+      // Create user with Google OAuth
+      const user = await this.prisma.user.create({
+        data: {
+          googleId: googleUser.googleId,
+          email: googleUser.email,
+          firstName: googleUser.firstName,
+          lastName: googleUser.lastName,
+          role: 'CLIENT', // Default role for OAuth users
+          tenantId: tenantId,
+          authProvider: AuthProvider.GOOGLE,
+          emailVerified: true, // Google verifies emails
+          emailVerifiedAt: new Date(),
+          initialPasswordSet: true, // OAuth users don't need password setup
+        },
+        include: { tenant: true },
+      });
+
+      this.logger.log(
+        `Created new Google user: ${user.email} in tenant: ${tenant.name}`,
+      );
+
+      // Generate login token
+      const loginToken = this.generateLoginToken(user);
+      return {
+        success: true,
+        message: 'Account created and login successful',
+        data: {
+          user: this.formatUserResponse(user),
+          token: loginToken,
+        },
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(
+        `Create Google user failed: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException('Failed to create account');
+    }
   }
 
   // Helper methods

@@ -40,6 +40,12 @@ export class TenantsController {
     return this.tenantsService.listTenants(query.category);
   }
 
+  @Get('public/list')
+  async getPublicTenantList() {
+    // Public endpoint for tenant selection during OAuth
+    return this.tenantsService.getPublicTenantList();
+  }
+
   @Get(':id')
   @RequiredRoles(Role.SUPER_ADMIN)
   async getTenant(@Param('id') id: string) {

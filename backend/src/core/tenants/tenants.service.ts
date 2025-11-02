@@ -287,6 +287,42 @@ export class TenantsService {
     }
   }
 
+  async getPublicTenantList() {
+    try {
+      // Return basic tenant info for OAuth tenant selection
+      // Only include active tenants
+      const tenants = await this.prisma.tenant.findMany({
+        where: {
+          status: 'ACTIVE',
+        },
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          slug: true,
+          createdAt: true,
+        },
+        orderBy: { name: 'asc' },
+      });
+
+      this.logger.log(
+        `Retrieved ${tenants.length} public tenants for OAuth selection`,
+      );
+      return {
+        success: true,
+        data: tenants,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get public tenant list: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to retrieve tenant list. Please try again.',
+      );
+    }
+  }
+
   async getTenant(id: string) {
     try {
       // Validate UUID format
