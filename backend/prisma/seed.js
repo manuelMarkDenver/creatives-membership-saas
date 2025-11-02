@@ -356,18 +356,18 @@ async function main() {
   console.log('🌱 Starting simplified database seeding...');
 
   // Create Super Admin users
-  console.log('👑 Creating Super Admins...');
+  console.log('👑 Creating/Updating Super Admins...');
 
   const superAdmins = [
     {
-      email: process.env.SUPER_ADMIN_EMAIL_1 || 'admin@creatives-saas.com',
-      password: process.env.SUPER_ADMIN_PASSWORD_1 || 'SuperAdmin123!',
-      firstName: 'Super',
-      lastName: 'Admin',
+      email: 'manuel.markdenver@gmail.com',
+      password: 'SuperAdmin123!',
+      firstName: 'Mark Denver',
+      lastName: 'Manuel',
     },
     {
-      email: process.env.SUPER_ADMIN_EMAIL_2 || 'aileen.tibayan@creatives-saas.com',
-      password: process.env.SUPER_ADMIN_PASSWORD_2 || 'SuperAdmin123!',
+      email: 'mckee.korea@gmail.com',
+      password: 'SuperAdmin123!',
       firstName: 'Aileen',
       lastName: 'Tibayan',
     },
@@ -376,34 +376,25 @@ async function main() {
   const createdSuperAdminEmails = [];
 
   for (const adminData of superAdmins) {
-    const existingSuperAdmin = await prisma.user.findUnique({
-      where: { email: adminData.email },
+    const hashedPassword = await bcrypt.hash(adminData.password, 12);
+
+    const superAdmin = await prisma.user.create({
+      data: {
+        email: adminData.email,
+        password: hashedPassword,
+        firstName: adminData.firstName,
+        lastName: adminData.lastName,
+        role: 'SUPER_ADMIN',
+        emailVerified: true, // Seeded users are pre-verified
+        // Email preferences
+        emailNotificationsEnabled: true,
+        marketingEmailsEnabled: false,
+      },
     });
 
-    if (!existingSuperAdmin) {
-      const hashedPassword = await bcrypt.hash(adminData.password, 12);
-
-      const superAdmin = await prisma.user.create({
-        data: {
-          email: adminData.email,
-          password: hashedPassword,
-          firstName: adminData.firstName,
-          lastName: adminData.lastName,
-          role: 'SUPER_ADMIN',
-          emailVerified: true, // Seeded users are pre-verified
-          // Email preferences
-          emailNotificationsEnabled: true,
-          marketingEmailsEnabled: false,
-        },
-      });
-
-      console.log(`✅ Super Admin created: ${superAdmin.firstName} ${superAdmin.lastName} (${superAdmin.email})`);
-      console.log(`🔑 Password: ${adminData.password}`);
-      createdSuperAdminEmails.push(superAdmin.email);
-    } else {
-      console.log(`⏭️  Super Admin already exists: ${adminData.firstName} ${adminData.lastName} (${adminData.email})`);
-      createdSuperAdminEmails.push(existingSuperAdmin.email);
-    }
+    console.log(`✅ Super Admin created: ${superAdmin.firstName} ${superAdmin.lastName} (${superAdmin.email})`);
+    console.log(`🔑 Password: ${adminData.password}`);
+    createdSuperAdminEmails.push(superAdmin.email);
   }
 
   // Create or update SystemSettings with global admin emails
