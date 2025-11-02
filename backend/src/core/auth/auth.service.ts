@@ -608,6 +608,21 @@ export class AuthService {
         `Created new tenant from Google OAuth: ${result.tenant.name} (${result.tenant.id}) for user: ${googleUser.email}`,
       );
 
+      // Send global admin notification for new tenant registration
+      try {
+        await this.emailService.sendGlobalAdminAlert(
+          'New Tenant Registration',
+          `A new tenant "${result.tenant.name}" has registered via Google OAuth. Owner: ${result.owner.email}`,
+          'new_tenant',
+        );
+      } catch (alertError) {
+        this.logger.error(
+          `Failed to send global admin alert: ${alertError.message}`,
+          alertError.stack,
+        );
+        // Don't fail registration if admin alert fails
+      }
+
       // Generate login token
       const loginToken = this.generateLoginToken(result.owner);
       return {
