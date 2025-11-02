@@ -355,37 +355,81 @@ This is an automated notification from GymBossLab.
 async function main() {
   console.log('🌱 Starting simplified database seeding...');
 
-  // Create Super Admin user
-  console.log('👑 Creating Super Admin...');
-  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@creatives-saas.com';
-  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || 'SuperAdmin123!';
-  
-  const existingSuperAdmin = await prisma.user.findUnique({
-    where: { email: superAdminEmail },
+  // Create Super Admin users
+  console.log('👑 Creating Super Admins...');
+
+  const superAdmins = [
+    {
+      email: process.env.SUPER_ADMIN_EMAIL_1 || 'admin@creatives-saas.com',
+      password: process.env.SUPER_ADMIN_PASSWORD_1 || '73ee8f62-de11-4c95-81d2-4e24620c7e2a',
+      firstName: 'Super',
+      lastName: 'Admin',
+    },
+    {
+      email: process.env.SUPER_ADMIN_EMAIL_2 || 'aileen.tibayan@creatives-saas.com',
+      password: process.env.SUPER_ADMIN_PASSWORD_2 || '73ee8f62-de11-4c95-81d2-4e24620c7e2a',
+      firstName: 'Aileen',
+      lastName: 'Tibayan',
+    },
+  ];
+
+  const createdSuperAdminEmails = [];
+
+  for (const adminData of superAdmins) {
+    const existingSuperAdmin = await prisma.user.findUnique({
+      where: { email: adminData.email },
+    });
+
+    if (!existingSuperAdmin) {
+      const hashedPassword = await bcrypt.hash(adminData.password, 12);
+
+      const superAdmin = await prisma.user.create({
+        data: {
+          email: adminData.email,
+          password: hashedPassword,
+          firstName: adminData.firstName,
+          lastName: adminData.lastName,
+          role: 'SUPER_ADMIN',
+          emailVerified: true, // Seeded users are pre-verified
+          // Email preferences
+          emailNotificationsEnabled: true,
+          marketingEmailsEnabled: false,
+        },
+      });
+
+      console.log(`✅ Super Admin created: ${superAdmin.firstName} ${superAdmin.lastName} (${superAdmin.email})`);
+      console.log(`🔑 Password: ${adminData.password}`);
+      createdSuperAdminEmails.push(superAdmin.email);
+    } else {
+      console.log(`⏭️  Super Admin already exists: ${adminData.firstName} ${adminData.lastName} (${adminData.email})`);
+      createdSuperAdminEmails.push(existingSuperAdmin.email);
+    }
+  }
+
+  // Create or update SystemSettings with global admin emails
+  console.log('⚙️  Setting up System Settings with global admin emails...');
+  const systemSettings = await prisma.systemSettings.upsert({
+    where: { id: 'system' },
+    update: {
+      globalAdminEmails: createdSuperAdminEmails,
+      newTenantAlertsEnabled: true,
+      systemAlertsEnabled: true,
+      securityAlertsEnabled: true,
+      tenantNotificationsEnabled: true,
+      updatedAt: new Date(),
+    },
+    create: {
+      id: 'system',
+      passwordSecurityLevel: 'MEDIUM',
+      globalAdminEmails: createdSuperAdminEmails,
+      newTenantAlertsEnabled: true,
+      systemAlertsEnabled: true,
+      securityAlertsEnabled: true,
+      tenantNotificationsEnabled: true,
+    },
   });
 
-  if (!existingSuperAdmin) {
-    const hashedPassword = await bcrypt.hash(superAdminPassword, 12);
-    
-    const superAdmin = await prisma.user.create({
-      data: {
-        email: superAdminEmail,
-        password: hashedPassword,
-        firstName: 'Super',
-        lastName: 'Admin',
-        role: 'SUPER_ADMIN',
-        emailVerified: true, // Seeded users are pre-verified
-        // Email preferences
-        emailNotificationsEnabled: true,
-        marketingEmailsEnabled: false,
-      },
-    });
-    
-    console.log(`✅ Super Admin created: ${superAdmin.email}`);
-    console.log(`🔑 Super Admin Password: ${superAdminPassword}`);
-  } else {
-    console.log(`⏭️  Super Admin already exists: ${superAdminEmail}`);
-  }
+  console.log(`✅ System Settings updated with ${createdSuperAdminEmails.length} global admin emails: ${createdSuperAdminEmails.join(', ')}`);
 
   // Create initial subscription plans
   const plans = [
@@ -450,10 +494,16 @@ async function main() {
   
   const loginCredentials = [
     {
-      email: superAdminEmail,
-      password: superAdminPassword,
+      email: superAdmins[0].email,
+      password: superAdmins[0].password,
       role: 'SUPER_ADMIN',
-      name: 'Super Admin'
+      name: `${superAdmins[0].firstName} ${superAdmins[0].lastName}`
+    },
+    {
+      email: superAdmins[1].email,
+      password: superAdmins[1].password,
+      role: 'SUPER_ADMIN',
+      name: `${superAdmins[1].firstName} ${superAdmins[1].lastName}`
     }
   ];
   

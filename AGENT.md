@@ -20,6 +20,7 @@
 ### **White-Labeling Architecture Decision**
 
 **Current Implementation**: Separate Deployments per Customer
+
 - ✅ **Full Isolation**: Each white-label customer gets their own complete stack (database, server, domain)
 - ✅ **Independent Scaling**: Each customer scales separately
 - ✅ **Custom Branding**: Each can have their own domain, colors, features
@@ -27,6 +28,7 @@
 - ❌ **High Cost**: Requires separate infrastructure per customer (~$5-20/month each on Railway + Vercel)
 
 **Alternative Considered**: Multi-Tenant Single Deployment
+
 - ✅ **Cost Effective**: Single infrastructure serves all customers
 - ✅ **Easier Management**: One codebase, one database to maintain
 - ❌ **Schema Changes Required**: Need PlatformOwner model, scoped SystemSettings, tenant isolation
@@ -38,70 +40,7 @@
 
 ## ⚠️ Important Agent Rules & Development Guidelines
 
-### 🤖 Agent Behavior Rules
-
-- **ALWAYS ASK BEFORE MAKING CHANGES**: Never modify files, run commands, or make schema changes without explicit user approval first
-- **CONFIRM UNDERSTANDING**: Ask clarifying questions if the request is ambiguous
-- **EXPLAIN CHANGES**: When proposing changes, clearly explain what will be modified and why
-- **PRESERVE USER CONTROL**: The user must approve every change to maintain their ability to follow along
-- **LOCAL DEVELOPMENT**: User runs backend at 5000 and frontend at 3000 - Agent MUST NEVER start, stop, or restart servers
-- **STRICT PORT ENFORCEMENT**: Frontend MUST run on port 3000, Backend MUST run on port 5000 - NO exceptions, NO alternative ports
-- **SERVER MANAGEMENT**: Agent can ONLY run builds (`npm run build`) if necessary - User manages all `npm run dev` and server processes
-- **MULTIPLE INSTANCES PROHIBITED**: Agent MUST NEVER run multiple server instances on different ports - User manages single instances only
-- **FILE CHANGE INDICATION**: Use **bold** or *italics* for file changes to distinguish from thinking
-- **NO CONSOLE LOG SPAM**: Remove debug console logs after fixing issues - keep code clean
-- **CONSISTENT QUERY KEYS**: Always match React Query keys between hooks and mutations for proper cache invalidation
-- **COMMIT MESSAGES**: After every fix/update/change, provide a concise git commit message that user can copy-paste. When user says "commit!", provide a commit message for recent changes. Do NOT commit changes yourself - User handles all git operations (add, commit, push)
-- **GIT WORKFLOW**: Agent NEVER commits or pushes - Agent only provides ready-to-use commit messages for user to execute manually
-- **SHORTHAND REFERENCES**:
-  - **"a-doc"** = This AGENT.md file (`/home/mhackeedev/_apps/creatives-saas/AGENT.md`)
-  - **"b-logs"** = Browser console logs (`/home/mhackeedev/console.log`)
-  - **"conversations"** = Documentation directory (`/home/mhackeedev/_apps/creatives-saas/conversations/`)
-    - `DEPLOYMENT-GUIDE.md` - Complete deployment workflows and CLI reference
-  - **"rules!"** = Agent rules and guidelines (`/home/mhackeedev/_apps/creatives-saas/conversation/rules.md`)
-- **MILESTONE DOCUMENTATION**: Update a-doc after every milestone or task completion, then provide a copy-paste ready commit message
-
-### 🏗️ Code Quality Rules
-
-- **SOLID, DRY, YAGNI Principles**: Always implement best programming practices
-- **Schema Updates**: Every modification in schema MUST update the seeder and run the seeder to maintain data consistency
-- **Seeder Maintenance**: When adding new schema fields or changing existing structures, always update `/backend/prisma/seed.js` to include the new fields with appropriate default values
-- **No Manual Database Updates**: NEVER manually update database records with SQL commands. Always update the seeder and regenerate the database using `npx prisma db push && npm run seed`
-- **Database Reset Workflow**: When data inconsistencies occur, use the proper workflow:
-  1. Update the seeder code in `/backend/prisma/seed.js`
-  2. Run `npx prisma db push` to sync schema
-  3. Run `npm run seed` to populate with correct data
-  4. Verify data integrity
-- **Port Consistency**: Always run frontend on 3000 and backend on 5000 for local development. No other ports (3001, 5001, etc.)
-- **Build Verification**: Check functionality by building Next.js or Nest.js using their build scripts
-- **Error Handling**: Implement graceful error handling with user-friendly messages
-- **React Query**: Properly handle cache invalidation, loading states, and error states
-- **TypeScript**: Maintain strict typing and resolve compilation errors
-
-### 🚫 DATABASE MIGRATION RULES
-
-**CRITICAL: NO MIGRATIONS DURING DEVELOPMENT**
-
-- ✅ **Use `prisma db push` ONLY** for all schema changes during development
-- ❌ **DO NOT use migrations** until MVP production launch
-- **Reason**: We're rapidly iterating on schema and features
-- **Production**: Will create proper migrations once MVP is finalized
-
-```bash
-# ✅ CORRECT - Use for development
-npx prisma db push
-
-# ❌ WRONG - Don't use until production
-npx prisma migrate dev
-npx prisma migrate deploy
-```
-
-**CRITICAL: Database Regeneration After Seeder Changes**
-
-- ⚠️ **EVERY seeder update requires database regeneration** during development
-- ✅ **Always run**: `npx prisma db push && npm run seed` after modifying seed.js
-- **Why**: Seeder changes don't apply to existing data - must regenerate to see changes
-- **Production**: Will use proper migrations - seeder only for initial data
+See [./conversations/rules.md](./conversations/rules.md) for all agent rules and development guidelines.
 
 ---
 
@@ -110,18 +49,21 @@ npx prisma migrate deploy
 **Isolated test database and comprehensive tenant signup notification testing**
 
 ### **Phase 1: Test Database Setup ✅ COMPLETED**
+
 - Created separate `creatives_saas_test` PostgreSQL database for e2e testing
 - Configured `.env.test` with isolated database connection
 - Set up test environment variables and database isolation
 - Database runs in Docker with complete separation from production/development data
 
 ### **Phase 2: E2E Test Infrastructure ✅ COMPLETED**
+
 - Fixed environment variable loading in `e2e-setup.ts` with proper path resolution
 - Resolved Supabase compatibility by setting `NODE_ENV = 'development'` in tests
 - Fixed Prisma connection issues with correct `DIRECT_URL` configuration
 - All environment variables now load properly (26 variables injected)
 
 ### **Phase 3: Tenant Signup Notifications Testing ✅ COMPLETED**
+
 - **Test Suite**: 9 comprehensive e2e tests covering all notification scenarios
 - **Platform Control**: Tests for platform-level tenant notification enable/disable
 - **Tenant Control**: Tests for tenant-level signup notification preferences
@@ -130,6 +72,7 @@ npx prisma migrate deploy
 - **Fixed Test Bugs**: Corrected member data expectations in test assertions
 
 ### **Phase 4: Test Execution & Verification ✅ COMPLETED**
+
 - All 9 tenant signup notification tests pass successfully
 - Prisma connects properly to test database
 - Environment variables load correctly (26 variables)
@@ -137,12 +80,14 @@ npx prisma migrate deploy
 - Supabase compatibility resolved for test environment
 
 ### **Key Features Delivered**
+
 - **Isolated Testing**: Complete database isolation prevents production data interference
 - **Comprehensive Coverage**: Platform controls, tenant controls, email recipients, edge cases
 - **Reliable Execution**: Fixed environment loading and database connection issues
 - **Production Safety**: Tests run against separate database, no risk to production data
 
 ### **Testing Infrastructure Ready**
+
 ```bash
 # Run all e2e tests
 cd backend && npm run test:e2e
@@ -155,12 +100,14 @@ cd backend && npm run test:e2e -- --testNamePattern="should send notifications w
 ```
 
 ### **Database Isolation Strategy**
+
 - **Test Database**: `creatives_saas_test` (separate from `creatives_saas` production)
 - **Environment**: `.env.test` with isolated DATABASE_URL and DIRECT_URL
 - **Cleanup**: Each test suite cleans up data with proper teardown
 - **Safety**: Zero risk to production data during testing
 
 ### **Files Created/Modified**
+
 - **Backend**: `backend/test/e2e-setup.ts` - Fixed environment loading and NODE_ENV
 - **Root**: `.env.test` - Isolated test environment configuration
 - **Tests**: `backend/test/tenant-signup-notifications.e2e-spec.ts` - Fixed test assertions
@@ -174,22 +121,25 @@ cd backend && npm run test:e2e -- --testNamePattern="should send notifications w
 **Comprehensive email notification system with dual provider support, customizable templates, and admin management**
 
 ### **Phase 1: Database Schema Updates ✅ COMPLETED**
+
 - Added email notification preferences to Tenant model (welcome/admin alerts/tenant notifications, digest settings, admin recipients)
 - Created EmailSettings, EmailTemplate, and EmailLog models with full relationships
 - Updated Prisma seeders with new email fields and defaults
 - Successfully pushed schema and seeded database
 
 ### **Phase 2: Backend API Development ✅ COMPLETED**
-- Enhanced EmailService with database-driven configuration (lazy loading, dual provider support for Mailpit/Brevo)
-- Added notification methods: `sendWelcomeEmail`, `sendAdminAlert`, `sendTenantNotification`
-- Created EmailController with template CRUD operations and email sending endpoints
-- Created EmailSettingsController for admin email configuration management
-- Implemented EmailLog tracking with status/error handling and provider logging
-- Updated EmailModule with PrismaService dependency
-- Seeded default email templates (welcome, admin alert, tenant notification) with responsive HTML/text content
-- All backend builds successfully with TypeScript validation
+
+- [ ] Enhanced EmailService with database-driven configuration (lazy loading, dual provider support for Mailpit/Brevo)
+- [ ] Added notification methods: `sendWelcomeEmail`, `sendAdminAlert`, `sendTenantNotification`
+- [ ] Created EmailController with template CRUD operations and email sending endpoints
+- [ ] Created EmailSettingsController for admin email configuration management
+- [ ] Implemented EmailLog tracking with status/error handling and provider logging
+- [ ] Updated EmailModule with PrismaService dependency
+- [ ] Seeded default email templates (welcome, admin alert, tenant notification) with responsive HTML/text content
+- [ ] All backend builds successfully with TypeScript validation
 
 ### **Phase 3: Frontend UI Development ✅ COMPLETED**
+
 - **Completed**:
   - Integrated email settings into existing admin settings page with SMTP/Brevo configuration form
   - Created EmailLogsViewer component with status filtering and provider display
@@ -201,6 +151,7 @@ cd backend && npm run test:e2e -- --testNamePattern="should send notifications w
 - All frontend builds successfully with TypeScript validation
 
 ### **Phase 4: Integration & Testing ✅ COMPLETED**
+
 - Created comprehensive curl-based testing script (`backend/test-email-curl.sh`) for all email endpoints
 - Verified all API endpoints are properly defined and accessible
 - Build verification completed successfully for both backend and frontend
@@ -210,6 +161,7 @@ cd backend && npm run test:e2e -- --testNamePattern="should send notifications w
 - **✅ Final API Testing**: All 10 email endpoints now work with authentication bypass
 
 ### **Phase 5: Documentation & Deployment ✅ COMPLETED**
+
 - Complete API documentation (`backend/docs/EMAIL_SYSTEM.md`)
 - Production setup guide (`backend/docs/PRODUCTION_EMAIL_SETUP.md`) with Brevo configuration
 - Updated main README with email system features
@@ -217,6 +169,7 @@ cd backend && npm run test:e2e -- --testNamePattern="should send notifications w
 - **✅ Agent Rules Updated**: Added "MULTIPLE INSTANCES PROHIBITED" rule to prevent port conflicts
 
 ### **Key Features Delivered**
+
 - **Dual Email Providers**: Mailpit (development) / Brevo (production) with automatic switching
 - **Customizable Templates**: HTML/text templates with variable substitution ({{memberName}}, {{tenantName}}, etc.)
 - **System Notifications**: Welcome emails, admin alerts, tenant notifications
@@ -226,12 +179,14 @@ cd backend && npm run test:e2e -- --testNamePattern="should send notifications w
 - **Production Ready**: Full documentation, configuration guides, and testing infrastructure
 
 ### **Files Created/Modified**
+
 - **Backend**: 15+ files (controllers, services, DTOs, models, seeders)
 - **Frontend**: 8+ files (components, hooks, API clients, type definitions)
 - **Documentation**: 3 comprehensive guides
 - **Testing**: Complete curl-based testing script
 
 ### **Testing Ready**
+
 ```bash
 # Start backend server first
 npm run start:dev
@@ -241,6 +196,7 @@ npm run start:dev
 ```
 
 ### **Future Enhancement: Named Email Configurations**
+
 - **Planned**: Multiple named email configurations (e.g., "Development - Mailpit", "Production - Brevo", "Staging - Custom SMTP")
 - **Database Schema**: Add `name`, `environment`, `isActive` fields to EmailSettings model
 - **UI Enhancement**: Configuration picker with save/load named presets
@@ -249,6 +205,7 @@ npm run start:dev
 - **Status**: 📋 **PLANNED** - Documented in `/conversations/EMAIL-CONFIGURATION-ENHANCEMENT.md`
 
 ### **Production Deployment**
+
 - Environment variables configured for Brevo integration
 - Domain authentication setup guide provided
 - Admin email recipient configuration available
@@ -261,11 +218,13 @@ npm run start:dev
 **Resolved JWT token decoding issues and eliminated bypass authentication confusion for clean production flow**
 
 ### **Problem Solved**
+
 - Users were getting logged out when accessing `/tenant-settings` due to improper JWT token handling
 - Bypass authentication logic was falling back to default owner users, causing confusion
 - API client inconsistently set user headers, leading to authentication failures
 
 ### **Solution Implemented**
+
 - ✅ **JWT Token Decoding**: Auth guard now properly decodes base64 encoded tokens from login to extract user information
 - ✅ **Removed Bypass Auth**: Eliminated confusing bypass authentication logic for cleaner production flow
 - ✅ **Consistent User Context**: All services now receive user context from controllers instead of global variables
@@ -274,6 +233,7 @@ npm run start:dev
 - ✅ **Tenant Settings Access**: OWNER users can now access `/tenant-settings` without logout
 
 ### **Code Changes**
+
 ```typescript
 // Auth Guard - Proper JWT decoding
 const tokenPayload = JSON.parse(Buffer.from(token, 'base64').toString());
@@ -290,12 +250,14 @@ if (storedToken) {
 ```
 
 ### **Files Modified**
+
 - `backend/src/core/auth/auth.guard.ts` - Fixed JWT token decoding and removed bypass auth fallback
 - `backend/src/core/tenants/tenants.controller.ts` - Updated user context handling
 - `frontend/lib/api/client.ts` - Removed bypass auth logic and simplified headers
 - `frontend/lib/auth/auth-utils.ts` - Updated auth validation endpoints for different roles
 
 ### **Result**
+
 Authentication system now works reliably with proper user context, tenant settings page accessible without logout, and clean JWT-based auth flow.
 
 **Status**: 🟢 **AUTHENTICATION FIXED** - JWT token decoding working, bypass auth removed, builds successful.
@@ -307,12 +269,14 @@ Authentication system now works reliably with proper user context, tenant settin
 **System-Level vs Tenant-Level Admin Email Architecture**
 
 ### **Global Admin Notifications** ✅ IMPLEMENTED
+
 - `SystemSettings.globalAdminEmails` - Platform owner notifications across all tenants
 - Configured in `/admin/settings` by SUPER_ADMIN users
 - Triggered by tenant registration events
 - Uses `sendGlobalAdminAlert()` method
 
 ### **Tenant Admin Notifications** ✅ NEWLY IMPLEMENTED
+
 - `Tenant.adminEmailRecipients` - Gym owner notifications for their business
 - Configured in `/tenant-settings` by OWNER users
 - Triggered by new member signup events
@@ -321,37 +285,44 @@ Authentication system now works reliably with proper user context, tenant settin
 ### **Implementation Details**
 
 **Frontend:**
+
 - New `/tenant-settings` page for OWNER role users
 - UI to configure admin email recipients and notification preferences
 - React Query hooks: `useTenantSettings`, `useUpdateTenantAdminEmails`
 - API client: `tenantSettingsApi` with GET/PUT endpoints
 
 **Backend:**
+
 - New endpoints: `GET /tenants/current/settings`, `PUT /tenants/current/admin-emails`
 - Tenant service methods: `getTenantSettings()`, `updateTenantAdminEmails()`
 - Member creation now triggers `sendNewMemberAlert()` with member details
 - Uses existing `tenant_notification` email template
 
 **Email Templates:**
+
 - `tenant_notification` template (already existed) for member signup alerts
 - Variables: `{{memberName}}`, `{{memberEmail}}`, `{{membershipPlan}}`, `{{joinDate}}`
 
 **Security:**
+
 - OWNER role can only access their own tenant settings
 - Email validation for admin recipients
 - Tenant isolation prevents cross-tenant access
 
 **Files Created/Modified:**
+
 - Frontend: `tenant-settings/page.tsx`, `use-tenant-settings.ts`, `tenant-settings.ts`
 - Backend: `tenants.controller.ts`, `tenants.service.ts`, `gym-members.service.ts`, `email.service.ts`
 - Navigation: Added tenant settings link for OWNER role
 
 **Email Flow for Member Registration:**
+
 - ✅ **Welcome Email to Member**: `sendWelcomeEmail()` using 'welcome' template
 - ✅ **Admin Notification to Tenant**: `sendNewMemberAlert()` using 'tenant_notification' template
 - Both emails sent automatically when new member registers
 
 **Testing Ready:**
+
 - Backend builds ✅, Frontend builds ✅
 - Tenant settings page accessible at `/tenant-settings`
 - Member creation will now send admin notifications
@@ -368,12 +339,14 @@ Authentication system now works reliably with proper user context, tenant settin
 **Solution**: Created migration script to update all existing tenants with their owner's email in `adminEmailRecipients`.
 
 **Implementation**:
+
 - ✅ **Database Fix**: Updated 11 existing tenants to include owner emails
 - ✅ **Verification**: Confirmed "Yetta Salinas" tenant (nasadysowi@mailinator.com) now has proper recipients
 - ✅ **Email Flow**: Tenant owners will now receive `tenant_notification` emails for new member signups
 - ✅ **Template Ready**: `tenant_notification` template exists with member details and dashboard links
 
 **Files Modified**:
+
 - `/backend/fix-admin-emails.js` - Migration script (temporary, removed after execution)
 - Database updated with owner emails in admin recipients
 
@@ -386,12 +359,14 @@ Authentication system now works reliably with proper user context, tenant settin
 **Root Cause**: Both backend (automatic) and frontend (manual) were sending welcome emails, causing duplicates.
 
 **Solution**:
+
 - ✅ **Removed automatic email sending** from backend member creation service
 - ✅ **Updated welcome email template** to remove member dashboard access text (since members don't have dashboard yet)
 - ✅ **Frontend handles email sending** exclusively through the "Send welcome email" checkbox
 - ✅ **Updated template content** to be more appropriate for members without dashboard access
 
 **Files Modified**:
+
 - `/backend/src/modules/gym/members/gym-members.service.ts` - Removed automatic welcome email sending
 - Database email templates updated to remove dashboard access references
 
@@ -404,11 +379,13 @@ Authentication system now works reliably with proper user context, tenant settin
 **Root Cause**: `sendWelcomeEmail` method was missing `tenantName` variable in the variables object.
 
 **Solution**:
+
 - ✅ **Added tenant lookup** in `sendWelcomeEmail` method to get tenant name
 - ✅ **Added tenantName variable** to template variables object
 - ✅ **Template variables now complete**: `memberName`, `tenantName`, `membershipPlan`, `loginUrl`
 
 **Files Modified**:
+
 - `/backend/src/core/email/email.service.ts` - Added tenant name lookup and variable
 
 **Result**: Email templates now properly replace all variables with actual tenant and member information.
@@ -420,10 +397,12 @@ Authentication system now works reliably with proper user context, tenant settin
 **Root Cause**: Subject line was not being processed through template variable replacement.
 
 **Solution**:
+
 - ✅ **Added subject processing** using `processTemplate(template.subject, variables)`
 - ✅ **Subject now replaces variables** just like HTML and text content
 
 **Files Modified**:
+
 - `/backend/src/core/email/email.service.ts` - Added subject template processing
 
 **Result**: Email subjects now properly display actual tenant names instead of placeholder variables.
@@ -433,12 +412,14 @@ Authentication system now works reliably with proper user context, tenant settin
 **Issue**: Member welcome emails showed incorrect join date (today's date) instead of actual membership start/end dates.
 
 **Solution**:
+
 - ✅ **Updated welcome email template** to include registration date, start date, and end date
 - ✅ **Modified sendWelcomeEmail method** to accept additional date parameters
 - ✅ **Updated frontend** to pass actual subscription dates when sending welcome emails
 - ✅ **Template now shows**: Registration Date, Start Date, End Date instead of just "Join Date"
 
 **Files Modified**:
+
 - `/backend/src/core/email/email.service.ts` - Added date parameters to sendWelcomeEmail
 - `/frontend/lib/api/email.ts` - Updated API client to accept date parameters
 - `/frontend/components/modals/add-member-modal.tsx` - Pass actual subscription dates
@@ -451,6 +432,7 @@ Authentication system now works reliably with proper user context, tenant settin
 **New Feature**: Tenant managers can control welcome email behavior with per-member override capability.
 
 **Implementation**:
+
 - ✅ **Schema Update**: Added `welcomeEmailEnabled` boolean field to Tenant model (defaults to true)
 - ✅ **Seeder Update**: Updated Prisma seeders to include welcome email toggle for all tenants
 - ✅ **Backend Logic**: Modified member creation service to send welcome emails automatically when `welcomeEmailEnabled` is true
@@ -459,12 +441,14 @@ Authentication system now works reliably with proper user context, tenant settin
 - ✅ **Database Sync**: Applied schema changes with `prisma db push` following AGENT.md rules
 
 **Email Flow**:
+
 1. **Tenant Setting**: `welcomeEmailEnabled` controls default behavior for the gym
 2. **Per-Member Override**: Checkbox in add-member modal allows override of tenant default
 3. **Automatic Sending**: Welcome emails sent when both tenant setting is enabled AND member checkbox is checked
 4. **Separation**: Welcome emails independent from tenant notification emails (`tenantNotificationEmailEnabled`)
 
 **Files Modified**:
+
 - `/backend/prisma/schema.prisma` - Added `welcomeEmailEnabled` field to Tenant model
 - `/backend/prisma/seed.js` - Updated seeder with welcome email toggle
 - `/backend/src/modules/gym/members/gym-members.service.ts` - Automatic welcome email sending logic
@@ -480,6 +464,7 @@ Authentication system now works reliably with proper user context, tenant settin
 **New Feature**: Automatic email notifications for membership renewals sent to both member and tenant admins.
 
 **Implementation**:
+
 - ✅ **Created renewal email template** (`membership_renewal`) with member and admin versions
 - ✅ **Added sendMembershipRenewalEmail method** to email service
 - ✅ **Integrated with renewal process** in gym-members.service.ts
@@ -487,11 +472,13 @@ Authentication system now works reliably with proper user context, tenant settin
 - ✅ **Sends to both parties**: Member receives confirmation, tenant admins receive notification
 
 **Email Flow for Renewals**:
+
 1. **Member Email**: Confirmation with new membership dates
 2. **Tenant Admin Email**: Notification of successful renewal
 3. **Conditional Sending**: Only sent if tenant notifications are enabled
 
 **Files Modified**:
+
 - `/backend/prisma/seed.js` - Added membership_renewal email template
 - `/backend/src/core/email/email.service.ts` - Added sendMembershipRenewalEmail method
 - `/backend/src/modules/gym/members/gym-members.service.ts` - Integrated email sending in renewal process
@@ -505,11 +492,13 @@ Authentication system now works reliably with proper user context, tenant settin
 **Root Cause**: The `registerTenant` method in `auth.service.ts` was only setting basic tenant fields but not including `adminEmailRecipients: [data.ownerEmail]` like the `createTenant` method did.
 
 **Solution**: Updated `registerTenant` method to automatically set admin email recipients:
+
 ```typescript
 adminEmailRecipients: [data.ownerEmail.trim().toLowerCase()], // Default to owner's email
 ```
 
 **Files Modified**:
+
 - `/backend/src/core/auth/auth.service.ts` - Added adminEmailRecipients initialization in registerTenant method
 
 **Result**: All new tenants created through registration now automatically have their owner's email configured for admin notifications, ensuring tenant signup notifications work immediately after tenant creation.
@@ -525,10 +514,11 @@ adminEmailRecipients: [data.ownerEmail.trim().toLowerCase()], // Default to owne
 **Solution**: Modified email service methods to automatically fallback to the tenant owner's email when `adminEmailRecipients` is null or empty:
 
 - `sendMembershipRenewalEmail` - For member renewal notifications to tenant admins
-- `sendNewMemberAlert` - For new member signup notifications to tenant admins  
+- `sendNewMemberAlert` - For new member signup notifications to tenant admins
 - `sendTenantNotification` - For tenant signup notifications
 
 **Implementation**: Added fallback logic in each method:
+
 ```typescript
 // Use adminEmailRecipients if configured, otherwise fallback to owner's email
 let adminRecipients = tenant?.adminEmailRecipients;
@@ -539,6 +529,7 @@ if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
 ```
 
 **Files Modified**:
+
 - `/backend/src/core/email/email.service.ts` - Updated tenant notification methods to use owner email fallback
 
 **Result**: Existing tenants with null/empty adminEmailRecipients now automatically receive notifications at their owner's email address, ensuring no tenant misses important notifications.
@@ -559,6 +550,7 @@ if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
 - Return the corrected data to the frontend
 
 **Files Modified**:
+
 - `/backend/src/core/tenants/tenants.service.ts` - Updated getTenantSettings method with auto-fix logic
 
 **Result**: When owners access their tenant settings, any missing or invalid `adminEmailRecipients` is automatically populated with their email address. This ensures the settings page always shows the correct data and prevents notification issues.
@@ -577,6 +569,7 @@ if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
 - `createTenant` in `tenants.service.ts`: Validates `data.ownerEmail` before creating tenant
 
 **Files Modified**:
+
 - `/backend/src/core/auth/auth.service.ts` - Added ownerEmail validation in registerTenant
 - `/backend/src/core/tenants/tenants.service.ts` - Added ownerEmail validation in createTenant
 
@@ -597,6 +590,7 @@ if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
 - Ensures super admins see correct admin email data
 
 **Files Modified**:
+
 - `/backend/src/core/tenants/tenants.service.ts` - Updated getTenant method with adminEmailRecipients auto-fix
 
 **Result**: Super admins viewing tenant details now see correct `adminEmailRecipients` data. Invalid configurations are automatically fixed when accessed.
@@ -610,18 +604,21 @@ if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
 **Root Cause**: API client was trying to import Supabase as authentication fallback, but Supabase is no longer used, causing authentication failures.
 
 **Solution**: Complete removal of Supabase authentication system:
+
 - ✅ **Removed** `frontend/lib/auth/supabase.ts` file
 - ✅ **Updated** API client to use only localStorage tokens (no Supabase fallback)
 - ✅ **Fixed** main layout import to use `authManager.logout()` instead of Supabase `signOut`
 - ✅ **Cleaned** all Supabase references from authentication flow
 
 **Authentication Flow Now**:
+
 - Uses `localStorage.getItem('auth_token')` for Bearer token auth
 - Falls back to bypass auth in development only
 - No Supabase dependencies or fallbacks
 - Proper 403 error handling for RBAC (doesn't logout users)
 
 **Files Modified**:
+
 - `frontend/lib/api/client.ts` - Removed Supabase authentication fallback
 - `frontend/components/layout/main-layout.tsx` - Updated logout import
 - `frontend/lib/auth/supabase.ts` - **DELETED** (no longer used)
@@ -635,6 +632,7 @@ if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
 **Root Cause**: SupabaseService was required in production mode but no longer used (switched to Wasabi S3).
 
 **Solution**: Complete Supabase service disable:
+
 - ✅ **Modified** `SupabaseService` to allow running without configuration in all environments
 - ✅ **Removed** `SupabaseModule` from `app.module.ts` to prevent service initialization
 - ✅ **Removed** unused `SupabaseService` dependency from `GymMembersService`
@@ -649,11 +647,13 @@ if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
 **Root Cause**: Race condition where API requests were made before user data was fully loaded in localStorage, or user data parsing failed.
 
 **Solution**: Enhanced API client to always attempt user email extraction from localStorage for each request:
+
 - ✅ **Primary**: `JSON.parse(localStorage.getItem('user_data'))?.email`
 - ✅ **Fallback**: Direct localStorage access if parsing fails
 - ✅ **Reliable**: Ensures `x-user-email` header is always set for authenticated requests
 
 **Code Changes**:
+
 ```javascript
 // Always try to get user email from localStorage
 const userEmail = storedUser?.email || localStorage.getItem('user_data') ?
@@ -671,11 +671,13 @@ if (userEmail) {
 **Problem**: Users were getting logged out when accessing `/tenant-settings` due to improper JWT token handling and fallback authentication logic.
 
 **Root Cause**: Multiple authentication issues:
+
 1. Auth guard was falling back to default owner user instead of properly decoding JWT tokens
 2. Frontend API client was inconsistently setting user headers
 3. Tenant service was using global variables instead of proper user context
 
 **Solution**: Complete authentication system overhaul with proper JWT token decoding:
+
 - ✅ **JWT Token Decoding**: Auth guard now properly decodes base64 encoded tokens to extract user information
 - ✅ **Removed Bypass Auth**: Eliminated confusing bypass authentication logic for cleaner production flow
 - ✅ **Consistent User Context**: All services now receive user context from controllers instead of global variables
@@ -683,6 +685,7 @@ if (userEmail) {
 - ✅ **Tenant Settings Access**: OWNER users can now access `/tenant-settings` without logout
 
 **Code Changes**:
+
 ```typescript
 // Auth Guard - Proper JWT decoding
 const tokenPayload = JSON.parse(Buffer.from(token, 'base64').toString());
@@ -707,15 +710,18 @@ if (storedToken) {
 **Root Cause**: RBAC guard returns 403 Forbidden for non-OWNER users, but frontend API client was treating all 403 errors as authentication failures and logging users out.
 
 **Solution**: Updated API client error handling to distinguish between:
+
 - ✅ **Business Logic 403s** (RBAC, roles, permissions) → Show error message, don't logout
 - ❌ **Auth 403s** (invalid tokens, expired sessions) → Logout user
 
 **Error Messages Now Handled Properly**:
+
 - `"Access denied. Required roles: OWNER"` → Shows error, stays logged in
 - `"Access denied. Required roles: SUPER_ADMIN"` → Shows error, stays logged in
 - Invalid auth tokens → Logs out user
 
 **Files Modified**:
+
 - `frontend/lib/api/client.ts` - Enhanced 403 error handling logic
 
 ---
@@ -816,11 +822,13 @@ if (storedToken) {
    - System settings API endpoints fully functional with proper security controls
 
 **Security Impact:**
+
 - **Before**: Users could change passwords to any strength, bypassing security requirements
 - **After**: All password changes must meet current security level requirements
 - **Audit Trail**: All security level changes are logged with detailed information
 
 **Files Modified:**
+
 - `/backend/src/core/auth/auth.controller.ts` - Added password validation to changePassword
 - `/backend/src/core/system-settings/system-settings.service.ts` - Enhanced audit logging
 - `/frontend/components/modals/onboarding/set-password-modal.tsx` - Fixed dynamic minLength
@@ -1966,11 +1974,13 @@ See `DEPLOYMENT.md` for detailed step-by-step instructions.
 **Status**: All e2e tests passing, infrastructure ready for ongoing development testing.
 
 **Next Steps:**
+
 1. **Manual Testing**: Verify tenant signup notifications work in production
 2. **Commit Changes**: Update AGENT.md and commit tenant creation fix
 3. **Production Verification**: Test the tenant creation admin email recipients fix
 
 **Related Docs:**
+
 - Test Database: `.env.test` configuration
 - Test Suite: `backend/test/tenant-signup-notifications.e2e-spec.ts`
 - Environment Setup: `backend/test/e2e-setup.ts`
