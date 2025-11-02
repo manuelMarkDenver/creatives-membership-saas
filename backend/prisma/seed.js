@@ -361,13 +361,13 @@ async function main() {
   const superAdmins = [
     {
       email: process.env.SUPER_ADMIN_EMAIL_1 || 'admin@creatives-saas.com',
-      password: process.env.SUPER_ADMIN_PASSWORD_1 || '73ee8f62-de11-4c95-81d2-4e24620c7e2a',
+      password: process.env.SUPER_ADMIN_PASSWORD_1 || 'SuperAdmin123!',
       firstName: 'Super',
       lastName: 'Admin',
     },
     {
       email: process.env.SUPER_ADMIN_EMAIL_2 || 'aileen.tibayan@creatives-saas.com',
-      password: process.env.SUPER_ADMIN_PASSWORD_2 || '73ee8f62-de11-4c95-81d2-4e24620c7e2a',
+      password: process.env.SUPER_ADMIN_PASSWORD_2 || 'SuperAdmin123!',
       firstName: 'Aileen',
       lastName: 'Tibayan',
     },
