@@ -244,6 +244,81 @@ export class EmailService {
   }
 
   /**
+   * Send welcome email to tenant owner after completing onboarding
+   */
+  async sendTenantWelcomeEmail(
+    email: string,
+    ownerName: string,
+    tenantId: string,
+  ) {
+    console.log('🎯 BACKEND: sendTenantWelcomeEmail called with:', {
+      email,
+      ownerName,
+      tenantId,
+    });
+
+    this.logger.log(`📧 Starting tenant welcome email send to ${email} for tenant ${tenantId}`);
+
+    try {
+      // Get tenant info
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          name: true,
+          emailNotificationsEnabled: true,
+        },
+      });
+
+      if (!tenant?.emailNotificationsEnabled) {
+        this.logger.log(
+          `Email notifications disabled for tenant ${tenantId}, skipping tenant welcome email`,
+        );
+        return;
+      }
+
+      // Get the tenant welcome template
+      const template = await this.getEmailTemplate('tenant_welcome', tenantId);
+
+      if (!template) {
+        this.logger.warn(
+          `No tenant welcome email template found for tenant ${tenantId}`,
+        );
+        return;
+      }
+
+      // Prepare template variables
+      const variables = {
+        ownerName,
+        tenantName: tenant.name,
+        dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
+      };
+
+      // Process template
+      const processedSubject = this.processTemplate(template.subject, variables);
+      const processedHtml = this.processTemplate(template.htmlContent, variables);
+      const processedText = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
+
+      // Send email
+      await this.sendEmail(
+        email,
+        processedSubject,
+        processedHtml,
+        processedText,
+        this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com',
+        this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab',
+        'tenant_welcome',
+        tenantId,
+        template.id,
+      );
+
+      this.logger.log(`✅ Tenant welcome email sent to ${email} for tenant ${tenant.name}`);
+    } catch (error: any) {
+      this.logger.error(`❌ Failed to send tenant welcome email: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
    * Send welcome email to new member
    */
   async sendWelcomeEmail(

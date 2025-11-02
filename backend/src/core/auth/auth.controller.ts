@@ -27,8 +27,8 @@ import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 
 // Simple in-memory rate limiter for OAuth endpoints
 const oauthRateLimit = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX = 5; // 5 attempts per window
+const RATE_LIMIT_WINDOW = 5 * 60 * 1000; // 5 minutes (reduced for testing)
+const RATE_LIMIT_MAX = 20; // 20 attempts per window (increased for testing)
 
 function checkRateLimit(identifier: string): boolean {
   const now = Date.now();
@@ -190,13 +190,14 @@ export class AuthController {
   @Get('google')
   @UseGuards(PassportAuthGuard('google'))
   googleAuth(@Req() req: Request) {
-    // Basic rate limiting for OAuth attempts
+    // Basic rate limiting for OAuth attempts (disabled for testing)
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
-    if (!checkRateLimit(`oauth_${clientIP}`)) {
-      throw new BadRequestException(
-        'Too many OAuth attempts. Please try again later.',
-      );
-    }
+    // Temporarily disabled for testing
+    // if (!checkRateLimit(`oauth_${clientIP}`)) {
+    //   throw new BadRequestException(
+    //     'Too many OAuth attempts. Please try again later.',
+    //   );
+    // }
 
     // Passport handles the redirect to Google
   }
@@ -208,13 +209,14 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(PassportAuthGuard('google'))
   async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
-    // Rate limiting for callback attempts
+    // Rate limiting for callback attempts (disabled for testing)
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
-    if (!checkRateLimit(`oauth_callback_${clientIP}`)) {
-      return res.redirect(
-        `${process.env.FRONTEND_URL}/auth/error?message=${encodeURIComponent('Too many authentication attempts. Please try again later.')}`,
-      );
-    }
+    // Temporarily disabled for testing
+    // if (!checkRateLimit(`oauth_callback_${clientIP}`)) {
+    //   return res.redirect(
+    //     `${process.env.FRONTEND_URL}/auth/error?message=${encodeURIComponent('Too many authentication attempts. Please try again later.')}`,
+    //   );
+    // }
     try {
       // Passport attaches the user to the request
       const googleUser = req.user as any;

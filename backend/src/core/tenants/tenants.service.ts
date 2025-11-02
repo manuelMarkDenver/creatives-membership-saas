@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { BusinessCategory, Role, AccessLevel } from '@prisma/client';
@@ -21,6 +22,7 @@ export class TenantsService {
 
   constructor(
     private prisma: PrismaService,
+    private emailService: EmailService,
     private subscriptionsService: SubscriptionsService,
   ) {}
 
@@ -912,6 +914,8 @@ export class TenantsService {
         throw new BadRequestException('Invalid tenant ID format');
       }
 
+      this.logger.log(`🎯 Starting onboarding completion for tenant ${tenantId}`);
+
       const updatedTenant = await this.prisma.tenant.update({
         where: { id: tenantId },
         data: {
@@ -921,8 +925,52 @@ export class TenantsService {
       });
 
       this.logger.log(
-        `Marked onboarding complete for tenant: ${updatedTenant.name} (${updatedTenant.id})`,
+        `✅ Marked onboarding complete for tenant: ${updatedTenant.name} (${updatedTenant.id})`,
       );
+
+      // Send notifications for onboarding completion
+      this.logger.log(`🎯 Starting email notifications for tenant ${tenantId}`);
+      this.logger.log(`EmailService available: ${!!this.emailService}`);
+
+      try {
+        const owner = await this.prisma.user.findFirst({
+          where: {
+            tenantId: tenantId,
+            role: 'OWNER',
+          },
+          select: {
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        });
+
+        this.logger.log(`Found owner: ${JSON.stringify(owner)}`);
+
+        if (owner && owner.email) {
+          const ownerName = `${owner.firstName} ${owner.lastName}`.trim();
+
+          this.logger.log(`🎯 Sending welcome email to ${owner.email} for tenant ${tenantId}`);
+
+          // Send welcome email to tenant owner
+          await this.emailService.sendTenantWelcomeEmail(
+            owner.email,
+            ownerName,
+            tenantId,
+          );
+
+          this.logger.log(`✅ Welcome email sent successfully to ${owner.email}`);
+        } else {
+          this.logger.warn(`No owner found for tenant ${tenantId} or owner has no email`);
+        }
+      } catch (emailError) {
+        this.logger.error(
+          `Failed to send completion emails for tenant ${tenantId}: ${(emailError as Error).message}`,
+        );
+        this.logger.error(`Email error stack: ${(emailError as Error).stack}`);
+        // Don't fail the onboarding completion if emails fail
+      }
+
       return updatedTenant;
     } catch (error) {
       if (error instanceof BadRequestException) {

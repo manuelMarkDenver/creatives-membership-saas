@@ -223,12 +223,15 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
       type: string
       accessLevel: string
     }) => {
+      console.log('🎯 FRONTEND: Creating membership plan and completing onboarding');
+
       // Create the membership plan
       await createMembershipPlan(data)
 
       // Close plan modal and complete onboarding
       setShowPlanModal(false)
       if (tenantId) {
+        console.log('🎯 FRONTEND: Calling completeOnboarding for tenant', tenantId);
         await completeOnboarding.mutateAsync(tenantId)
       }
       await refetch()
