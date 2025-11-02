@@ -171,7 +171,11 @@ export class GymMembersController {
       throw new Error('Reason is required');
     }
 
-    return this.gymMembersService.cancelMember(id, { reason, notes }, performedBy);
+    return this.gymMembersService.cancelMember(
+      id,
+      { reason, notes },
+      performedBy,
+    );
   }
 
   @Post(':id/renew')
@@ -386,6 +390,9 @@ export class GymMembersController {
       userTenantId: req.user?.tenantId,
     };
 
-    return await this.gymMembersService.getExpiringMembersOverview(days, filters);
+    return await this.gymMembersService.getExpiringMembersOverview(
+      days,
+      filters,
+    );
   }
 }

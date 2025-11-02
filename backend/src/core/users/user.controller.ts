@@ -79,38 +79,28 @@ export class UsersController {
     return this.usersService.createUser(data);
   }
 
-    @Get('tenant/:tenantId')
-    @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER, Role.STAFF)
-    @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
-    @SkipBusinessTypeGuard()
-    getByTenant(
-      @Req() req: any,
-      @Param('tenantId') tenantId: string,
-      @Query('role') role?: string,
-      @Query('search') search?: string,
-      @Query('page') page?: string,
-      @Query('limit') limit?: string,
-    ) {
-      const filters = {
-        role: role as Role,
-        search,
-        page: page ? parseInt(page, 10) : undefined,
-        limit: limit ? parseInt(limit, 10) : undefined,
-        requestingUserId: req.user?.id,
-        requestingUserRole: req.user?.role,
-      };
-      return this.usersService.getUsersByTenant(tenantId, filters);
-    }
-
-
-
-
-
-
-
-
-
-
+  @Get('tenant/:tenantId')
+  @RequiredRoles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER, Role.STAFF)
+  @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
+  @SkipBusinessTypeGuard()
+  getByTenant(
+    @Req() req: any,
+    @Param('tenantId') tenantId: string,
+    @Query('role') role?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const filters = {
+      role: role as Role,
+      search,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      requestingUserId: req.user?.id,
+      requestingUserRole: req.user?.role,
+    };
+    return this.usersService.getUsersByTenant(tenantId, filters);
+  }
 
   // Parameterized routes - MUST be after specific routes to avoid conflicts
   @Get(':id')
@@ -192,16 +182,6 @@ export class UsersController {
       notes,
     });
   }
-
-
-
-
-
-
-
-
-
-
 
   // Photo upload endpoints (business agnostic - works for all user types)
   @Post(':id/photo')

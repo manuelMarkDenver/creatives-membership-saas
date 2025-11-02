@@ -86,7 +86,8 @@ export class TenantsController {
   @RequiredRoles(Role.SUPER_ADMIN)
   async updateTenantOwner(
     @Param('id') id: string,
-    @Body() ownerData: {
+    @Body()
+    ownerData: {
       firstName?: string;
       lastName?: string;
       email?: string;
@@ -132,7 +133,8 @@ export class TenantsController {
   @RequiredRoles(Role.OWNER)
   async updateTenantAdminEmails(
     @GetUser() user: any,
-    @Body() body: {
+    @Body()
+    body: {
       adminEmailRecipients: string[];
       emailNotificationsEnabled: boolean;
     },
@@ -148,7 +150,8 @@ export class TenantsController {
   @RequiredRoles(Role.OWNER)
   async updateTenantSettings(
     @GetUser() user: any,
-    @Body() body: {
+    @Body()
+    body: {
       welcomeEmailEnabled?: boolean;
       tenantSignupNotificationEnabled?: boolean;
     },

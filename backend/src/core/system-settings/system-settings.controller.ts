@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Body,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards, Request } from '@nestjs/common';
 import { SystemSettingsService } from './system-settings.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
@@ -33,8 +26,7 @@ export class SystemSettingsController {
    */
   @Get('password-security-level')
   async getPasswordSecurityLevel() {
-    const level =
-      await this.systemSettingsService.getPasswordSecurityLevel();
+    const level = await this.systemSettingsService.getPasswordSecurityLevel();
     return { passwordSecurityLevel: level };
   }
 
@@ -62,7 +54,8 @@ export class SystemSettingsController {
   @Put('global-admin')
   @Roles('SUPER_ADMIN')
   async updateGlobalAdminSettings(
-    @Body() dto: {
+    @Body()
+    dto: {
       globalAdminEmails?: string[];
       newTenantAlertsEnabled?: boolean;
       systemAlertsEnabled?: boolean;

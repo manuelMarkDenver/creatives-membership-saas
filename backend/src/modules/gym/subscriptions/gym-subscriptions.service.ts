@@ -79,35 +79,39 @@ export class GymSubscriptionsService {
   ) {
     // Check for duplicate active subscriptions to prevent conflicts
     // Allow renewals for expired subscriptions or short-term memberships
-    const existingActiveSubscription = await this.prisma.gymMemberSubscription.findFirst({
-      where: {
-        memberId: memberId,
-        tenantId,
-        status: GymMemberSubscriptionStatus.ACTIVE,
-        endDate: {
-          gt: new Date(), // Still valid in the future
+    const existingActiveSubscription =
+      await this.prisma.gymMemberSubscription.findFirst({
+        where: {
+          memberId: memberId,
+          tenantId,
+          status: GymMemberSubscriptionStatus.ACTIVE,
+          endDate: {
+            gt: new Date(), // Still valid in the future
+          },
         },
-      },
-      include: {
-        gymMembershipPlan: true,
-      },
-    });
+        include: {
+          gymMembershipPlan: true,
+        },
+      });
 
     // Only prevent renewal if there's an active subscription with significant time remaining
     // Allow renewal for day passes or subscriptions ending within 24 hours
     if (existingActiveSubscription) {
       const now = new Date();
-      const timeRemaining = existingActiveSubscription.endDate.getTime() - now.getTime();
+      const timeRemaining =
+        existingActiveSubscription.endDate.getTime() - now.getTime();
       const hoursRemaining = timeRemaining / (1000 * 60 * 60);
-      
+
       // Allow renewal if:
       // 1. Less than 24 hours remaining on current subscription
       // 2. Current plan is a day pass (duration <= 1 day)
       // 3. It's the same plan (renewal/extension)
-      const isDayPass = existingActiveSubscription.gymMembershipPlan.duration <= 1;
-      const isSamePlan = existingActiveSubscription.gymMembershipPlanId === gymMembershipPlanId;
+      const isDayPass =
+        existingActiveSubscription.gymMembershipPlan.duration <= 1;
+      const isSamePlan =
+        existingActiveSubscription.gymMembershipPlanId === gymMembershipPlanId;
       const isExpiringSoon = hoursRemaining <= 24;
-      
+
       if (!isDayPass && !isExpiringSoon && !isSamePlan) {
         const remainingDays = Math.ceil(hoursRemaining / 24);
         throw new BadRequestException(
@@ -277,19 +281,22 @@ export class GymSubscriptionsService {
     processedBy: string,
   ) {
     // Get current active subscription
-    const currentSubscription = await this.prisma.gymMemberSubscription.findFirst({
-      where: {
-        memberId: memberId,
-        tenantId,
-        status: GymMemberSubscriptionStatus.ACTIVE,
-      },
-      include: {
-        gymMembershipPlan: true,
-      },
-    });
+    const currentSubscription =
+      await this.prisma.gymMemberSubscription.findFirst({
+        where: {
+          memberId: memberId,
+          tenantId,
+          status: GymMemberSubscriptionStatus.ACTIVE,
+        },
+        include: {
+          gymMembershipPlan: true,
+        },
+      });
 
     if (!currentSubscription) {
-      throw new NotFoundException('No active subscription found for this gym member');
+      throw new NotFoundException(
+        'No active subscription found for this gym member',
+      );
     }
 
     // Get the new membership plan

@@ -117,7 +117,9 @@ export class GymLocationsService {
           const members = location.gymUserBranches.filter(
             (ub) => ub.user.role === 'CLIENT',
           );
-          const activeMembers = members.filter((ub) => !ub.user.deletedAt).length;
+          const activeMembers = members.filter(
+            (ub) => !ub.user.deletedAt,
+          ).length;
           const deletedMembers = members.filter(
             (ub) => ub.user.deletedAt,
           ).length;

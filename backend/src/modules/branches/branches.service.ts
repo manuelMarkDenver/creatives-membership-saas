@@ -37,7 +37,10 @@ export class BranchesService {
         );
       } catch (subscriptionCheckError) {
         // Log subscription check error but allow branch creation for debugging
-        console.warn('Subscription check failed:', subscriptionCheckError.message);
+        console.warn(
+          'Subscription check failed:',
+          subscriptionCheckError.message,
+        );
         canCreateResult = { canCreate: true, freeBranchesRemaining: 1 };
       }
 
@@ -59,7 +62,7 @@ export class BranchesService {
         if (existingMainBranch) {
           throw new ConflictException(
             `Cannot set as main branch. "${existingMainBranch.name}" is already the main branch. ` +
-            `Please unset the existing main branch first.`,
+              `Please unset the existing main branch first.`,
           );
         }
       }
@@ -75,7 +78,10 @@ export class BranchesService {
           await this.subscriptionsService.createTrialSubscription(branch.id);
         } catch (subscriptionError) {
           // Log subscription creation error but don't fail branch creation
-          console.warn('Failed to create trial subscription:', subscriptionError.message);
+          console.warn(
+            'Failed to create trial subscription:',
+            subscriptionError.message,
+          );
           console.warn('Branch created successfully but without subscription');
         }
       }
@@ -98,16 +104,20 @@ export class BranchesService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      
+
       // Handle Prisma unique constraint errors
       if (error.code === 'P2002') {
         const target = error.meta?.target;
         if (target?.includes('name')) {
-          throw new ConflictException(`Branch with name "${createBranchDto.name}" already exists in this tenant`);
+          throw new ConflictException(
+            `Branch with name "${createBranchDto.name}" already exists in this tenant`,
+          );
         }
-        throw new ConflictException('Branch creation failed due to unique constraint violation');
+        throw new ConflictException(
+          'Branch creation failed due to unique constraint violation',
+        );
       }
-      
+
       // Enhanced error logging for debugging
       console.error('Branch creation error details:');
       console.error('Error type:', error.constructor.name);
@@ -115,7 +125,7 @@ export class BranchesService {
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
       console.error('Full error:', JSON.stringify(error, null, 2));
-      
+
       throw new ConflictException(`Branch creation failed: ${error.message}`);
     }
   }
@@ -192,43 +202,53 @@ export class BranchesService {
 
     // Get all members with primaryBranchId for these branches
     // ONLY count CLIENT role users (exclude OWNER, MANAGER, STAFF until Staff Management is implemented)
-    const branchIds = branches.map(b => b.id);
-    const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.groupBy({
-      by: ['primaryBranchId'],
-      where: {
-        primaryBranchId: { in: branchIds },
-        user: {
-          deletedAt: null,
-          role: 'CLIENT', // Only count CLIENT role users (gym members)
+    const branchIds = branches.map((b) => b.id);
+    const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.groupBy(
+      {
+        by: ['primaryBranchId'],
+        where: {
+          primaryBranchId: { in: branchIds },
+          user: {
+            deletedAt: null,
+            role: 'CLIENT', // Only count CLIENT role users (gym members)
+          },
+        },
+        _count: {
+          primaryBranchId: true,
         },
       },
-      _count: {
-        primaryBranchId: true,
-      },
-    });
+    );
 
     const primaryBranchCounts = new Map(
-      membersWithPrimaryBranch.map(item => [item.primaryBranchId, item._count.primaryBranchId])
+      membersWithPrimaryBranch.map((item) => [
+        item.primaryBranchId,
+        item._count.primaryBranchId,
+      ]),
     );
 
     return branches.map((branch) => {
       const membersFromBranches = branch.gymUserBranches.filter(
         (ub) => ub.user.role === 'CLIENT',
       );
-      const activeMembersFromBranches = membersFromBranches.filter((ub) => !ub.user.deletedAt).length;
+      const activeMembersFromBranches = membersFromBranches.filter(
+        (ub) => !ub.user.deletedAt,
+      ).length;
       const deletedMembers = membersFromBranches.filter(
         (ub) => ub.user.deletedAt,
       ).length;
       const staff = branch.gymUserBranches.filter(
-        (ub) => ub.user.role && ['STAFF', 'MANAGER', 'OWNER'].includes(ub.user.role),
+        (ub) =>
+          ub.user.role && ['STAFF', 'MANAGER', 'OWNER'].includes(ub.user.role),
       ).length;
 
       // Members with primaryBranchId set to this branch (count is already from groupBy)
-      const membersWithPrimaryBranchCount = primaryBranchCounts.get(branch.id) || 0;
-      
+      const membersWithPrimaryBranchCount =
+        primaryBranchCounts.get(branch.id) || 0;
+
       // Total members = sum of both sources (primaryBranchId members are NOT in gymUserBranches table by design)
       // No double-counting because primaryBranchId members don't have gymUserBranch records
-      const totalMembers = activeMembersFromBranches + membersWithPrimaryBranchCount;
+      const totalMembers =
+        activeMembersFromBranches + membersWithPrimaryBranchCount;
 
       return {
         ...branch,
@@ -278,43 +298,53 @@ export class BranchesService {
 
     // Get all members with primaryBranchId for these branches
     // ONLY count CLIENT role users (exclude OWNER, MANAGER, STAFF until Staff Management is implemented)
-    const branchIds = branches.map(b => b.id);
-    const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.groupBy({
-      by: ['primaryBranchId'],
-      where: {
-        primaryBranchId: { in: branchIds },
-        user: {
-          deletedAt: null,
-          role: 'CLIENT', // Only count CLIENT role users (gym members)
+    const branchIds = branches.map((b) => b.id);
+    const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.groupBy(
+      {
+        by: ['primaryBranchId'],
+        where: {
+          primaryBranchId: { in: branchIds },
+          user: {
+            deletedAt: null,
+            role: 'CLIENT', // Only count CLIENT role users (gym members)
+          },
+        },
+        _count: {
+          primaryBranchId: true,
         },
       },
-      _count: {
-        primaryBranchId: true,
-      },
-    });
+    );
 
     const primaryBranchCounts = new Map(
-      membersWithPrimaryBranch.map(item => [item.primaryBranchId, item._count.primaryBranchId])
+      membersWithPrimaryBranch.map((item) => [
+        item.primaryBranchId,
+        item._count.primaryBranchId,
+      ]),
     );
 
     return branches.map((branch) => {
       const membersFromBranches = branch.gymUserBranches.filter(
         (ub) => ub.user.role === 'CLIENT',
       );
-      const activeMembersFromBranches = membersFromBranches.filter((ub) => !ub.user.deletedAt).length;
+      const activeMembersFromBranches = membersFromBranches.filter(
+        (ub) => !ub.user.deletedAt,
+      ).length;
       const deletedMembers = membersFromBranches.filter(
         (ub) => ub.user.deletedAt,
       ).length;
       const staff = branch.gymUserBranches.filter(
-        (ub) => ub.user.role && ['STAFF', 'MANAGER', 'OWNER'].includes(ub.user.role),
+        (ub) =>
+          ub.user.role && ['STAFF', 'MANAGER', 'OWNER'].includes(ub.user.role),
       ).length;
 
       // Members with primaryBranchId set to this branch (count is already from groupBy)
-      const membersWithPrimaryBranchCount = primaryBranchCounts.get(branch.id) || 0;
-      
+      const membersWithPrimaryBranchCount =
+        primaryBranchCounts.get(branch.id) || 0;
+
       // Total members = sum of both sources (primaryBranchId members are NOT in gymUserBranches table by design)
       // No double-counting because primaryBranchId members don't have gymUserBranch records
-      const totalMembers = activeMembersFromBranches + membersWithPrimaryBranchCount;
+      const totalMembers =
+        activeMembersFromBranches + membersWithPrimaryBranchCount;
 
       return {
         ...branch,
@@ -369,53 +399,61 @@ export class BranchesService {
         isActive: true,
       },
     });
-    
+
     if (activeBranchCount <= 1) {
       throw new ConflictException(
-        'Cannot delete the last branch. Each tenant must have at least one active location.'
+        'Cannot delete the last branch. Each tenant must have at least one active location.',
       );
     }
 
     // Check for assigned users via gymUserBranches (staff and some members)
-    const activeUsers = branch.gymUserBranches.filter(ub => !ub.user.deletedAt);
-    
+    const activeUsers = branch.gymUserBranches.filter(
+      (ub) => !ub.user.deletedAt,
+    );
+
     // Also check for gym members with this as their primary branch
-    const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.findMany({
-      where: {
-        primaryBranchId: branchId,
-        user: {
-          deletedAt: null, // Only active members
-        },
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            role: true,
+    const membersWithPrimaryBranch =
+      await this.prisma.gymMemberProfile.findMany({
+        where: {
+          primaryBranchId: branchId,
+          user: {
+            deletedAt: null, // Only active members
           },
         },
-      },
-    });
-    
-    const totalAssignedUsers = activeUsers.length + membersWithPrimaryBranch.length;
-    
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+            },
+          },
+        },
+      });
+
+    const totalAssignedUsers =
+      activeUsers.length + membersWithPrimaryBranch.length;
+
     if (totalAssignedUsers > 0) {
       const userSummaries: string[] = [];
-      
+
       // Add gymUserBranches users
-      activeUsers.forEach(ub => {
-        userSummaries.push(`${ub.user.firstName} ${ub.user.lastName} (${ub.user.role})`);
+      activeUsers.forEach((ub) => {
+        userSummaries.push(
+          `${ub.user.firstName} ${ub.user.lastName} (${ub.user.role})`,
+        );
       });
-      
+
       // Add primary branch members
-      membersWithPrimaryBranch.forEach(profile => {
-        userSummaries.push(`${profile.user.firstName} ${profile.user.lastName} (${profile.user.role})`);
+      membersWithPrimaryBranch.forEach((profile) => {
+        userSummaries.push(
+          `${profile.user.firstName} ${profile.user.lastName} (${profile.user.role})`,
+        );
       });
-      
+
       throw new ConflictException(
-        `Cannot delete branch: ${totalAssignedUsers} users are assigned (${userSummaries.join(', ')}). Please reassign users first.`
+        `Cannot delete branch: ${totalAssignedUsers} users are assigned (${userSummaries.join(', ')}). Please reassign users first.`,
       );
     }
 
@@ -461,34 +499,42 @@ export class BranchesService {
   private async validateMainBranchConflict(branchToRestore: any) {
     // Check if this branch would be considered a main branch
     const isMainBranch = this.isMainBranch(branchToRestore);
-    
+
     if (isMainBranch) {
       // Check if there's already an active main branch
       const activeBranches = await this.prisma.branch.findMany({
-        where: { 
-          tenantId: branchToRestore.tenantId, 
-          isActive: true 
+        where: {
+          tenantId: branchToRestore.tenantId,
+          isActive: true,
         },
-        orderBy: { createdAt: 'asc' }
+        orderBy: { createdAt: 'asc' },
       });
-      
+
       // Check if any active branch is already a main branch
-      const existingMainBranch = activeBranches.find(branch => this.isMainBranch(branch));
-      
+      const existingMainBranch = activeBranches.find((branch) =>
+        this.isMainBranch(branch),
+      );
+
       if (existingMainBranch) {
         throw new ConflictException(
           `Cannot restore "${branchToRestore.name}" as it would create multiple main branches. ` +
-          `"${existingMainBranch.name}" is already the main branch. ` +
-          `Please rename one of them to avoid conflict.`
+            `"${existingMainBranch.name}" is already the main branch. ` +
+            `Please rename one of them to avoid conflict.`,
         );
       }
     }
   }
 
   private isMainBranch(branch: any): boolean {
-    const mainKeywords = ['main', 'primary', 'headquarters', 'head office', 'central'];
+    const mainKeywords = [
+      'main',
+      'primary',
+      'headquarters',
+      'head office',
+      'central',
+    ];
     const branchName = branch.name.toLowerCase();
-    return mainKeywords.some(keyword => branchName.includes(keyword));
+    return mainKeywords.some((keyword) => branchName.includes(keyword));
   }
 
   async getBranchUsers(branchId: string) {
@@ -546,8 +592,8 @@ export class BranchesService {
 
     // Get users from gymUserBranches
     const activeUsers = branch.gymUserBranches
-      .filter(ub => !ub.user.deletedAt)
-      .map(ub => ({
+      .filter((ub) => !ub.user.deletedAt)
+      .map((ub) => ({
         ...ub.user,
         branchAssignment: {
           accessLevel: ub.accessLevel,
@@ -557,35 +603,36 @@ export class BranchesService {
       }));
 
     // Also get gym members with this as their primary branch
-    const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.findMany({
-      where: {
-        primaryBranchId: branchId,
-        user: {
-          deletedAt: null,
-        },
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phoneNumber: true,
-            role: true,
-            photoUrl: true,
-            deletedAt: true,
-            createdAt: true,
+    const membersWithPrimaryBranch =
+      await this.prisma.gymMemberProfile.findMany({
+        where: {
+          primaryBranchId: branchId,
+          user: {
+            deletedAt: null,
           },
         },
-      },
-    });
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phoneNumber: true,
+              role: true,
+              photoUrl: true,
+              deletedAt: true,
+              createdAt: true,
+            },
+          },
+        },
+      });
 
     // Add primary branch members to the list (if not already in gymUserBranches)
-    const userIdsInBranches = new Set(activeUsers.map(u => u.id));
+    const userIdsInBranches = new Set(activeUsers.map((u) => u.id));
     const additionalMembers = membersWithPrimaryBranch
-      .filter(profile => !userIdsInBranches.has(profile.user.id))
-      .map(profile => ({
+      .filter((profile) => !userIdsInBranches.has(profile.user.id))
+      .map((profile) => ({
         ...profile.user,
         branchAssignment: {
           accessLevel: 'READ_ONLY',
@@ -602,9 +649,13 @@ export class BranchesService {
     const allActiveUsers = [...activeUsers, ...additionalMembers];
 
     const usersByRole = {
-      staff: allActiveUsers.filter(u => u.role && ['STAFF', 'MANAGER'].includes(u.role)),
-      members: allActiveUsers.filter(u => u.role === 'CLIENT'),
-      admins: allActiveUsers.filter(u => u.role && ['SUPER_ADMIN', 'OWNER'].includes(u.role)),
+      staff: allActiveUsers.filter(
+        (u) => u.role && ['STAFF', 'MANAGER'].includes(u.role),
+      ),
+      members: allActiveUsers.filter((u) => u.role === 'CLIENT'),
+      admins: allActiveUsers.filter(
+        (u) => u.role && ['SUPER_ADMIN', 'OWNER'].includes(u.role),
+      ),
     };
 
     return {
@@ -628,11 +679,20 @@ export class BranchesService {
     };
   }
 
-  async bulkReassignUsers(fromBranchId: string, toBranchId: string, userIds: string[], reason?: string) {
+  async bulkReassignUsers(
+    fromBranchId: string,
+    toBranchId: string,
+    userIds: string[],
+    reason?: string,
+  ) {
     // Validate both branches exist and are active
     const [fromBranch, toBranch] = await Promise.all([
-      this.prisma.branch.findFirst({ where: { id: fromBranchId, isActive: true } }),
-      this.prisma.branch.findFirst({ where: { id: toBranchId, isActive: true } }),
+      this.prisma.branch.findFirst({
+        where: { id: fromBranchId, isActive: true },
+      }),
+      this.prisma.branch.findFirst({
+        where: { id: toBranchId, isActive: true },
+      }),
     ]);
 
     if (!fromBranch) {
@@ -642,7 +702,9 @@ export class BranchesService {
       throw new NotFoundException('Target branch not found or inactive');
     }
     if (fromBranch.tenantId !== toBranch.tenantId) {
-      throw new BadRequestException('Cannot reassign users between different tenants');
+      throw new BadRequestException(
+        'Cannot reassign users between different tenants',
+      );
     }
 
     // Get users assigned via gymUserBranch table
@@ -664,31 +726,34 @@ export class BranchesService {
     });
 
     // Get members with this as their primary branch (not in gymUserBranch)
-    const membersWithPrimaryBranch = await this.prisma.gymMemberProfile.findMany({
-      where: {
-        primaryBranchId: fromBranchId,
-        userId: { in: userIds },
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            role: true,
+    const membersWithPrimaryBranch =
+      await this.prisma.gymMemberProfile.findMany({
+        where: {
+          primaryBranchId: fromBranchId,
+          userId: { in: userIds },
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+            },
           },
         },
-      },
-    });
+      });
 
     const foundUserIds = new Set([
-      ...currentAssignments.map(a => a.userId),
-      ...membersWithPrimaryBranch.map(p => p.userId),
+      ...currentAssignments.map((a) => a.userId),
+      ...membersWithPrimaryBranch.map((p) => p.userId),
     ]);
 
-    const missingUserIds = userIds.filter(id => !foundUserIds.has(id));
+    const missingUserIds = userIds.filter((id) => !foundUserIds.has(id));
     if (missingUserIds.length > 0) {
-      throw new BadRequestException(`Some users are not assigned to source branch: ${missingUserIds.join(', ')}`);
+      throw new BadRequestException(
+        `Some users are not assigned to source branch: ${missingUserIds.join(', ')}`,
+      );
     }
 
     // Check if users are already assigned to target branch
@@ -700,8 +765,10 @@ export class BranchesService {
     });
 
     if (existingTargetAssignments.length > 0) {
-      const duplicateUsers = existingTargetAssignments.map(a => a.userId);
-      throw new ConflictException(`Some users are already assigned to target branch: ${duplicateUsers.join(', ')}`);
+      const duplicateUsers = existingTargetAssignments.map((a) => a.userId);
+      throw new ConflictException(
+        `Some users are already assigned to target branch: ${duplicateUsers.join(', ')}`,
+      );
     }
 
     // Perform bulk reassignment in a transaction
@@ -714,13 +781,13 @@ export class BranchesService {
         await tx.gymUserBranch.deleteMany({
           where: {
             branchId: fromBranchId,
-            userId: { in: currentAssignments.map(a => a.userId) },
+            userId: { in: currentAssignments.map((a) => a.userId) },
           },
         });
 
         // Create new assignments (preserve access levels and primary status)
         const newAssignments = await tx.gymUserBranch.createMany({
-          data: currentAssignments.map(assignment => ({
+          data: currentAssignments.map((assignment) => ({
             userId: assignment.userId,
             branchId: toBranchId,
             tenantId: toBranch.tenantId,
@@ -734,10 +801,12 @@ export class BranchesService {
 
       // Update primaryBranchId for all gym members (both in gymUserBranch and only primaryBranch)
       const allMemberUserIds = [
-        ...currentAssignments.filter(a => a.user.role === 'CLIENT').map(a => a.userId),
-        ...membersWithPrimaryBranch.map(p => p.userId),
+        ...currentAssignments
+          .filter((a) => a.user.role === 'CLIENT')
+          .map((a) => a.userId),
+        ...membersWithPrimaryBranch.map((p) => p.userId),
       ];
-      
+
       if (allMemberUserIds.length > 0) {
         const updateResult = await tx.gymMemberProfile.updateMany({
           where: {
@@ -755,12 +824,12 @@ export class BranchesService {
       // await tx.branchAuditLog.create({ ... })
 
       const allUsers = [
-        ...currentAssignments.map(a => ({
+        ...currentAssignments.map((a) => ({
           id: a.user.id,
           name: `${a.user.firstName} ${a.user.lastName}`,
           role: a.user.role,
         })),
-        ...membersWithPrimaryBranch.map(p => ({
+        ...membersWithPrimaryBranch.map((p) => ({
           id: p.user.id,
           name: `${p.user.firstName} ${p.user.lastName}`,
           role: p.user.role,
@@ -780,9 +849,16 @@ export class BranchesService {
     return result;
   }
 
-  async forceDeleteBranch(branchId: string, reason: string, confirmationText: string, performedBy: string) {
+  async forceDeleteBranch(
+    branchId: string,
+    reason: string,
+    confirmationText: string,
+    performedBy: string,
+  ) {
     if (confirmationText !== 'FORCE DELETE') {
-      throw new BadRequestException('Confirmation text must be exactly "FORCE DELETE"');
+      throw new BadRequestException(
+        'Confirmation text must be exactly "FORCE DELETE"',
+      );
     }
 
     const branch = await this.prisma.branch.findUnique({
@@ -815,14 +891,16 @@ export class BranchesService {
         isActive: true,
       },
     });
-    
+
     if (activeBranchCount <= 1) {
       throw new ConflictException(
-        'Cannot delete the last branch. Each tenant must have at least one active location.'
+        'Cannot delete the last branch. Each tenant must have at least one active location.',
       );
     }
 
-    const activeUsers = branch.gymUserBranches.filter(ub => !ub.user.deletedAt);
+    const activeUsers = branch.gymUserBranches.filter(
+      (ub) => !ub.user.deletedAt,
+    );
 
     // Get fallback branch for member reassignment (first active branch in tenant)
     const fallbackBranch = await this.prisma.branch.findFirst({
@@ -869,7 +947,11 @@ export class BranchesService {
       // Soft delete the branch
       const deletedBranch = await tx.branch.update({
         where: { id: branchId },
-        data: { isActive: false, deletedBy: performedBy, deletedAt: new Date() },
+        data: {
+          isActive: false,
+          deletedBy: performedBy,
+          deletedAt: new Date(),
+        },
       });
 
       // TODO: Create audit log entry for force deletion
@@ -880,13 +962,15 @@ export class BranchesService {
           id: deletedBranch.id,
           name: deletedBranch.name,
         },
-        reassignedMembers: membersToReassign.map(m => ({
+        reassignedMembers: membersToReassign.map((m) => ({
           id: m.user.id,
           name: `${m.user.firstName} ${m.user.lastName}`,
           role: m.user.role,
-          newBranch: fallbackBranch ? { id: fallbackBranch.id, name: fallbackBranch.name } : null,
+          newBranch: fallbackBranch
+            ? { id: fallbackBranch.id, name: fallbackBranch.name }
+            : null,
         })),
-        orphanedUsers: activeUsers.map(ub => ({
+        orphanedUsers: activeUsers.map((ub) => ({
           id: ub.user.id,
           name: `${ub.user.firstName} ${ub.user.lastName}`,
           role: ub.user.role,
@@ -894,7 +978,7 @@ export class BranchesService {
         reason,
         performedBy,
         timestamp: new Date().toISOString(),
-        warning: fallbackBranch 
+        warning: fallbackBranch
           ? `${membersToReassign.length} members automatically reassigned to "${fallbackBranch.name}"`
           : 'WARNING: No active branches available. Members have been left without a primary branch and will need manual reassignment.',
       };

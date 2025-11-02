@@ -272,9 +272,9 @@ export class AuthController {
   }
 
   /**
-    * Get current user info
-    * GET /auth/me (requires Authorization header or x-bypass-auth header)
-    */
+   * Get current user info
+   * GET /auth/me (requires Authorization header or x-bypass-auth header)
+   */
   @Get('me')
   @UseGuards(AuthGuard)
   async getMe(@Req() request: Request) {
@@ -310,7 +310,8 @@ export class AuthController {
       user: {
         id: user.id,
         email: user.email,
-        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        name:
+          `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role, // Return platform role
@@ -318,7 +319,9 @@ export class AuthController {
         tenant: effectiveTenant,
         created_at: user.createdAt,
         // Include verification token if user hasn't set initial password (for onboarding)
-        emailVerificationToken: !user.initialPasswordSet ? user.emailVerificationToken : undefined,
+        emailVerificationToken: !user.initialPasswordSet
+          ? user.emailVerificationToken
+          : undefined,
       },
     };
   }
@@ -361,7 +364,8 @@ export class AuthController {
       }
 
       // Validate new password against system security level
-      const securityLevel = await this.systemSettingsService.getPasswordSecurityLevel();
+      const securityLevel =
+        await this.systemSettingsService.getPasswordSecurityLevel();
       const validation = validatePassword(newPassword, securityLevel);
 
       if (!validation.valid) {

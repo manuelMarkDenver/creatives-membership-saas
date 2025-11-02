@@ -64,14 +64,21 @@ export class BranchesController {
 
   @Get('system/all')
   @RequiredRoles(Role.SUPER_ADMIN)
-  async findAllBranchesSystemWide(@Query('includeDeleted') includeDeleted?: string) {
-    return this.branchesService.findAllBranchesSystemWide(includeDeleted === 'true');
+  async findAllBranchesSystemWide(
+    @Query('includeDeleted') includeDeleted?: string,
+  ) {
+    return this.branchesService.findAllBranchesSystemWide(
+      includeDeleted === 'true',
+    );
   }
 
   @Get()
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   @RequiredAccessLevel(AccessLevel.STAFF_ACCESS)
-  async findAllBranches(@Request() req: any, @Query('includeDeleted') includeDeleted?: string) {
+  async findAllBranches(
+    @Request() req: any,
+    @Query('includeDeleted') includeDeleted?: string,
+  ) {
     const user = req.user as AuthenticatedUser;
     // Handle bypass auth case - use tenantId from query or headers
     const tenantId =
@@ -81,7 +88,10 @@ export class BranchesController {
       throw new Error('Tenant ID is required');
     }
 
-    return this.branchesService.findAllBranches(tenantId, includeDeleted === 'true');
+    return this.branchesService.findAllBranches(
+      tenantId,
+      includeDeleted === 'true',
+    );
   }
 
   @Get(':branchId')
@@ -117,9 +127,14 @@ export class BranchesController {
   @RequiredAccessLevel(AccessLevel.MANAGER_ACCESS)
   async bulkReassignUsers(
     @Param('branchId') fromBranchId: string,
-    @Body() data: { userIds: string[]; toBranchId: string; reason?: string }
+    @Body() data: { userIds: string[]; toBranchId: string; reason?: string },
   ) {
-    return this.branchesService.bulkReassignUsers(fromBranchId, data.toBranchId, data.userIds, data.reason);
+    return this.branchesService.bulkReassignUsers(
+      fromBranchId,
+      data.toBranchId,
+      data.userIds,
+      data.reason,
+    );
   }
 
   @Delete(':branchId/force')
@@ -128,10 +143,15 @@ export class BranchesController {
   async forceDeleteBranch(
     @Param('branchId') branchId: string,
     @Body() data: { reason: string; confirmationText: string },
-    @Request() req: any
+    @Request() req: any,
   ) {
     const user = req.user as AuthenticatedUser;
-    return this.branchesService.forceDeleteBranch(branchId, data.reason, data.confirmationText, user.id);
+    return this.branchesService.forceDeleteBranch(
+      branchId,
+      data.reason,
+      data.confirmationText,
+      user.id,
+    );
   }
 
   @Post(':branchId/users')

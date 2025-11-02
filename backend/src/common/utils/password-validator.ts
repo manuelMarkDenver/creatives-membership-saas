@@ -27,8 +27,7 @@ export const PASSWORD_REQUIREMENTS: Record<
     requireLowercase: true,
     requireNumber: true,
     requireSpecialChar: false,
-    description:
-      'At least 8 characters with uppercase, lowercase, and number',
+    description: 'At least 8 characters with uppercase, lowercase, and number',
   },
   HIGH: {
     minLength: 8,
@@ -49,7 +48,9 @@ export function validatePassword(
   const errors: string[] = [];
 
   if (password.length < requirements.minLength) {
-    errors.push(`Password must be at least ${requirements.minLength} characters long`);
+    errors.push(
+      `Password must be at least ${requirements.minLength} characters long`,
+    );
   }
 
   if (requirements.requireUppercase && !/[A-Z]/.test(password)) {

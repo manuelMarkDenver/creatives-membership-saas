@@ -51,8 +51,6 @@ export class RBACGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-
-
     // Get tenant and branch context
     const tenantId =
       request.params?.tenantId ||
@@ -92,12 +90,16 @@ export class RBACGuard implements CanActivate {
       if (branchId) {
         // Branch-specific access check
         if (!this.hasBranchAccess(user, branchId, requiredAccessLevel)) {
-          throw new ForbiddenException('Insufficient branch access permissions');
+          throw new ForbiddenException(
+            'Insufficient branch access permissions',
+          );
         }
       } else {
         // Tenant-level access check based on global role
         if (!this.hasTenantAccess(user, requiredAccessLevel)) {
-          throw new ForbiddenException('Insufficient tenant access permissions');
+          throw new ForbiddenException(
+            'Insufficient tenant access permissions',
+          );
         }
       }
     }
@@ -150,7 +152,8 @@ export class RBACGuard implements CanActivate {
     // Use role for platform-level permissions
     user.role = (dbUser.role as Role) || Role.CLIENT;
     // Use User.tenantId first, fallback to gymMemberProfile.tenantId for gym members
-    user.tenantId = dbUser.tenantId || dbUser.gymMemberProfile?.tenantId || null;
+    user.tenantId =
+      dbUser.tenantId || dbUser.gymMemberProfile?.tenantId || null;
     user.branchAccess = dbUser.gymUserBranches.map((ub) => ({
       branchId: ub.branchId,
       accessLevel: ub.accessLevel,
@@ -183,7 +186,10 @@ export class RBACGuard implements CanActivate {
     return requiredRoles.includes(user.role);
   }
 
-  private hasTenantAccess(user: AuthenticatedUser, requiredLevel: AccessLevel): boolean {
+  private hasTenantAccess(
+    user: AuthenticatedUser,
+    requiredLevel: AccessLevel,
+  ): boolean {
     // SUPER_ADMIN has full access
     if (user.role === Role.SUPER_ADMIN) {
       return true;
@@ -196,17 +202,26 @@ export class RBACGuard implements CanActivate {
 
     // MANAGER has manager-level access
     if (user.role === Role.MANAGER) {
-      return this.accessLevelHierarchy(requiredLevel) <= this.accessLevelHierarchy(AccessLevel.MANAGER_ACCESS);
+      return (
+        this.accessLevelHierarchy(requiredLevel) <=
+        this.accessLevelHierarchy(AccessLevel.MANAGER_ACCESS)
+      );
     }
 
     // STAFF has staff-level access
     if (user.role === Role.STAFF) {
-      return this.accessLevelHierarchy(requiredLevel) <= this.accessLevelHierarchy(AccessLevel.STAFF_ACCESS);
+      return (
+        this.accessLevelHierarchy(requiredLevel) <=
+        this.accessLevelHierarchy(AccessLevel.STAFF_ACCESS)
+      );
     }
 
     // CLIENT has read-only access
     if (user.role === Role.CLIENT) {
-      return this.accessLevelHierarchy(requiredLevel) <= this.accessLevelHierarchy(AccessLevel.READ_ONLY);
+      return (
+        this.accessLevelHierarchy(requiredLevel) <=
+        this.accessLevelHierarchy(AccessLevel.READ_ONLY)
+      );
     }
 
     return false;

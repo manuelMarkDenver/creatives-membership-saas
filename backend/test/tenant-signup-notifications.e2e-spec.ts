@@ -86,7 +86,7 @@ describe('Tenant Signup Notifications (e2e)', () => {
         password: 'hashedpassword',
         role: Role.OWNER,
         tenant: {
-          connect: { id: tenant.id }
+          connect: { id: tenant.id },
         },
       },
     });
@@ -110,9 +110,7 @@ describe('Tenant Signup Notifications (e2e)', () => {
         price: 1000,
         duration: 30, // 30 days
         type: MembershipType.MONTHLY,
-        benefits: [
-          "Test Feature"
-        ],
+        benefits: ['Test Feature'],
       },
     });
     membershipPlanId = plan.id;
@@ -129,7 +127,7 @@ describe('Tenant Signup Notifications (e2e)', () => {
         where: { id: tenantId },
         data: {
           tenantSignupNotificationEnabled: true,
-          adminEmailRecipients: [ownerUser.email, 'manager@test-gym.com']
+          adminEmailRecipients: [ownerUser.email, 'manager@test-gym.com'],
         },
       });
 
@@ -171,7 +169,9 @@ describe('Tenant Signup Notifications (e2e)', () => {
         membershipPlanId: membershipPlanId,
         businessData: {
           startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
         },
       };
 
@@ -201,7 +201,9 @@ describe('Tenant Signup Notifications (e2e)', () => {
         membershipPlanId: membershipPlanId,
         businessData: {
           startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
         },
       };
 
@@ -232,7 +234,9 @@ describe('Tenant Signup Notifications (e2e)', () => {
         membershipPlanId: membershipPlanId,
         businessData: {
           startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
         },
       };
 
@@ -258,7 +262,10 @@ describe('Tenant Signup Notifications (e2e)', () => {
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('id', tenantId);
-          expect(res.body).toHaveProperty('tenantSignupNotificationEnabled', true);
+          expect(res.body).toHaveProperty(
+            'tenantSignupNotificationEnabled',
+            true,
+          );
           expect(res.body).toHaveProperty('adminEmailRecipients');
           expect(Array.isArray(res.body.adminEmailRecipients)).toBe(true);
         });
@@ -274,7 +281,10 @@ describe('Tenant Signup Notifications (e2e)', () => {
         })
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('tenantSignupNotificationEnabled', false);
+          expect(res.body).toHaveProperty(
+            'tenantSignupNotificationEnabled',
+            false,
+          );
         });
     });
   });
@@ -290,7 +300,7 @@ describe('Tenant Signup Notifications (e2e)', () => {
         where: { id: tenantId },
         data: {
           tenantSignupNotificationEnabled: true,
-          adminEmailRecipients: [ownerUser.email, 'manager@test-gym.com']
+          adminEmailRecipients: [ownerUser.email, 'manager@test-gym.com'],
         },
       });
       const memberData = {
@@ -319,7 +329,10 @@ describe('Tenant Signup Notifications (e2e)', () => {
         where: { id: tenantId },
         select: { adminEmailRecipients: true },
       });
-      expect(tenant?.adminEmailRecipients).toEqual([ownerUser.email, 'manager@test-gym.com']);
+      expect(tenant?.adminEmailRecipients).toEqual([
+        ownerUser.email,
+        'manager@test-gym.com',
+      ]);
     });
   });
 
@@ -339,7 +352,9 @@ describe('Tenant Signup Notifications (e2e)', () => {
         membershipPlanId: membershipPlanId,
         businessData: {
           startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
         },
       };
 

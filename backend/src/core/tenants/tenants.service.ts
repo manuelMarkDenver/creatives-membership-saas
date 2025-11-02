@@ -303,8 +303,8 @@ export class TenantsService {
           users: {
             where: { role: 'OWNER' },
             select: { email: true },
-            take: 1
-          }
+            take: 1,
+          },
         },
       });
 
@@ -318,25 +318,28 @@ export class TenantsService {
 
       if (ownerEmail) {
         // Check if adminEmailRecipients is null, empty, or contains only invalid emails
-        const hasValidEmails = adminEmailRecipients &&
+        const hasValidEmails =
+          adminEmailRecipients &&
           adminEmailRecipients.length > 0 &&
-          adminEmailRecipients.some(email => email && email.trim() !== '');
+          adminEmailRecipients.some((email) => email && email.trim() !== '');
 
         if (!hasValidEmails) {
           adminEmailRecipients = [ownerEmail];
-          this.logger.log(`Fixing adminEmailRecipients for tenant ${tenant.name}: setting to owner email ${ownerEmail}`);
+          this.logger.log(
+            `Fixing adminEmailRecipients for tenant ${tenant.name}: setting to owner email ${ownerEmail}`,
+          );
 
           // Update the tenant in database
           await this.prisma.tenant.update({
             where: { id: tenant.id },
-            data: { adminEmailRecipients }
+            data: { adminEmailRecipients },
           });
         }
       }
 
       return {
         ...tenant,
-        adminEmailRecipients
+        adminEmailRecipients,
       };
     } catch (error) {
       if (
@@ -537,7 +540,9 @@ export class TenantsService {
       }
 
       // Find the owner user
-      const owner = existingTenant.users.find((user) => user.role === Role.OWNER);
+      const owner = existingTenant.users.find(
+        (user) => user.role === Role.OWNER,
+      );
       if (!owner) {
         throw new NotFoundException(`Owner not found for tenant '${tenantId}'`);
       }
@@ -561,7 +566,9 @@ export class TenantsService {
           ...(ownerData.firstName && { firstName: ownerData.firstName.trim() }),
           ...(ownerData.lastName && { lastName: ownerData.lastName.trim() }),
           ...(ownerData.email && { email: ownerData.email.trim() }),
-          ...(ownerData.phoneNumber && { phoneNumber: ownerData.phoneNumber.trim() }),
+          ...(ownerData.phoneNumber && {
+            phoneNumber: ownerData.phoneNumber.trim(),
+          }),
         },
       });
 
@@ -611,7 +618,9 @@ export class TenantsService {
         throw new NotFoundException(`Tenant with ID '${tenantId}' not found`);
       }
 
-      const owner = existingTenant.users.find((user) => user.role === Role.OWNER);
+      const owner = existingTenant.users.find(
+        (user) => user.role === Role.OWNER,
+      );
       if (!owner) {
         throw new NotFoundException(`Owner not found for tenant '${tenantId}'`);
       }
@@ -869,9 +878,9 @@ export class TenantsService {
 
       const updatedTenant = await this.prisma.tenant.update({
         where: { id: tenantId },
-        data: { 
+        data: {
           onboardingCompletedAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
       });
 
@@ -905,9 +914,9 @@ export class TenantsService {
 
       const updatedTenant = await this.prisma.tenant.update({
         where: { id: tenantId },
-        data: { 
+        data: {
           ownerPasswordChanged: true,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
       });
 
@@ -950,14 +959,14 @@ export class TenantsService {
           gymMembershipPlans: {
             where: { deletedAt: null },
             take: 1,
-            select: { id: true }
+            select: { id: true },
           },
           // Check if tenant has members
           users: {
             where: { role: 'CLIENT', deletedAt: null },
             take: 1,
-            select: { id: true }
-          }
+            select: { id: true },
+          },
         },
       });
 
@@ -979,11 +988,13 @@ export class TenantsService {
         hasMembers,
         onboardingCompletedAt: tenant.onboardingCompletedAt,
         // Suggest next steps if not complete
-        nextSteps: !isOnboardingComplete ? [
-          !hasChangedPassword ? 'Change temporary password' : null,
-          !hasMembershipPlans ? 'Create membership plans' : null,
-          !hasMembers ? 'Add first members' : null
-        ].filter(Boolean) : []
+        nextSteps: !isOnboardingComplete
+          ? [
+              !hasChangedPassword ? 'Change temporary password' : null,
+              !hasMembershipPlans ? 'Create membership plans' : null,
+              !hasMembers ? 'Add first members' : null,
+            ].filter(Boolean)
+          : [],
       };
     } catch (error) {
       if (
@@ -1012,22 +1023,25 @@ export class TenantsService {
     const lowercase = 'abcdefghijklmnopqrstuvwxyz';
     const numbers = '0123456789';
     const symbols = '!@#$%^&*';
-    
+
     // Ensure at least one character from each category
     let password = '';
     password += uppercase[Math.floor(Math.random() * uppercase.length)];
     password += lowercase[Math.floor(Math.random() * lowercase.length)];
     password += numbers[Math.floor(Math.random() * numbers.length)];
     password += symbols[Math.floor(Math.random() * symbols.length)];
-    
+
     // Fill remaining positions with random characters from all categories
     const allChars = uppercase + lowercase + numbers + symbols;
     for (let i = 4; i < 12; i++) {
       password += allChars[Math.floor(Math.random() * allChars.length)];
     }
-    
+
     // Shuffle the password to randomize positions
-    return password.split('').sort(() => Math.random() - 0.5).join('');
+    return password
+      .split('')
+      .sort(() => Math.random() - 0.5)
+      .join('');
   }
 
   // Helper method to validate UUID format
@@ -1059,8 +1073,8 @@ export class TenantsService {
           users: {
             where: { role: 'OWNER' },
             select: { email: true },
-            take: 1
-          }
+            take: 1,
+          },
         },
       });
 
@@ -1074,25 +1088,28 @@ export class TenantsService {
 
       if (ownerEmail) {
         // Check if adminEmailRecipients is null, empty, or contains only invalid emails
-        const hasValidEmails = adminEmailRecipients &&
+        const hasValidEmails =
+          adminEmailRecipients &&
           adminEmailRecipients.length > 0 &&
-          adminEmailRecipients.some(email => email && email.trim() !== '');
+          adminEmailRecipients.some((email) => email && email.trim() !== '');
 
         if (!hasValidEmails) {
           adminEmailRecipients = [ownerEmail];
-          this.logger.log(`Fixing adminEmailRecipients for tenant ${tenant.name}: setting to owner email ${ownerEmail}`);
+          this.logger.log(
+            `Fixing adminEmailRecipients for tenant ${tenant.name}: setting to owner email ${ownerEmail}`,
+          );
 
           // Update the tenant in database
           await this.prisma.tenant.update({
             where: { id: tenant.id },
-            data: { adminEmailRecipients }
+            data: { adminEmailRecipients },
           });
         }
       }
 
       return {
         ...tenant,
-        adminEmailRecipients
+        adminEmailRecipients,
       };
     } catch (error) {
       if (
@@ -1127,9 +1144,13 @@ export class TenantsService {
 
       // Validate email addresses
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const invalidEmails = adminEmailRecipients.filter(email => !emailRegex.test(email));
+      const invalidEmails = adminEmailRecipients.filter(
+        (email) => !emailRegex.test(email),
+      );
       if (invalidEmails.length > 0) {
-        throw new BadRequestException(`Invalid email addresses: ${invalidEmails.join(', ')}`);
+        throw new BadRequestException(
+          `Invalid email addresses: ${invalidEmails.join(', ')}`,
+        );
       }
 
       const updatedTenant = await this.prisma.tenant.update({

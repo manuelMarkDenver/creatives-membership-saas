@@ -74,7 +74,9 @@ export class SupabaseService {
     } else {
       // Production - try to use Supabase if configured, otherwise disable
       if (!supabaseUrl || !keyToUse) {
-        this.logger.warn('Supabase not configured - OAuth features will be disabled');
+        this.logger.warn(
+          'Supabase not configured - OAuth features will be disabled',
+        );
         this.supabase = null;
         return;
       }

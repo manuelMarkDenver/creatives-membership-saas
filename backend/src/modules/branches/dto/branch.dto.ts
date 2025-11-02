@@ -32,7 +32,6 @@ export class CreateBranchDto {
   @IsString()
   email?: string;
 
-
   @IsOptional()
   @IsObject()
   branchData?: Record<string, any>;
@@ -66,7 +65,6 @@ export class UpdateBranchDto {
   @IsOptional()
   @IsString()
   email?: string;
-
 
   @IsOptional()
   @IsObject()

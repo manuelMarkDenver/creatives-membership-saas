@@ -11,14 +11,12 @@ describe('EmailService - Tenant Signup Notifications', () => {
     name: 'Test Gym',
     tenantSignupNotificationEnabled: true,
     adminEmailRecipients: ['owner@test.com', 'manager@test.com'],
-    users: [
-      { email: 'owner@test.com', firstName: 'Test', role: 'OWNER' }
-    ]
+    users: [{ email: 'owner@test.com', firstName: 'Test', role: 'OWNER' }],
   };
 
   const mockSystemSettings = {
     id: 'system',
-    tenantNotificationsEnabled: true
+    tenantNotificationsEnabled: true,
   };
 
   beforeEach(async () => {
@@ -82,14 +80,16 @@ describe('EmailService - Tenant Signup Notifications', () => {
 
     it('should send notification when both platform and tenant controls are enabled', async () => {
       const mockPrisma = prisma as jest.Mocked<PrismaService>;
-      mockPrisma.systemSettings.findUnique.mockResolvedValue(mockSystemSettings as any);
+      mockPrisma.systemSettings.findUnique.mockResolvedValue(
+        mockSystemSettings as any,
+      );
       mockPrisma.tenant.findUnique.mockResolvedValue(mockTenant as any);
 
       await service.sendTenantNotification(
         'tenant-123',
         'John Doe',
         'john@test.com',
-        'Premium Plan'
+        'Premium Plan',
       );
 
       // Verify system settings were checked
@@ -105,7 +105,10 @@ describe('EmailService - Tenant Signup Notifications', () => {
           name: true,
           tenantSignupNotificationEnabled: true,
           adminEmailRecipients: true,
-          users: { where: { role: 'OWNER' }, select: { email: true, firstName: true } }
+          users: {
+            where: { role: 'OWNER' },
+            select: { email: true, firstName: true },
+          },
         },
       });
 
@@ -120,7 +123,7 @@ describe('EmailService - Tenant Signup Notifications', () => {
         'Test App',
         'tenant_notification',
         'tenant-123',
-        'template-123'
+        'template-123',
       );
     });
 
@@ -135,7 +138,7 @@ describe('EmailService - Tenant Signup Notifications', () => {
         'tenant-123',
         'John Doe',
         'john@test.com',
-        'Premium Plan'
+        'Premium Plan',
       );
 
       // Verify email was not sent
@@ -144,7 +147,9 @@ describe('EmailService - Tenant Signup Notifications', () => {
 
     it('should not send notification when tenant control is disabled', async () => {
       const mockPrisma = prisma as jest.Mocked<PrismaService>;
-      mockPrisma.systemSettings.findUnique.mockResolvedValue(mockSystemSettings as any);
+      mockPrisma.systemSettings.findUnique.mockResolvedValue(
+        mockSystemSettings as any,
+      );
       mockPrisma.tenant.findUnique.mockResolvedValue({
         ...mockTenant,
         tenantSignupNotificationEnabled: false,
@@ -154,7 +159,7 @@ describe('EmailService - Tenant Signup Notifications', () => {
         'tenant-123',
         'John Doe',
         'john@test.com',
-        'Premium Plan'
+        'Premium Plan',
       );
 
       // Verify email was not sent
@@ -163,7 +168,9 @@ describe('EmailService - Tenant Signup Notifications', () => {
 
     it('should not send notification when no admin recipients configured', async () => {
       const mockPrisma = prisma as jest.Mocked<PrismaService>;
-      mockPrisma.systemSettings.findUnique.mockResolvedValue(mockSystemSettings as any);
+      mockPrisma.systemSettings.findUnique.mockResolvedValue(
+        mockSystemSettings as any,
+      );
       mockPrisma.tenant.findUnique.mockResolvedValue({
         ...mockTenant,
         adminEmailRecipients: [],
@@ -173,7 +180,7 @@ describe('EmailService - Tenant Signup Notifications', () => {
         'tenant-123',
         'John Doe',
         'john@test.com',
-        'Premium Plan'
+        'Premium Plan',
       );
 
       // Verify email was not sent
@@ -182,14 +189,16 @@ describe('EmailService - Tenant Signup Notifications', () => {
 
     it('should handle missing tenant gracefully', async () => {
       const mockPrisma = prisma as jest.Mocked<PrismaService>;
-      mockPrisma.systemSettings.findUnique.mockResolvedValue(mockSystemSettings as any);
+      mockPrisma.systemSettings.findUnique.mockResolvedValue(
+        mockSystemSettings as any,
+      );
       mockPrisma.tenant.findUnique.mockResolvedValue(null);
 
       await service.sendTenantNotification(
         'nonexistent-tenant',
         'John Doe',
         'john@test.com',
-        'Premium Plan'
+        'Premium Plan',
       );
 
       // Verify email was not sent due to missing tenant
@@ -198,7 +207,9 @@ describe('EmailService - Tenant Signup Notifications', () => {
 
     it('should handle missing email template gracefully', async () => {
       const mockPrisma = prisma as jest.Mocked<PrismaService>;
-      mockPrisma.systemSettings.findUnique.mockResolvedValue(mockSystemSettings as any);
+      mockPrisma.systemSettings.findUnique.mockResolvedValue(
+        mockSystemSettings as any,
+      );
       mockPrisma.tenant.findUnique.mockResolvedValue(mockTenant as any);
       mockPrisma.emailTemplate.findFirst.mockResolvedValue(null);
 
@@ -206,7 +217,7 @@ describe('EmailService - Tenant Signup Notifications', () => {
         'tenant-123',
         'John Doe',
         'john@test.com',
-        'Premium Plan'
+        'Premium Plan',
       );
 
       // Verify email was not sent due to missing template
@@ -233,7 +244,11 @@ describe('EmailService - Tenant Signup Notifications', () => {
 
     it('should validate recipient logic', () => {
       // Test that emails are sent to all admin recipients
-      const adminRecipients = ['admin1@test.com', 'admin2@test.com', 'admin3@test.com'];
+      const adminRecipients = [
+        'admin1@test.com',
+        'admin2@test.com',
+        'admin3@test.com',
+      ];
       expect(adminRecipients).toHaveLength(3);
       expect(adminRecipients).toContain('admin1@test.com');
       expect(adminRecipients).toContain('admin2@test.com');

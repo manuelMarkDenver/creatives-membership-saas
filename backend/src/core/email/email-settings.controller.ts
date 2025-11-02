@@ -30,7 +30,8 @@ export class EmailSettingsController {
 
   @Put()
   async updateEmailSettings(
-    @Body() data: {
+    @Body()
+    data: {
       smtpHost?: string;
       smtpPort?: number;
       smtpUser?: string;
@@ -48,12 +49,22 @@ export class EmailSettingsController {
         data: {
           smtpHost: data.smtpHost || existing.smtpHost,
           smtpPort: data.smtpPort || existing.smtpPort,
-          smtpUser: data.smtpUser !== undefined ? data.smtpUser : existing.smtpUser,
-          smtpPassword: data.smtpPassword !== undefined ? data.smtpPassword : existing.smtpPassword,
+          smtpUser:
+            data.smtpUser !== undefined ? data.smtpUser : existing.smtpUser,
+          smtpPassword:
+            data.smtpPassword !== undefined
+              ? data.smtpPassword
+              : existing.smtpPassword,
           fromEmail: data.fromEmail || existing.fromEmail,
           fromName: data.fromName || existing.fromName,
-          brevoApiKey: data.brevoApiKey !== undefined ? data.brevoApiKey : existing.brevoApiKey,
-          mailpitEnabled: data.mailpitEnabled !== undefined ? data.mailpitEnabled : existing.mailpitEnabled,
+          brevoApiKey:
+            data.brevoApiKey !== undefined
+              ? data.brevoApiKey
+              : existing.brevoApiKey,
+          mailpitEnabled:
+            data.mailpitEnabled !== undefined
+              ? data.mailpitEnabled
+              : existing.mailpitEnabled,
         },
       });
     } else {
@@ -66,7 +77,8 @@ export class EmailSettingsController {
           fromEmail: data.fromEmail || 'noreply@gymbosslab.com',
           fromName: data.fromName || 'GymBossLab',
           brevoApiKey: data.brevoApiKey || null,
-          mailpitEnabled: data.mailpitEnabled !== undefined ? data.mailpitEnabled : true,
+          mailpitEnabled:
+            data.mailpitEnabled !== undefined ? data.mailpitEnabled : true,
         },
       });
     }

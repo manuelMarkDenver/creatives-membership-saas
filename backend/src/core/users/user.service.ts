@@ -129,12 +129,15 @@ export class UsersService {
           if (user.photoUrl && user.tenantId) {
             try {
               const photoPath = `${user.tenantId}/${user.id}/profile.jpg`;
-              const freshUrl = await this.storageService.getSignedPhotoUrl?.(photoPath);
+              const freshUrl =
+                await this.storageService.getSignedPhotoUrl?.(photoPath);
               if (freshUrl) {
                 return { ...user, photoUrl: freshUrl };
               }
             } catch (error) {
-              this.logger.warn(`Failed to refresh photo URL for user ${user.id}`);
+              this.logger.warn(
+                `Failed to refresh photo URL for user ${user.id}`,
+              );
             }
           }
           return user;
@@ -282,7 +285,9 @@ export class UsersService {
         });
 
         if (!userWithUpdatedProfile) {
-          throw new NotFoundException(`User with ID '${id}' not found after update`);
+          throw new NotFoundException(
+            `User with ID '${id}' not found after update`,
+          );
         }
 
         this.logger.log(
@@ -478,7 +483,6 @@ export class UsersService {
 
       // Check if user needs restoration
       if (!isDeleted && !isCancelled) {
-
         throw new BadRequestException(
           'User does not require restoration - already active and not deleted or cancelled',
         );
@@ -610,7 +614,7 @@ export class UsersService {
           // Only show CLIENTs who have at least one gym membership subscription
           // This excludes prospects/leads who have no subscription history
           whereClause.gymMemberSubscriptions = {
-            some: {} // Has at least one subscription record
+            some: {}, // Has at least one subscription record
           };
         } else {
           whereClause.role = filters.role;
@@ -771,7 +775,7 @@ export class UsersService {
       });
 
       // Transform gymMemberSubscriptions to gymSubscriptions for frontend compatibility
-      const transformedUsers = users.map(user => ({
+      const transformedUsers = users.map((user) => ({
         ...user,
         gymSubscriptions: user.gymMemberSubscriptions,
         gymMemberSubscriptions: undefined, // Remove the original field
@@ -844,9 +848,6 @@ export class UsersService {
     }
   }
 
-
-
-
   //         },
   //         isActive: true,
   //         ...(tenantId && { tenantId }),
@@ -881,14 +882,6 @@ export class UsersService {
   //     throw new InternalServerErrorException('Failed to retrieve expiring users. Please try again.');
   //   }
   // }
-
-
-
-
-
-
-
-
 
   // Photo Upload Methods (Business Agnostic - works for all user types)
   async uploadUserPhoto(userId: string, file: Express.Multer.File) {

@@ -41,7 +41,8 @@ export class EmailController {
   @Post('templates')
   @Roles('OWNER', 'SUPER_ADMIN')
   async createTemplate(
-    @Body() data: {
+    @Body()
+    data: {
       tenantId?: string;
       templateType: string;
       name: string;
@@ -63,7 +64,8 @@ export class EmailController {
   @Roles('OWNER', 'SUPER_ADMIN')
   async updateTemplate(
     @Param('id') id: string,
-    @Body() data: Partial<{
+    @Body()
+    data: Partial<{
       name: string;
       subject: string;
       htmlContent: string;
@@ -112,7 +114,8 @@ export class EmailController {
   @Post('send-welcome')
   @Roles('OWNER', 'MANAGER')
   async sendWelcomeEmail(
-    @Body() data: {
+    @Body()
+    data: {
       email: string;
       name: string;
       tenantId: string;
@@ -139,11 +142,7 @@ export class EmailController {
   @Post('send-admin-alert')
   @Roles('SUPER_ADMIN') // Only super admin can send admin alerts
   async sendAdminAlert(
-    @Body() data: {
-      tenantName: string;
-      ownerEmail: string;
-      tenantId: string;
-    },
+    @Body() data: { tenantName: string; ownerEmail: string; tenantId: string },
   ) {
     await this.emailService.sendAdminAlert(
       data.tenantName,
@@ -156,7 +155,8 @@ export class EmailController {
   @Post('send-tenant-notification')
   @Roles('SUPER_ADMIN') // Only super admin can send tenant notifications
   async sendTenantNotification(
-    @Body() data: {
+    @Body()
+    data: {
       tenantId: string;
       memberName: string;
       memberEmail: string;

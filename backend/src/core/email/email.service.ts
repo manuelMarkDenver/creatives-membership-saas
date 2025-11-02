@@ -54,7 +54,9 @@ export class EmailService {
         this.logger.log('✅ Email service configured from database settings');
       }
     } catch (error) {
-      this.logger.warn('⚠️  Could not load email settings from database, using environment fallback');
+      this.logger.warn(
+        '⚠️  Could not load email settings from database, using environment fallback',
+      );
     }
   }
 
@@ -82,12 +84,16 @@ export class EmailService {
         port: settings.smtpPort,
         secure: false,
         ignoreTLS: true,
-        auth: settings.smtpUser ? {
-          user: settings.smtpUser,
-          pass: settings.smtpPassword,
-        } : undefined,
+        auth: settings.smtpUser
+          ? {
+              user: settings.smtpUser,
+              pass: settings.smtpPassword,
+            }
+          : undefined,
       });
-      this.logger.log(`✅ Email service using SMTP (${settings.smtpHost}:${settings.smtpPort})`);
+      this.logger.log(
+        `✅ Email service using SMTP (${settings.smtpHost}:${settings.smtpPort})`,
+      );
     }
   }
 
@@ -109,8 +115,12 @@ export class EmailService {
       this.logger.log('✅ [PRODUCTION] Email service using Resend');
     } else {
       // Fallback to SMTP in production (not recommended)
-      this.logger.warn('⚠️  [PRODUCTION] No email provider configured, falling back to SMTP');
-      this.logger.warn('⚠️  Configure BREVO_API_KEY for production email delivery');
+      this.logger.warn(
+        '⚠️  [PRODUCTION] No email provider configured, falling back to SMTP',
+      );
+      this.logger.warn(
+        '⚠️  Configure BREVO_API_KEY for production email delivery',
+      );
       this.provider = 'smtp';
       this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'localhost',
@@ -172,7 +182,13 @@ export class EmailService {
     try {
       switch (this.provider) {
         case 'resend':
-          await this.sendViaResend(recipient, subject, htmlContent, fromEmail, fromName);
+          await this.sendViaResend(
+            recipient,
+            subject,
+            htmlContent,
+            fromEmail,
+            fromName,
+          );
           break;
         case 'sendgrid':
           await sgMail.send({
@@ -181,23 +197,40 @@ export class EmailService {
             subject,
             html: htmlContent,
           });
-          this.logger.log(`✅ Verification email sent via SendGrid to ${recipient}`);
+          this.logger.log(
+            `✅ Verification email sent via SendGrid to ${recipient}`,
+          );
           break;
         case 'mailgun':
-          await this.sendViaMailgun(recipient, subject, htmlContent, fromEmail, fromName);
+          await this.sendViaMailgun(
+            recipient,
+            subject,
+            htmlContent,
+            fromEmail,
+            fromName,
+          );
           break;
         case 'brevo':
-          await this.sendViaBrevo(recipient, subject, htmlContent, fromEmail, fromName);
+          await this.sendViaBrevo(
+            recipient,
+            subject,
+            htmlContent,
+            fromEmail,
+            fromName,
+          );
           break;
         case 'smtp':
-          if (!this.transporter) throw new Error('SMTP transporter not configured');
+          if (!this.transporter)
+            throw new Error('SMTP transporter not configured');
           await this.transporter.sendMail({
             from: `"${fromName}" <${fromEmail}>`,
             to: recipient,
             subject,
             html: htmlContent,
           });
-          this.logger.log(`✅ Verification email sent via SMTP to ${recipient}`);
+          this.logger.log(
+            `✅ Verification email sent via SMTP to ${recipient}`,
+          );
           this.logger.log(`📧 View it at: http://localhost:8025`);
           break;
       }
@@ -211,8 +244,8 @@ export class EmailService {
   }
 
   /**
-    * Send welcome email to new member
-    */
+   * Send welcome email to new member
+   */
   async sendWelcomeEmail(
     email: string,
     name: string,
@@ -222,7 +255,13 @@ export class EmailService {
     startDate?: string,
     endDate?: string,
   ) {
-    console.log('🎯 BACKEND: sendWelcomeEmail called with:', { email, name, registrationDate, startDate, endDate });
+    console.log('🎯 BACKEND: sendWelcomeEmail called with:', {
+      email,
+      name,
+      registrationDate,
+      startDate,
+      endDate,
+    });
     await this.ensureSettingsLoaded();
 
     try {
@@ -238,7 +277,9 @@ export class EmailService {
       });
 
       if (!tenant?.emailNotificationsEnabled || !tenant?.welcomeEmailEnabled) {
-        this.logger.log(`Welcome email disabled for tenant ${tenantId}, skipping welcome email`);
+        this.logger.log(
+          `Welcome email disabled for tenant ${tenantId}, skipping welcome email`,
+        );
         return;
       }
 
@@ -246,12 +287,14 @@ export class EmailService {
       const template = await this.getEmailTemplate('welcome', tenantId);
 
       if (!template) {
-        this.logger.warn(`No welcome email template found for tenant ${tenantId}`);
+        this.logger.warn(
+          `No welcome email template found for tenant ${tenantId}`,
+        );
         return;
       }
 
       // If dates are not provided, try to fetch subscription data
-      let finalRegistrationDate = registrationDate;
+      const finalRegistrationDate = registrationDate;
       let finalStartDate = startDate;
       let finalEndDate = endDate;
 
@@ -267,28 +310,46 @@ export class EmailService {
               gymMemberSubscriptions: {
                 include: { gymMembershipPlan: true },
                 orderBy: { createdAt: 'desc' },
-                take: 1
-              }
-            }
+                take: 1,
+              },
+            },
           });
 
-          console.log('📧 Found user:', !!user, 'email match:', user?.email === email, 'subscriptions:', user?.gymMemberSubscriptions?.length || 0);
+          console.log(
+            '📧 Found user:',
+            !!user,
+            'email match:',
+            user?.email === email,
+            'subscriptions:',
+            user?.gymMemberSubscriptions?.length || 0,
+          );
 
-          if (user && user.gymMemberSubscriptions && user.gymMemberSubscriptions.length > 0) {
+          if (
+            user &&
+            user.gymMemberSubscriptions &&
+            user.gymMemberSubscriptions.length > 0
+          ) {
             const subscription = user.gymMemberSubscriptions[0];
-            finalStartDate = finalStartDate || new Date(subscription.startDate).toLocaleDateString();
-            finalEndDate = finalEndDate || new Date(subscription.endDate).toLocaleDateString();
+            finalStartDate =
+              finalStartDate ||
+              new Date(subscription.startDate).toLocaleDateString();
+            finalEndDate =
+              finalEndDate ||
+              new Date(subscription.endDate).toLocaleDateString();
             console.log('📧 Found subscription data for welcome email:', {
               startDate: finalStartDate,
               endDate: finalEndDate,
               rawStartDate: subscription.startDate,
-              rawEndDate: subscription.endDate
+              rawEndDate: subscription.endDate,
             });
           } else {
             console.log('📧 No subscriptions found for user');
           }
         } catch (error) {
-          console.warn('Could not fetch subscription data for welcome email:', error.message);
+          console.warn(
+            'Could not fetch subscription data for welcome email:',
+            error.message,
+          );
         }
       }
 
@@ -296,7 +357,8 @@ export class EmailService {
         memberName: name,
         tenantName: tenant?.name || 'Our Gym',
         membershipPlan: membershipPlanName || 'Basic Membership',
-        registrationDate: finalRegistrationDate || new Date().toLocaleDateString(),
+        registrationDate:
+          finalRegistrationDate || new Date().toLocaleDateString(),
         startDate: finalStartDate || new Date().toLocaleDateString(),
         endDate: finalEndDate || 'N/A',
         loginUrl: `${process.env.FRONTEND_URL}/auth/login`,
@@ -306,21 +368,43 @@ export class EmailService {
         email,
         registrationDate: variables.registrationDate,
         startDate: variables.startDate,
-        endDate: variables.endDate
+        endDate: variables.endDate,
       });
 
-       const processedSubject = this.processTemplate(template.subject, variables);
-       const htmlContent = this.processTemplate(template.htmlContent, variables);
-       const textContent = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
+      const processedSubject = this.processTemplate(
+        template.subject,
+        variables,
+      );
+      const htmlContent = this.processTemplate(template.htmlContent, variables);
+      const textContent = template.textContent
+        ? this.processTemplate(template.textContent, variables)
+        : undefined;
 
-       const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
-       const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+      const fromEmail =
+        this.settings?.fromEmail ||
+        process.env.EMAIL_FROM ||
+        'noreply@gymbosslab.com';
+      const fromName =
+        this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
 
-       await this.sendEmail(recipient, processedSubject, htmlContent, textContent, fromEmail, fromName, 'welcome', tenantId, template.id);
+      await this.sendEmail(
+        recipient,
+        processedSubject,
+        htmlContent,
+        textContent,
+        fromEmail,
+        fromName,
+        'welcome',
+        tenantId,
+        template.id,
+      );
 
       this.logger.log(`✅ Welcome email sent to ${recipient}`);
     } catch (error) {
-      this.logger.error(`❌ Failed to send welcome email: ${error.message}`, error.stack);
+      this.logger.error(
+        `❌ Failed to send welcome email: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -351,8 +435,8 @@ export class EmailService {
           users: {
             where: { role: 'OWNER' },
             select: { email: true },
-            take: 1
-          }
+            take: 1,
+          },
         },
       });
 
@@ -360,23 +444,35 @@ export class EmailService {
       let adminRecipients = tenant?.adminEmailRecipients;
       if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
         adminRecipients = [tenant.users[0].email];
-        this.logger.log(`Using owner email as fallback for admin notifications: ${tenant.users[0].email}`);
+        this.logger.log(
+          `Using owner email as fallback for admin notifications: ${tenant.users[0].email}`,
+        );
       }
 
       if (!adminRecipients?.length) {
-        this.logger.warn(`No admin email recipients configured and no owner found for tenant ${tenantId}`);
+        this.logger.warn(
+          `No admin email recipients configured and no owner found for tenant ${tenantId}`,
+        );
         return;
       }
 
       // Check if email notifications are enabled globally and tenant notifications specifically
-      if (!tenant!.emailNotificationsEnabled || !tenant!.tenantNotificationEmailEnabled) {
-        this.logger.log(`Tenant notifications disabled for ${tenantId}, skipping renewal email`);
+      if (
+        !tenant!.emailNotificationsEnabled ||
+        !tenant!.tenantNotificationEmailEnabled
+      ) {
+        this.logger.log(
+          `Tenant notifications disabled for ${tenantId}, skipping renewal email`,
+        );
         return;
       }
 
       // Send email to member
       const memberRecipient = this.getRecipient(memberEmail);
-      const memberTemplate = await this.getEmailTemplate('membership_renewal', tenantId);
+      const memberTemplate = await this.getEmailTemplate(
+        'membership_renewal',
+        tenantId,
+      );
 
       if (memberTemplate) {
         const memberVariables = {
@@ -390,21 +486,48 @@ export class EmailService {
           dashboardUrl: `${process.env.FRONTEND_URL}/auth/login`,
         };
 
-        const memberProcessedSubject = this.processTemplate(memberTemplate.subject, memberVariables);
-        const memberHtmlContent = this.processTemplate(memberTemplate.htmlContent, memberVariables);
-        const memberTextContent = memberTemplate.textContent ? this.processTemplate(memberTemplate.textContent, memberVariables) : undefined;
+        const memberProcessedSubject = this.processTemplate(
+          memberTemplate.subject,
+          memberVariables,
+        );
+        const memberHtmlContent = this.processTemplate(
+          memberTemplate.htmlContent,
+          memberVariables,
+        );
+        const memberTextContent = memberTemplate.textContent
+          ? this.processTemplate(memberTemplate.textContent, memberVariables)
+          : undefined;
 
-        const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
-        const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+        const fromEmail =
+          this.settings?.fromEmail ||
+          process.env.EMAIL_FROM ||
+          'noreply@gymbosslab.com';
+        const fromName =
+          this.settings?.fromName ||
+          process.env.EMAIL_FROM_NAME ||
+          'GymBossLab';
 
-        await this.sendEmail(memberRecipient, memberProcessedSubject, memberHtmlContent, memberTextContent, fromEmail, fromName, 'membership_renewal', tenantId, memberTemplate.id);
+        await this.sendEmail(
+          memberRecipient,
+          memberProcessedSubject,
+          memberHtmlContent,
+          memberTextContent,
+          fromEmail,
+          fromName,
+          'membership_renewal',
+          tenantId,
+          memberTemplate.id,
+        );
 
         this.logger.log(`✅ Renewal email sent to member: ${memberEmail}`);
       }
 
       // Send email to tenant admins
       if (adminRecipients?.length) {
-        const adminTemplate = await this.getEmailTemplate('membership_renewal', tenantId);
+        const adminTemplate = await this.getEmailTemplate(
+          'membership_renewal',
+          tenantId,
+        );
 
         if (adminTemplate) {
           const adminVariables = {
@@ -418,31 +541,59 @@ export class EmailService {
             dashboardUrl: `${process.env.FRONTEND_URL}/members`,
           };
 
-          const adminProcessedSubject = this.processTemplate(adminTemplate.subject, adminVariables);
-          const adminHtmlContent = this.processTemplate(adminTemplate.htmlContent, adminVariables);
-          const adminTextContent = adminTemplate.textContent ? this.processTemplate(adminTemplate.textContent, adminVariables) : undefined;
+          const adminProcessedSubject = this.processTemplate(
+            adminTemplate.subject,
+            adminVariables,
+          );
+          const adminHtmlContent = this.processTemplate(
+            adminTemplate.htmlContent,
+            adminVariables,
+          );
+          const adminTextContent = adminTemplate.textContent
+            ? this.processTemplate(adminTemplate.textContent, adminVariables)
+            : undefined;
 
-          const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
-          const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+          const fromEmail =
+            this.settings?.fromEmail ||
+            process.env.EMAIL_FROM ||
+            'noreply@gymbosslab.com';
+          const fromName =
+            this.settings?.fromName ||
+            process.env.EMAIL_FROM_NAME ||
+            'GymBossLab';
 
-      for (const adminEmail of adminRecipients) {
+          for (const adminEmail of adminRecipients) {
             const adminRecipient = this.getRecipient(adminEmail);
-            await this.sendEmail(adminRecipient, adminProcessedSubject, adminHtmlContent, adminTextContent, fromEmail, fromName, 'membership_renewal', tenantId, adminTemplate.id);
+            await this.sendEmail(
+              adminRecipient,
+              adminProcessedSubject,
+              adminHtmlContent,
+              adminTextContent,
+              fromEmail,
+              fromName,
+              'membership_renewal',
+              tenantId,
+              adminTemplate.id,
+            );
           }
 
-          this.logger.log(`✅ Renewal admin emails sent for tenant: ${tenant!.name}`);
+          this.logger.log(
+            `✅ Renewal admin emails sent for tenant: ${tenant!.name}`,
+          );
         }
       }
-
     } catch (error) {
-      this.logger.error(`❌ Failed to send renewal email: ${error.message}`, error.stack);
+      this.logger.error(
+        `❌ Failed to send renewal email: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
   /**
-    * Send admin alert for new member signup
-    */
+   * Send admin alert for new member signup
+   */
   async sendNewMemberAlert(
     tenantName: string,
     memberName: string,
@@ -461,8 +612,8 @@ export class EmailService {
           users: {
             where: { role: 'OWNER' },
             select: { email: true },
-            take: 1
-          }
+            take: 1,
+          },
         },
       });
 
@@ -470,23 +621,37 @@ export class EmailService {
       let adminRecipients = tenant?.adminEmailRecipients;
       if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
         adminRecipients = [tenant.users[0].email];
-        this.logger.log(`Using owner email as fallback for admin notifications: ${tenant.users[0].email}`);
+        this.logger.log(
+          `Using owner email as fallback for admin notifications: ${tenant.users[0].email}`,
+        );
       }
 
       if (!adminRecipients?.length) {
-        this.logger.warn(`No admin email recipients configured and no owner found for tenant ${tenantId}`);
+        this.logger.warn(
+          `No admin email recipients configured and no owner found for tenant ${tenantId}`,
+        );
         return;
       }
 
       // Check if email notifications are enabled globally and tenant notifications specifically
-      if (!tenant!.emailNotificationsEnabled || !tenant!.tenantNotificationEmailEnabled) {
-        this.logger.log(`Tenant notifications disabled for ${tenantId}, skipping new member alert`);
+      if (
+        !tenant!.emailNotificationsEnabled ||
+        !tenant!.tenantNotificationEmailEnabled
+      ) {
+        this.logger.log(
+          `Tenant notifications disabled for ${tenantId}, skipping new member alert`,
+        );
         return;
       }
 
-      const template = await this.getEmailTemplate('tenant_notification', tenantId);
+      const template = await this.getEmailTemplate(
+        'tenant_notification',
+        tenantId,
+      );
       if (!template) {
-        this.logger.warn(`No tenant notification template found for tenant ${tenantId}`);
+        this.logger.warn(
+          `No tenant notification template found for tenant ${tenantId}`,
+        );
         return;
       }
 
@@ -499,21 +664,43 @@ export class EmailService {
         dashboardUrl: `${process.env.FRONTEND_URL}/members`,
       };
 
-      const processedSubject = this.processTemplate(template.subject, variables);
+      const processedSubject = this.processTemplate(
+        template.subject,
+        variables,
+      );
       const htmlContent = this.processTemplate(template.htmlContent, variables);
-      const textContent = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
+      const textContent = template.textContent
+        ? this.processTemplate(template.textContent, variables)
+        : undefined;
 
-      const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
-      const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+      const fromEmail =
+        this.settings?.fromEmail ||
+        process.env.EMAIL_FROM ||
+        'noreply@gymbosslab.com';
+      const fromName =
+        this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
 
-      for (const adminEmail of adminRecipients!) {
+      for (const adminEmail of adminRecipients) {
         const recipient = this.getRecipient(adminEmail);
-        await this.sendEmail(recipient, processedSubject, htmlContent, textContent, fromEmail, fromName, 'tenant_notification', tenantId, template.id);
+        await this.sendEmail(
+          recipient,
+          processedSubject,
+          htmlContent,
+          textContent,
+          fromEmail,
+          fromName,
+          'tenant_notification',
+          tenantId,
+          template.id,
+        );
       }
 
       this.logger.log(`✅ New member alerts sent for tenant: ${tenantName}`);
     } catch (error) {
-      this.logger.error(`❌ Failed to send new member alert: ${error.message}`, error.stack);
+      this.logger.error(
+        `❌ Failed to send new member alert: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -533,13 +720,17 @@ export class EmailService {
       });
 
       if (!tenant?.adminEmailRecipients?.length) {
-        this.logger.warn(`No admin email recipients configured for tenant ${tenantId}`);
+        this.logger.warn(
+          `No admin email recipients configured for tenant ${tenantId}`,
+        );
         return;
       }
 
       const template = await this.getEmailTemplate('admin_alert', tenantId);
       if (!template) {
-        this.logger.warn(`No admin alert template found for tenant ${tenantId}`);
+        this.logger.warn(
+          `No admin alert template found for tenant ${tenantId}`,
+        );
         return;
       }
 
@@ -550,19 +741,38 @@ export class EmailService {
       };
 
       const htmlContent = this.processTemplate(template.htmlContent, variables);
-      const textContent = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
+      const textContent = template.textContent
+        ? this.processTemplate(template.textContent, variables)
+        : undefined;
 
-      const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
-      const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+      const fromEmail =
+        this.settings?.fromEmail ||
+        process.env.EMAIL_FROM ||
+        'noreply@gymbosslab.com';
+      const fromName =
+        this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
 
-      for (const adminEmail of tenant!.adminEmailRecipients!) {
+      for (const adminEmail of tenant.adminEmailRecipients) {
         const recipient = this.getRecipient(adminEmail);
-        await this.sendEmail(recipient, template.subject, htmlContent, textContent, fromEmail, fromName, 'admin_alert', tenantId, template.id);
+        await this.sendEmail(
+          recipient,
+          template.subject,
+          htmlContent,
+          textContent,
+          fromEmail,
+          fromName,
+          'admin_alert',
+          tenantId,
+          template.id,
+        );
       }
 
       this.logger.log(`✅ Admin alerts sent for new tenant: ${tenantName}`);
     } catch (error) {
-      this.logger.error(`❌ Failed to send admin alert: ${error.message}`, error.stack);
+      this.logger.error(
+        `❌ Failed to send admin alert: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -573,7 +783,10 @@ export class EmailService {
   async sendGlobalAdminAlert(
     subject: string,
     message: string,
-    eventType: 'new_tenant' | 'system_alert' | 'security_event' = 'system_alert',
+    eventType:
+      | 'new_tenant'
+      | 'system_alert'
+      | 'security_event' = 'system_alert',
   ) {
     try {
       // Get system settings directly to avoid circular dependency
@@ -590,7 +803,9 @@ export class EmailService {
       const globalAdminEmails = systemSettings?.globalAdminEmails || [];
 
       if (!globalAdminEmails.length) {
-        this.logger.warn('⚠️ No global admin emails configured for notifications');
+        this.logger.warn(
+          '⚠️ No global admin emails configured for notifications',
+        );
         return;
       }
 
@@ -598,7 +813,9 @@ export class EmailService {
       if (eventType === 'new_tenant') {
         const enabled = systemSettings?.newTenantAlertsEnabled ?? true;
         if (!enabled) {
-          this.logger.log('ℹ️ New tenant alerts disabled, skipping notification');
+          this.logger.log(
+            'ℹ️ New tenant alerts disabled, skipping notification',
+          );
           return;
         }
       }
@@ -615,17 +832,38 @@ export class EmailService {
       const htmlContent = this.createGlobalAdminAlertHtml(variables);
       const textContent = `System Alert: ${subject}\n\n${message}\n\nEvent Type: ${eventType}\nTimestamp: ${variables.timestamp}`;
 
-      const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
-      const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab System';
+      const fromEmail =
+        this.settings?.fromEmail ||
+        process.env.EMAIL_FROM ||
+        'noreply@gymbosslab.com';
+      const fromName =
+        this.settings?.fromName ||
+        process.env.EMAIL_FROM_NAME ||
+        'GymBossLab System';
 
       for (const adminEmail of globalAdminEmails) {
         const recipient = this.getRecipient(adminEmail);
-        await this.sendEmail(recipient, subject, htmlContent, textContent, fromEmail, fromName, 'system_alert', undefined, undefined);
+        await this.sendEmail(
+          recipient,
+          subject,
+          htmlContent,
+          textContent,
+          fromEmail,
+          fromName,
+          'system_alert',
+          undefined,
+          undefined,
+        );
       }
 
-      this.logger.log(`✅ Global admin alerts sent to ${globalAdminEmails.length} recipients for: ${subject}`);
+      this.logger.log(
+        `✅ Global admin alerts sent to ${globalAdminEmails.length} recipients for: ${subject}`,
+      );
     } catch (error) {
-      this.logger.error(`❌ Failed to send global admin alert: ${error.message}`, error.stack);
+      this.logger.error(
+        `❌ Failed to send global admin alert: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -684,7 +922,9 @@ export class EmailService {
       });
 
       if (!systemSettings?.tenantNotificationsEnabled) {
-        this.logger.log(`Platform tenant notifications disabled, skipping notification for tenant ${tenantId}`);
+        this.logger.log(
+          `Platform tenant notifications disabled, skipping notification for tenant ${tenantId}`,
+        );
         return;
       }
 
@@ -694,12 +934,17 @@ export class EmailService {
           name: true,
           tenantSignupNotificationEnabled: true,
           adminEmailRecipients: true,
-          users: { where: { role: 'OWNER' }, select: { email: true, firstName: true } }
+          users: {
+            where: { role: 'OWNER' },
+            select: { email: true, firstName: true },
+          },
         },
       });
 
       if (!tenant?.tenantSignupNotificationEnabled) {
-        this.logger.log(`Tenant signup notifications disabled for tenant ${tenantId}`);
+        this.logger.log(
+          `Tenant signup notifications disabled for tenant ${tenantId}`,
+        );
         return;
       }
 
@@ -707,22 +952,31 @@ export class EmailService {
       let adminRecipients = tenant?.adminEmailRecipients;
       if (!adminRecipients?.length && tenant?.users?.[0]?.email) {
         adminRecipients = [tenant.users[0].email];
-        this.logger.log(`Using owner email as fallback for tenant notifications: ${tenant.users[0].email}`);
+        this.logger.log(
+          `Using owner email as fallback for tenant notifications: ${tenant.users[0].email}`,
+        );
       }
 
       if (!adminRecipients?.length) {
-        this.logger.warn(`No admin email recipients configured and no owner found for tenant ${tenantId}`);
+        this.logger.warn(
+          `No admin email recipients configured and no owner found for tenant ${tenantId}`,
+        );
         return;
       }
 
-      const template = await this.getEmailTemplate('tenant_notification', tenantId);
+      const template = await this.getEmailTemplate(
+        'tenant_notification',
+        tenantId,
+      );
       if (!template) {
-        this.logger.warn(`No tenant notification template found for tenant ${tenantId}`);
+        this.logger.warn(
+          `No tenant notification template found for tenant ${tenantId}`,
+        );
         return;
       }
 
       const variables = {
-        tenantName: tenant!.name,
+        tenantName: tenant.name,
         memberName,
         memberEmail,
         membershipPlan: membershipPlanName || 'Basic Membership',
@@ -731,21 +985,45 @@ export class EmailService {
         dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
       };
 
-      const processedSubject = this.processTemplate(template.subject, variables);
+      const processedSubject = this.processTemplate(
+        template.subject,
+        variables,
+      );
       const htmlContent = this.processTemplate(template.htmlContent, variables);
-      const textContent = template.textContent ? this.processTemplate(template.textContent, variables) : undefined;
+      const textContent = template.textContent
+        ? this.processTemplate(template.textContent, variables)
+        : undefined;
 
-      const fromEmail = this.settings?.fromEmail || process.env.EMAIL_FROM || 'noreply@gymbosslab.com';
-      const fromName = this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
+      const fromEmail =
+        this.settings?.fromEmail ||
+        process.env.EMAIL_FROM ||
+        'noreply@gymbosslab.com';
+      const fromName =
+        this.settings?.fromName || process.env.EMAIL_FROM_NAME || 'GymBossLab';
 
-      for (const adminEmail of adminRecipients!) {
+      for (const adminEmail of adminRecipients) {
         const recipient = this.getRecipient(adminEmail);
-        await this.sendEmail(recipient, processedSubject, htmlContent, textContent, fromEmail, fromName, 'tenant_notification', tenantId, template.id);
+        await this.sendEmail(
+          recipient,
+          processedSubject,
+          htmlContent,
+          textContent,
+          fromEmail,
+          fromName,
+          'tenant_notification',
+          tenantId,
+          template.id,
+        );
       }
 
-      this.logger.log(`✅ Tenant notifications sent for new member: ${memberName}`);
+      this.logger.log(
+        `✅ Tenant notifications sent for new member: ${memberName}`,
+      );
     } catch (error) {
-      this.logger.error(`❌ Failed to send tenant notification: ${error.message}`, error.stack);
+      this.logger.error(
+        `❌ Failed to send tenant notification: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -779,7 +1057,13 @@ export class EmailService {
     try {
       switch (this.provider) {
         case 'brevo':
-          await this.sendViaBrevo(to, subject, htmlContent, fromEmail, fromName);
+          await this.sendViaBrevo(
+            to,
+            subject,
+            htmlContent,
+            fromEmail,
+            fromName,
+          );
           break;
         case 'sendgrid':
           await sgMail.send({
@@ -791,13 +1075,26 @@ export class EmailService {
           });
           break;
         case 'mailgun':
-          await this.sendViaMailgun(to, subject, htmlContent, fromEmail, fromName);
+          await this.sendViaMailgun(
+            to,
+            subject,
+            htmlContent,
+            fromEmail,
+            fromName,
+          );
           break;
         case 'resend':
-          await this.sendViaResend(to, subject, htmlContent, fromEmail, fromName);
+          await this.sendViaResend(
+            to,
+            subject,
+            htmlContent,
+            fromEmail,
+            fromName,
+          );
           break;
         case 'smtp':
-          if (!this.transporter) throw new Error('SMTP transporter not configured');
+          if (!this.transporter)
+            throw new Error('SMTP transporter not configured');
           await this.transporter.sendMail({
             from: `"${fromName}" <${fromEmail}>`,
             to,
@@ -816,7 +1113,6 @@ export class EmailService {
           sentAt: new Date(),
         },
       });
-
     } catch (error) {
       // Update log on failure
       await this.prisma.emailLog.update({
@@ -859,7 +1155,10 @@ export class EmailService {
   /**
    * Process template variables
    */
-  private processTemplate(template: string, variables: Record<string, any>): string {
+  private processTemplate(
+    template: string,
+    variables: Record<string, any>,
+  ): string {
     let processed = template;
     for (const [key, value] of Object.entries(variables)) {
       const regex = new RegExp(`{{${key}}}`, 'g');
@@ -926,7 +1225,7 @@ export class EmailService {
   }
 
   // Provider-specific implementations
-  
+
   private async sendViaResend(
     to: string,
     subject: string,
@@ -962,7 +1261,7 @@ export class EmailService {
   ) {
     const domain = process.env.MAILGUN_DOMAIN;
     const apiKey = process.env.MAILGUN_API_KEY;
-    
+
     const formData = new URLSearchParams();
     formData.append('from', `${fromName} <${fromEmail}>`);
     formData.append('to', to);

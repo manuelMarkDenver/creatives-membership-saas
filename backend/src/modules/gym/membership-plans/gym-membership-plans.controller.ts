@@ -33,20 +33,29 @@ export class GymMembershipPlansController {
 
   @Post()
   @Roles(Role.OWNER, Role.MANAGER)
-  create(@Body() requestDto: CreateGymMembershipPlanRequestDto, @GetUser() user: User) {
+  create(
+    @Body() requestDto: CreateGymMembershipPlanRequestDto,
+    @GetUser() user: User,
+  ) {
     // Create internal DTO with tenantId from authenticated user
     const createDto: CreateGymMembershipPlanDto = {
       ...requestDto,
-      tenantId: user.tenantId!
+      tenantId: user.tenantId!,
     };
     return this.gymMembershipPlansService.createGymMembershipPlan(createDto);
   }
 
   @Get()
   @Roles(Role.OWNER, Role.MANAGER, Role.STAFF)
-  findAllByTenant(@GetUser() user: User, @Query('includeDeleted') includeDeleted?: string) {
+  findAllByTenant(
+    @GetUser() user: User,
+    @Query('includeDeleted') includeDeleted?: string,
+  ) {
     const includeDeletedBool = includeDeleted === 'true';
-    return this.gymMembershipPlansService.findAllByTenant(user.tenantId!, includeDeletedBool);
+    return this.gymMembershipPlansService.findAllByTenant(
+      user.tenantId!,
+      includeDeletedBool,
+    );
   }
 
   @Get('active')
@@ -63,9 +72,17 @@ export class GymMembershipPlansController {
 
   @Get(':id')
   @Roles(Role.OWNER, Role.MANAGER, Role.STAFF)
-  findOne(@Param('id') id: string, @GetUser() user: User, @Query('includeDeleted') includeDeleted?: string) {
+  findOne(
+    @Param('id') id: string,
+    @GetUser() user: User,
+    @Query('includeDeleted') includeDeleted?: string,
+  ) {
     const includeDeletedBool = includeDeleted === 'true';
-    return this.gymMembershipPlansService.findOne(id, user.tenantId!, includeDeletedBool);
+    return this.gymMembershipPlansService.findOne(
+      id,
+      user.tenantId!,
+      includeDeletedBool,
+    );
   }
 
   @Patch(':id')
@@ -87,11 +104,16 @@ export class GymMembershipPlansController {
   @Post(':id/soft-delete')
   @Roles(Role.OWNER, Role.MANAGER)
   softDelete(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Body() deleteDto: SoftDeleteGymMembershipPlanDto,
-    @GetUser() user: User
+    @GetUser() user: User,
   ) {
-    return this.gymMembershipPlansService.softDelete(id, user.tenantId!, user.id, deleteDto);
+    return this.gymMembershipPlansService.softDelete(
+      id,
+      user.tenantId!,
+      user.id,
+      deleteDto,
+    );
   }
 
   @Post(':id/restore')
@@ -99,9 +121,14 @@ export class GymMembershipPlansController {
   restore(
     @Param('id') id: string,
     @Body() restoreDto: RestoreGymMembershipPlanDto,
-    @GetUser() user: User
+    @GetUser() user: User,
   ) {
-    return this.gymMembershipPlansService.restore(id, user.tenantId!, user.id, restoreDto);
+    return this.gymMembershipPlansService.restore(
+      id,
+      user.tenantId!,
+      user.id,
+      restoreDto,
+    );
   }
 
   // Legacy endpoint for compatibility - now soft deletes instead of hard delete
@@ -111,9 +138,15 @@ export class GymMembershipPlansController {
     // Default soft delete with generic reason for legacy compatibility
     const deleteDto: SoftDeleteGymMembershipPlanDto = {
       reason: 'Deleted via legacy endpoint',
-      notes: 'Deleted using legacy DELETE endpoint - converted to soft delete for safety'
+      notes:
+        'Deleted using legacy DELETE endpoint - converted to soft delete for safety',
     };
-    return this.gymMembershipPlansService.softDelete(id, user.tenantId!, user.id, deleteDto);
+    return this.gymMembershipPlansService.softDelete(
+      id,
+      user.tenantId!,
+      user.id,
+      deleteDto,
+    );
   }
 
   // Hard delete - only for development/admin purposes

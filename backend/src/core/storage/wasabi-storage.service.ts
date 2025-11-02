@@ -30,14 +30,15 @@ export class WasabiStorageService implements StorageProvider {
     );
     const bucketName =
       this.configService.get<string>('WASABI_BUCKET_NAME') || 'member-photos';
-    const region = this.configService.get<string>('WASABI_REGION') || 'us-east-1';
-    
+    const region =
+      this.configService.get<string>('WASABI_REGION') || 'us-east-1';
+
     // Wasabi endpoint format: https://s3.{region}.wasabisys.com
     const endpoint = `https://s3.${region}.wasabisys.com`;
-    
+
     // Public URL format for Wasabi (path-style): https://s3.{region}.wasabisys.com/{bucket}
     this.publicUrl = `https://s3.${region}.wasabisys.com/${bucketName}`;
-    
+
     this.bucketName = bucketName;
     this.region = region;
 
@@ -64,10 +65,15 @@ export class WasabiStorageService implements StorageProvider {
         });
         this.logger.log('✅ Wasabi S3 client initialized successfully');
       } catch (error) {
-        this.logger.error('❌ Failed to initialize Wasabi S3 client:', error.message);
+        this.logger.error(
+          '❌ Failed to initialize Wasabi S3 client:',
+          error.message,
+        );
       }
     } else {
-      this.logger.warn('⚠️  Wasabi credentials not configured - storage will not work');
+      this.logger.warn(
+        '⚠️  Wasabi credentials not configured - storage will not work',
+      );
     }
   }
 
@@ -118,7 +124,7 @@ export class WasabiStorageService implements StorageProvider {
         Bucket: this.bucketName,
         Key: fileName,
       });
-      
+
       const signedUrl = await getSignedUrl(this.s3Client, getObjectCommand, {
         expiresIn: 7 * 24 * 60 * 60, // 7 days in seconds
       });
@@ -134,7 +140,10 @@ export class WasabiStorageService implements StorageProvider {
         throw error;
       }
 
-      this.logger.error(`❌ Wasabi upload failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `❌ Wasabi upload failed: ${error.message}`,
+        error.stack,
+      );
       throw new InternalServerErrorException(
         `Failed to upload photo: ${error.message}`,
       );
@@ -224,7 +233,10 @@ export class WasabiStorageService implements StorageProvider {
 
       return signedUrl;
     } catch (error) {
-      this.logger.error(`Failed to generate signed URL for ${photoPath}:`, error.message);
+      this.logger.error(
+        `Failed to generate signed URL for ${photoPath}:`,
+        error.message,
+      );
       throw new InternalServerErrorException(
         `Failed to generate signed URL: ${error.message}`,
       );

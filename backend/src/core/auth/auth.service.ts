@@ -137,24 +137,26 @@ export class AuthService {
         // Don't fail the registration if email fails
       }
 
-       this.logger.log(`New tenant registered: ${result.tenant.name} (${result.tenant.id})`);
+      this.logger.log(
+        `New tenant registered: ${result.tenant.name} (${result.tenant.id})`,
+      );
 
-       // Send global admin notification for new tenant registration
-       try {
-         await this.emailService.sendGlobalAdminAlert(
-           'New Tenant Registration',
-           `A new tenant "${result.tenant.name}" has registered. Owner: ${data.ownerEmail}`,
-           'new_tenant'
-         );
-       } catch (alertError) {
-         this.logger.error(
-           `Failed to send global admin alert: ${alertError.message}`,
-           alertError.stack,
-         );
-         // Don't fail registration if admin alert fails
-       }
+      // Send global admin notification for new tenant registration
+      try {
+        await this.emailService.sendGlobalAdminAlert(
+          'New Tenant Registration',
+          `A new tenant "${result.tenant.name}" has registered. Owner: ${data.ownerEmail}`,
+          'new_tenant',
+        );
+      } catch (alertError) {
+        this.logger.error(
+          `Failed to send global admin alert: ${alertError.message}`,
+          alertError.stack,
+        );
+        // Don't fail registration if admin alert fails
+      }
 
-       return {
+      return {
         success: true,
         message:
           'Registration successful! Please check your email to verify your account.',
@@ -204,9 +206,7 @@ export class AuthService {
       });
 
       if (!user) {
-        throw new BadRequestException(
-          'Invalid or expired verification token',
-        );
+        throw new BadRequestException('Invalid or expired verification token');
       }
 
       // Check if already verified
@@ -285,7 +285,10 @@ export class AuthService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      this.logger.error(`Email verification failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Email verification failed: ${error.message}`,
+        error.stack,
+      );
       throw new BadRequestException('Email verification failed');
     }
   }

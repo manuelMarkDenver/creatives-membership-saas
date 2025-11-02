@@ -53,27 +53,32 @@ export class SubscriptionsController {
     const user = req.user;
     const userRole = user?.role;
     const userTenantId = user?.tenantId;
-    
+
     // Debug logging
-    console.log('🔍 canCreateBranch - req.user:', JSON.stringify(user, null, 2));
+    console.log(
+      '🔍 canCreateBranch - req.user:',
+      JSON.stringify(user, null, 2),
+    );
     console.log('🔍 userTenantId:', userTenantId);
     console.log('🔍 requested tenantId:', tenantId);
-    
+
     // Super admins can check any tenant
     if (userRole === Role.SUPER_ADMIN) {
       return this.subscriptionsService.canCreateBranch(tenantId);
     }
-    
+
     // Owners and managers can only check their own tenant
     if (!userTenantId) {
       console.error('❌ User tenantId is missing from req.user');
       throw new Error('Access denied: User tenant not found');
     }
-    
+
     if (userTenantId !== tenantId) {
-      throw new Error(`Access denied: Cannot check subscription status for other tenants (your tenant: ${userTenantId}, requested: ${tenantId})`);
+      throw new Error(
+        `Access denied: Cannot check subscription status for other tenants (your tenant: ${userTenantId}, requested: ${tenantId})`,
+      );
     }
-    
+
     return this.subscriptionsService.canCreateBranch(tenantId);
   }
 

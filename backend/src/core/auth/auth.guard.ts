@@ -10,9 +10,7 @@ import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(
-    private prisma: PrismaService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -23,8 +21,10 @@ export class AuthGuard implements CanActivate {
 
       // Check for specific user email in bypass header
       const bypassUserEmail =
-        request.headers['x-bypass-user'] || request.headers['X-Bypass-User'] ||
-        request.headers['x-user-email'] || request.headers['X-User-Email'];
+        request.headers['x-bypass-user'] ||
+        request.headers['X-Bypass-User'] ||
+        request.headers['x-user-email'] ||
+        request.headers['X-User-Email'];
 
       let bypassUser: AuthenticatedUser;
 
@@ -43,7 +43,10 @@ export class AuthGuard implements CanActivate {
             id: targetUser.id,
             email: targetUser.email || bypassUserEmail,
             role: (targetUser.role as Role) || Role.CLIENT,
-            tenantId: targetUser.tenantId || targetUser.gymMemberProfile?.tenantId || null,
+            tenantId:
+              targetUser.tenantId ||
+              targetUser.gymMemberProfile?.tenantId ||
+              null,
             branchAccess: targetUser.gymUserBranches.map((ub) => ({
               branchId: ub.branchId,
               accessLevel: ub.accessLevel,
@@ -51,9 +54,13 @@ export class AuthGuard implements CanActivate {
               isPrimary: ub.isPrimary,
             })),
           };
-          console.log(`🔧 Bypass auth successful for: ${targetUser.email} (${targetUser.role})`);
+          console.log(
+            `🔧 Bypass auth successful for: ${targetUser.email} (${targetUser.role})`,
+          );
         } else {
-          throw new UnauthorizedException(`Bypass user not found: ${bypassUserEmail}`);
+          throw new UnauthorizedException(
+            `Bypass user not found: ${bypassUserEmail}`,
+          );
         }
       } else {
         // Default to owner for testing
@@ -71,7 +78,10 @@ export class AuthGuard implements CanActivate {
             id: ownerUser.id,
             email: ownerUser.email || 'owner@muscle-mania.com',
             role: (ownerUser.role as Role) || Role.OWNER,
-            tenantId: ownerUser.tenantId || ownerUser.gymMemberProfile?.tenantId || null,
+            tenantId:
+              ownerUser.tenantId ||
+              ownerUser.gymMemberProfile?.tenantId ||
+              null,
             branchAccess: ownerUser.gymUserBranches.map((ub) => ({
               branchId: ub.branchId,
               accessLevel: ub.accessLevel,
@@ -124,8 +134,9 @@ export class AuthGuard implements CanActivate {
       const authenticatedUser: AuthenticatedUser = {
         id: targetUser.id,
         email: targetUser.email || tokenPayload.email,
-        role: (targetUser.role as Role),
-        tenantId: targetUser.tenantId || targetUser.gymMemberProfile?.tenantId || null,
+        role: targetUser.role as Role,
+        tenantId:
+          targetUser.tenantId || targetUser.gymMemberProfile?.tenantId || null,
         branchAccess: targetUser.gymUserBranches.map((ub) => ({
           branchId: ub.branchId,
           accessLevel: ub.accessLevel,
@@ -134,11 +145,12 @@ export class AuthGuard implements CanActivate {
         })),
       };
 
-      console.log(`🔐 JWT auth successful for: ${authenticatedUser.email} (${authenticatedUser.role})`);
+      console.log(
+        `🔐 JWT auth successful for: ${authenticatedUser.email} (${authenticatedUser.role})`,
+      );
       console.log(`🔐 User tenantId: ${authenticatedUser.tenantId}`);
       request.user = authenticatedUser;
       return true;
-
     } catch (error) {
       console.error('Auth error:', error);
       throw new UnauthorizedException('Authentication failed');

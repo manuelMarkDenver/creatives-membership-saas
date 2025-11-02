@@ -23,7 +23,7 @@ import { EmailModule } from './core/email/email.module';
     PrismaModule,
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: path.resolve(__dirname, '../../.env.local')
+      envFilePath: path.resolve(__dirname, '../../.env.local'),
     }),
     NotificationsModule,
     TenantsModule,

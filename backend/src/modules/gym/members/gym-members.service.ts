@@ -124,7 +124,9 @@ export class GymMembersService {
           }
 
           // Use provided start date or default to current date
-          const startDate = data.startDate ? new Date(data.startDate) : new Date();
+          const startDate = data.startDate
+            ? new Date(data.startDate)
+            : new Date();
           const endDate = new Date(startDate);
           endDate.setDate(endDate.getDate() + membershipPlan.duration);
 
@@ -143,6 +145,9 @@ export class GymMembersService {
               price: paymentAmount,
               currency: 'PHP',
               autoRenew: false,
+            },
+            include: {
+              gymMembershipPlan: true,
             },
           });
 
@@ -192,11 +197,11 @@ export class GymMembersService {
             where: {
               memberId: user.id,
               gymMembershipPlanId: planId,
-              tenantId: tenantId
+              tenantId: tenantId,
             },
             include: {
-              gymMembershipPlan: true
-            }
+              gymMembershipPlan: true,
+            },
           });
         }
 
@@ -212,12 +217,14 @@ export class GymMembersService {
         console.log('🏋️ Member creation result:', {
           userId: result.userId,
           hasSubscription: !!result.subscription,
-          subscription: result.subscription ? {
-            id: result.subscription.id,
-            startDate: result.subscription.startDate,
-            endDate: result.subscription.endDate,
-            planName: result.subscription.gymMembershipPlan?.name
-          } : null
+          subscription: result.subscription
+            ? {
+                id: result.subscription.id,
+                startDate: result.subscription.startDate,
+                endDate: result.subscription.endDate,
+                planName: result.subscription.gymMembershipPlan?.name,
+              }
+            : null,
         });
 
         return result;
@@ -227,33 +234,36 @@ export class GymMembersService {
         `Created gym member: ${result.user?.firstName || 'Unknown'} ${result.user?.lastName || 'User'} (${result.userId}) with subscription: ${!!result.subscription}`,
       );
 
-       // Note: Welcome email is sent by frontend if requested
-       // This prevents duplicate emails since frontend handles email sending
+      // Note: Welcome email is sent by frontend if requested
+      // This prevents duplicate emails since frontend handles email sending
 
-       // Send tenant notification for new member signup (if enabled)
-       try {
-         if (result.tenant && result.user) {
-           const memberName = `${result.user.firstName} ${result.user.lastName}`;
-           const membershipPlan = result.subscription?.gymMembershipPlan?.name || 'No Plan';
+      // Send tenant notification for new member signup (if enabled)
+      try {
+        if (result.tenant && result.user) {
+          const memberName = `${result.user.firstName} ${result.user.lastName}`;
+          const membershipPlan =
+            result.subscription?.gymMembershipPlan?.name || 'No Plan';
 
-            await this.emailService.sendTenantNotification(
-              result.tenant.id,
-              memberName,
-              result.user.email || '',
-              membershipPlan,
-              result.subscription?.startDate,
-              result.subscription?.endDate,
-            );
-         } else {
-           this.logger.warn('Tenant or user information not available for signup notification');
-         }
-       } catch (emailError) {
-         this.logger.error(
-           `Failed to send tenant notification for new member: ${emailError.message}`,
-           emailError.stack,
-         );
-         // Don't fail member creation if email fails
-       }
+          await this.emailService.sendTenantNotification(
+            result.tenant.id,
+            memberName,
+            result.user.email || '',
+            membershipPlan,
+            result.subscription?.startDate,
+            result.subscription?.endDate,
+          );
+        } else {
+          this.logger.warn(
+            'Tenant or user information not available for signup notification',
+          );
+        }
+      } catch (emailError) {
+        this.logger.error(
+          `Failed to send tenant notification for new member: ${emailError.message}`,
+          emailError.stack,
+        );
+        // Don't fail member creation if email fails
+      }
 
       return result;
     } catch (error) {
@@ -480,18 +490,24 @@ export class GymMembersService {
     });
 
     if (!membershipPlan) {
-      throw new BadRequestException(`Membership plan with ID ${planId} not found`);
+      throw new BadRequestException(
+        `Membership plan with ID ${planId} not found`,
+      );
     }
 
     // Verify the plan belongs to the same tenant
     if (membershipPlan.tenantId !== member.tenantId) {
-      throw new BadRequestException('Membership plan does not belong to this tenant');
+      throw new BadRequestException(
+        'Membership plan does not belong to this tenant',
+      );
     }
 
     // Get the member's primary branch
     const primaryBranchId = member.gymMemberProfile?.primaryBranchId;
     if (!primaryBranchId) {
-      throw new BadRequestException('Member does not have a primary branch assigned');
+      throw new BadRequestException(
+        'Member does not have a primary branch assigned',
+      );
     }
 
     // Create subscription in a transaction
@@ -572,35 +588,39 @@ export class GymMembersService {
 
     // Check for duplicate active subscriptions to prevent conflicts
     // Allow renewals for expired subscriptions or short-term memberships
-    const existingActiveSubscription = await this.prisma.gymMemberSubscription.findFirst({
-      where: {
-        memberId: memberId,
-        tenantId: member.tenantId!,
-        status: 'ACTIVE',
-        endDate: {
-          gt: new Date(), // Still valid in the future
+    const existingActiveSubscription =
+      await this.prisma.gymMemberSubscription.findFirst({
+        where: {
+          memberId: memberId,
+          tenantId: member.tenantId!,
+          status: 'ACTIVE',
+          endDate: {
+            gt: new Date(), // Still valid in the future
+          },
         },
-      },
-      include: {
-        gymMembershipPlan: true,
-      },
-    });
+        include: {
+          gymMembershipPlan: true,
+        },
+      });
 
     // Only prevent renewal if there's an active subscription with significant time remaining
     // Allow renewal for day passes or subscriptions ending within 24 hours
     if (existingActiveSubscription) {
       const now = new Date();
-      const timeRemaining = existingActiveSubscription.endDate.getTime() - now.getTime();
+      const timeRemaining =
+        existingActiveSubscription.endDate.getTime() - now.getTime();
       const hoursRemaining = timeRemaining / (1000 * 60 * 60);
-      
+
       // Allow renewal if:
       // 1. Less than 24 hours remaining on current subscription
       // 2. Current plan is a day pass (duration <= 1 day)
       // 3. It's the same plan (renewal/extension)
-      const isDayPass = existingActiveSubscription.gymMembershipPlan.duration <= 1;
-      const isSamePlan = existingActiveSubscription.gymMembershipPlanId === planId;
+      const isDayPass =
+        existingActiveSubscription.gymMembershipPlan.duration <= 1;
+      const isSamePlan =
+        existingActiveSubscription.gymMembershipPlanId === planId;
       const isExpiringSoon = hoursRemaining <= 24;
-      
+
       if (!isDayPass && !isExpiringSoon && !isSamePlan) {
         const remainingDays = Math.ceil(hoursRemaining / 24);
         throw new BadRequestException(
@@ -761,7 +781,8 @@ export class GymMembersService {
           deletedAt: new Date(),
           deletedBy: performedBy,
           deletionReason: actionData?.reason || 'Administrative action',
-          deletionNotes: actionData?.notes || 'Member account soft deleted from gym',
+          deletionNotes:
+            actionData?.notes || 'Member account soft deleted from gym',
           updatedAt: new Date(),
         },
       });
@@ -1362,7 +1383,7 @@ export class GymMembersService {
 
           // If tenant is specified, get available branches for filtering
           availableBranches = await this.prisma.branch.findMany({
-          where: { tenantId: filters.tenantId },
+            where: { tenantId: filters.tenantId },
             select: { id: true, name: true, address: true },
           });
         } else {
@@ -1564,8 +1585,8 @@ export class GymMembersService {
             daysUntilExpiry <= 1
               ? 'critical'
               : daysUntilExpiry <= 3
-              ? 'high'
-              : 'medium',
+                ? 'high'
+                : 'medium',
         };
       });
 
@@ -1683,7 +1704,8 @@ export class GymMembersService {
   }
 
   private isValidUUID(uuid: string): boolean {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
   }
 }

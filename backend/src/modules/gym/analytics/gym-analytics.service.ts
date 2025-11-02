@@ -20,7 +20,11 @@ import {
 export class GymAnalyticsService {
   constructor(private prisma: PrismaService) {}
 
-  private getDateRange(period: TimePeriod, startDate?: string, endDate?: string) {
+  private getDateRange(
+    period: TimePeriod,
+    startDate?: string,
+    endDate?: string,
+  ) {
     const now = new Date();
     let start: Date;
     let end: Date = now;
@@ -42,7 +46,9 @@ export class GymAnalyticsService {
         start = new Date(now.getFullYear(), 0, 1);
         break;
       case TimePeriod.CUSTOM:
-        start = startDate ? new Date(startDate) : new Date(now.getFullYear(), 0, 1);
+        start = startDate
+          ? new Date(startDate)
+          : new Date(now.getFullYear(), 0, 1);
         end = endDate ? new Date(endDate) : now;
         break;
       default:
@@ -59,9 +65,19 @@ export class GymAnalyticsService {
     return { start: prevStart, end: prevEnd };
   }
 
-  async getRevenueMetrics(tenantId: string, query: AnalyticsQueryDto): Promise<RevenueMetricsDto> {
-    const { start, end } = this.getDateRange(query.period || TimePeriod.THIS_MONTH, query.startDate, query.endDate);
-    const { start: prevStart, end: prevEnd } = this.getPreviousPeriodRange(start, end);
+  async getRevenueMetrics(
+    tenantId: string,
+    query: AnalyticsQueryDto,
+  ): Promise<RevenueMetricsDto> {
+    const { start, end } = this.getDateRange(
+      query.period || TimePeriod.THIS_MONTH,
+      query.startDate,
+      query.endDate,
+    );
+    const { start: prevStart, end: prevEnd } = this.getPreviousPeriodRange(
+      start,
+      end,
+    );
 
     // Build base where clause
     const whereClause: any = {
@@ -96,7 +112,15 @@ export class GymAnalyticsService {
       };
     }
 
-    const [currentTransactions, previousTransactions, revenueByPlan, revenueByBranch, timeline, paymentMethods, memberCount] = await Promise.all([
+    const [
+      currentTransactions,
+      previousTransactions,
+      revenueByPlan,
+      revenueByBranch,
+      timeline,
+      paymentMethods,
+      memberCount,
+    ] = await Promise.all([
       this.prisma.customerTransaction.aggregate({
         where: whereClause,
         _sum: { amount: true },
@@ -114,10 +138,15 @@ export class GymAnalyticsService {
     ]);
 
     const totalRevenue = currentTransactions._sum.amount?.toNumber() || 0;
-    const previousPeriodRevenue = previousTransactions._sum.amount?.toNumber() || 0;
+    const previousPeriodRevenue =
+      previousTransactions._sum.amount?.toNumber() || 0;
     const growthAmount = totalRevenue - previousPeriodRevenue;
-    const growthRate = previousPeriodRevenue > 0 ? (growthAmount / previousPeriodRevenue) * 100 : 0;
-    const averageRevenuePerMember = memberCount > 0 ? totalRevenue / memberCount : 0;
+    const growthRate =
+      previousPeriodRevenue > 0
+        ? (growthAmount / previousPeriodRevenue) * 100
+        : 0;
+    const averageRevenuePerMember =
+      memberCount > 0 ? totalRevenue / memberCount : 0;
 
     return {
       totalRevenue,
@@ -132,7 +161,12 @@ export class GymAnalyticsService {
     };
   }
 
-  private async getRevenueByPlan(tenantId: string, start: Date, end: Date, branchId?: string): Promise<RevenueByPlanDto[]> {
+  private async getRevenueByPlan(
+    tenantId: string,
+    start: Date,
+    end: Date,
+    branchId?: string,
+  ): Promise<RevenueByPlanDto[]> {
     const subscriptions = await this.prisma.gymMemberSubscription.findMany({
       where: {
         tenantId,
@@ -144,7 +178,10 @@ export class GymAnalyticsService {
       },
     });
 
-    const planMap = new Map<string, { name: string; revenue: number; count: number }>();
+    const planMap = new Map<
+      string,
+      { name: string; revenue: number; count: number }
+    >();
     let totalRevenue = 0;
 
     subscriptions.forEach((sub) => {
@@ -170,7 +207,11 @@ export class GymAnalyticsService {
     }));
   }
 
-  private async getRevenueByBranch(tenantId: string, start: Date, end: Date): Promise<RevenueByBranchDto[]> {
+  private async getRevenueByBranch(
+    tenantId: string,
+    start: Date,
+    end: Date,
+  ): Promise<RevenueByBranchDto[]> {
     const transactions = await this.prisma.customerTransaction.findMany({
       where: {
         tenantId,
@@ -187,7 +228,10 @@ export class GymAnalyticsService {
       },
     });
 
-    const branchMap = new Map<string, { name: string; revenue: number; memberIds: Set<string> }>();
+    const branchMap = new Map<
+      string,
+      { name: string; revenue: number; memberIds: Set<string> }
+    >();
 
     transactions.forEach((t) => {
       if (t.gymMemberSubscription?.branch) {
@@ -213,11 +257,17 @@ export class GymAnalyticsService {
       branchName: data.name,
       revenue: data.revenue,
       memberCount: data.memberIds.size,
-      averageRevenuePerMember: data.memberIds.size > 0 ? data.revenue / data.memberIds.size : 0,
+      averageRevenuePerMember:
+        data.memberIds.size > 0 ? data.revenue / data.memberIds.size : 0,
     }));
   }
 
-  private async getRevenueTimeline(tenantId: string, start: Date, end: Date, branchId?: string): Promise<RevenueTimelineDto[]> {
+  private async getRevenueTimeline(
+    tenantId: string,
+    start: Date,
+    end: Date,
+    branchId?: string,
+  ): Promise<RevenueTimelineDto[]> {
     const whereClause: any = {
       tenantId,
       createdAt: { gte: start, lte: end },
@@ -255,7 +305,12 @@ export class GymAnalyticsService {
     }));
   }
 
-  private async getPaymentMethodBreakdown(tenantId: string, start: Date, end: Date, branchId?: string): Promise<PaymentMethodBreakdownDto[]> {
+  private async getPaymentMethodBreakdown(
+    tenantId: string,
+    start: Date,
+    end: Date,
+    branchId?: string,
+  ): Promise<PaymentMethodBreakdownDto[]> {
     const whereClause: any = {
       tenantId,
       createdAt: { gte: start, lte: end },
@@ -295,7 +350,10 @@ export class GymAnalyticsService {
     }));
   }
 
-  private async getActiveMemberCount(tenantId: string, branchId?: string): Promise<number> {
+  private async getActiveMemberCount(
+    tenantId: string,
+    branchId?: string,
+  ): Promise<number> {
     const whereClause: any = {
       tenantId,
       status: 'ACTIVE',
@@ -309,8 +367,15 @@ export class GymAnalyticsService {
     return this.prisma.gymMemberSubscription.count({ where: whereClause });
   }
 
-  async getBranchPerformance(tenantId: string, query: AnalyticsQueryDto): Promise<BranchPerformanceDto[]> {
-    const { start, end } = this.getDateRange(query.period || TimePeriod.THIS_MONTH, query.startDate, query.endDate);
+  async getBranchPerformance(
+    tenantId: string,
+    query: AnalyticsQueryDto,
+  ): Promise<BranchPerformanceDto[]> {
+    const { start, end } = this.getDateRange(
+      query.period || TimePeriod.THIS_MONTH,
+      query.startDate,
+      query.endDate,
+    );
 
     const branches = await this.prisma.branch.findMany({
       where: { tenantId, deletedAt: null },
@@ -324,47 +389,53 @@ export class GymAnalyticsService {
     });
 
     const branchPerformancePromises = branches.map(async (branch) => {
-      const [totalMembers, activeMembers, expiredMembers, newMembers, revenue] = await Promise.all([
-        this.prisma.gymMemberSubscription.count({
-          where: { branchId: branch.id, tenantId },
-        }),
-        this.prisma.gymMemberSubscription.count({
-          where: {
-            branchId: branch.id,
-            tenantId,
-            status: 'ACTIVE',
-            endDate: { gte: new Date() },
-          },
-        }),
-        this.prisma.gymMemberSubscription.count({
-          where: {
-            branchId: branch.id,
-            tenantId,
-            status: 'EXPIRED',
-          },
-        }),
-        this.prisma.gymMemberSubscription.count({
-          where: {
-            branchId: branch.id,
-            tenantId,
-            startDate: { gte: start, lte: end },
-          },
-        }),
-        this.prisma.customerTransaction.aggregate({
-          where: {
-            tenantId,
-            createdAt: { gte: start, lte: end },
-            status: 'COMPLETED',
-            gymMemberSubscription: { branchId: branch.id },
-          },
-          _sum: { amount: true },
-        }),
-      ]);
+      const [totalMembers, activeMembers, expiredMembers, newMembers, revenue] =
+        await Promise.all([
+          this.prisma.gymMemberSubscription.count({
+            where: { branchId: branch.id, tenantId },
+          }),
+          this.prisma.gymMemberSubscription.count({
+            where: {
+              branchId: branch.id,
+              tenantId,
+              status: 'ACTIVE',
+              endDate: { gte: new Date() },
+            },
+          }),
+          this.prisma.gymMemberSubscription.count({
+            where: {
+              branchId: branch.id,
+              tenantId,
+              status: 'EXPIRED',
+            },
+          }),
+          this.prisma.gymMemberSubscription.count({
+            where: {
+              branchId: branch.id,
+              tenantId,
+              startDate: { gte: start, lte: end },
+            },
+          }),
+          this.prisma.customerTransaction.aggregate({
+            where: {
+              tenantId,
+              createdAt: { gte: start, lte: end },
+              status: 'COMPLETED',
+              gymMemberSubscription: { branchId: branch.id },
+            },
+            _sum: { amount: true },
+          }),
+        ]);
 
       const totalRevenue = revenue._sum.amount?.toNumber() || 0;
-      const averageRevenuePerMember = activeMembers > 0 ? totalRevenue / activeMembers : 0;
-      const activeSubscriptionRate = totalMembers > 0 ? (activeMembers / totalMembers) * 100 : 0;
-      const retentionRate = totalMembers > 0 ? ((totalMembers - expiredMembers) / totalMembers) * 100 : 0;
+      const averageRevenuePerMember =
+        activeMembers > 0 ? totalRevenue / activeMembers : 0;
+      const activeSubscriptionRate =
+        totalMembers > 0 ? (activeMembers / totalMembers) * 100 : 0;
+      const retentionRate =
+        totalMembers > 0
+          ? ((totalMembers - expiredMembers) / totalMembers) * 100
+          : 0;
 
       const prevPeriod = this.getPreviousPeriodRange(start, end);
       const prevMembers = await this.prisma.gymMemberSubscription.count({
@@ -375,7 +446,8 @@ export class GymAnalyticsService {
         },
       });
 
-      const memberGrowthRate = prevMembers > 0 ? ((newMembers - prevMembers) / prevMembers) * 100 : 0;
+      const memberGrowthRate =
+        prevMembers > 0 ? ((newMembers - prevMembers) / prevMembers) * 100 : 0;
 
       return {
         branchId: branch.id,
@@ -400,18 +472,36 @@ export class GymAnalyticsService {
     return performances;
   }
 
-  async getMemberGrowthStats(tenantId: string, query: AnalyticsQueryDto): Promise<MemberGrowthStatsDto> {
-    const { start, end } = this.getDateRange(query.period || TimePeriod.THIS_MONTH, query.startDate, query.endDate);
+  async getMemberGrowthStats(
+    tenantId: string,
+    query: AnalyticsQueryDto,
+  ): Promise<MemberGrowthStatsDto> {
+    const { start, end } = this.getDateRange(
+      query.period || TimePeriod.THIS_MONTH,
+      query.startDate,
+      query.endDate,
+    );
 
     const whereClause: any = { tenantId };
     if (query.branchId) {
       whereClause.branchId = query.branchId;
     }
 
-    const [totalMembers, activeMembers, expiredMembers, cancelledMembers, newMembers, timeline] = await Promise.all([
+    const [
+      totalMembers,
+      activeMembers,
+      expiredMembers,
+      cancelledMembers,
+      newMembers,
+      timeline,
+    ] = await Promise.all([
       this.prisma.gymMemberSubscription.count({ where: whereClause }),
       this.prisma.gymMemberSubscription.count({
-        where: { ...whereClause, status: 'ACTIVE', endDate: { gte: new Date() } },
+        where: {
+          ...whereClause,
+          status: 'ACTIVE',
+          endDate: { gte: new Date() },
+        },
       }),
       this.prisma.gymMemberSubscription.count({
         where: { ...whereClause, status: 'EXPIRED' },
@@ -426,26 +516,38 @@ export class GymAnalyticsService {
     ]);
 
     const churnedMembers = expiredMembers + cancelledMembers;
-    const churnRate = totalMembers > 0 ? (churnedMembers / totalMembers) * 100 : 0;
-    const retentionRate = totalMembers > 0 ? ((totalMembers - churnedMembers) / totalMembers) * 100 : 0;
+    const churnRate =
+      totalMembers > 0 ? (churnedMembers / totalMembers) * 100 : 0;
+    const retentionRate =
+      totalMembers > 0
+        ? ((totalMembers - churnedMembers) / totalMembers) * 100
+        : 0;
 
     const prevPeriod = this.getPreviousPeriodRange(start, end);
     const prevTotalMembers = await this.prisma.gymMemberSubscription.count({
       where: { ...whereClause, createdAt: { lte: prevPeriod.end } },
     });
 
-    const growthRate = prevTotalMembers > 0 ? ((totalMembers - prevTotalMembers) / prevTotalMembers) * 100 : 0;
+    const growthRate =
+      prevTotalMembers > 0
+        ? ((totalMembers - prevTotalMembers) / prevTotalMembers) * 100
+        : 0;
 
     const totalRevenue = await this.prisma.customerTransaction.aggregate({
       where: {
         tenantId,
         status: 'COMPLETED',
-        gymMemberSubscription: query.branchId ? { branchId: query.branchId } : { isNot: null },
+        gymMemberSubscription: query.branchId
+          ? { branchId: query.branchId }
+          : { isNot: null },
       },
       _sum: { amount: true },
     });
 
-    const memberLifetimeValue = activeMembers > 0 ? (totalRevenue._sum.amount?.toNumber() || 0) / activeMembers : 0;
+    const memberLifetimeValue =
+      activeMembers > 0
+        ? (totalRevenue._sum.amount?.toNumber() || 0) / activeMembers
+        : 0;
 
     return {
       totalMembers,
@@ -462,7 +564,12 @@ export class GymAnalyticsService {
     };
   }
 
-  private async getMemberTimeline(tenantId: string, start: Date, end: Date, branchId?: string): Promise<MemberTimelineDto[]> {
+  private async getMemberTimeline(
+    tenantId: string,
+    start: Date,
+    end: Date,
+    branchId?: string,
+  ): Promise<MemberTimelineDto[]> {
     const whereClause: any = { tenantId };
     if (branchId) {
       whereClause.branchId = branchId;
@@ -476,11 +583,19 @@ export class GymAnalyticsService {
       orderBy: { startDate: 'asc' },
     });
 
-    const timelineMap = new Map<string, { new: number; active: number; expired: number; cancelled: number }>();
+    const timelineMap = new Map<
+      string,
+      { new: number; active: number; expired: number; cancelled: number }
+    >();
 
     subscriptions.forEach((sub) => {
       const date = sub.startDate.toISOString().split('T')[0];
-      const existing = timelineMap.get(date) || { new: 0, active: 0, expired: 0, cancelled: 0 };
+      const existing = timelineMap.get(date) || {
+        new: 0,
+        active: 0,
+        expired: 0,
+        cancelled: 0,
+      };
 
       existing.new += 1;
       if (sub.status === 'ACTIVE') existing.active += 1;
@@ -499,10 +614,24 @@ export class GymAnalyticsService {
     }));
   }
 
-  async getOwnerInsights(tenantId: string, query: AnalyticsQueryDto): Promise<OwnerInsightsDto> {
-    const { start, end } = this.getDateRange(query.period || TimePeriod.THIS_MONTH, query.startDate, query.endDate);
+  async getOwnerInsights(
+    tenantId: string,
+    query: AnalyticsQueryDto,
+  ): Promise<OwnerInsightsDto> {
+    const { start, end } = this.getDateRange(
+      query.period || TimePeriod.THIS_MONTH,
+      query.startDate,
+      query.endDate,
+    );
 
-    const [collectionRate, avgSubscriptionValue, renewalRate, topPlans, peakPeriods, forecasts] = await Promise.all([
+    const [
+      collectionRate,
+      avgSubscriptionValue,
+      renewalRate,
+      topPlans,
+      peakPeriods,
+      forecasts,
+    ] = await Promise.all([
       this.calculateCollectionRate(tenantId, start, end, query.branchId),
       this.calculateAverageSubscriptionValue(tenantId, query.branchId),
       this.calculateRenewalRate(tenantId, start, end, query.branchId),
@@ -521,7 +650,12 @@ export class GymAnalyticsService {
     };
   }
 
-  private async calculateCollectionRate(tenantId: string, start: Date, end: Date, branchId?: string): Promise<number> {
+  private async calculateCollectionRate(
+    tenantId: string,
+    start: Date,
+    end: Date,
+    branchId?: string,
+  ): Promise<number> {
     const subWhereClause: any = {
       tenantId,
       startDate: { gte: start, lte: end },
@@ -561,7 +695,10 @@ export class GymAnalyticsService {
     return expected > 0 ? (actual / expected) * 100 : 0;
   }
 
-  private async calculateAverageSubscriptionValue(tenantId: string, branchId?: string): Promise<number> {
+  private async calculateAverageSubscriptionValue(
+    tenantId: string,
+    branchId?: string,
+  ): Promise<number> {
     const whereClause: any = {
       tenantId,
       status: 'ACTIVE',
@@ -579,7 +716,12 @@ export class GymAnalyticsService {
     return result._avg.price?.toNumber() || 0;
   }
 
-  private async calculateRenewalRate(tenantId: string, start: Date, end: Date, branchId?: string): Promise<number> {
+  private async calculateRenewalRate(
+    tenantId: string,
+    start: Date,
+    end: Date,
+    branchId?: string,
+  ): Promise<number> {
     const whereClause: any = {
       tenantId,
       endDate: { gte: start, lte: end },
@@ -594,8 +736,8 @@ export class GymAnalyticsService {
     });
 
     const totalExpired = expiredSubs.length;
-    
-    const memberIds = expiredSubs.map(sub => sub.memberId);
+
+    const memberIds = expiredSubs.map((sub) => sub.memberId);
     const renewedSubs = await this.prisma.gymMemberSubscription.count({
       where: {
         memberId: { in: memberIds },
@@ -606,7 +748,12 @@ export class GymAnalyticsService {
     return totalExpired > 0 ? (renewedSubs / totalExpired) * 100 : 0;
   }
 
-  private async getTopPerformingPlans(tenantId: string, start: Date, end: Date, branchId?: string): Promise<TopPerformingPlanDto[]> {
+  private async getTopPerformingPlans(
+    tenantId: string,
+    start: Date,
+    end: Date,
+    branchId?: string,
+  ): Promise<TopPerformingPlanDto[]> {
     const whereClause: any = {
       tenantId,
       createdAt: { gte: start, lte: end },
@@ -629,7 +776,10 @@ export class GymAnalyticsService {
       },
     });
 
-    const planMap = new Map<string, { name: string; revenue: number; count: number; renewals: number }>();
+    const planMap = new Map<
+      string,
+      { name: string; revenue: number; count: number; renewals: number }
+    >();
 
     transactions.forEach((t) => {
       if (t.gymMemberSubscription?.gymMembershipPlan) {
@@ -641,7 +791,12 @@ export class GymAnalyticsService {
           existing.revenue += revenue;
           existing.count += 1;
         } else {
-          planMap.set(plan.id, { name: plan.name, revenue, count: 1, renewals: 0 });
+          planMap.set(plan.id, {
+            name: plan.name,
+            revenue,
+            count: 1,
+            renewals: 0,
+          });
         }
       }
     });
@@ -659,7 +814,12 @@ export class GymAnalyticsService {
       .slice(0, 5);
   }
 
-  private async getPeakSignupPeriods(tenantId: string, start: Date, end: Date, branchId?: string): Promise<PeakPeriodDto[]> {
+  private async getPeakSignupPeriods(
+    tenantId: string,
+    start: Date,
+    end: Date,
+    branchId?: string,
+  ): Promise<PeakPeriodDto[]> {
     const whereClause: any = {
       tenantId,
       startDate: { gte: start, lte: end },
@@ -681,20 +841,37 @@ export class GymAnalyticsService {
     const dayOfWeekMap = new Map<string, { count: number; revenue: number }>();
     const dayOfMonthMap = new Map<string, { count: number; revenue: number }>();
 
-    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const daysOfWeek = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
 
     subscriptions.forEach((sub) => {
       const date = new Date(sub.startDate);
       const dayOfWeek = daysOfWeek[date.getDay()];
       const dayOfMonth = date.getDate().toString();
-      const revenue = sub.customerTransactions.reduce((sum, t) => sum + t.amount.toNumber(), 0);
+      const revenue = sub.customerTransactions.reduce(
+        (sum, t) => sum + t.amount.toNumber(),
+        0,
+      );
 
-      const existingDayOfWeek = dayOfWeekMap.get(dayOfWeek) || { count: 0, revenue: 0 };
+      const existingDayOfWeek = dayOfWeekMap.get(dayOfWeek) || {
+        count: 0,
+        revenue: 0,
+      };
       existingDayOfWeek.count += 1;
       existingDayOfWeek.revenue += revenue;
       dayOfWeekMap.set(dayOfWeek, existingDayOfWeek);
 
-      const existingDayOfMonth = dayOfMonthMap.get(dayOfMonth) || { count: 0, revenue: 0 };
+      const existingDayOfMonth = dayOfMonthMap.get(dayOfMonth) || {
+        count: 0,
+        revenue: 0,
+      };
       existingDayOfMonth.count += 1;
       existingDayOfMonth.revenue += revenue;
       dayOfMonthMap.set(dayOfMonth, existingDayOfMonth);
@@ -723,7 +900,10 @@ export class GymAnalyticsService {
     return [...dayOfWeekPeaks, ...dayOfMonthPeaks];
   }
 
-  private async getRevenueForecasts(tenantId: string, branchId?: string): Promise<RevenueForecastDto[]> {
+  private async getRevenueForecasts(
+    tenantId: string,
+    branchId?: string,
+  ): Promise<RevenueForecastDto[]> {
     const whereClause: any = {
       tenantId,
       status: 'ACTIVE',

@@ -11,7 +11,10 @@ export class GymAnalyticsController {
   constructor(private readonly analyticsService: GymAnalyticsService) {}
 
   @Get('revenue-metrics')
-  async getRevenueMetrics(@GetUser() user: User, @Query() query: AnalyticsQueryDto) {
+  async getRevenueMetrics(
+    @GetUser() user: User,
+    @Query() query: AnalyticsQueryDto,
+  ) {
     if (!user.tenantId) {
       throw new Error('Tenant ID is required');
     }
@@ -19,7 +22,10 @@ export class GymAnalyticsController {
   }
 
   @Get('branch-performance')
-  async getBranchPerformance(@GetUser() user: User, @Query() query: AnalyticsQueryDto) {
+  async getBranchPerformance(
+    @GetUser() user: User,
+    @Query() query: AnalyticsQueryDto,
+  ) {
     if (!user.tenantId) {
       throw new Error('Tenant ID is required');
     }
@@ -27,7 +33,10 @@ export class GymAnalyticsController {
   }
 
   @Get('member-growth')
-  async getMemberGrowthStats(@GetUser() user: User, @Query() query: AnalyticsQueryDto) {
+  async getMemberGrowthStats(
+    @GetUser() user: User,
+    @Query() query: AnalyticsQueryDto,
+  ) {
     if (!user.tenantId) {
       throw new Error('Tenant ID is required');
     }
@@ -35,7 +44,10 @@ export class GymAnalyticsController {
   }
 
   @Get('owner-insights')
-  async getOwnerInsights(@GetUser() user: User, @Query() query: AnalyticsQueryDto) {
+  async getOwnerInsights(
+    @GetUser() user: User,
+    @Query() query: AnalyticsQueryDto,
+  ) {
     if (!user.tenantId) {
       throw new Error('Tenant ID is required');
     }

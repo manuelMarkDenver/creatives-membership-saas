@@ -23,7 +23,8 @@ export class GymMembershipPlansService {
   constructor(private prisma: PrismaService) {}
 
   private isValidUUID(uuid: string): boolean {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
   }
 
@@ -54,7 +55,9 @@ export class GymMembershipPlansService {
       }
 
       if (tenant.category !== 'GYM') {
-        throw new ForbiddenException('This endpoint is only for gym businesses');
+        throw new ForbiddenException(
+          'This endpoint is only for gym businesses',
+        );
       }
 
       const createdPlan = await this.prisma.gymMembershipPlan.create({
@@ -122,7 +125,9 @@ export class GymMembershipPlansService {
       }
 
       if (tenant.category !== 'GYM') {
-        throw new ForbiddenException('This endpoint is only for gym businesses');
+        throw new ForbiddenException(
+          'This endpoint is only for gym businesses',
+        );
       }
 
       const whereClause = includeDeleted
@@ -133,8 +138,8 @@ export class GymMembershipPlansService {
         where: whereClause,
         orderBy: [
           { deletedAt: 'asc' }, // Non-deleted first
-          { isActive: 'desc' }, 
-          { createdAt: 'desc' }
+          { isActive: 'desc' },
+          { createdAt: 'desc' },
         ],
         include: {
           tenant: {
@@ -156,7 +161,7 @@ export class GymMembershipPlansService {
       // Get member counts for each plan using individual count queries
       // This approach is simpler and avoids TypeScript issues with groupBy
       const memberCountMap = new Map<string, number>();
-      
+
       // For each plan, count active subscriptions
       for (const plan of plans) {
         const memberCount = await this.prisma.gymMemberSubscription.count({
@@ -171,7 +176,7 @@ export class GymMembershipPlansService {
       }
 
       this.logger.log(`Found ${plans.length} plans for tenant ${tenantId}`);
-      
+
       return {
         success: true,
         data: plans.map((plan) => {
@@ -186,10 +191,12 @@ export class GymMembershipPlansService {
               }
             }
           } catch (error) {
-            this.logger.warn(`Failed to parse benefits for plan ${plan.id}: ${(error as Error).message}`);
+            this.logger.warn(
+              `Failed to parse benefits for plan ${plan.id}: ${(error as Error).message}`,
+            );
             benefits = [];
           }
-          
+
           return {
             ...plan,
             benefits,
@@ -203,7 +210,9 @@ export class GymMembershipPlansService {
         `Failed to fetch membership plans for tenant ${tenantId}: ${(error as Error).message}`,
         (error as Error).stack,
       );
-      throw new InternalServerErrorException('Failed to fetch membership plans');
+      throw new InternalServerErrorException(
+        'Failed to fetch membership plans',
+      );
     }
   }
 
@@ -224,7 +233,7 @@ export class GymMembershipPlansService {
     const result = await this.findAllByTenant(tenantId, false);
     return {
       success: true,
-      data: result.data.filter(plan => plan.isActive),
+      data: result.data.filter((plan) => plan.isActive),
     };
   }
 
@@ -330,9 +339,7 @@ export class GymMembershipPlansService {
       },
     });
 
-    this.logger.log(
-      `Updated gym membership plan: ${updatedPlan.name} (${id})`,
-    );
+    this.logger.log(`Updated gym membership plan: ${updatedPlan.name} (${id})`);
 
     return {
       success: true,
@@ -347,8 +354,10 @@ export class GymMembershipPlansService {
 
   async toggleStatus(id: string, tenantId: string) {
     try {
-      this.logger.log(`Starting toggleStatus for plan ${id}, tenant ${tenantId}`);
-      
+      this.logger.log(
+        `Starting toggleStatus for plan ${id}, tenant ${tenantId}`,
+      );
+
       if (!this.isValidUUID(id)) {
         throw new BadRequestException('Invalid plan ID format');
       }
@@ -356,18 +365,20 @@ export class GymMembershipPlansService {
       // Direct database query to avoid issues with findOne
       const existingPlan = await this.prisma.gymMembershipPlan.findFirst({
         where: { id, tenantId, deletedAt: null },
-        select: { id: true, name: true, isActive: true }
+        select: { id: true, name: true, isActive: true },
       });
 
       if (!existingPlan) {
         throw new NotFoundException('Gym membership plan not found');
       }
 
-      this.logger.log(`Found plan: ${existingPlan.name}, current status: ${existingPlan.isActive}`);
+      this.logger.log(
+        `Found plan: ${existingPlan.name}, current status: ${existingPlan.isActive}`,
+      );
 
       const updatedPlan = await this.prisma.gymMembershipPlan.update({
         where: { id },
-        data: { 
+        data: {
           isActive: !existingPlan.isActive,
           updatedAt: new Date(),
         },
@@ -402,14 +413,14 @@ export class GymMembershipPlansService {
         `Failed to toggle status for gym membership plan ${id}: ${(error as Error).message}`,
         (error as Error).stack,
       );
-      
+
       if (
         error instanceof BadRequestException ||
         error instanceof NotFoundException
       ) {
         throw error;
       }
-      
+
       throw new InternalServerErrorException(
         'Failed to toggle membership plan status. Please try again.',
       );
@@ -423,8 +434,10 @@ export class GymMembershipPlansService {
     deleteDto: SoftDeleteGymMembershipPlanDto,
   ) {
     try {
-      this.logger.log(`Starting softDelete for plan ${id}, tenant ${tenantId}, deletedBy ${deletedBy}`);
-      
+      this.logger.log(
+        `Starting softDelete for plan ${id}, tenant ${tenantId}, deletedBy ${deletedBy}`,
+      );
+
       if (!this.isValidUUID(id)) {
         throw new BadRequestException('Invalid plan ID format');
       }
@@ -436,55 +449,59 @@ export class GymMembershipPlansService {
       // Direct query to avoid issues with findOne method
       const existingPlan = await this.prisma.gymMembershipPlan.findFirst({
         where: { id, tenantId, deletedAt: null },
-        select: { id: true, name: true, isActive: true }
+        select: { id: true, name: true, isActive: true },
       });
-      
+
       if (!existingPlan) {
         throw new NotFoundException('Gym membership plan not found');
       }
-      
+
       this.logger.log(`Found plan to delete: ${existingPlan.name}`);
-      
+
       // Plan is guaranteed to not be deleted due to our query above
 
       // Check if any active subscriptions are using this plan
       this.logger.log(`Checking for active subscriptions for plan ${id}`);
-      
-      const activeSubscriptionsCount = await this.prisma.gymMemberSubscription.count({
-        where: {
-          gymMembershipPlanId: id,
-          tenantId,
-          status: 'ACTIVE',
-          cancelledAt: null,
-        }
-      });
 
-      this.logger.log(`Found ${activeSubscriptionsCount} active subscriptions for plan ${id}`);
-
-      if (activeSubscriptionsCount > 0) {
-        // Get the first active subscription for error message
-        const activeSubscription = await this.prisma.gymMemberSubscription.findFirst({
+      const activeSubscriptionsCount =
+        await this.prisma.gymMemberSubscription.count({
           where: {
             gymMembershipPlanId: id,
             tenantId,
             status: 'ACTIVE',
             cancelledAt: null,
           },
-          include: {
-            member: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true,
+        });
+
+      this.logger.log(
+        `Found ${activeSubscriptionsCount} active subscriptions for plan ${id}`,
+      );
+
+      if (activeSubscriptionsCount > 0) {
+        // Get the first active subscription for error message
+        const activeSubscription =
+          await this.prisma.gymMemberSubscription.findFirst({
+            where: {
+              gymMembershipPlanId: id,
+              tenantId,
+              status: 'ACTIVE',
+              cancelledAt: null,
+            },
+            include: {
+              member: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
               },
             },
-          },
-        });
-        
-        const memberInfo = activeSubscription?.member 
+          });
+
+        const memberInfo = activeSubscription?.member
           ? `${activeSubscription.member.firstName} ${activeSubscription.member.lastName} (${activeSubscription.member.email})`
           : 'Unknown member';
-          
+
         throw new ConflictException(
           `Cannot delete gym membership plan that has active subscriptions. Member: ${memberInfo} has an active subscription using this plan.`,
         );
@@ -492,7 +509,7 @@ export class GymMembershipPlansService {
 
       // Soft delete the plan
       this.logger.log(`Performing soft delete for plan ${id}`);
-      
+
       const deletedPlan = await this.prisma.gymMembershipPlan.update({
         where: { id },
         data: {
@@ -534,7 +551,10 @@ export class GymMembershipPlansService {
             parsedBenefits = deletedPlan.benefits;
           }
         } catch (parseError) {
-          this.logger.warn(`Failed to parse benefits for deleted plan ${id}:`, parseError);
+          this.logger.warn(
+            `Failed to parse benefits for deleted plan ${id}:`,
+            parseError,
+          );
           parsedBenefits = [];
         }
       }
@@ -548,7 +568,7 @@ export class GymMembershipPlansService {
           isDeleted: true,
         },
       };
-      
+
       this.logger.log(`Soft delete completed successfully for plan ${id}`);
       return result;
     } catch (error) {
@@ -676,8 +696,8 @@ export class GymMembershipPlansService {
   async getStats(tenantId: string) {
     const [total, active, inactive, deleted] = await Promise.all([
       this.prisma.gymMembershipPlan.count({ where: { tenantId } }),
-      this.prisma.gymMembershipPlan.count({ 
-        where: { tenantId, isActive: true, deletedAt: null } 
+      this.prisma.gymMembershipPlan.count({
+        where: { tenantId, isActive: true, deletedAt: null },
       }),
       this.prisma.gymMembershipPlan.count({
         where: { tenantId, isActive: false, deletedAt: null },
