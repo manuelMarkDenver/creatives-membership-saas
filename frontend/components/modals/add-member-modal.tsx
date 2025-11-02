@@ -721,17 +721,18 @@ export function AddMemberModal({
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="paymentAmount">Payment Amount (₱) *</Label>
-                  <Input
-                    id="paymentAmount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.paymentAmount}
-                    onChange={(e) => handleInputChange('paymentAmount', e.target.value)}
-                    placeholder="0.00"
-                    className={currentMembershipErrors.paymentAmount ? "border-red-500" : ""}
-                  />
+                   <Label htmlFor="paymentAmount">Payment Amount (₱)</Label>
+                   <Input
+                     id="paymentAmount"
+                     type="number"
+                     min="0"
+                     step="0.01"
+                     value={formData.paymentAmount}
+                     onChange={(e) => handleInputChange('paymentAmount', e.target.value)}
+                     placeholder="0.00"
+                     disabled
+                     className={currentMembershipErrors.paymentAmount ? "border-red-500" : ""}
+                   />
                   {selectedPlan && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Plan price: ₱{parseFloat(selectedPlan.price).toFixed(2)}
