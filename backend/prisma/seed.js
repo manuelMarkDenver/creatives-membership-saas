@@ -384,8 +384,11 @@ async function main() {
         password: hashedPassword,
         firstName: adminData.firstName,
         lastName: adminData.lastName,
+        displayName: `${adminData.firstName} ${adminData.lastName}`, // Full display name
         role: 'SUPER_ADMIN',
         emailVerified: true, // Seeded users are pre-verified
+        initialPasswordSet: true, // Seeded users have passwords set
+        onboardingCompletedAt: new Date(), // System users skip onboarding
         // Email preferences
         emailNotificationsEnabled: true,
         marketingEmailsEnabled: false,
@@ -535,9 +538,12 @@ async function main() {
           password: hashedOwnerPassword,
           firstName: tenantInfo.owner.firstName,
           lastName: tenantInfo.owner.lastName,
+          displayName: `${tenantInfo.owner.firstName} ${tenantInfo.owner.lastName}`, // Full display name
           role: 'OWNER',
           tenantId: tenant.id, // Set tenant context for owner
           emailVerified: true, // Seeded users are pre-verified
+          initialPasswordSet: true, // Seeded users have passwords set
+          onboardingCompletedAt: new Date(), // Seeded owners skip onboarding
           // Email preferences
           emailNotificationsEnabled: true,
           marketingEmailsEnabled: false,
@@ -787,8 +793,12 @@ async function main() {
           password: hashedManagerPassword,
           firstName: 'Manager',
           lastName: 'Cruz',
+          displayName: 'Manager Cruz', // Full display name
           role: 'MANAGER',
           tenantId: tenant.id, // Set tenant context for manager
+          emailVerified: true, // Seeded users are pre-verified
+          initialPasswordSet: true, // Seeded users have passwords set
+          onboardingCompletedAt: new Date(), // Seeded managers skip onboarding
           // Email preferences
           emailNotificationsEnabled: true,
           marketingEmailsEnabled: false,
@@ -994,8 +1004,12 @@ async function main() {
             password: hashedMemberPassword,
             firstName: memberInfo.firstName,
             lastName: memberInfo.lastName,
+            displayName: `${memberInfo.firstName} ${memberInfo.lastName}`, // Full display name
             role: 'CLIENT', // Global role for end users
             tenantId: tenant.id, // Set tenant context for gym members
+            emailVerified: true, // Seeded users are pre-verified
+            initialPasswordSet: true, // Seeded users have passwords set
+            onboardingCompletedAt: new Date(), // Seeded members skip onboarding
             // Email preferences
             emailNotificationsEnabled: true,
             marketingEmailsEnabled: false,

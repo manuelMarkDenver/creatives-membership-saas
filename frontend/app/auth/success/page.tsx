@@ -25,6 +25,7 @@ function AuthSuccessContent() {
         const token = searchParams.get('token');
         const userId = searchParams.get('user_id');
         const email = searchParams.get('email');
+        const requiresOnboarding = searchParams.get('requires_onboarding');
 
         if (!token) {
           throw new Error('No authentication token provided');
@@ -73,10 +74,18 @@ function AuthSuccessContent() {
 
           setStatus('success');
 
-          // Redirect to dashboard after a short delay
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 2000);
+          // Check if onboarding is required (new Google OAuth users)
+          if (requiresOnboarding === 'true') {
+            // Redirect to onboarding instead of dashboard
+            setTimeout(() => {
+              router.push('/dashboard'); // Onboarding wrapper will intercept this
+            }, 2000);
+          } else {
+            // Normal login - redirect to dashboard
+            setTimeout(() => {
+              router.push('/dashboard');
+            }, 2000);
+          }
         } else {
           throw new Error('Invalid user data received');
         }

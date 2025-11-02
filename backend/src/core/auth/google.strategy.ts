@@ -23,7 +23,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     done: VerifyCallback,
   ): any {
     try {
-      const { id, emails, displayName, name } = profile;
+      const { id, emails, displayName, name, photos } = profile;
 
       // Extract user info from Google profile
       const googleUser = {
@@ -33,6 +33,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         lastName:
           name?.familyName || displayName?.split(' ').slice(1).join(' ') || '',
         displayName: displayName,
+        profilePicture: photos?.[0]?.value,
+        provider: 'google',
       };
 
       // Validate that we have required fields

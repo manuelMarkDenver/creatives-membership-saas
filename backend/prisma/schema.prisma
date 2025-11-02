@@ -175,10 +175,12 @@ model User {
   id                        String                  @id @default(uuid())
   firstName                 String
   lastName                  String
+  displayName               String? // Full display name from OAuth providers
   email                     String?                 @unique
   phoneNumber               String?
   notes                     String?
   photoUrl                  String? // Main profile photo
+  profilePicture            String? // OAuth profile picture URL
   photos                    Json?   // Array of additional photo URLs for future features
   role                      Role?   // Platform-level roles (SUPER_ADMIN, OWNER, MANAGER, STAFF)
   tenantId                  String? // Current tenant context
@@ -201,8 +203,11 @@ model User {
    emailVerifiedAt           DateTime?
 
     // OAuth fields
-    googleId                  String?                 @unique
-    authProvider              AuthProvider            @default(LOCAL)
+     googleId                  String?                 @unique
+     authProvider              AuthProvider            @default(LOCAL)
+
+     // Onboarding tracking
+     onboardingCompletedAt     DateTime?
   tenant                 Tenant?                 @relation(fields: [tenantId], references: [id])
   gymMemberSubscriptions GymMemberSubscription[] @relation("GymMemberSubscriptions")
   customerTransactions   CustomerTransaction[]   @relation("CustomerTransactions")

@@ -219,17 +219,16 @@ export class AuthController {
       // Handle Google login through auth service
       const result = await this.authService.handleGoogleLogin(googleUser);
 
-      if (result.requiresTenantSelection) {
-        // New user needs tenant selection
+      if ('requiresOnboarding' in result && result.requiresOnboarding) {
+        // New tenant created from Google OAuth - redirect to success with onboarding flag
         const params = new URLSearchParams({
-          requires_tenant: 'true',
-          google_id: result.googleUser.googleId,
-          email: result.googleUser.email,
-          first_name: result.googleUser.firstName,
-          last_name: result.googleUser.lastName,
+          token: result.data.token,
+          user_id: result.data.user.id,
+          email: result.data.user.email,
+          requires_onboarding: 'true',
         });
         return res.redirect(
-          `${process.env.FRONTEND_URL}/auth/google-tenant-selection?${params.toString()}`,
+          `${process.env.FRONTEND_URL}/auth/success?${params.toString()}`,
         );
       }
 
@@ -477,28 +476,5 @@ export class AuthController {
     return this.authService.resendVerificationEmail(body.email);
   }
 
-  /**
-   * Create Google user with tenant selection
-   * POST /auth/create-google-user
-   */
-  @Post('create-google-user')
-  async createGoogleUser(@Body() createGoogleUserDto: CreateGoogleUserDto) {
-    try {
-      return this.authService.createGoogleUserWithTenant(
-        {
-          googleId: createGoogleUserDto.googleId,
-          email: createGoogleUserDto.email,
-          firstName: createGoogleUserDto.firstName,
-          lastName: createGoogleUserDto.lastName,
-        },
-        createGoogleUserDto.tenantId,
-      );
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      console.error('Create Google user error:', error);
-      throw new InternalServerErrorException('Failed to create account');
-    }
-  }
+
 }

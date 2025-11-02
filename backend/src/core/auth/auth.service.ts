@@ -424,6 +424,143 @@ export class AuthService {
     };
   }
 
+
+
+  /**
+   * Create new tenant and owner user from Google OAuth
+   * Skips email verification but requires onboarding
+   */
+  async createTenantFromGoogleUser(
+    googleUser: {
+      googleId: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      displayName?: string;
+      profilePicture?: string;
+      provider?: string;
+    },
+  ) {
+    try {
+      // Check if email already exists
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: googleUser.email },
+      });
+
+      if (existingUser) {
+        throw new ConflictException(
+          'An account with this email already exists',
+        );
+      }
+
+      // Generate tenant name from user's name
+      const tenantName = `${googleUser.firstName}'s Gym`;
+      const slug = slugify(tenantName, { lower: true, strict: true });
+
+      // Check if slug already exists
+      const existingTenant = await this.prisma.tenant.findUnique({
+        where: { slug },
+      });
+
+      if (existingTenant) {
+        // If slug exists, append a number
+        let counter = 1;
+        let uniqueSlug = slug;
+        while (await this.prisma.tenant.findUnique({ where: { slug: uniqueSlug } })) {
+          uniqueSlug = `${slug}-${counter}`;
+          counter++;
+        }
+      }
+
+      // Create tenant and owner user in transaction
+      const result = await this.prisma.$transaction(async (tx) => {
+        // 1. Create tenant with ACTIVE status (skip email verification)
+        const tenant = await tx.tenant.create({
+          data: {
+            name: tenantName,
+            slug,
+            category: 'GYM',
+            status: 'ACTIVE', // Skip email verification, go straight to active
+            adminEmailRecipients: [googleUser.email], // Default to owner's email
+            onboardingCompletedAt: null, // Requires onboarding
+          },
+        });
+
+        // 2. Create owner user
+        const owner = await tx.user.create({
+          data: {
+            tenantId: tenant.id,
+            firstName: googleUser.firstName,
+            lastName: googleUser.lastName,
+            displayName: googleUser.displayName,
+            email: googleUser.email,
+            phoneNumber: null,
+            googleId: googleUser.googleId,
+            profilePicture: googleUser.profilePicture,
+            role: 'OWNER', // Owner role for new tenant creators
+            authProvider: AuthProvider.GOOGLE,
+            emailVerified: true, // Google verifies emails
+            emailVerifiedAt: new Date(),
+            initialPasswordSet: false, // Requires password setup in onboarding
+            onboardingCompletedAt: null, // Requires onboarding
+          },
+        });
+
+        // 3. Create main branch
+        const branch = await tx.branch.create({
+          data: {
+            tenantId: tenant.id,
+            name: 'Main Branch',
+            address: null,
+            phoneNumber: null,
+            email: googleUser.email,
+            isActive: true,
+            isMainBranch: true,
+          },
+        });
+
+        // 4. Assign owner to main branch
+        await tx.gymUserBranch.create({
+          data: {
+            userId: owner.id,
+            branchId: branch.id,
+            tenantId: tenant.id,
+            accessLevel: 'FULL_ACCESS',
+            isPrimary: true,
+          },
+        });
+
+        return { tenant, owner, branch };
+      });
+
+      this.logger.log(
+        `Created new tenant from Google OAuth: ${result.tenant.name} (${result.tenant.id}) for user: ${googleUser.email}`,
+      );
+
+      // Generate login token
+      const loginToken = this.generateLoginToken(result.owner);
+      return {
+        success: true,
+        message: 'Account and business created successfully',
+        requiresOnboarding: true, // Flag for frontend to start onboarding
+        data: {
+          user: this.formatUserResponse(result.owner),
+          token: loginToken,
+          tenant: result.tenant,
+        },
+      };
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
+      this.logger.error(`Create tenant from Google failed: ${error.message}`, error.stack);
+      throw new BadRequestException('Failed to create account');
+    }
+  }
+
   /**
    * Handle Google OAuth login - create or link user account
    */
@@ -433,6 +570,8 @@ export class AuthService {
     firstName: string;
     lastName: string;
     displayName?: string;
+    profilePicture?: string;
+    provider?: string;
   }) {
     try {
       // Check if user already exists with this Google ID
@@ -485,6 +624,8 @@ export class AuthService {
             where: { id: existingUser.id },
             data: {
               googleId: googleUser.googleId,
+              displayName: googleUser.displayName,
+              profilePicture: googleUser.profilePicture,
               authProvider: AuthProvider.GOOGLE,
               emailVerified: true, // Google verifies emails
               emailVerifiedAt: new Date(),
@@ -493,20 +634,9 @@ export class AuthService {
           });
         }
       } else {
-        // New user - this is problematic for multi-tenant system
-        // We need tenant context to create a user
-        // For now, return an error requiring tenant selection
-        return {
-          success: false,
-          requiresTenantSelection: true,
-          message: 'New Google user requires tenant selection',
-          googleUser: {
-            googleId: googleUser.googleId,
-            email: googleUser.email,
-            firstName: googleUser.firstName,
-            lastName: googleUser.lastName,
-          },
-        };
+        // New user - create new tenant and owner account
+        this.logger.log(`Creating new tenant for Google user: ${googleUser.email}`);
+        return this.createTenantFromGoogleUser(googleUser);
       }
 
       // Generate login token
@@ -522,71 +652,6 @@ export class AuthService {
     } catch (error) {
       this.logger.error(`Google login failed: ${error.message}`, error.stack);
       throw new BadRequestException('Google login failed');
-    }
-  }
-
-  /**
-   * Create new user from Google OAuth with tenant selection
-   */
-  async createGoogleUserWithTenant(
-    googleUser: {
-      googleId: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-    },
-    tenantId: string,
-  ) {
-    try {
-      // Verify tenant exists
-      const tenant = await this.prisma.tenant.findUnique({
-        where: { id: tenantId },
-      });
-
-      if (!tenant) {
-        throw new BadRequestException('Invalid tenant selected');
-      }
-
-      // Create user with Google OAuth
-      const user = await this.prisma.user.create({
-        data: {
-          googleId: googleUser.googleId,
-          email: googleUser.email,
-          firstName: googleUser.firstName,
-          lastName: googleUser.lastName,
-          role: 'CLIENT', // Default role for OAuth users
-          tenantId: tenantId,
-          authProvider: AuthProvider.GOOGLE,
-          emailVerified: true, // Google verifies emails
-          emailVerifiedAt: new Date(),
-          initialPasswordSet: true, // OAuth users don't need password setup
-        },
-        include: { tenant: true },
-      });
-
-      this.logger.log(
-        `Created new Google user: ${user.email} in tenant: ${tenant.name}`,
-      );
-
-      // Generate login token
-      const loginToken = this.generateLoginToken(user);
-      return {
-        success: true,
-        message: 'Account created and login successful',
-        data: {
-          user: this.formatUserResponse(user),
-          token: loginToken,
-        },
-      };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      this.logger.error(
-        `Create Google user failed: ${error.message}`,
-        error.stack,
-      );
-      throw new BadRequestException('Failed to create account');
     }
   }
 
@@ -629,9 +694,11 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
-      name: `${user.firstName} ${user.lastName}`,
+      name: user.displayName || `${user.firstName} ${user.lastName}`,
       firstName: user.firstName,
       lastName: user.lastName,
+      displayName: user.displayName,
+      profilePicture: user.profilePicture,
       role: user.role,
       tenantId: user.tenantId,
       tenant: user.tenant,
