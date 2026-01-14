@@ -51,6 +51,7 @@ async function bootstrap() {
     });
   } else {
     await app.listen(PORT);
+    console.log(`Server listening on port ${PORT}`);
   }
 }
 void bootstrap();
