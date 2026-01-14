@@ -9,6 +9,7 @@ import { useTenants, useCreateTenant, useDeleteTenant, useUpdateTenant, useTenan
 import { useUpdateFreeBranchOverride } from '@/lib/hooks/use-subscription'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenantContext } from '@/lib/providers/tenant-context'
+import { useQueryClient } from '@tanstack/react-query'
 import { Tenant, BusinessCategory } from '@/types'
 import { MoreHorizontal, Plus, Edit, Trash2, Crown, Gift, LogIn, ExternalLink, Building2, User, Palette, Settings, Copy, CheckCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -92,6 +93,7 @@ export default function TenantsPage() {
   })
 
   // All hooks must be called before any conditional returns
+  const queryClient = useQueryClient()
   const { data: tenantsData, isLoading } = useTenants()
   const createTenant = useCreateTenant()
   const deleteTenant = useDeleteTenant()
@@ -145,6 +147,9 @@ export default function TenantsPage() {
 
       // Update tenant context to switch to the new tenant
       setTenantId(result.id)
+
+      // Invalidate profile query to refresh user data
+      queryClient.invalidateQueries(['profile'])
 
       // Navigate to dashboard to see the updated tenant name
       router.push('/dashboard')
