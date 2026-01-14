@@ -31,6 +31,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  await app.init();
+
   // HTTPS setup
   const httpsOptions = {
     key: readFileSync(join(__dirname, '../ssl/private/selfsigned.key')),
@@ -41,7 +44,10 @@ async function bootstrap() {
     app.getHttpAdapter().getInstance(),
   );
   await new Promise<void>((resolve, reject) => {
-    server.listen(PORT, () => resolve());
+    server.listen(PORT, () => {
+      console.log('Listen callback called');
+      resolve();
+    });
     server.on('listening', () => console.log('Server event: listening'));
     server.on('error', reject);
   });
