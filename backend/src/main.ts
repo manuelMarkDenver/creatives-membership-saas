@@ -1,18 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import * as https from 'https';
 async function bootstrap() {
   const PORT = process.env.PORT || 5000;
-
   console.log(`Starting the application on ${PORT}...`);
-
   const app = await NestFactory.create(AppModule);
-
-  // Enable CORS for frontend communication
-  // Temporarily allow all origins for MVP testing
+  // Enable CORS
   app.enableCors({
-    origin: true, // Allow all origins temporarily for MVP testing
+    origin: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',
@@ -24,18 +22,27 @@ async function bootstrap() {
     ],
     credentials: true,
   });
-
-  // Set global API prefix with versioning
+  // Set global API prefix
   app.setGlobalPrefix('api/v1');
-
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Strip unknown properties
-      forbidNonWhitelisted: true, // Throw if unknown props sent
-      transform: true, // Auto-transform query params to correct types
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
-
-  await app.listen(PORT);
+  // HTTPS setup
+  const httpsOptions = {
+    key: readFileSync(join(__dirname, '../ssl/private/selfsigned.key')),
+    cert: readFileSync(join(__dirname, '../ssl/certs/selfsigned.crt')),
+  };
+  const server = https.createServer(
+    httpsOptions,
+    app.getHttpAdapter().getInstance(),
+  );
+  await new Promise<void>((resolve, reject) => {
+    server.listen(PORT, () => resolve());
+    server.on('error', reject);
+  });
 }
 void bootstrap();
