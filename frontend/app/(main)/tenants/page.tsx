@@ -9,7 +9,6 @@ import { useTenants, useCreateTenant, useDeleteTenant, useUpdateTenant, useTenan
 import { useUpdateFreeBranchOverride } from '@/lib/hooks/use-subscription'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenantContext } from '@/lib/providers/tenant-context'
-import { setTenantContext } from '@/lib/api/client'
 import { Tenant, BusinessCategory } from '@/types'
 import { MoreHorizontal, Plus, Edit, Trash2, Crown, Gift, LogIn, ExternalLink, Building2, User, Palette, Settings, Copy, CheckCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -54,7 +53,7 @@ const businessCategories = [
 
 export default function TenantsPage() {
   const { data: profile } = useProfile()
-  const { setCurrentTenant } = useTenantContext()
+  const { setCurrentTenant, setTenantId } = useTenantContext()
   const router = useRouter()
   const [createFormOpen, setCreateFormOpen] = useState(false)
   const [overrideDialogOpen, setOverrideDialogOpen] = useState(false)
@@ -145,7 +144,7 @@ export default function TenantsPage() {
       const result = await createTenant.mutateAsync(data)
 
       // Update tenant context to switch to the new tenant
-      setTenantContext(result.id)
+      setTenantId(result.id)
 
       // Navigate to dashboard to see the updated tenant name
       router.push('/dashboard')
