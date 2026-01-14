@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CreditCard, DollarSign, Calendar, Tag } from 'lucide-react'
+import { CreditCard, Calendar, Tag } from 'lucide-react'
 import { toast } from 'react-toastify'
 
 interface CreateMembershipPlanModalProps {
@@ -201,7 +201,7 @@ export default function CreateMembershipPlanModal({
           {/* Price */}
           <div className="space-y-2">
             <Label htmlFor="planPrice" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
+              <span className="text-lg">₱</span>
               Price <span className="text-red-500">*</span>
             </Label>
             <div className="relative">
