@@ -192,9 +192,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
                    {currentTenant.category}
                  </span>
                </div>
-             )}
-             {console.log('currentTenant in main-layout:', currentTenant)}
-           </div>
+              )}
+            </div>
             <div className="flex items-center gap-x-2 sm:gap-x-4 lg:gap-x-6 flex-shrink-0">
               {/* Expiring Members Button - temporarily hidden */}
               {/* Expiring Members Button - temporarily disabled due to TypeScript issues */}
