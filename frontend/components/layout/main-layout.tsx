@@ -184,16 +184,17 @@ export default function MainLayout({ children }: MainLayoutProps) {
           <div className="h-6 w-px bg-gray-200 dark:bg-gray-600 lg:hidden flex-shrink-0" />
 
           <div className="flex flex-1 gap-x-2 sm:gap-x-4 lg:gap-x-6 self-stretch min-w-0">
-            <div className="flex flex-1 items-center min-w-0">
-              {currentTenant && (
-                <div className="text-sm text-gray-600 dark:text-gray-300 truncate">
-                  <span className="font-medium truncate">{currentTenant.name}</span>
-                  <span className="ml-2 text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 dark:text-gray-200 flex-shrink-0">
-                    {currentTenant.category}
-                  </span>
-                </div>
-              )}
-            </div>
+           <div className="flex flex-1 items-center min-w-0">
+             {currentTenant && (
+               <div className="text-sm text-gray-600 dark:text-gray-300 truncate">
+                 <span className="font-medium truncate">{currentTenant.name}</span>
+                 <span className="ml-2 text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 dark:text-gray-200 flex-shrink-0">
+                   {currentTenant.category}
+                 </span>
+               </div>
+             )}
+             {console.log('currentTenant in main-layout:', currentTenant)}
+           </div>
             <div className="flex items-center gap-x-2 sm:gap-x-4 lg:gap-x-6 flex-shrink-0">
               {/* Expiring Members Button - temporarily hidden */}
               {/* Expiring Members Button - temporarily disabled due to TypeScript issues */}
