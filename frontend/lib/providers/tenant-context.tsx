@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { setTenantContext } from '@/lib/api'
 import { Tenant } from '@/types'
+import { authManager } from '@/lib/auth/auth-utils'
 
 interface TenantContextType {
   currentTenant: Tenant | null
@@ -26,7 +27,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   // Fetch tenant when tenantId changes
   useEffect(() => {
     const fetchTenant = async () => {
-      if (mounted && tenantId) {
+      if (mounted && tenantId && authManager.isAuthenticated()) {
         try {
           const { apiClient } = await import('../api/client')
           const res = await apiClient.get(`/tenants/${tenantId}`)
@@ -35,7 +36,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           console.error('Failed to fetch tenant:', error)
         }
-      } else if (!tenantId) {
+      } else if (!tenantId || !authManager.isAuthenticated()) {
         setCurrentTenant(null)
       }
     }
@@ -69,7 +70,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     console.log('currentTenant updated:', currentTenant)
     if (mounted) {
-      if (currentTenant) {
+      if (currentTenant && authManager.isAuthenticated()) {
         localStorage.setItem('currentTenant', JSON.stringify(currentTenant))
       } else {
         localStorage.removeItem('currentTenant')

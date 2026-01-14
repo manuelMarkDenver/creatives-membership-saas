@@ -192,23 +192,24 @@ export class AuthManager {
    */
   logout(redirectToLogin = true): void {
     if (typeof window === 'undefined') return
-    
+
     // Clear localStorage
     localStorage.removeItem('user_data')
     localStorage.removeItem('auth_token')
-    
+    localStorage.removeItem('currentTenant')
+
     // Clear any session storage
     sessionStorage.clear()
-    
+
     // Clear cookies if any
     document.cookie.split(';').forEach(cookie => {
       const eqPos = cookie.indexOf('=')
       const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
       document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`
     })
-    
+
     console.log('User logged out - all auth data cleared')
-    
+
     // Redirect to login page
     if (redirectToLogin && !window.location.pathname.includes('/auth')) {
       window.location.href = '/auth/login'
