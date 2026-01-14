@@ -149,7 +149,7 @@ export default function TenantsPage() {
       setTenantId(result.id)
 
       // Invalidate profile query to refresh user data
-      queryClient.invalidateQueries(['profile'])
+      queryClient.invalidateQueries({ queryKey: ['profile'] })
 
       // Navigate to dashboard to see the updated tenant name
       router.push('/dashboard')
