@@ -142,13 +142,16 @@ export default function TenantsPage() {
   const handleCreateTenant = async (data: CreateTenantFormData) => {
     try {
       const result = await createTenant.mutateAsync(data)
-      
+
+      // Update tenant context to switch to the new tenant
+      setCurrentTenant(result)
+
       // Show success message with temporary password if available
       if ((result as any)?.tempPassword) {
         const tempPassword = (result as any).tempPassword
         const ownerEmail = data.ownerEmail
         const tenantName = data.name
-        
+
         // Set password reset data and open the modern modal
         setPasswordResetData({
           ownerEmail,
@@ -156,7 +159,7 @@ export default function TenantsPage() {
           tenantName
         })
         setPasswordResetModalOpen(true)
-        
+
         // Show simple success toast
         toast.success(`🎉 Tenant "${tenantName}" created successfully!\nOwner account and trial branch have been set up.`, {
           autoClose: 5000
