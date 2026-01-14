@@ -45,6 +45,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   // Save tenant to localStorage when it changes (only on client)
   useEffect(() => {
+    console.log('currentTenant updated:', currentTenant)
     if (mounted) {
       if (currentTenant) {
         localStorage.setItem('currentTenant', JSON.stringify(currentTenant))

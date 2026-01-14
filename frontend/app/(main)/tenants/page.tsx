@@ -146,6 +146,9 @@ export default function TenantsPage() {
       // Update tenant context to switch to the new tenant
       setCurrentTenant(result)
 
+      // Navigate to dashboard to see the updated tenant name
+      router.push('/dashboard')
+
       // Show success message with temporary password if available
       if ((result as any)?.tempPassword) {
         const tempPassword = (result as any).tempPassword
