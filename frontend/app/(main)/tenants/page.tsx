@@ -151,8 +151,8 @@ export default function TenantsPage() {
       // Invalidate profile query to refresh user data
       queryClient.invalidateQueries({ queryKey: ['profile'] })
 
-      // Navigate to dashboard to see the updated tenant name
-      router.push('/dashboard')
+      // Reload page to refresh UI with updated tenant from localStorage
+      window.location.reload()
 
       // Show success message with temporary password if available
       if ((result as any)?.tempPassword) {
