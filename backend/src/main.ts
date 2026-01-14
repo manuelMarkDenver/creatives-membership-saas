@@ -42,6 +42,7 @@ async function bootstrap() {
   );
   await new Promise<void>((resolve, reject) => {
     server.listen(PORT, () => resolve());
+    server.on('listening', () => console.log('Server event: listening'));
     server.on('error', reject);
   });
 }
