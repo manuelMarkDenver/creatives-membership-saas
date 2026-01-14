@@ -5,6 +5,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import * as https from 'https';
 async function bootstrap() {
+  const isProduction = process.env.NODE_ENV === 'production';
   const PORT = process.env.PORT || 5000;
   console.log(`Starting the application on ${PORT}...`);
   const app = await NestFactory.create(AppModule);
@@ -34,22 +35,22 @@ async function bootstrap() {
 
   await app.init();
 
-  // HTTPS setup
-  const httpsOptions = {
-    key: readFileSync(join(__dirname, '../ssl/private/selfsigned.key')),
-    cert: readFileSync(join(__dirname, '../ssl/certs/selfsigned.crt')),
-  };
-  const server = https.createServer(
-    httpsOptions,
-    app.getHttpAdapter().getInstance(),
-  );
-  await new Promise<void>((resolve, reject) => {
-    server.listen(PORT, () => {
-      console.log('Listen callback called');
-      resolve();
+  if (isProduction) {
+    // HTTPS code here (httpsOptions, server.listen)
+    const httpsOptions = {
+      key: readFileSync(join(__dirname, '../ssl/private/selfsigned.key')),
+      cert: readFileSync(join(__dirname, '../ssl/certs/selfsigned.crt')),
+    };
+    const server = https.createServer(
+      httpsOptions,
+      app.getHttpAdapter().getInstance(),
+    );
+    await new Promise<void>((resolve, reject) => {
+      server.listen(PORT, () => resolve());
+      server.on('error', reject);
     });
-    server.on('listening', () => console.log('Server event: listening'));
-    server.on('error', reject);
-  });
+  } else {
+    await app.listen(PORT);
+  }
 }
 void bootstrap();
