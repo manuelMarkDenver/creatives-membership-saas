@@ -83,6 +83,19 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
+  # Redis - For caching and cooldown
+  redis:
+    image: redis:7-alpine
+    container_name: creatives-saas-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    command: redis-server --appendonly yes
+
 volumes:
   postgres_dev_data:
+    driver: local
+  redis_dev_data:
     driver: local
