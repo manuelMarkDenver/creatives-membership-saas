@@ -24,7 +24,8 @@ export default function SetupPage() {
       const encodedId = btoa(terminalId);
       const encodedSecret = btoa(terminalSecret);
 
-      const response = await fetch('/api/access/terminals/ping', {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiBase}/api/v1/access/terminals/ping`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

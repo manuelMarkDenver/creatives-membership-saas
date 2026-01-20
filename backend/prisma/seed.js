@@ -1524,6 +1524,32 @@ async function seedTestAccessData() {
     console.log(`✅ Created inventory card: ${card.uid} (${card.status})`);
   }
 
+  // Add expired card to inventory as ASSIGNED
+  const expiredInvCard = await prisma.inventoryCard.upsert({
+    where: { uid: 'EXPIRED-CARD-001' },
+    update: {},
+    create: {
+      uid: 'EXPIRED-CARD-001',
+      status: 'ASSIGNED',
+      allocatedGymId: branch.id,
+      batchId: 'TEST-BATCH-EXPIRED',
+    },
+  });
+  console.log(`✅ Created inventory card: ${expiredInvCard.uid} (${expiredInvCard.status})`);
+
+  // Add disabled card to inventory as ASSIGNED
+  const disabledInvCard = await prisma.inventoryCard.upsert({
+    where: { uid: 'DISABLED-CARD-001' },
+    update: {},
+    create: {
+      uid: 'DISABLED-CARD-001',
+      status: 'ASSIGNED',
+      allocatedGymId: branch.id,
+      batchId: 'TEST-BATCH-DISABLED',
+    },
+  });
+  console.log(`✅ Created inventory card: ${disabledInvCard.uid} (${disabledInvCard.status})`);
+
   // Create operational cards for testing
   const maria = await prisma.user.findFirst({ where: { email: 'maria.santos@muscle-mania.com' } });
   const amy = await prisma.user.findFirst({ where: { email: 'amy.taylor@muscle-mania.com' } });

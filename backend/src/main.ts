@@ -33,25 +33,10 @@ async function bootstrap() {
     }),
   );
 
-  await app.init();
+   await app.init();
 
-  if (isProduction) {
-    // HTTPS code here (httpsOptions, server.listen)
-    const httpsOptions = {
-      key: readFileSync(join(__dirname, '../ssl/private/selfsigned.key')),
-      cert: readFileSync(join(__dirname, '../ssl/certs/selfsigned.crt')),
-    };
-    const server = https.createServer(
-      httpsOptions,
-      app.getHttpAdapter().getInstance(),
-    );
-    await new Promise<void>((resolve, reject) => {
-      server.listen(PORT, () => resolve());
-      server.on('error', reject);
-    });
-  } else {
-    await app.listen(PORT);
-    console.log(`Server listening on port ${PORT}`);
-  }
+   // Railway handles SSL, so always use HTTP
+   await app.listen(PORT);
+   console.log(`Server listening on port ${PORT}`);
 }
 void bootstrap();

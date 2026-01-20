@@ -51,14 +51,16 @@ export default function KioskPage() {
       const encodedId = btoa(terminalId);
       const encodedSecret = btoa(terminalSecret);
 
-      const response = await fetch('/api/access/check', {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      console.log('API URL:', apiBase);
+      const response = await fetch(`${apiBase}/api/v1/access/check`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Terminal-Id-Encoded': encodedId,
           'X-Terminal-Secret-Encoded': encodedSecret,
         },
-        body: JSON.stringify({ cardUid: btoa(cardUid) }),
+        body: JSON.stringify({ cardUid }),
       });
 
       const data = await response.json();
