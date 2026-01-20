@@ -20,20 +20,24 @@ export default function SetupPage() {
     setError('');
 
     try {
+      // Base64 encode both
+      const encodedId = btoa(terminalId);
+      const encodedSecret = btoa(terminalSecret);
+
       const response = await fetch('/api/access/terminals/ping', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Terminal-Id': terminalId,
-          'X-Terminal-Secret': terminalSecret,
+          'X-Terminal-Id-Encoded': encodedId,
+          'X-Terminal-Secret-Encoded': encodedSecret,
         },
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Store in localStorage
-        localStorage.setItem('terminalId', terminalId);
-        localStorage.setItem('terminalSecret', terminalSecret);
+        // Store in localStorage (encode both)
+        localStorage.setItem('terminalId', btoa(terminalId));
+        localStorage.setItem('terminalSecret', btoa(terminalSecret));
         router.push('/');
       } else {
         setError('Invalid terminal credentials');
@@ -59,7 +63,7 @@ export default function SetupPage() {
               type="text"
               value={terminalId}
               onChange={(e) => setTerminalId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               placeholder="Enter terminal ID"
             />
           </div>
@@ -72,7 +76,7 @@ export default function SetupPage() {
               type="password"
               value={terminalSecret}
               onChange={(e) => setTerminalSecret(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               placeholder="Enter terminal secret"
             />
           </div>

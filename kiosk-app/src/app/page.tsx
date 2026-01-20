@@ -35,22 +35,30 @@ export default function KioskPage() {
     setIsProcessing(true);
 
     try {
-      const terminalId = localStorage.getItem('terminalId');
-      const terminalSecret = localStorage.getItem('terminalSecret');
+      const storedId = localStorage.getItem('terminalId');
+      const storedSecret = localStorage.getItem('terminalSecret');
 
-      if (!terminalId || !terminalSecret) {
+      if (!storedId || !storedSecret) {
         setResult({ result: 'ERROR', message: 'Terminal not configured' });
         return;
       }
+
+      // Decode the stored encoded values
+      const terminalId = atob(storedId);
+      const terminalSecret = atob(storedSecret);
+
+      // Base64 encode again for transmission
+      const encodedId = btoa(terminalId);
+      const encodedSecret = btoa(terminalSecret);
 
       const response = await fetch('/api/access/check', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Terminal-Id': terminalId,
-          'X-Terminal-Secret': terminalSecret,
+          'X-Terminal-Id-Encoded': encodedId,
+          'X-Terminal-Secret-Encoded': encodedSecret,
         },
-        body: JSON.stringify({ cardUid }),
+        body: JSON.stringify({ cardUid: btoa(cardUid) }),
       });
 
       const data = await response.json();
@@ -59,11 +67,11 @@ export default function KioskPage() {
       // Play sound based on result
       playSound(data.result);
 
-      // Auto reset after 2 seconds
+      // Auto reset after 3 seconds
       setTimeout(() => {
         setCardUid('');
         setResult(null);
-      }, 2000);
+      }, 3000);
 
     } catch (error) {
       setResult({ result: 'ERROR', message: 'Network error' });
@@ -112,11 +120,11 @@ export default function KioskPage() {
         case 'ALLOW':
           return `Welcome, ${result.memberName}!`;
         case 'DENY_EXPIRED':
-          return 'Access Denied - Membership Expired';
+          return `MEMBER EXPIRED - ${result.memberName}`;
         case 'DENY_UNKNOWN':
           return 'Access Denied - Unknown Card';
         case 'DENY_DISABLED':
-          return 'Access Denied - Card Disabled';
+          return `MEMBER DISABLED - ${result.memberName}`;
         case 'ASSIGNED':
           return `Card Assigned to ${result.memberName}`;
         case 'IGNORED_DUPLICATE_TAP':
@@ -142,9 +150,14 @@ export default function KioskPage() {
         <h1 className="text-6xl font-bold mb-8">
           {getText()}
         </h1>
-        {result && result.expiresAt && (
+        {result && result.expiresAt && result.result !== 'DENY_EXPIRED' && (
           <p className="text-2xl">
             Expires: {new Date(result.expiresAt).toLocaleDateString()}
+          </p>
+        )}
+        {result && result.expiresAt && result.result === 'DENY_EXPIRED' && (
+          <p className="text-2xl">
+            Expired: {new Date(result.expiresAt).toLocaleDateString()}
           </p>
         )}
         {!result && cardUid && (
