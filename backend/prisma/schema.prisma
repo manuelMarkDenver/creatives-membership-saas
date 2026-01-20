@@ -49,8 +49,9 @@ model Tenant {
    gymMemberProfiles      GymMemberProfile[]
    coffeeCustomerProfiles CoffeeCustomerProfile[]
    gymUserBranches        GymUserBranch[]
-   emailTemplates         EmailTemplate[]
-   emailLogs              EmailLog[]
+    emailTemplates         EmailTemplate[]
+    emailLogs              EmailLog[]
+    terminals              Terminal[]
 }
 
 model Branch {
@@ -80,11 +81,18 @@ model Branch {
   createdByUser          User?                   @relation("BranchCreatedBy", fields: [createdBy], references: [id])
   deletedByUser          User?                   @relation("BranchDeletedBy", fields: [deletedBy], references: [id])
   
-  // Primary branch relationships
-  primaryMemberProfiles  GymMemberProfile[]      @relation("PrimaryBranchProfiles")
+   // Primary branch relationships
+   primaryMemberProfiles  GymMemberProfile[]      @relation("PrimaryBranchProfiles")
 
-  @@unique([tenantId, name])
-  @@index([deletedAt])
+   // Access control relations
+   terminals              Terminal[]
+   inventoryCards         InventoryCard[]
+   cards                  Card[]
+   pendingAssignments     PendingMemberAssignment[]
+   events                 Event[]
+
+   @@unique([tenantId, name])
+   @@index([deletedAt])
 }
 
 model BusinessUnit {
@@ -221,9 +229,16 @@ model User {
   gymMemberProfile       GymMemberProfile?
   coffeeCustomerProfile  CoffeeCustomerProfile?
   
-  // Branch audit relations
-  createdBranches        Branch[]              @relation("BranchCreatedBy")
-  deletedBranches        Branch[]              @relation("BranchDeletedBy")
+   // Branch audit relations
+   createdBranches        Branch[]              @relation("BranchCreatedBy")
+   deletedBranches        Branch[]              @relation("BranchDeletedBy")
+
+   // Access control relations
+   cards                  Card[]
+   pendingAssignments     PendingMemberAssignment[]
+   createdAssignments     PendingMemberAssignment[] @relation("AssignmentCreators")
+   eventMembers           Event[]
+   eventActors            Event[] @relation("EventActors")
 }
 
 model GymUserBranch {
@@ -289,14 +304,19 @@ model GymUserBranch {
    membershipHistory  Json? // Past memberships, achievements, etc.
    profileMetadata    Json? // For any additional dynamic data
 
-   // Gym-level soft deletion
-   deletedAt         DateTime?
-   deletedBy         String?
-   deletionReason    String?
-   deletionNotes     String?
+    // Gym-level soft deletion
+    deletedAt         DateTime?
+    deletedBy         String?
+    deletionReason    String?
+    deletionNotes     String?
 
-   createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+    // Access control fields
+    cardStatus        GymMemberCardStatus? @default(NO_CARD)
+    cardUid           String?
+    cardAssignedAt    DateTime?
+
+    createdAt         DateTime @default(now())
+   updatedAt         DateTime @updatedAt
 
   @@index([tenantId])
 }
@@ -715,6 +735,13 @@ enum GymMemberSubscriptionStatus {
   NO_SUBSCRIPTION
 }
 
+enum GymMemberCardStatus {
+  NO_CARD
+  PENDING_CARD
+  ACTIVE
+  DISABLED
+}
+
 enum MemberAuditAction {
   ACCOUNT_CREATED
   ACCOUNT_ACTIVATED
@@ -764,6 +791,103 @@ enum PasswordSecurityLevel {
   LOW      // 6+ chars, basic requirements
   MEDIUM   // 8+ chars, mixed case + number
   HIGH     // 8+ chars, mixed case + number + special char
+}
+
+// Access Control Models
+model Terminal {
+  id          String   @id @default(uuid())
+  gymId       String   // Branch ID
+  tenantId    String?  // Tenant ID
+  name        String
+  secretHash  String   // Bcrypt hash
+  isActive    Boolean  @default(true)
+  lastSeenAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  gym         Branch   @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+
+  events      Event[]
+
+  @@index([gymId])
+}
+
+model InventoryCard {
+  uid              String   @id // RFID UID
+  status           InventoryCardStatus @default(AVAILABLE)
+  allocatedGymId   String   // Branch ID, not nullable for gym-specific
+  batchId          String?
+  createdAt        DateTime @default(now())
+
+  gym              Branch   @relation(fields: [allocatedGymId], references: [id], onDelete: Cascade)
+
+  @@index([allocatedGymId, status])
+}
+
+model Card {
+  uid       String        @id // RFID UID
+  gymId     String        // Branch ID
+  type      CardType      @default(MONTHLY)
+  memberId  String?       // User ID (GymMemberProfile.userId)
+  active    Boolean       @default(true)
+  createdAt DateTime      @default(now())
+
+  gym       Branch        @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member    User?         @relation(fields: [memberId], references: [id])
+
+  @@index([gymId, uid])
+}
+
+model PendingMemberAssignment {
+  gymId           String   @id // Unique per gym (Branch ID)
+  memberId        String   @unique // User ID
+  purpose         AssignmentPurpose @default(ONBOARD)
+  expiresAt       DateTime
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+
+  gym             Branch   @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member          User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdBy       User?   @relation("AssignmentCreators", fields: [createdByUserId], references: [id])
+
+  @@unique([gymId]) // Only one pending per gym
+}
+
+model Event {
+  id           String    @id @default(uuid())
+  gymId        String    // Branch ID
+  terminalId   String?   // Terminal ID
+  type         String    // Event type (e.g., ACCESS_ALLOW)
+  cardUid      String?   // RFID UID
+  memberId     String?   // User ID
+  actorUserId  String?   // User who performed action
+  meta         Json?     // Additional data
+  createdAt    DateTime  @default(now())
+
+  gym          Branch    @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  terminal     Terminal? @relation(fields: [terminalId], references: [id])
+  member       User?     @relation(fields: [memberId], references: [id])
+  actor        User?     @relation("EventActors", fields: [actorUserId], references: [id])
+
+  @@index([gymId, createdAt])
+  @@index([type])
+}
+
+// Access Control Enums
+enum InventoryCardStatus {
+  AVAILABLE
+  ASSIGNED
+  DISABLED
+}
+
+enum CardType {
+  MONTHLY
+  DAILY
+}
+
+enum AssignmentPurpose {
+  ONBOARD
+  REPLACE
 }
 
 enum AuthProvider {

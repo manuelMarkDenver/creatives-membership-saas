@@ -17,6 +17,7 @@ import { GymModule } from './modules/gym/gym.module';
 import { BusinessUnitsModule } from './modules/business-units/business-units.module';
 import { SystemSettingsModule } from './core/system-settings/system-settings.module';
 import { EmailModule } from './core/email/email.module';
+import { AccessModule } from './modules/access/access.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { EmailModule } from './core/email/email.module';
     BusinessUnitsModule,
     SystemSettingsModule,
     EmailModule,
+    AccessModule,
   ],
   controllers: [AppController],
   providers: [AppService],
