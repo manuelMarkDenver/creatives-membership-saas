@@ -10,19 +10,21 @@ async function bootstrap() {
   console.log(`Starting the application on ${PORT}...`);
   const app = await NestFactory.create(AppModule);
   // Enable CORS
-  app.enableCors({
-    origin: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'x-bypass-auth',
-      'x-bypass-user',
-      'x-tenant-id',
-      'x-user-email',
-    ],
-    credentials: true,
-  });
+   app.enableCors({
+     origin: true,
+     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+     allowedHeaders: [
+       'Content-Type',
+       'Authorization',
+       'x-bypass-auth',
+       'x-bypass-user',
+       'x-tenant-id',
+       'x-user-email',
+       'x-terminal-id-encoded',
+       'x-terminal-secret-encoded',
+     ],
+     credentials: true,
+   });
   // Set global API prefix
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(
