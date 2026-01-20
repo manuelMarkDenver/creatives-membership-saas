@@ -14,11 +14,25 @@ export class AccessService {
   ) {}
 
   async checkAccess(terminalId: string, encodedCardUid: string) {
-    console.log('Checking access for terminal:', terminalId, 'encoded card:', encodedCardUid);
+    console.log('Checking access for terminal:', terminalId, 'card input:', encodedCardUid);
 
-    // Decode card UID
-    const cardUid = Buffer.from(encodedCardUid, 'base64').toString('utf-8');
-    console.log('Decoded cardUid:', cardUid);
+    // Try to decode if base64, otherwise use as is
+    let cardUid: string;
+    try {
+      cardUid = Buffer.from(encodedCardUid, 'base64').toString('utf-8');
+      // Check if it looks valid (not gibberish)
+      if (cardUid.length > 0 && cardUid.length < 50 && !cardUid.includes('\ufffd')) {
+        console.log('Decoded cardUid:', cardUid);
+      } else {
+        // Not valid base64, use as plain
+        cardUid = encodedCardUid;
+        console.log('Using plain cardUid:', cardUid);
+      }
+    } catch {
+      // Not base64, use as plain
+      cardUid = encodedCardUid;
+      console.log('Using plain cardUid:', cardUid);
+    }
 
     // Terminal already validated by guard
     const terminal = await this.prisma.terminal.findUnique({
