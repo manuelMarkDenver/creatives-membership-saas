@@ -451,22 +451,24 @@ async function main() {
   for (const adminData of superAdmins) {
     const hashedPassword = await bcrypt.hash(adminData.password, 12);
 
-    const superAdmin = await prisma.user.create({
-      data: {
-        email: adminData.email,
-        password: hashedPassword,
-        firstName: adminData.firstName,
-        lastName: adminData.lastName,
-        displayName: `${adminData.firstName} ${adminData.lastName}`, // Full display name
-        role: 'SUPER_ADMIN',
-        emailVerified: true, // Seeded users are pre-verified
-        initialPasswordSet: true, // Seeded users have passwords set
-        onboardingCompletedAt: new Date(), // System users skip onboarding
-        // Email preferences
-        emailNotificationsEnabled: true,
-        marketingEmailsEnabled: false,
-      },
-    });
+     const superAdmin = await prisma.user.upsert({
+       where: { email: adminData.email },
+       update: {},
+       create: {
+         email: adminData.email,
+         password: hashedPassword,
+         firstName: adminData.firstName,
+         lastName: adminData.lastName,
+         displayName: `${adminData.firstName} ${adminData.lastName}`, // Full display name
+         role: 'SUPER_ADMIN',
+         emailVerified: true, // Seeded users are pre-verified
+         initialPasswordSet: true, // Seeded users have passwords set
+         onboardingCompletedAt: new Date(), // System users skip onboarding
+         // Email preferences
+         emailNotificationsEnabled: true,
+         marketingEmailsEnabled: false,
+       },
+     });
 
     console.log(`✅ Super Admin created: ${superAdmin.firstName} ${superAdmin.lastName} (${superAdmin.email})`);
     console.log(`🔑 Password: ${adminData.password}`);
