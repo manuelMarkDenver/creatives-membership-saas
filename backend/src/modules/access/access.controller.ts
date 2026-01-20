@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Headers, UseGuards, Param, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Headers, UseGuards, Param, Patch, Req } from '@nestjs/common';
 import { AccessService } from './access.service';
 import { TerminalsService } from './terminals.service';
 import { TerminalAuthGuard } from './guards/terminal-auth.guard';
@@ -19,20 +19,24 @@ export class AccessController {
   }
 
   @Post('check')
-  // @UseGuards(TerminalAuthGuard)
+  @UseGuards(TerminalAuthGuard)
   async checkAccess(
-    @Headers('x-terminal-id') terminalId: string,
-    @Headers('x-terminal-secret') terminalSecret: string,
     @Body() dto: CheckAccessDto,
+    @Req() req: any,
   ): Promise<CheckAccessResponseDto> {
-    return this.accessService.checkAccess(terminalId, terminalSecret, dto.cardUid);
+    const terminalId = req.terminalId;
+    return this.accessService.checkAccess(terminalId, dto.cardUid); // Terminal already validated
   }
 
   @Post('terminals/ping')
-  async pingTerminal(
-    @Headers('x-terminal-id') terminalId: string,
-    @Headers('x-terminal-secret') terminalSecret: string,
-  ): Promise<PingResponseDto> {
-    return this.terminalsService.ping(terminalId, terminalSecret);
+  @UseGuards(TerminalAuthGuard)
+  async pingTerminal(@Req() req: any): Promise<PingResponseDto> {
+    const terminal = req.terminal;
+    return {
+      id: terminal.id,
+      name: terminal.name,
+      gymId: terminal.gymId,
+      gymName: terminal.gym.name,
+    };
   }
 }

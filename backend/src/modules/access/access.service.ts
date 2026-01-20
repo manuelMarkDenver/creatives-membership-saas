@@ -13,9 +13,16 @@ export class AccessService {
     private cardAssignmentService: CardAssignmentService,
   ) {}
 
-  async checkAccess(terminalId: string, terminalSecret: string, cardUid: string) {
-    // Authenticate terminal
-    const terminal = await this.terminalsService.validateTerminal(terminalId, terminalSecret);
+  async checkAccess(terminalId: string, encodedCardUid: string) {
+    // Decode card UID
+    const cardUid = Buffer.from(encodedCardUid, 'base64').toString('utf-8');
+
+    // Terminal already validated by guard
+    const terminal = await this.prisma.terminal.findUnique({
+      where: { id: terminalId },
+      include: { gym: true },
+    });
+    if (!terminal) throw new Error('Terminal not found');
     const gymId = terminal.gymId;
 
     // Check cooldown (implement Redis later)
@@ -30,16 +37,15 @@ export class AccessService {
     });
 
     if (operationalCard && operationalCard.gymId === gymId && operationalCard.active && operationalCard.member) {
-      // Get active subscription
+      // Get the latest subscription (regardless of status) to check expiry
       const subscription = await this.prisma.gymMemberSubscription.findFirst({
         where: {
           memberId: operationalCard.memberId!,
-          status: 'ACTIVE',
         },
         orderBy: { endDate: 'desc' },
       });
 
-      if (subscription && new Date(subscription.endDate) >= new Date()) {
+      if (subscription && subscription.status === 'ACTIVE' && new Date(subscription.endDate) >= new Date()) {
         await this.eventsService.logEvent({
           gymId,
           terminalId,
@@ -60,7 +66,11 @@ export class AccessService {
           cardUid,
           memberId: operationalCard.memberId!,
         });
-        return { result: 'DENY_EXPIRED' };
+        return {
+          result: 'DENY_EXPIRED',
+          memberName: `${operationalCard.member.firstName} ${operationalCard.member.lastName}`,
+          expiresAt: subscription?.endDate?.toISOString(),
+        };
       }
     } else if (operationalCard && operationalCard.gymId === gymId && !operationalCard.active) {
       // Card exists but is disabled
@@ -71,7 +81,10 @@ export class AccessService {
         cardUid,
         memberId: operationalCard.memberId!,
       });
-      return { result: 'DENY_DISABLED' };
+      return {
+        result: 'DENY_DISABLED',
+        memberName: operationalCard.member ? `${operationalCard.member.firstName} ${operationalCard.member.lastName}` : 'Unknown',
+      };
     }
 
     // Not operational - check pending assignment
