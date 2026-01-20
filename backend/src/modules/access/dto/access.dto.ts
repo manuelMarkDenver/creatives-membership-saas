@@ -1,4 +1,7 @@
+import { IsString } from 'class-validator';
+
 export class CheckAccessDto {
+  @IsString()
   cardUid: string;
 }
 

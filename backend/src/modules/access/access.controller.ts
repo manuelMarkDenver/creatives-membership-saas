@@ -12,8 +12,14 @@ export class AccessController {
     private terminalsService: TerminalsService,
   ) {}
 
+  @Post('test')
+  async test() {
+    console.log('✅ AccessController test endpoint hit');
+    return { message: 'Access module is working' };
+  }
+
   @Post('check')
-  @UseGuards(TerminalAuthGuard)
+  // @UseGuards(TerminalAuthGuard)
   async checkAccess(
     @Headers('x-terminal-id') terminalId: string,
     @Headers('x-terminal-secret') terminalSecret: string,
@@ -21,14 +27,9 @@ export class AccessController {
   ): Promise<CheckAccessResponseDto> {
     return this.accessService.checkAccess(terminalId, terminalSecret, dto.cardUid);
   }
-}
 
-@Controller('terminals')
-export class TerminalsController {
-  constructor(private terminalsService: TerminalsService) {}
-
-  @Post('ping')
-  async ping(
+  @Post('terminals/ping')
+  async pingTerminal(
     @Headers('x-terminal-id') terminalId: string,
     @Headers('x-terminal-secret') terminalSecret: string,
   ): Promise<PingResponseDto> {

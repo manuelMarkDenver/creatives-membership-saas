@@ -19,7 +19,7 @@ export class TenantMiddleware implements NestMiddleware {
     const request = req as RequestWithTenant;
 
     // Skip tenant extraction for certain routes
-    const skipRoutes = ['/auth', '/health', '/'];
+    const skipRoutes = ['/auth', '/health', '/', '/access'];
     if (skipRoutes.some((route) => req.path.startsWith(route))) {
       return next();
     }
