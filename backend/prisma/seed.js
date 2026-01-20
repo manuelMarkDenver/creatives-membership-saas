@@ -1453,12 +1453,148 @@ async function main() {
   console.log('📧 Seeding default email templates...');
   await seedEmailTemplates();
 
+  // Seed test access control data
+  console.log('🔐 Seeding test access control data...');
+  await seedTestAccessData();
+
   console.log(`📊 Summary:`);
   console.log(`   • 1 Tenant: Muscle Mania`);
   console.log(`   • 1 Branch: Manggahan`);
   console.log(`   • 12 Members: 6 active, 2 expiring, 2 expired, 1 cancelled, 1 deleted`);
   console.log(`   • Total users: ${loginCredentials.length}`);
   console.log('🚀 You can now login with any of these credentials!\n');
+}
+
+async function seedTestAccessData() {
+  // Get the Muscle Mania tenant and branch
+  const tenant = await prisma.tenant.findFirst({
+    where: { slug: 'muscle-mania' },
+  });
+
+  if (!tenant) {
+    console.log('❌ Tenant not found, skipping access control seeding');
+    return;
+  }
+
+  const branch = await prisma.branch.findFirst({
+    where: { tenantId: tenant.id, name: { contains: 'Manggahan' } },
+  });
+
+  if (!branch) {
+    console.log('❌ Branch not found, skipping access control seeding');
+    return;
+  }
+
+  // Create test terminal
+  const terminalSecret = 'test-secret-123';
+  const hashedSecret = await bcrypt.hash(terminalSecret, 12);
+
+  const terminal = await prisma.terminal.upsert({
+    where: { id: 'test-terminal-1' },
+    update: {},
+    create: {
+      id: 'test-terminal-1',
+      gymId: branch.id,
+      tenantId: tenant.id,
+      name: 'Test Terminal',
+      secretHash: hashedSecret,
+      isActive: true,
+    },
+  });
+
+  console.log(`✅ Created test terminal: ${terminal.id}`);
+
+  // Create inventory cards
+  const inventoryCards = [];
+  for (let i = 1; i <= 5; i++) {
+    const uid = `TEST-CARD-${i.toString().padStart(3, '0')}`;
+    const card = await prisma.inventoryCard.upsert({
+      where: { uid },
+      update: {},
+      create: {
+        uid,
+        status: i === 1 ? 'ASSIGNED' : 'AVAILABLE',
+        allocatedGymId: branch.id,
+        batchId: 'TEST-BATCH-1',
+      },
+    });
+    inventoryCards.push(card);
+    console.log(`✅ Created inventory card: ${card.uid} (${card.status})`);
+  }
+
+  // Create operational cards for testing
+  const maria = await prisma.user.findFirst({ where: { email: 'maria.santos@muscle-mania.com' } });
+  const amy = await prisma.user.findFirst({ where: { email: 'amy.taylor@muscle-mania.com' } });
+  const john = await prisma.user.findFirst({ where: { email: 'john.delacruz@muscle-mania.com' } });
+  const sofia = await prisma.user.findFirst({ where: { email: 'sofia.ramos@muscle-mania.com' } });
+
+  if (maria) {
+    await prisma.card.upsert({
+      where: { uid: 'TEST-CARD-001' },
+      update: {},
+      create: {
+        uid: 'TEST-CARD-001',
+        gymId: branch.id,
+        memberId: maria.id,
+        type: 'MONTHLY',
+        active: true,
+      },
+    });
+    console.log(`✅ Created operational card for Maria Santos`);
+  }
+
+  if (amy) {
+    await prisma.card.upsert({
+      where: { uid: 'EXPIRED-CARD-001' },
+      update: {},
+      create: {
+        uid: 'EXPIRED-CARD-001',
+        gymId: branch.id,
+        memberId: amy.id,
+        type: 'MONTHLY',
+        active: true,
+      },
+    });
+    console.log(`✅ Created operational card for Amy Taylor (expired)`);
+  }
+
+  if (john) {
+    await prisma.card.upsert({
+      where: { uid: 'DISABLED-CARD-001' },
+      update: {},
+      create: {
+        uid: 'DISABLED-CARD-001',
+        gymId: branch.id,
+        memberId: john.id,
+        type: 'MONTHLY',
+        active: false, // Disabled
+      },
+    });
+    console.log(`✅ Created operational card for John Dela Cruz (disabled)`);
+  }
+
+  // Create pending assignment for Sofia
+  if (sofia) {
+    await prisma.pendingMemberAssignment.upsert({
+      where: { memberId: sofia.id },
+      update: {},
+      create: {
+        gymId: branch.id,
+        memberId: sofia.id,
+        purpose: 'ONBOARD',
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 min
+      },
+    });
+    console.log(`✅ Created pending assignment for Sofia Ramos`);
+  }
+
+  console.log('🎯 Test access data seeded successfully!');
+  console.log(`   • Terminal: test-terminal-1 (secret: test-secret-123)`);
+  console.log(`   • Available cards: TEST-CARD-002 to TEST-CARD-005`);
+  console.log(`   • Active card: TEST-CARD-001 (Maria)`);
+  console.log(`   • Expired card: EXPIRED-CARD-001 (Amy)`);
+  console.log(`   • Disabled card: DISABLED-CARD-001 (John)`);
+  console.log(`   • Pending: Sofia Ramos`);
 }
 
 main()
