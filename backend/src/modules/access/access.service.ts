@@ -62,6 +62,16 @@ export class AccessService {
         });
         return { result: 'DENY_EXPIRED' };
       }
+    } else if (operationalCard && operationalCard.gymId === gymId && !operationalCard.active) {
+      // Card exists but is disabled
+      await this.eventsService.logEvent({
+        gymId,
+        terminalId,
+        type: 'ACCESS_DENY_DISABLED',
+        cardUid,
+        memberId: operationalCard.memberId!,
+      });
+      return { result: 'DENY_DISABLED' };
     }
 
     // Not operational - check pending assignment

@@ -97,6 +97,29 @@ async function createTestData() {
     console.log(`Created expired card for member: ${expiredMember.firstName} ${expiredMember.lastName}`);
   }
 
+  // Create disabled card
+  const disabledMember = await prisma.user.findFirst({
+    where: { email: 'john.delacruz@muscle-mania.com' },
+  });
+
+  if (disabledMember) {
+    await prisma.card.upsert({
+      where: { uid: 'DISABLED-CARD-001' },
+      update: {},
+      create: {
+        uid: 'DISABLED-CARD-001',
+        gymId: gym.id,
+        memberId: disabledMember.id,
+        type: 'MONTHLY',
+        active: false, // Disabled
+      },
+    });
+    console.log(`Created disabled card for member: ${disabledMember.firstName} ${disabledMember.lastName}`);
+  }
+
+  // For expired pending test, we can modify existing pending later if needed
+  console.log('Note: Only one pending per gym allowed. Use existing Maria Santos pending for tests.');
+
   console.log('\nTest data created successfully!');
   console.log(`Terminal ID: ${terminal.id}`);
   console.log(`Terminal Secret: ${terminalSecret}`);
