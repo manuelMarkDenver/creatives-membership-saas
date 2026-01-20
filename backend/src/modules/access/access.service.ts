@@ -14,8 +14,11 @@ export class AccessService {
   ) {}
 
   async checkAccess(terminalId: string, encodedCardUid: string) {
+    console.log('Checking access for terminal:', terminalId, 'encoded card:', encodedCardUid);
+
     // Decode card UID
     const cardUid = Buffer.from(encodedCardUid, 'base64').toString('utf-8');
+    console.log('Decoded cardUid:', cardUid);
 
     // Terminal already validated by guard
     const terminal = await this.prisma.terminal.findUnique({
@@ -24,6 +27,7 @@ export class AccessService {
     });
     if (!terminal) throw new Error('Terminal not found');
     const gymId = terminal.gymId;
+    console.log('Terminal gymId:', gymId);
 
     // Check cooldown (implement Redis later)
     // For now, skip cooldown check
@@ -31,12 +35,12 @@ export class AccessService {
     // Check if card is operational
     const operationalCard = await this.prisma.card.findUnique({
       where: { uid: cardUid },
-      include: {
-        member: true,
-      },
+      include: { member: true },
     });
+    console.log('Operational card found:', !!operationalCard, operationalCard?.gymId === gymId ? 'same gym' : 'different gym');
 
     if (operationalCard && operationalCard.gymId === gymId && operationalCard.active && operationalCard.member) {
+      console.log('Card is active, checking subscription for member:', operationalCard.memberId);
       // Get the latest subscription (regardless of status) to check expiry
       const subscription = await this.prisma.gymMemberSubscription.findFirst({
         where: {
@@ -73,6 +77,7 @@ export class AccessService {
         };
       }
     } else if (operationalCard && operationalCard.gymId === gymId && !operationalCard.active) {
+      console.log('Card exists but disabled');
       // Card exists but is disabled
       await this.eventsService.logEvent({
         gymId,
@@ -81,11 +86,11 @@ export class AccessService {
         cardUid,
         memberId: operationalCard.memberId!,
       });
-      return {
-        result: 'DENY_DISABLED',
-        memberName: operationalCard.member ? `${operationalCard.member.firstName} ${operationalCard.member.lastName}` : 'Unknown',
-      };
+      return { result: 'DENY_DISABLED' };
     }
+
+    console.log('Card not found or not operational, checking pending');
+    // Not operational - check pending assignment
 
     // Not operational - check pending assignment
     const pending = await this.prisma.pendingMemberAssignment.findUnique({
