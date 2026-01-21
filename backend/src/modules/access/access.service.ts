@@ -14,14 +14,23 @@ export class AccessService {
   ) {}
 
   async checkAccess(terminalId: string, encodedCardUid: string) {
-    console.log('Checking access for terminal:', terminalId, 'card input:', encodedCardUid);
+    console.log(
+      'Checking access for terminal:',
+      terminalId,
+      'card input:',
+      encodedCardUid,
+    );
 
     // Try to decode if base64, otherwise use as is
     let cardUid: string;
     try {
       cardUid = Buffer.from(encodedCardUid, 'base64').toString('utf-8');
       // Check if it looks valid (not gibberish)
-      if (cardUid.length > 0 && cardUid.length < 50 && !cardUid.includes('\ufffd')) {
+      if (
+        cardUid.length > 0 &&
+        cardUid.length < 50 &&
+        !cardUid.includes('\ufffd')
+      ) {
         console.log('Decoded cardUid:', cardUid);
       } else {
         // Not valid base64, use as plain
@@ -41,7 +50,7 @@ export class AccessService {
     });
     if (!terminal) throw new Error('Terminal not found');
     const gymId = terminal.gymId;
-    console.log('Terminal gymId:', gymId);
+    console.log('Terminal gymId:', gymId, 'Terminal ID:', terminalId);
 
     // Check cooldown (implement Redis later)
     // For now, skip cooldown check
@@ -51,10 +60,22 @@ export class AccessService {
       where: { uid: cardUid },
       include: { member: true },
     });
-    console.log('Operational card found:', !!operationalCard, operationalCard?.gymId === gymId ? 'same gym' : 'different gym');
+    console.log(
+      'Operational card found:',
+      !!operationalCard,
+      operationalCard?.gymId === gymId ? 'same gym' : 'different gym',
+    );
 
-    if (operationalCard && operationalCard.gymId === gymId && operationalCard.active && operationalCard.member) {
-      console.log('Card is active, checking subscription for member:', operationalCard.memberId);
+    if (
+      operationalCard &&
+      operationalCard.gymId === gymId &&
+      operationalCard.active &&
+      operationalCard.member
+    ) {
+      console.log(
+        'Card is active, checking subscription for member:',
+        operationalCard.memberId,
+      );
       // Get the latest subscription (regardless of status) to check expiry
       const subscription = await this.prisma.gymMemberSubscription.findFirst({
         where: {
@@ -63,7 +84,11 @@ export class AccessService {
         orderBy: { endDate: 'desc' },
       });
 
-      if (subscription && subscription.status === 'ACTIVE' && new Date(subscription.endDate) >= new Date()) {
+      if (
+        subscription &&
+        subscription.status === 'ACTIVE' &&
+        new Date(subscription.endDate) >= new Date()
+      ) {
         await this.eventsService.logEvent({
           gymId,
           terminalId,
@@ -90,7 +115,11 @@ export class AccessService {
           expiresAt: subscription?.endDate?.toISOString(),
         };
       }
-    } else if (operationalCard && operationalCard.gymId === gymId && !operationalCard.active) {
+    } else if (
+      operationalCard &&
+      operationalCard.gymId === gymId &&
+      !operationalCard.active
+    ) {
       console.log('Card exists but disabled');
       // Card exists but is disabled
       await this.eventsService.logEvent({
@@ -104,13 +133,24 @@ export class AccessService {
     }
 
     console.log('Card not found or not operational, checking pending');
-    // Not operational - check pending assignment
+    console.log('Looking for pending assignment for gymId:', gymId);
 
     // Not operational - check pending assignment
     const pending = await this.prisma.pendingMemberAssignment.findUnique({
       where: { gymId },
       include: { member: true },
     });
+
+    console.log('Pending assignment found:', !!pending);
+    if (pending) {
+      console.log('Pending for member:', pending.memberId, 'expires:', pending.expiresAt);
+    } else {
+      console.log('No pending assignment for this gym');
+      // Check if there are any pending assignments at all
+      const allPending = await this.prisma.pendingMemberAssignment.findMany();
+      console.log('All pending assignments in system:', allPending.length);
+      allPending.forEach(p => console.log('  Gym:', p.gymId, 'Member:', p.memberId));
+    }
 
     if (!pending) {
       await this.eventsService.logEvent({
@@ -136,7 +176,11 @@ export class AccessService {
     }
 
     // Check inventory
-    const available = await this.cardAssignmentService.checkInventoryAvailability(gymId, cardUid);
+    const available =
+      await this.cardAssignmentService.checkInventoryAvailability(
+        gymId,
+        cardUid,
+      );
     if (!available) {
       await this.eventsService.logEvent({
         gymId,
@@ -149,7 +193,12 @@ export class AccessService {
     }
 
     // Assign card
-    await this.cardAssignmentService.assignCard(gymId, pending.memberId, cardUid, pending.purpose);
+    await this.cardAssignmentService.assignCard(
+      gymId,
+      pending.memberId,
+      cardUid,
+      pending.purpose,
+    );
 
     // Get subscription for expiry
     const subscription = await this.prisma.gymMemberSubscription.findFirst({

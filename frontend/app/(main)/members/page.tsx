@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useProfile, useUsersByTenant, userKeys } from '@/lib/hooks/use-gym-users'
 import { useSystemMemberStats } from '@/lib/hooks/use-stats'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
@@ -40,6 +40,7 @@ import { MemberInfoModal } from '@/components/modals/member-info-modal'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MembershipPlansRequiredModal } from '@/components/modals/membership-plans-required-modal'
 import { ChangePlanModal } from '@/components/modals/change-plan-modal'
+import { AssignCardModal } from '@/components/modals/assign-card-modal'
 import { MemberCard } from '@/components/members/member-card'
 import { StatsOverview } from '@/components/members/stats-overview'
 import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-gym-member-actions'
@@ -47,6 +48,7 @@ import { toast } from 'react-toastify'
 import { filterMembersByStatus, calculateMemberStats, type MemberData } from '@/lib/utils/member-status'
 import { useExpiringMembersCount } from '@/lib/hooks/use-expiring-members'
 import { useGymSubscriptionStats } from '@/lib/hooks/use-gym-subscriptions'
+import { membersApi } from '@/lib/api/gym-members'
 
 export default function MembersPage() {
   const { data: profile } = useProfile()
@@ -69,6 +71,8 @@ export default function MembersPage() {
   const [showPlansRequiredModal, setShowPlansRequiredModal] = useState(false)
   const [showChangePlanModal, setShowChangePlanModal] = useState(false)
   const [selectedMemberForChangePlan, setSelectedMemberForChangePlan] = useState<User | null>(null)
+  const [showAssignCardModal, setShowAssignCardModal] = useState(false)
+  const [selectedMemberForAssignCard, setSelectedMemberForAssignCard] = useState<User | null>(null)
 
   const isSuperAdmin = profile?.role === 'SUPER_ADMIN'
 
@@ -101,10 +105,24 @@ export default function MembersPage() {
   
   // Get backend expiring count - this is the authoritative count with proper branch filtering
   useExpiringMembersCount(
-    profile?.tenantId || '', 
+    profile?.tenantId || '',
     7, // 7 days ahead
     { enabled: !!profile?.tenantId && !isSuperAdmin }
   )
+
+  // Get pending assignment for dashboard banner
+  const { data: pendingAssignment } = useQuery({
+    queryKey: ['pending-assignment-dashboard', profile?.tenantId],
+    queryFn: async () => {
+      if (!profile?.tenantId) return null
+      // For dashboard, we need to check all gyms in the tenant
+      // For simplicity, let's assume we check the first gym or need to modify API
+      // For now, we'll skip the banner until we have a proper endpoint
+      return null
+    },
+    enabled: !!profile?.tenantId && !isSuperAdmin,
+    refetchInterval: 5000, // Poll every 5 seconds
+  })
   
   // Mutation hooks for membership operations
   const renewMembershipMutation = useRenewMemberSubscription()
@@ -488,35 +506,39 @@ export default function MembersPage() {
               </div>
             ) : (
               filteredMembers.map((member: MemberData) => (
-                <MemberCard
-                  key={member.id}
-                  member={member as User}
-                  isSuperAdmin={isSuperAdmin}
-                  onViewMemberInfo={(member) => {
-                    setSelectedMember(member)
-                    setShowMemberInfoModal(true)
-                  }}
-                  onViewTransactions={(member) => {
-                    setSelectedMemberForTransactions(member)
-                    setShowTransactionModal(true)
-                  }}
-                   onRenewSubscription={(member) => {
-                     setSelectedMemberForAction(member)
-                     setShowRenewalModal(true)
+                 <MemberCard
+                   key={member.id}
+                   member={member as User}
+                   isSuperAdmin={isSuperAdmin}
+                   onViewMemberInfo={(member) => {
+                     setSelectedMember(member)
+                     setShowMemberInfoModal(true)
                    }}
-                   onCancelSubscription={(member) => {
-                     setSelectedMemberForAction(member)
-                     setShowCancellationModal(true)
+                   onViewTransactions={(member) => {
+                     setSelectedMemberForTransactions(member)
+                     setShowTransactionModal(true)
                    }}
-                   onChangePlan={(member) => {
-                     setSelectedMemberForChangePlan(member)
-                     setShowChangePlanModal(true)
+                    onRenewSubscription={(member) => {
+                      setSelectedMemberForAction(member)
+                      setShowRenewalModal(true)
+                    }}
+                    onCancelSubscription={(member) => {
+                      setSelectedMemberForAction(member)
+                      setShowCancellationModal(true)
+                    }}
+                    onChangePlan={(member) => {
+                      setSelectedMemberForChangePlan(member)
+                      setShowChangePlanModal(true)
+                    }}
+                    onAssignCard={(member) => {
+                      setSelectedMemberForAssignCard(member)
+                      setShowAssignCardModal(true)
+                    }}
+                   onMemberDeleted={async () => {
+                     // Refresh members list after deletion
+                     await refreshMembersData()
                    }}
-                  onMemberDeleted={async () => {
-                    // Refresh members list after deletion
-                    await refreshMembersData()
-                  }}
-                />
+                 />
               ))
             )}
           </div>
@@ -570,6 +592,22 @@ export default function MembersPage() {
           await refreshMembersData()
           setShowChangePlanModal(false)
           setSelectedMemberForChangePlan(null)
+        }}
+      />
+
+      {/* Assign Card Modal */}
+      <AssignCardModal
+        isOpen={showAssignCardModal}
+        onClose={() => {
+          setShowAssignCardModal(false)
+          setSelectedMemberForAssignCard(null)
+        }}
+        member={selectedMemberForAssignCard}
+        onCardAssigned={async () => {
+          // Refresh members data to show updated card status
+          await refreshMembersData()
+          setShowAssignCardModal(false)
+          setSelectedMemberForAssignCard(null)
         }}
       />
 

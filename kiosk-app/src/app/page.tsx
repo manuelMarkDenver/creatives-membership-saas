@@ -65,7 +65,7 @@ export default function KioskPage() {
       console.log('API URL:', apiBase, 'ENV:', process.env.NODE_ENV, 'NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
 
       const requestUrl = `${apiBase}/api/v1/access/check`;
-      console.log('Making API call to:', requestUrl, 'with cardUid:', cardUid);
+      console.log('🚀 KIOSK: Making API call to:', requestUrl, 'with cardUid:', cardUid);
 
       const response = await fetch(requestUrl, {
         method: 'POST',

@@ -1,10 +1,24 @@
-import { Controller, Get, Post, Body, Headers, UseGuards, Param, Patch, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Headers,
+  UseGuards,
+  Param,
+  Patch,
+  Req,
+} from '@nestjs/common';
 import { AccessService } from './access.service';
 import { TerminalsService } from './terminals.service';
 import { TerminalAuthGuard } from './guards/terminal-auth.guard';
 import { CardAssignmentService } from './card-assignment.service';
 import { PrismaService } from '../../core/prisma/prisma.service';
-import { CheckAccessDto, CheckAccessResponseDto, PingResponseDto } from './dto/access.dto';
+import {
+  CheckAccessDto,
+  CheckAccessResponseDto,
+  PingResponseDto,
+} from './dto/access.dto';
 
 @Controller('access')
 export class AccessController {
@@ -25,21 +39,24 @@ export class AccessController {
     const cards = await this.prisma.card.findMany({
       include: { member: true },
     });
-    return cards.map(c => ({
+    return cards.map((c) => ({
       uid: c.uid,
       active: c.active,
-      memberName: c.member ? `${c.member.firstName} ${c.member.lastName}` : 'Unknown',
+      memberName: c.member
+        ? `${c.member.firstName} ${c.member.lastName}`
+        : 'Unknown',
     }));
   }
 
   @Post('check')
   @UseGuards(TerminalAuthGuard)
-  async checkAccess(
-    @Body() dto: CheckAccessDto,
-    @Req() req: any,
+  async checkCardAccess(
+    @Body() body: CheckAccessDto,
+    @Headers('x-terminal-id-encoded') encodedTerminalId: string,
+    @Headers('x-terminal-secret-encoded') encodedTerminalSecret: string,
   ): Promise<CheckAccessResponseDto> {
-    const terminalId = req.terminalId;
-    return this.accessService.checkAccess(terminalId, dto.cardUid); // Terminal already validated
+    console.log('🔥 CONTROLLER: Access check called with body:', body, 'terminal:', encodedTerminalId);
+    return this.accessService.checkCardAccess(encodedTerminalId, body.cardUid);
   }
 
   @Post('terminals/ping')

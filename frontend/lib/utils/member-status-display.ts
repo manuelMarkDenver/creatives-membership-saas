@@ -78,6 +78,15 @@ export const getMemberStatusDisplay = (status: string): StatusDisplay => {
         buttonVariant: 'secondary'
       }
       
+    case 'PENDING_CARD':
+      return {
+        label: 'Assign Card',
+        color: 'purple',
+        description: 'Member needs RFID card assigned',
+        icon: '💳',
+        buttonVariant: 'default'
+      }
+
     case 'NO_SUBSCRIPTION':
       return {
         label: 'Assign Membership Plan',
@@ -121,6 +130,17 @@ export const getAvailableActions = (
   const actions: ActionDisplay[] = []
 
   switch (memberStatus) {
+    case 'PENDING_CARD':
+      actions.push({
+        label: 'Assign Card',
+        action: 'assign_card',
+        permission: 'STAFF+',
+        description: 'Assign RFID card to this member',
+        variant: 'default',
+        icon: '💳'
+      })
+      break
+
     case 'ACTIVE':
       actions.push({
         label: 'Suspend Membership',

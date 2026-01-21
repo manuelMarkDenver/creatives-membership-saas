@@ -6,7 +6,10 @@ import * as bcrypt from 'bcrypt';
 export class TerminalsService {
   constructor(private prisma: PrismaService) {}
 
-  async validateTerminal(terminalId: string, encodedSecret: string): Promise<any> {
+  async validateTerminal(
+    terminalId: string,
+    encodedSecret: string,
+  ): Promise<any> {
     // Decode the base64 encoded secret
     const secret = Buffer.from(encodedSecret, 'base64').toString('utf-8');
 

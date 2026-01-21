@@ -9,7 +9,12 @@ import { PrismaModule } from '../../core/prisma/prisma.module';
 @Module({
   imports: [PrismaModule],
   controllers: [AccessController],
-  providers: [AccessService, TerminalsService, EventsService, CardAssignmentService],
+  providers: [
+    AccessService,
+    TerminalsService,
+    EventsService,
+    CardAssignmentService,
+  ],
   exports: [TerminalsService, EventsService, CardAssignmentService],
 })
 export class AccessModule {

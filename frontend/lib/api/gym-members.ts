@@ -192,5 +192,25 @@ export const membersApi = {
       membershipPlanId
     })
     return response.data
+  },
+
+  // Assign card to member
+  async assignCardToMember(memberId: string, purpose: 'ONBOARD' | 'REPLACE' = 'ONBOARD'): Promise<any> {
+    const response = await apiClient.post(`/admin/members/${memberId}/assign-card`, {
+      purpose
+    })
+    return response.data
+  },
+
+  // Get pending assignment for a gym
+  async getPendingAssignment(gymId: string): Promise<any> {
+    const response = await apiClient.get(`/admin/members/gyms/${gymId}/pending-assignment`)
+    return response.data
+  },
+
+  // Cancel pending assignment for a gym
+  async cancelPendingAssignment(gymId: string): Promise<any> {
+    const response = await apiClient.post(`/admin/members/gyms/${gymId}/pending-assignment/cancel`)
+    return response.data
   }
 }

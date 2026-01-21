@@ -203,6 +203,23 @@ export class GymMembersController {
     );
   }
 
+  @Post(':id/assign-card')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  async assignCardToMember(
+    @Param('id') id: string,
+    @Body() body: { purpose?: 'ONBOARD' | 'REPLACE' },
+    @Req() req: RequestWithUser,
+  ) {
+    const purpose = body.purpose || 'ONBOARD';
+    const performedBy = req.user?.id;
+
+    if (!performedBy) {
+      throw new Error('User not authenticated');
+    }
+
+    return this.gymMembersService.assignCardToMember(id, purpose, performedBy);
+  }
+
   @Post(':id/assign-plan')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   async assignMembershipPlan(

@@ -3,16 +3,16 @@
 
 export interface MemberEffectiveStatus {
   canAccessFacilities: boolean
-  displayStatus: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'SUSPENDED' | 'NO_SUBSCRIPTION' | 'DELETED'
+  displayStatus: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'SUSPENDED' | 'NO_SUBSCRIPTION' | 'DELETED' | 'PENDING_CARD'
   primaryIssue?: string
-  statusColor: 'green' | 'orange' | 'yellow' | 'red' | 'gray' | 'blue'
-  statusIcon: 'check' | 'clock' | 'x' | 'alert' | 'info' | 'trash'
+  statusColor: 'green' | 'orange' | 'yellow' | 'red' | 'gray' | 'blue' | 'purple'
+  statusIcon: 'check' | 'clock' | 'x' | 'alert' | 'info' | 'trash' | 'card'
 }
 
 export interface DisplayStatus {
-  status: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'NO_SUBSCRIPTION' | 'DELETED'
+  status: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'NO_SUBSCRIPTION' | 'DELETED' | 'PENDING_CARD'
   label: string
-  color: 'green' | 'orange' | 'yellow' | 'red' | 'gray'
+  color: 'green' | 'orange' | 'yellow' | 'red' | 'gray' | 'purple'
   canAccess: boolean
 }
 
@@ -66,6 +66,18 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
       primaryIssue: 'Member deleted from gym',
       statusColor: 'gray',
       statusIcon: 'trash'
+    }
+  }
+
+  // Check if member is pending card assignment (highest priority)
+  const cardStatus = member.gymMemberProfile?.cardStatus
+  if (cardStatus === 'PENDING_CARD') {
+    return {
+      canAccessFacilities: false,
+      displayStatus: 'PENDING_CARD',
+      primaryIssue: 'Waiting for card assignment',
+      statusColor: 'purple',
+      statusIcon: 'card'
     }
   }
 
@@ -226,26 +238,30 @@ export function getAvailableMemberActions(member: MemberData) {
 
   // Status-specific actions
   switch (status.displayStatus) {
+    case 'PENDING_CARD':
+      actions.push('assign-card')
+      break
+
     case 'ACTIVE':
       actions.push('cancel-subscription')
       break
-      
+
     case 'EXPIRED':
       actions.push('renew-subscription')
       break
-      
+
     case 'EXPIRING':
       actions.push('cancel-subscription')
       break
-      
+
     case 'CANCELLED':
       actions.push('renew-subscription')
       break
-      
+
     case 'DELETED':
       actions.push('restore-account')
       break
-      
+
     case 'NO_SUBSCRIPTION':
       actions.push('create-subscription')
       break

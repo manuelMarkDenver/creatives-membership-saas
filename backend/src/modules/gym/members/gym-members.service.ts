@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Logger,
   InternalServerErrorException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../core/prisma/prisma.service';
 import { S3UploadService } from '../../../core/supabase/s3-upload.service';
@@ -91,6 +92,7 @@ export class GymMembersService {
             status: 'ACTIVE',
             primaryBranchId: branch.id, // Set the primary branch
             accessLevel: 'ALL_BRANCHES', // Default access level
+            cardStatus: 'PENDING_CARD', // Set card status for access control
             emergencyContactName: data.emergencyContactName,
             emergencyContactPhone: data.emergencyContactPhone,
             emergencyContactRelation: data.emergencyContactRelation,
@@ -465,7 +467,167 @@ export class GymMembersService {
 
     return {
       success: true,
-      message: 'Member cancelled successfully',
+      message: `Member cancelled successfully. Reason: ${request.reason}`,
+      member: member,
+    };
+  }
+
+  async getPendingAssignment(gymId: string) {
+    return this.prisma.pendingMemberAssignment.findUnique({
+      where: { gymId },
+      include: { member: true },
+    });
+  }
+
+  async cancelPendingAssignment(gymId: string, performedBy: string) {
+    const pending = await this.prisma.pendingMemberAssignment.findUnique({
+      where: { gymId },
+      include: { member: true },
+    });
+
+    if (!pending) {
+      throw new BadRequestException('No pending assignment found for this gym');
+    }
+
+    await this.prisma.pendingMemberAssignment.delete({
+      where: { gymId },
+    });
+
+    // Log cancellation
+    await this.createAuditLog({
+      memberId: pending.memberId,
+      action: 'CARD_ASSIGNMENT_CANCELLED',
+      reason: 'Pending card assignment cancelled by admin',
+      previousState: 'PENDING_CARD',
+      newState: 'PENDING_CARD',
+      performedBy,
+      metadata: {
+        cancelledAt: new Date().toISOString(),
+        purpose: pending.purpose,
+      },
+    });
+
+    this.logger.log(
+      `Pending card assignment cancelled for member: ${pending.member.firstName} ${pending.member.lastName}`,
+    );
+  }
+
+  async assignCardToMember(
+    memberId: string,
+    purpose: 'ONBOARD' | 'REPLACE',
+    performedBy: string,
+  ) {
+    // Get member with profile
+    const member = await this.prisma.user.findUnique({
+      where: { id: memberId },
+      include: {
+        gymMemberProfile: true,
+        tenant: true,
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+
+    if (!member.gymMemberProfile) {
+      throw new BadRequestException('Member profile not found');
+    }
+
+    // Check if member has PENDING_CARD status
+    if (member.gymMemberProfile.cardStatus !== 'PENDING_CARD') {
+      throw new BadRequestException(
+        `Cannot assign card to member with status ${member.gymMemberProfile.cardStatus}. Member must be in PENDING_CARD status.`,
+      );
+    }
+
+    // Get member's gym (tenant)
+    const gymId = member.gymMemberProfile.primaryBranchId;
+    if (!gymId) {
+      throw new BadRequestException('Member has no primary branch assigned');
+    }
+
+    // Check if there's available inventory for this gym
+    const availableInventory = await this.prisma.inventoryCard.count({
+      where: {
+        allocatedGymId: gymId,
+        status: 'AVAILABLE',
+      },
+    });
+
+    // Debug logging
+    this.logger.log(`Assigning card for member ${memberId} in gym ${gymId}`);
+    this.logger.log(`Available inventory count: ${availableInventory}`);
+
+    // Also check total inventory for debugging
+    const totalInventory = await this.prisma.inventoryCard.count({
+      where: { status: 'AVAILABLE' },
+    });
+    this.logger.log(`Total available inventory: ${totalInventory}`);
+
+    if (availableInventory === 0) {
+      // Get all inventory cards for this gym to debug
+      const gymCards = await this.prisma.inventoryCard.findMany({
+        where: { allocatedGymId: gymId },
+        select: { uid: true, status: true, allocatedGymId: true },
+      });
+      this.logger.log(`Gym ${gymId} inventory cards:`, gymCards);
+
+      throw new BadRequestException(
+        `No available card inventory for this gym (gymId: ${gymId}). Found ${totalInventory} available cards total, but none allocated to this gym. Please allocate cards to this branch first.`,
+      );
+    }
+
+    // Create or update pending assignment (expires in 10 minutes, upsert replaces existing)
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+    const pendingAssignment = await this.prisma.pendingMemberAssignment.upsert({
+      where: { gymId },
+      update: {
+        memberId,
+        purpose,
+        expiresAt,
+        createdByUserId: performedBy,
+      },
+      create: {
+        gymId,
+        memberId,
+        purpose,
+        expiresAt,
+        createdByUserId: performedBy,
+      },
+    });
+
+    // Create audit log
+    await this.createAuditLog({
+      memberId,
+      action: 'CARD_ASSIGNMENT_INITIATED',
+      reason: `Card assignment initiated for ${purpose}`,
+      previousState: 'PENDING_CARD',
+      newState: 'PENDING_CARD', // Status stays pending until card is tapped
+      performedBy,
+      metadata: {
+        pendingAssignmentId: pendingAssignment?.gymId || 'unknown',
+        expiresAt: pendingAssignment?.expiresAt?.toISOString(),
+        purpose,
+      },
+    });
+
+    this.logger.log(
+      `Card assignment initiated for member: ${member.firstName} ${member.lastName} (${memberId}) in gym ${gymId}`,
+    );
+
+    return {
+      success: true,
+      message:
+        'Card assignment initiated successfully. Member has 10 minutes to tap their card on the kiosk.',
+      pendingAssignment: {
+        gymId: pendingAssignment.gymId,
+        expiresAt: pendingAssignment.expiresAt,
+        purpose: pendingAssignment.purpose,
+      },
+      availableInventory,
     };
   }
 

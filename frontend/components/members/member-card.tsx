@@ -64,6 +64,7 @@ interface MemberCardProps {
   onRenewSubscription: (member: User) => void
   onCancelSubscription: (member: User) => void
   onChangePlan?: (member: User) => void
+  onAssignCard?: (member: User) => void
   onMemberDeleted?: () => void
 }
 
@@ -75,6 +76,7 @@ export function MemberCard({
   onRenewSubscription,
   onCancelSubscription,
   onChangePlan,
+  onAssignCard,
   onMemberDeleted
 }: MemberCardProps) {
   const [showTransactionModal, setShowTransactionModal] = useState(false)
@@ -323,23 +325,25 @@ export function MemberCard({
                return () => toast.info('You can only manage members from your assigned branches')
              }
 
-              switch (memberStatus.displayStatus) {
-                case 'DELETED':
-                  return () => openMemberActionModal('restore')
-                case 'CANCELLED':
-                  return () => openMemberActionModal('activate')
-                case 'EXPIRED':
-                  return () => onRenewSubscription(member)
-                case 'EXPIRING':
-                  return () => onRenewSubscription(member)
-                case 'ACTIVE':
-                  return () => onCancelSubscription(member)
-                case 'NO_SUBSCRIPTION':
-                  return () => openMemberActionModal('assign_plan')
-                case 'SUSPENDED':
-                default:
-                  return () => openMemberActionModal('activate')
-             }
+               switch (memberStatus.displayStatus) {
+                 case 'PENDING_CARD':
+                   return () => onAssignCard?.(member)
+                 case 'DELETED':
+                   return () => openMemberActionModal('restore')
+                 case 'CANCELLED':
+                   return () => openMemberActionModal('activate')
+                 case 'EXPIRED':
+                   return () => onRenewSubscription(member)
+                 case 'EXPIRING':
+                   return () => onRenewSubscription(member)
+                 case 'ACTIVE':
+                   return () => onCancelSubscription(member)
+                 case 'NO_SUBSCRIPTION':
+                   return () => openMemberActionModal('assign_plan')
+                 case 'SUSPENDED':
+                 default:
+                   return () => openMemberActionModal('activate')
+              }
            }
 
            // Get button styling based on status and management permissions
@@ -350,23 +354,25 @@ export function MemberCard({
                return `${baseClasses} bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-not-allowed opacity-60`
              }
 
-             switch (memberStatus.displayStatus) {
-               case 'ACTIVE':
-                 return `${baseClasses} bg-green-800 dark:bg-green-400 text-white dark:text-black border-green-800 dark:border-green-400 hover:bg-green-900 dark:hover:bg-green-500 hover:border-green-900 dark:hover:border-green-500 hover:shadow-md`
-               case 'CANCELLED':
-                 return `${baseClasses} bg-orange-700 dark:bg-orange-400 text-white dark:text-black border-orange-700 dark:border-orange-400 hover:bg-orange-800 dark:hover:bg-orange-500 hover:border-orange-800 dark:hover:border-orange-500 hover:shadow-md`
-               case 'DELETED':
+              switch (memberStatus.displayStatus) {
+                case 'PENDING_CARD':
+                  return `${baseClasses} bg-purple-700 dark:bg-purple-400 text-white dark:text-black border-purple-700 dark:border-purple-400 hover:bg-purple-800 dark:hover:bg-purple-500 hover:border-purple-800 dark:hover:border-purple-500 hover:shadow-md`
+                case 'ACTIVE':
+                  return `${baseClasses} bg-green-800 dark:bg-green-400 text-white dark:text-black border-green-800 dark:border-green-400 hover:bg-green-900 dark:hover:bg-green-500 hover:border-green-900 dark:hover:border-green-500 hover:shadow-md`
+                case 'CANCELLED':
+                  return `${baseClasses} bg-orange-700 dark:bg-orange-400 text-white dark:text-black border-orange-700 dark:border-orange-400 hover:bg-orange-800 dark:hover:bg-orange-500 hover:border-orange-800 dark:hover:border-orange-500 hover:shadow-md`
+                case 'DELETED':
+                  return `${baseClasses} bg-red-700 dark:bg-red-400 text-white dark:text-black border-red-700 dark:border-red-400 hover:bg-red-800 dark:hover:bg-red-500 hover:border-red-800 dark:hover:border-red-500 hover:shadow-md`
+               case 'EXPIRED':
                  return `${baseClasses} bg-red-700 dark:bg-red-400 text-white dark:text-black border-red-700 dark:border-red-400 hover:bg-red-800 dark:hover:bg-red-500 hover:border-red-800 dark:hover:border-red-500 hover:shadow-md`
-              case 'EXPIRED':
-                return `${baseClasses} bg-red-700 dark:bg-red-400 text-white dark:text-black border-red-700 dark:border-red-400 hover:bg-red-800 dark:hover:bg-red-500 hover:border-red-800 dark:hover:border-red-500 hover:shadow-md`
-               case 'EXPIRING':
-                 return `${baseClasses} bg-amber-700 dark:bg-amber-400 text-white dark:text-black border-amber-700 dark:border-amber-400 hover:bg-amber-800 dark:hover:bg-amber-500 hover:border-amber-800 dark:hover:border-500 hover:shadow-md`
-                case 'NO_SUBSCRIPTION':
-                  return `${baseClasses} bg-blue-700 dark:bg-blue-400 text-white dark:text-black border-blue-700 dark:border-blue-400 hover:bg-blue-800 dark:hover:bg-blue-500 hover:border-blue-800 dark:hover:border-blue-500 hover:shadow-md`
-                case 'SUSPENDED':
-                default:
-                  return `${baseClasses} bg-slate-700 dark:bg-slate-400 text-white dark:text-black border-slate-700 dark:border-slate-400 hover:bg-slate-800 dark:hover:bg-slate-500 hover:border-slate-800 dark:hover:border-slate-500 hover:shadow-md`
-             }
+                case 'EXPIRING':
+                  return `${baseClasses} bg-amber-700 dark:bg-amber-400 text-white dark:text-black border-amber-700 dark:border-amber-400 hover:bg-amber-800 dark:hover:bg-amber-500 hover:border-amber-800 dark:hover:border-500 hover:shadow-md`
+                 case 'NO_SUBSCRIPTION':
+                   return `${baseClasses} bg-blue-700 dark:bg-blue-400 text-white dark:text-black border-blue-700 dark:border-blue-400 hover:bg-blue-800 dark:hover:bg-blue-500 hover:border-blue-800 dark:hover:border-blue-500 hover:shadow-md`
+                 case 'SUSPENDED':
+                 default:
+                   return `${baseClasses} bg-slate-700 dark:bg-slate-400 text-white dark:text-black border-slate-700 dark:border-slate-400 hover:bg-slate-800 dark:hover:bg-slate-500 hover:border-slate-800 dark:hover:border-slate-500 hover:shadow-md`
+              }
            }
 
            return (

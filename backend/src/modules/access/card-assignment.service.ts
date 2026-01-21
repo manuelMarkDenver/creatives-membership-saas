@@ -5,14 +5,23 @@ import { PrismaService } from '../../core/prisma/prisma.service';
 export class CardAssignmentService {
   constructor(private prisma: PrismaService) {}
 
-  async assignCard(gymId: string, memberId: string, cardUid: string, purpose: 'ONBOARD' | 'REPLACE') {
+  async assignCard(
+    gymId: string,
+    memberId: string,
+    cardUid: string,
+    purpose: 'ONBOARD' | 'REPLACE',
+  ) {
     return this.prisma.$transaction(async (tx) => {
       // Check inventory availability
       const inventoryCard = await tx.inventoryCard.findUnique({
         where: { uid: cardUid },
       });
 
-      if (!inventoryCard || inventoryCard.status !== 'AVAILABLE' || inventoryCard.allocatedGymId !== gymId) {
+      if (
+        !inventoryCard ||
+        inventoryCard.status !== 'AVAILABLE' ||
+        inventoryCard.allocatedGymId !== gymId
+      ) {
         throw new Error('Card not available for assignment');
       }
 
@@ -58,10 +67,20 @@ export class CardAssignmentService {
     });
   }
 
-  async checkInventoryAvailability(gymId: string, cardUid: string): Promise<boolean> {
+  async checkInventoryAvailability(
+    gymId: string,
+    cardUid: string,
+  ): Promise<boolean> {
+    console.log(`Checking inventory for card ${cardUid} in gym ${gymId}`);
     const card = await this.prisma.inventoryCard.findUnique({
       where: { uid: cardUid },
     });
+
+    console.log('Inventory card found:', !!card);
+    if (card) {
+      console.log(`Card status: ${card.status}, allocated to gym: ${card.allocatedGymId}`);
+      console.log(`Availability check: ${card.status === 'AVAILABLE' && card.allocatedGymId === gymId}`);
+    }
 
     return card?.status === 'AVAILABLE' && card.allocatedGymId === gymId;
   }

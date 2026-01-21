@@ -521,7 +521,8 @@ export class AuthService {
       }
 
       // Generate tenant name from user's name
-      const tenantName = googleUser.displayName || `${googleUser.firstName}'s Gym`;
+      const tenantName =
+        googleUser.displayName || `${googleUser.firstName}'s Gym`;
       let slug = slugify(tenantName, { lower: true, strict: true });
 
       // Check if slug already exists and generate unique slug
