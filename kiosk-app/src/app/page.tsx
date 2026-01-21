@@ -51,8 +51,9 @@ export default function KioskPage() {
       const encodedId = btoa(terminalId);
       const encodedSecret = btoa(terminalSecret);
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      console.log('API URL:', apiBase);
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ||
+        (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://happy-respect-production.up.railway.app');
+      console.log('API URL:', apiBase, 'ENV:', process.env.NODE_ENV, 'NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
       const response = await fetch(`${apiBase}/api/v1/access/check`, {
         method: 'POST',
         headers: {
@@ -87,7 +88,8 @@ export default function KioskPage() {
   };
 
   const playSound = (result: string) => {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const audioContext = new AudioContextClass!();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
@@ -148,25 +150,32 @@ export default function KioskPage() {
 
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${getBackgroundColor()}`}>
-      <div className="text-center text-white">
-        <h1 className="text-6xl font-bold mb-8">
-          {getText()}
-        </h1>
-        {result && result.expiresAt && result.result !== 'DENY_EXPIRED' && (
-          <p className="text-2xl">
-            Expires: {new Date(result.expiresAt).toLocaleDateString()}
-          </p>
-        )}
-        {result && result.expiresAt && result.result === 'DENY_EXPIRED' && (
-          <p className="text-2xl">
-            Expired: {new Date(result.expiresAt).toLocaleDateString()}
-          </p>
-        )}
-        {!result && cardUid && (
-          <p className="text-2xl opacity-50">
-            Reading card... ({cardUid.length} chars)
-          </p>
-        )}
+      <div className="w-[800px] h-[800px] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center">
+        <div className="text-center text-white px-8">
+          <h1 className={`font-bold mb-6 ${!result ? 'text-9xl' : 'text-7xl'}`}>
+            {getText()}
+          </h1>
+          {result && result.expiresAt && result.result !== 'DENY_EXPIRED' && (
+            <p className="text-6xl font-bold">
+              Expires: {new Date(result.expiresAt).toLocaleDateString()}
+            </p>
+          )}
+          {result && result.expiresAt && result.result === 'DENY_EXPIRED' && (
+            <p className="text-6xl font-bold">
+              Expired: {new Date(result.expiresAt).toLocaleDateString()}
+            </p>
+          )}
+          {!result && cardUid && (
+            <div className="flex flex-col items-center space-y-4">
+              <div className="text-4xl opacity-70">Reading card</div>
+              <div className="flex space-x-2">
+                <div className="w-6 h-6 bg-white rounded-full animate-pulse"></div>
+                <div className="w-6 h-6 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-6 h-6 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

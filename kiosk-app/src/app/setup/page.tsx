@@ -24,7 +24,8 @@ export default function SetupPage() {
       const encodedId = btoa(terminalId);
       const encodedSecret = btoa(terminalSecret);
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ||
+        (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://happy-respect-production.up.railway.app');
       const response = await fetch(`${apiBase}/api/v1/access/terminals/ping`, {
         method: 'POST',
         headers: {
