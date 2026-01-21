@@ -58,13 +58,53 @@ export class AccessService {
     // Check if card is operational
     const operationalCard = await this.prisma.card.findUnique({
       where: { uid: cardUid },
-      include: { member: true },
+      include: { member: true, gym: true },
     });
     console.log(
       'Operational card found:',
       !!operationalCard,
       operationalCard?.gymId === gymId ? 'same gym' : 'different gym',
     );
+
+    // Log tenant/branch mismatches for operational cards
+    if (operationalCard) {
+      const cardTenantId = operationalCard.gym?.tenantId;
+      const terminalTenantId = terminal.gym?.tenantId;
+
+      if (cardTenantId && terminalTenantId && cardTenantId !== terminalTenantId) {
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'TENANT_MISMATCH',
+          cardUid,
+          memberId: operationalCard.memberId || undefined,
+          meta: {
+            cardTenantId,
+            terminalTenantId,
+            cardGymId: operationalCard.gymId,
+            terminalGymId: gymId,
+            mismatchType: 'tenant'
+          }
+        });
+        console.log(`🚨 TENANT MISMATCH: Card tenant ${cardTenantId} != Terminal tenant ${terminalTenantId}`);
+      } else if (operationalCard.gymId !== gymId) {
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'BRANCH_MISMATCH',
+          cardUid,
+          memberId: operationalCard.memberId || undefined,
+          meta: {
+            cardGymId: operationalCard.gymId,
+            terminalGymId: gymId,
+            cardTenantId,
+            terminalTenantId,
+            mismatchType: 'branch'
+          }
+        });
+        console.log(`🚨 BRANCH MISMATCH: Card gym ${operationalCard.gymId} != Terminal gym ${gymId}`);
+      }
+    }
 
     if (
       operationalCard &&
@@ -182,13 +222,29 @@ export class AccessService {
         cardUid,
       );
     if (!available) {
+      // Log inventory mismatch
+      const inventoryCard = await this.prisma.inventoryCard.findUnique({
+        where: { uid: cardUid },
+        include: { gym: true },
+      });
+
       await this.eventsService.logEvent({
         gymId,
         terminalId,
-        type: 'ACCESS_DENY_UNKNOWN',
+        type: 'INVENTORY_MISMATCH',
         cardUid,
         memberId: pending.memberId,
+        meta: {
+          inventoryStatus: inventoryCard?.status,
+          allocatedGymId: inventoryCard?.allocatedGymId,
+          terminalGymId: gymId,
+          allocatedTenantId: inventoryCard?.gym?.tenantId,
+          terminalTenantId: terminal.gym?.tenantId,
+          mismatchType: 'inventory'
+        }
       });
+      console.log(`🚨 INVENTORY MISMATCH: Card ${cardUid} not available for gym ${gymId}`);
+
       return { result: 'DENY_UNKNOWN' };
     }
 

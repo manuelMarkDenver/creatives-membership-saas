@@ -32,7 +32,12 @@ export class TerminalAuthGuard implements CanActivate {
         return false;
       }
 
-      console.log('✅ TERMINAL AUTH: Success - Terminal:', terminalId, 'Gym:', terminal.gymId);
+      // Log if terminal is not assigned to any gym
+      if (!terminal.gymId) {
+        console.log('🚨 TERMINAL CONFIG: Terminal not assigned to any gym:', terminalId);
+      }
+
+      console.log('✅ TERMINAL AUTH: Success - Terminal:', terminalId, 'Gym:', terminal.gymId, 'Tenant:', terminal.gym?.tenantId);
       request.terminal = terminal;
       request.terminalId = terminalId;
       return true;

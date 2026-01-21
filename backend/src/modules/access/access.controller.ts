@@ -56,7 +56,7 @@ export class AccessController {
     @Headers('x-terminal-secret-encoded') encodedTerminalSecret: string,
   ): Promise<CheckAccessResponseDto> {
     console.log('🔥 CONTROLLER: Access check called with body:', body, 'terminal:', encodedTerminalId);
-    return this.accessService.checkCardAccess(encodedTerminalId, body.cardUid);
+    return this.accessService.checkAccess(encodedTerminalId, body.cardUid);
   }
 
   @Post('terminals/ping')
