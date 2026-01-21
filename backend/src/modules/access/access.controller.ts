@@ -52,11 +52,11 @@ export class AccessController {
   @UseGuards(TerminalAuthGuard)
   async checkCardAccess(
     @Body() body: CheckAccessDto,
-    @Headers('x-terminal-id-encoded') encodedTerminalId: string,
-    @Headers('x-terminal-secret-encoded') encodedTerminalSecret: string,
+    @Req() req: any,
   ): Promise<CheckAccessResponseDto> {
-    console.log('🔥 CONTROLLER: Access check called with body:', body, 'terminal:', encodedTerminalId);
-    return this.accessService.checkAccess(encodedTerminalId, body.cardUid);
+    const terminalId = req.terminalId;
+    console.log('🔥 CONTROLLER: Access check called with body:', body, 'terminal:', terminalId);
+    return this.accessService.checkAccess(terminalId, body.cardUid);
   }
 
   @Post('terminals/ping')
