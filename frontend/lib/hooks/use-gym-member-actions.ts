@@ -186,6 +186,27 @@ export function useRenewMemberSubscription() {
   })
 }
 
+// Disable card mutation
+export function useDisableCard() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ memberId, data }: { memberId: string; data: MemberActionRequest }) =>
+      membersApi.disableCard(memberId, data),
+    onSuccess: (_, { memberId }) => {
+      // Invalidate member status and history
+      queryClient.invalidateQueries({ queryKey: memberKeys.status(memberId) })
+      queryClient.invalidateQueries({
+        queryKey: [...memberKeys.all, 'history', memberId]
+      })
+
+      // Invalidate user data to refresh member list
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'tenant'] })
+    },
+  })
+}
+
 // Assign membership plan mutation
 export function useAssignMembershipPlan() {
   const queryClient = useQueryClient()

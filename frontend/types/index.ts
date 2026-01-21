@@ -282,6 +282,10 @@ export interface GymMemberProfile {
   accessLevel?: 'SINGLE_BRANCH' | 'MULTI_BRANCH' | 'ALL_BRANCHES'
   // Historical data
   membershipHistory?: any // JSON field for past memberships
+  // Access control fields
+  cardStatus?: 'NO_CARD' | 'PENDING_CARD' | 'ACTIVE' | 'DISABLED'
+  cardUid?: string
+  cardAssignedAt?: string
   profileMetadata?: any // JSON field for additional dynamic data
   // Gym-level soft deletion fields
   deletedAt?: string

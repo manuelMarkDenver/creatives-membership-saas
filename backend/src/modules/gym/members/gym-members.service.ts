@@ -1480,6 +1480,73 @@ export class GymMembersService {
     }
   }
 
+  async disableCard(
+    memberId: string,
+    request: { reason?: string },
+    performedBy: string,
+  ) {
+    const member = await this.prisma.user.findUnique({
+      where: { id: memberId },
+      include: {
+        gymMemberProfile: true,
+        cards: true,
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+
+    if (!member.gymMemberProfile) {
+      throw new BadRequestException('Member profile not found');
+    }
+
+    // Find active card
+    const activeCard = member.cards.find((card) => card.active);
+    if (!activeCard) {
+      throw new BadRequestException('Member does not have an active card');
+    }
+
+    // In transaction: disable card, update profile, log event
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Disable the card
+      await tx.card.update({
+        where: { uid: activeCard.uid },
+        data: { active: false },
+      });
+
+      // Update member profile status
+      await tx.gymMemberProfile.update({
+        where: { id: member.gymMemberProfile!.id },
+        data: { cardStatus: 'DISABLED' },
+      });
+
+      // Log event
+      const event = await tx.event.create({
+        data: {
+          gymId: member.gymMemberProfile!.primaryBranchId!,
+          type: 'CARD_DISABLED',
+          cardUid: activeCard.uid,
+          memberId: memberId,
+          actorUserId: performedBy,
+          meta: { reason: request.reason || 'Administrative action' },
+        },
+      });
+
+      return { eventId: event.id };
+    });
+
+    this.logger.log(
+      `Card disabled for member: ${member.firstName} ${member.lastName} (${memberId})`,
+    );
+
+    return {
+      success: true,
+      message: `Member ${(member.firstName || 'Unknown')} ${(member.lastName || 'User')}'s card disabled successfully`,
+      eventId: result.eventId,
+    };
+  }
+
   async getExpiringMembersOverview(daysBefore: number = 7, filters: any) {
     try {
       // Validate filters

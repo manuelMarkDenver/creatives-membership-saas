@@ -55,7 +55,12 @@ export class AccessController {
     @Req() req: any,
   ): Promise<CheckAccessResponseDto> {
     const terminalId = req.terminalId;
-    console.log('🔥 CONTROLLER: Access check called with body:', body, 'terminal:', terminalId);
+    console.log(
+      '🔥 CONTROLLER: Access check called with body:',
+      body,
+      'terminal:',
+      terminalId,
+    );
     return this.accessService.checkAccess(terminalId, body.cardUid);
   }
 

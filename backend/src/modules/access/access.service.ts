@@ -17,7 +17,7 @@ export class AccessService {
     console.log(
       'Checking access for terminal:',
       terminalId,
-      'card input:',
+      'raw encodedCardUid:',
       encodedCardUid,
     );
 
@@ -42,6 +42,8 @@ export class AccessService {
       cardUid = encodedCardUid;
       console.log('Using plain cardUid:', cardUid);
     }
+
+    console.log('Final cardUid used:', cardUid);
 
     // Terminal already validated by guard
     const terminal = await this.prisma.terminal.findUnique({
@@ -71,7 +73,11 @@ export class AccessService {
       const cardTenantId = operationalCard.gym?.tenantId;
       const terminalTenantId = terminal.gym?.tenantId;
 
-      if (cardTenantId && terminalTenantId && cardTenantId !== terminalTenantId) {
+      if (
+        cardTenantId &&
+        terminalTenantId &&
+        cardTenantId !== terminalTenantId
+      ) {
         await this.eventsService.logEvent({
           gymId,
           terminalId,
@@ -83,10 +89,12 @@ export class AccessService {
             terminalTenantId,
             cardGymId: operationalCard.gymId,
             terminalGymId: gymId,
-            mismatchType: 'tenant'
-          }
+            mismatchType: 'tenant',
+          },
         });
-        console.log(`🚨 TENANT MISMATCH: Card tenant ${cardTenantId} != Terminal tenant ${terminalTenantId}`);
+        console.log(
+          `🚨 TENANT MISMATCH: Card tenant ${cardTenantId} != Terminal tenant ${terminalTenantId}`,
+        );
       } else if (operationalCard.gymId !== gymId) {
         await this.eventsService.logEvent({
           gymId,
@@ -99,10 +107,12 @@ export class AccessService {
             terminalGymId: gymId,
             cardTenantId,
             terminalTenantId,
-            mismatchType: 'branch'
-          }
+            mismatchType: 'branch',
+          },
         });
-        console.log(`🚨 BRANCH MISMATCH: Card gym ${operationalCard.gymId} != Terminal gym ${gymId}`);
+        console.log(
+          `🚨 BRANCH MISMATCH: Card gym ${operationalCard.gymId} != Terminal gym ${gymId}`,
+        );
       }
     }
 
@@ -169,7 +179,12 @@ export class AccessService {
         cardUid,
         memberId: operationalCard.memberId!,
       });
-      return { result: 'DENY_DISABLED' };
+      const memberName = operationalCard.member ? `${operationalCard.member.firstName || 'Unknown'} ${operationalCard.member.lastName || 'User'}` : 'Unknown Member';
+      console.log('DENY_DISABLED: memberName =', memberName);
+      return {
+        result: 'DENY_DISABLED',
+        memberName
+      };
     }
 
     console.log('Card not found or not operational, checking pending');
@@ -183,13 +198,20 @@ export class AccessService {
 
     console.log('Pending assignment found:', !!pending);
     if (pending) {
-      console.log('Pending for member:', pending.memberId, 'expires:', pending.expiresAt);
+      console.log(
+        'Pending for member:',
+        pending.memberId,
+        'expires:',
+        pending.expiresAt,
+      );
     } else {
       console.log('No pending assignment for this gym');
       // Check if there are any pending assignments at all
       const allPending = await this.prisma.pendingMemberAssignment.findMany();
       console.log('All pending assignments in system:', allPending.length);
-      allPending.forEach(p => console.log('  Gym:', p.gymId, 'Member:', p.memberId));
+      allPending.forEach((p) =>
+        console.log('  Gym:', p.gymId, 'Member:', p.memberId),
+      );
     }
 
     if (!pending) {
@@ -240,16 +262,18 @@ export class AccessService {
           terminalGymId: gymId,
           allocatedTenantId: inventoryCard?.gym?.tenantId,
           terminalTenantId: terminal.gym?.tenantId,
-          mismatchType: 'inventory'
-        }
+          mismatchType: 'inventory',
+        },
       });
-      console.log(`🚨 INVENTORY MISMATCH: Card ${cardUid} not available for gym ${gymId}`);
+      console.log(
+        `🚨 INVENTORY MISMATCH: Card ${cardUid} not available for gym ${gymId}`,
+      );
 
       return { result: 'DENY_UNKNOWN' };
     }
 
     // Assign card
-    await this.cardAssignmentService.assignCard(
+    const assignmentResult = await this.cardAssignmentService.assignCard(
       gymId,
       pending.memberId,
       cardUid,
@@ -265,12 +289,19 @@ export class AccessService {
       orderBy: { endDate: 'desc' },
     });
 
+    // Log event based on purpose
+    const eventType =
+      pending.purpose === 'REPLACE' ? 'CARD_REPLACED' : 'CARD_ASSIGNED';
     await this.eventsService.logEvent({
       gymId,
       terminalId,
-      type: 'CARD_ASSIGNED',
+      type: eventType,
       cardUid,
       memberId: pending.memberId,
+      meta:
+        pending.purpose === 'REPLACE'
+          ? { oldCardUid: assignmentResult.oldCardUid }
+          : undefined,
     });
 
     return {

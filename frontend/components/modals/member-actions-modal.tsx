@@ -21,23 +21,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { 
-  UserCheck, 
-  UserX, 
-  UserPlus, 
-  RefreshCw, 
+import {
+  UserCheck,
+  UserX,
+  UserPlus,
+  RefreshCw,
   Clock,
   CheckCircle,
   AlertTriangle,
+  CreditCard,
+  Ban,
   Info,
   Calendar
 } from 'lucide-react'
 import { toast } from 'react-toastify'
-import { useMemberStatus, useActionReasons, useActivateMember, useCancelMember, useRestoreMember, useRenewMemberSubscription, useAssignMembershipPlan } from '@/lib/hooks/use-gym-member-actions'
+import { useMemberStatus, useActionReasons, useActivateMember, useCancelMember, useRestoreMember, useRenewMemberSubscription, useAssignMembershipPlan, useDisableCard } from '@/lib/hooks/use-gym-member-actions'
 import type { MemberActionRequest } from '@/lib/api/gym-members'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
 
-export type MemberActionType = 'activate' | 'cancel' | 'restore' | 'renew' | 'assign_plan'
+export type MemberActionType = 'activate' | 'cancel' | 'restore' | 'renew' | 'assign_plan' | 'disable_card'
 
 interface MemberActionsModalProps {
   isOpen: boolean
@@ -83,10 +85,18 @@ const actionConfig = {
   assign_plan: {
     title: 'Assign Membership Plan',
     description: 'Assign a membership plan to this member',
-    icon: UserPlus,
+    icon: CreditCard,
     color: 'text-blue-500',
     buttonText: 'Assign Plan',
     buttonVariant: 'default' as const,
+  },
+  disable_card: {
+    title: 'Disable Card',
+    description: 'Disable this member\'s RFID card while keeping membership active',
+    icon: Ban,
+    color: 'text-red-500',
+    buttonText: 'Disable Card',
+    buttonVariant: 'destructive' as const,
   },
 }
 
@@ -134,6 +144,7 @@ export function MemberActionsModal({
   const restoreMutation = useRestoreMember()
   const renewMutation = useRenewMemberSubscription()
   const assignPlanMutation = useAssignMembershipPlan()
+  const disableCardMutation = useDisableCard()
 
   // Get relevant reasons for the current action
   const relevantReasons = Array.from(new Set(
@@ -149,6 +160,8 @@ export function MemberActionsModal({
           return category.category === 'SUBSCRIPTION'
         case 'assign_plan':
           return false // No reasons needed for assign_plan
+        case 'disable_card':
+          return category.category === 'ACCOUNT'
         default:
           return false
       }
@@ -166,7 +179,7 @@ export function MemberActionsModal({
 
   const handleSubmit = async () => {
     // For assign_plan, we don't need reason, just plan selection
-    if (actionType !== 'assign_plan' && !reason) {
+    if (actionType !== 'assign_plan' && actionType !== 'disable_card' && !reason) {
       toast.error('Please select a reason')
       return
     }
@@ -176,7 +189,7 @@ export function MemberActionsModal({
       return
     }
 
-    const memberName = memberData ? `${memberData.firstName} ${memberData.lastName}` : 'Member'
+    const memberName = memberData ? `${memberData.firstName || 'Unknown'} ${memberData.lastName || 'User'}` : 'Member'
 
     try {
       switch (actionType) {
@@ -219,6 +232,17 @@ export function MemberActionsModal({
           })
           toast.success(`Successfully assigned membership plan to ${memberName}`)
           break
+
+        case 'disable_card':
+          await disableCardMutation.mutateAsync({
+            memberId,
+            data: { reason, notes }
+          })
+          toast.success(`Successfully disabled ${memberName}'s card`)
+          break
+
+        default:
+          toast.error('Unknown action type')
       }
 
       onActionComplete?.()
@@ -232,7 +256,7 @@ export function MemberActionsModal({
   }
 
   const isLoading = memberLoading || reasonsLoading
-  const isMutating = activateMutation.isPending || cancelMutation.isPending || restoreMutation.isPending || renewMutation.isPending || assignPlanMutation.isPending
+  const isMutating = activateMutation.isPending || cancelMutation.isPending || restoreMutation.isPending || renewMutation.isPending || assignPlanMutation.isPending || disableCardMutation.isPending
 
   // Early return with loading state
   if (isLoading) {

@@ -117,6 +117,12 @@ export const membersApi = {
     return response.data
   },
 
+  // Disable card
+  async disableCard(memberId: string, data: MemberActionRequest): Promise<MemberActionResponse> {
+    const response = await apiClient.post(`/admin/members/${memberId}/disable-card`, data)
+    return response.data
+  },
+
   // Renew member subscription
   async renewMemberSubscription(memberId: string, data: MemberRenewRequest): Promise<MemberActionResponse> {
     try {

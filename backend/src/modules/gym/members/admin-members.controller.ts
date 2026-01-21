@@ -64,6 +64,55 @@ export class AdminMembersController {
     };
   }
 
+  @Post(':memberId/disable-card')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  async disableCard(
+    @Param('memberId') memberId: string,
+    @Body() body: { reason?: string },
+    @Req() req: RequestWithUser,
+  ) {
+    const performedBy = req.user?.id;
+    if (!performedBy) {
+      throw new Error('User not authenticated');
+    }
+
+    return this.gymMembersService.disableCard(memberId, body, performedBy);
+  }
+
+  @Post(':memberId/renew')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  async renewMembership(
+    @Param('memberId') memberId: string,
+    @Body() body: { planId: string },
+    @Req() req: RequestWithUser,
+  ) {
+    const performedBy = req.user?.id;
+    if (!performedBy) {
+      throw new Error('User not authenticated');
+    }
+
+    return this.gymMembersService.renewMemberSubscription(
+      memberId,
+      body.planId,
+      performedBy,
+    );
+  }
+
+  @Post(':memberId/cancel')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  async cancelMembership(
+    @Param('memberId') memberId: string,
+    @Body() body: { reason: string; notes?: string },
+    @Req() req: RequestWithUser,
+  ) {
+    const performedBy = req.user?.id;
+    if (!performedBy) {
+      throw new Error('User not authenticated');
+    }
+
+    return this.gymMembersService.cancelMember(memberId, body, performedBy);
+  }
+
   @Post('gyms/:gymId/pending-assignment/cancel')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   async cancelPendingAssignment(

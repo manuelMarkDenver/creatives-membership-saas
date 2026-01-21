@@ -10,7 +10,12 @@ export class TerminalAuthGuard implements CanActivate {
     const encodedId = request.headers['x-terminal-id-encoded'];
     const encodedSecret = request.headers['x-terminal-secret-encoded'];
 
-    console.log('🔐 TERMINAL AUTH: Headers - ID present:', !!encodedId, 'Secret present:', !!encodedSecret);
+    console.log(
+      '🔐 TERMINAL AUTH: Headers - ID present:',
+      !!encodedId,
+      'Secret present:',
+      !!encodedSecret,
+    );
 
     if (!encodedId || !encodedSecret) {
       console.log('❌ TERMINAL AUTH: Missing authentication headers');
@@ -34,10 +39,20 @@ export class TerminalAuthGuard implements CanActivate {
 
       // Log if terminal is not assigned to any gym
       if (!terminal.gymId) {
-        console.log('🚨 TERMINAL CONFIG: Terminal not assigned to any gym:', terminalId);
+        console.log(
+          '🚨 TERMINAL CONFIG: Terminal not assigned to any gym:',
+          terminalId,
+        );
       }
 
-      console.log('✅ TERMINAL AUTH: Success - Terminal:', terminalId, 'Gym:', terminal.gymId, 'Tenant:', terminal.gym?.tenantId);
+      console.log(
+        '✅ TERMINAL AUTH: Success - Terminal:',
+        terminalId,
+        'Gym:',
+        terminal.gymId,
+        'Tenant:',
+        terminal.gym?.tenantId,
+      );
       request.terminal = terminal;
       request.terminalId = terminalId;
       return true;

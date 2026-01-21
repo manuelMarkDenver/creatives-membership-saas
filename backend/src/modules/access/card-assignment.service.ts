@@ -36,6 +36,25 @@ export class CardAssignmentService {
         });
       }
 
+      // For REPLACE, deactivate old card
+      let oldCardUid: string | undefined;
+      if (purpose === 'REPLACE') {
+        const oldCard = await tx.card.findFirst({
+          where: {
+            gymId,
+            memberId,
+            active: true,
+          },
+        });
+        if (oldCard) {
+          await tx.card.update({
+            where: { uid: oldCard.uid },
+            data: { active: false },
+          });
+          oldCardUid = oldCard.uid;
+        }
+      }
+
       // Create operational card
       await tx.card.create({
         data: {
@@ -63,7 +82,7 @@ export class CardAssignmentService {
         },
       });
 
-      return { cardUid, memberId };
+      return { cardUid, memberId, oldCardUid };
     });
   }
 
@@ -78,8 +97,12 @@ export class CardAssignmentService {
 
     console.log('Inventory card found:', !!card);
     if (card) {
-      console.log(`Card status: ${card.status}, allocated to gym: ${card.allocatedGymId}`);
-      console.log(`Availability check: ${card.status === 'AVAILABLE' && card.allocatedGymId === gymId}`);
+      console.log(
+        `Card status: ${card.status}, allocated to gym: ${card.allocatedGymId}`,
+      );
+      console.log(
+        `Availability check: ${card.status === 'AVAILABLE' && card.allocatedGymId === gymId}`,
+      );
     }
 
     return card?.status === 'AVAILABLE' && card.allocatedGymId === gymId;

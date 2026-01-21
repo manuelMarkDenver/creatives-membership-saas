@@ -19,6 +19,7 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
+  Ban,
   Info,
   Building,
   Eye,
@@ -477,25 +478,34 @@ export function MemberCard({
                     </DropdownMenuItem>
                   )
                 
-                 case 'ACTIVE':
-                   return (
-                     <>
-                       <DropdownMenuItem
-                         className="text-blue-600"
-                         onClick={() => onChangePlan?.(member)}
-                       >
-                         <Settings className="mr-2 h-4 w-4" />
-                         Change Plan
-                       </DropdownMenuItem>
-                       <DropdownMenuItem
-                         className="text-orange-600"
-                         onClick={() => openMemberActionModal('cancel')}
-                       >
-                         <UserX className="mr-2 h-4 w-4" />
-                         Cancel Membership
-                       </DropdownMenuItem>
-                     </>
-                   )
+                  case 'ACTIVE':
+                    return (
+                      <>
+                        <DropdownMenuItem
+                          className="text-blue-600"
+                          onClick={() => onChangePlan?.(member)}
+                        >
+                          <Settings className="mr-2 h-4 w-4" />
+                          Change Plan
+                        </DropdownMenuItem>
+                        {member.gymMemberProfile?.cardStatus === 'ACTIVE' && (
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => openMemberActionModal('disable_card')}
+                          >
+                            <Ban className="mr-2 h-4 w-4" />
+                            Disable Card
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          className="text-orange-600"
+                          onClick={() => openMemberActionModal('cancel')}
+                        >
+                          <UserX className="mr-2 h-4 w-4" />
+                          Cancel Membership
+                        </DropdownMenuItem>
+                      </>
+                    )
                 
                  case 'NO_SUBSCRIPTION':
                    return (
