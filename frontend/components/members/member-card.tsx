@@ -20,53 +20,7 @@ import {
   CheckCircle,
   AlertTriangle,
   Ban,
-  Info,
-  Building,
-  Eye,
-  Lock,
-  Settings
-} from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  useProfile,
-  useSoftDeleteUser,
-  useActivateUser,
-  useDeactivateUser,
-  useRestoreUser
-} from '@/lib/hooks/use-gym-users'
-import { TransactionHistoryModal } from '@/components/modals/transaction-history-modal'
-import { MemberActionsModal, type MemberActionType } from '@/components/modals/member-actions-modal'
-import { MemberHistoryModal } from '@/components/modals/member-history-modal'
-import { DeleteMemberModal } from '@/components/modals/delete-member-modal'
-import { RestoreMemberModal } from '@/components/modals/restore-member-modal'
-import { toast } from 'react-toastify'
-import { calculateMemberStatus, getAvailableMemberActions, type MemberData } from '@/lib/utils/member-status'
-import { getMemberStatusDisplay, getAvailableActions, getStatusColorClasses } from '@/lib/utils/member-status-display'
-
-interface MemberCardProps {
-  member: User
-  isSuperAdmin?: boolean
-  onViewMemberInfo: (member: User) => void
-  onViewTransactions: (member: User) => void
-  onRenewSubscription: (member: User) => void
-  onCancelSubscription: (member: User) => void
-  onChangePlan?: (member: User) => void
-  onAssignCard?: (member: User) => void
-  onMemberDeleted?: () => void
+  CreditCard,
 }
 
 export function MemberCard({
@@ -495,6 +449,15 @@ export function MemberCard({
                           >
                             <Ban className="mr-2 h-4 w-4" />
                             Disable Card
+                          </DropdownMenuItem>
+                        )}
+                        {member.gymMemberProfile?.cardStatus === 'DISABLED' && (
+                          <DropdownMenuItem
+                            className="text-green-600"
+                            onClick={() => openMemberActionModal('enable_card')}
+                          >
+                            <CreditCard className="mr-2 h-4 w-4" />
+                            Enable Card
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem

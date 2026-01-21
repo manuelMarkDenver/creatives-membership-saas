@@ -207,6 +207,27 @@ export function useDisableCard() {
   })
 }
 
+// Enable card mutation
+export function useEnableCard() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ memberId, data }: { memberId: string; data: { cardUid: string; reason?: string } }) =>
+      membersApi.enableCard(memberId, data),
+    onSuccess: (_, { memberId }) => {
+      // Invalidate member status and history
+      queryClient.invalidateQueries({ queryKey: memberKeys.status(memberId) })
+      queryClient.invalidateQueries({
+        queryKey: [...memberKeys.all, 'history', memberId]
+      })
+
+      // Invalidate user data to refresh member list
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'tenant'] })
+    },
+  })
+}
+
 // Assign membership plan mutation
 export function useAssignMembershipPlan() {
   const queryClient = useQueryClient()

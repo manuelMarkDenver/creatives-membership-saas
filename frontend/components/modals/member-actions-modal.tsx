@@ -35,11 +35,11 @@ import {
   Calendar
 } from 'lucide-react'
 import { toast } from 'react-toastify'
-import { useMemberStatus, useActionReasons, useActivateMember, useCancelMember, useRestoreMember, useRenewMemberSubscription, useAssignMembershipPlan, useDisableCard } from '@/lib/hooks/use-gym-member-actions'
+import { useMemberStatus, useActionReasons, useActivateMember, useCancelMember, useRestoreMember, useRenewMemberSubscription, useAssignMembershipPlan, useDisableCard, useEnableCard } from '@/lib/hooks/use-gym-member-actions'
 import type { MemberActionRequest } from '@/lib/api/gym-members'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
 
-export type MemberActionType = 'activate' | 'cancel' | 'restore' | 'renew' | 'assign_plan' | 'disable_card'
+export type MemberActionType = 'activate' | 'cancel' | 'restore' | 'renew' | 'assign_plan' | 'disable_card' | 'enable_card'
 
 interface MemberActionsModalProps {
   isOpen: boolean
@@ -98,6 +98,14 @@ const actionConfig = {
     buttonText: 'Disable Card',
     buttonVariant: 'destructive' as const,
   },
+  enable_card: {
+    title: 'Enable Card',
+    description: 'Re-enable this member\'s disabled RFID card to restore access',
+    icon: CreditCard,
+    color: 'text-green-500',
+    buttonText: 'Enable Card',
+    buttonVariant: 'default' as const,
+  },
 }
 
 const statusIcons = {
@@ -126,6 +134,7 @@ export function MemberActionsModal({
   const [reason, setReason] = useState('')
   const [notes, setNotes] = useState('')
   const [selectedPlanId, setSelectedPlanId] = useState('')
+  const [selectedCardUid, setSelectedCardUid] = useState('')
   
   const config = actionConfig[actionType]
   const IconComponent = config.icon
@@ -134,6 +143,9 @@ export function MemberActionsModal({
   const { data: memberData, isLoading: memberLoading } = useMemberStatus(memberId)
   const { data: actionReasons, isLoading: reasonsLoading } = useActionReasons()
   const { data: membershipPlans } = useActiveMembershipPlans()
+
+  // For enable_card, fetch member's disabled cards
+  const disabledCards = memberData?.cards?.filter(card => !card.active) || []
   
   // Ensure membershipPlans is always an array
   const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
@@ -145,6 +157,7 @@ export function MemberActionsModal({
   const renewMutation = useRenewMemberSubscription()
   const assignPlanMutation = useAssignMembershipPlan()
   const disableCardMutation = useDisableCard()
+  const enableCardMutation = useEnableCard()
 
   // Get relevant reasons for the current action
   const relevantReasons = Array.from(new Set(
@@ -162,6 +175,8 @@ export function MemberActionsModal({
           return false // No reasons needed for assign_plan
         case 'disable_card':
           return category.category === 'ACCOUNT'
+        case 'enable_card':
+          return category.category === 'ACCOUNT'
         default:
           return false
       }
@@ -174,12 +189,13 @@ export function MemberActionsModal({
       setReason('')
       setNotes('')
       setSelectedPlanId('')
+      setSelectedCardUid('')
     }
   }, [isOpen])
 
   const handleSubmit = async () => {
     // For assign_plan, we don't need reason, just plan selection
-    if (actionType !== 'assign_plan' && actionType !== 'disable_card' && !reason) {
+    if (actionType !== 'assign_plan' && actionType !== 'disable_card' && actionType !== 'enable_card' && !reason) {
       toast.error('Please select a reason')
       return
     }
@@ -241,6 +257,18 @@ export function MemberActionsModal({
           toast.success(`Successfully disabled ${memberName}'s card`)
           break
 
+        case 'enable_card':
+          if (!selectedCardUid) {
+            toast.error('Please select a card to enable')
+            return
+          }
+          await enableCardMutation.mutateAsync({
+            memberId,
+            data: { cardUid: selectedCardUid, reason }
+          })
+          toast.success(`Successfully enabled ${memberName}'s card`)
+          break
+
         default:
           toast.error('Unknown action type')
       }
@@ -256,7 +284,7 @@ export function MemberActionsModal({
   }
 
   const isLoading = memberLoading || reasonsLoading
-  const isMutating = activateMutation.isPending || cancelMutation.isPending || restoreMutation.isPending || renewMutation.isPending || assignPlanMutation.isPending || disableCardMutation.isPending
+  const isMutating = activateMutation.isPending || cancelMutation.isPending || restoreMutation.isPending || renewMutation.isPending || assignPlanMutation.isPending || disableCardMutation.isPending || enableCardMutation.isPending
 
   // Early return with loading state
   if (isLoading) {
@@ -350,8 +378,33 @@ export function MemberActionsModal({
             </div>
           )}
 
-          {/* Membership Plan Selection (for renewal and assign_plan) */}
-          {(actionType === 'renew' || actionType === 'assign_plan') && (
+           {/* Card Selection (for enable_card) */}
+           {actionType === 'enable_card' && (
+             <div className="space-y-2">
+               <Label>Select Disabled Card to Re-enable</Label>
+               <Select value={selectedCardUid} onValueChange={setSelectedCardUid}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Choose a disabled card" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   {disabledCards.length === 0 ? (
+                     <SelectItem value="no-cards" disabled>
+                       No disabled cards available
+                     </SelectItem>
+                   ) : (
+                     disabledCards.map((card: any) => (
+                       <SelectItem key={card.uid} value={card.uid}>
+                         Card {card.uid} ({card.type})
+                       </SelectItem>
+                     ))
+                   )}
+                 </SelectContent>
+               </Select>
+             </div>
+           )}
+
+           {/* Membership Plan Selection (for renewal and assign_plan) */}
+           {(actionType === 'renew' || actionType === 'assign_plan') && (
             <div className="space-y-2">
               <Label>{actionType === 'assign_plan' ? 'Select Membership Plan to Assign' : 'Select New Membership Plan'}</Label>
               <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>

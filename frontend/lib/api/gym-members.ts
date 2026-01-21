@@ -123,6 +123,12 @@ export const membersApi = {
     return response.data
   },
 
+  // Enable card
+  async enableCard(memberId: string, data: { cardUid: string; reason?: string }): Promise<MemberActionResponse> {
+    const response = await apiClient.post(`/admin/members/${memberId}/enable-card`, data)
+    return response.data
+  },
+
   // Renew member subscription
   async renewMemberSubscription(memberId: string, data: MemberRenewRequest): Promise<MemberActionResponse> {
     try {

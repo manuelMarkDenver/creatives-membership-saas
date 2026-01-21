@@ -113,16 +113,21 @@ export class AdminMembersController {
     return this.gymMembersService.cancelMember(memberId, body, performedBy);
   }
 
-  @Post('gyms/:gymId/pending-assignment/cancel')
+  @Post(':memberId/enable-card')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
-  async cancelPendingAssignment(
-    @Param('gymId') gymId: string,
+  async enableCard(
+    @Param('memberId') memberId: string,
+    @Body() body: { cardUid: string; reason?: string },
     @Req() req: RequestWithUser,
   ) {
     const performedBy = req.user?.id;
     if (!performedBy) {
       throw new Error('User not authenticated');
     }
+
+    return this.gymMembersService.enableCard(memberId, body, performedBy);
+  }
+}
 
     await this.gymMembersService.cancelPendingAssignment(gymId, performedBy);
     return { ok: true };

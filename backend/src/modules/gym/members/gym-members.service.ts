@@ -1547,6 +1547,84 @@ export class GymMembersService {
     };
   }
 
+  async enableCard(
+    memberId: string,
+    data: { cardUid: string; reason?: string },
+    performedBy: string,
+  ) {
+    const member = await this.prisma.user.findUnique({
+      where: { id: memberId },
+      include: {
+        gymMemberProfile: true,
+        cards: true,
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+
+    if (!member.gymMemberProfile) {
+      throw new BadRequestException('Member profile not found');
+    }
+
+    // Find the disabled card
+    const card = member.cards.find(c => c.uid === data.cardUid && !c.active);
+    if (!card) {
+      throw new BadRequestException('Disabled card not found for this member');
+    }
+
+    // Check no other active card for this member
+    const activeCards = member.cards.filter(c => c.active);
+    if (activeCards.length > 0) {
+      throw new BadRequestException('Member already has an active card - disable it first');
+    }
+
+    const gymId = member.gymMemberProfile.primaryBranchId;
+    if (!gymId) {
+      throw new BadRequestException('Member has no primary branch');
+    }
+
+    // In transaction: enable card, update profile, log event
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Enable the card
+      await tx.card.update({
+        where: { uid: data.cardUid },
+        data: { active: true },
+      });
+
+      // Update member profile
+      await tx.gymMemberProfile.update({
+        where: { id: member.gymMemberProfile.id },
+        data: { cardStatus: 'ACTIVE' },
+      });
+
+      // Log event
+      const event = await tx.event.create({
+        data: {
+          gymId,
+          type: 'CARD_ENABLED',
+          cardUid: data.cardUid,
+          memberId: memberId,
+          actorUserId: performedBy,
+          meta: { reason: data.reason || 'Administrative action' },
+        },
+      });
+
+      return { eventId: event.id };
+    });
+
+    this.logger.log(
+      `Card enabled for member: ${member.firstName} ${member.lastName} (${memberId})`,
+    );
+
+    return {
+      success: true,
+      message: `Member ${(member.firstName || 'Unknown')} ${(member.lastName || 'User')}'s card enabled successfully`,
+      eventId: result.eventId,
+    };
+  }
+
   async getExpiringMembersOverview(daysBefore: number = 7, filters: any) {
     try {
       // Validate filters
