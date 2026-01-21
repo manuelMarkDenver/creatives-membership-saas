@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 type AccessResult = {
   result: string;
@@ -13,6 +13,7 @@ export default function KioskPage() {
   const [cardUid, setCardUid] = useState('');
   const [result, setResult] = useState<AccessResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -30,15 +31,22 @@ export default function KioskPage() {
   }, [cardUid, result]);
 
   const handleTap = async () => {
-    if (isProcessing || cardUid.length === 0) return;
+    console.log('handleTap called with cardUid:', cardUid);
+    if (isProcessing || cardUid.length === 0) {
+      console.log('Skipping tap - isProcessing:', isProcessing, 'cardUid length:', cardUid.length);
+      return;
+    }
 
     setIsProcessing(true);
+    console.log('Starting card check process...');
 
     try {
       const storedId = localStorage.getItem('terminalId');
       const storedSecret = localStorage.getItem('terminalSecret');
+      console.log('Terminal config - ID exists:', !!storedId, 'Secret exists:', !!storedSecret);
 
       if (!storedId || !storedSecret) {
+        console.error('Terminal not configured');
         setResult({ result: 'ERROR', message: 'Terminal not configured' });
         return;
       }
@@ -46,6 +54,7 @@ export default function KioskPage() {
       // Decode the stored encoded values
       const terminalId = atob(storedId);
       const terminalSecret = atob(storedSecret);
+      console.log('Decoded terminal ID:', terminalId);
 
       // Base64 encode again for transmission
       const encodedId = btoa(terminalId);
@@ -54,7 +63,11 @@ export default function KioskPage() {
       const apiBase = process.env.NEXT_PUBLIC_API_URL ||
         (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://happy-respect-production.up.railway.app');
       console.log('API URL:', apiBase, 'ENV:', process.env.NODE_ENV, 'NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
-      const response = await fetch(`${apiBase}/api/v1/access/check`, {
+
+      const requestUrl = `${apiBase}/api/v1/access/check`;
+      console.log('Making API call to:', requestUrl, 'with cardUid:', cardUid);
+
+      const response = await fetch(requestUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,7 +77,17 @@ export default function KioskPage() {
         body: JSON.stringify({ cardUid }),
       });
 
+      console.log('API Response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API Error:', response.status, errorData);
+        setResult({ result: 'ERROR', message: errorData.message || 'API Error' });
+        return;
+      }
+
       const data = await response.json();
+      console.log('API Response data:', data);
       setResult(data);
 
       // Play sound based on result
@@ -148,8 +171,30 @@ export default function KioskPage() {
     }
   }, []);
 
+  // Auto-focus the hidden input for RFID keyboard emulation
+  useEffect(() => {
+    if (inputRef.current && !result) {
+      inputRef.current.focus();
+    }
+  }, [result]);
+
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${getBackgroundColor()}`}>
+      {/* Hidden input for RFID keyboard emulation */}
+      <input
+        ref={inputRef}
+        type="text"
+        value={cardUid}
+        onChange={(e) => setCardUid(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && cardUid.length > 0) {
+            handleTap();
+            setCardUid(''); // Clear after processing
+          }
+        }}
+        className="absolute top-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
+        autoFocus={!result}
+      />
       <div className="w-[800px] h-[800px] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center">
         <div className="text-center text-white px-8">
           <h1 className={`font-bold mb-6 ${!result ? 'text-9xl' : 'text-7xl'}`}>
