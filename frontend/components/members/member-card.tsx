@@ -332,23 +332,32 @@ export function MemberCard({
         {/* Action section */}
         <div className="flex flex-col gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
           {/* Card Status Badge */}
-          <div className="flex items-center gap-2">
-            {(() => {
-              const cardStatus = getCardStatusInfo()
-              const Icon = cardStatus.icon
-              return (
-                <Badge variant={cardStatus.variant} className={`text-xs px-2 py-1 flex items-center gap-1 ${cardStatus.className}`}>
-                  <Icon className="h-3 w-3" />
-                  {cardStatus.label}
-                </Badge>
-              )
-            })()}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              {(() => {
+                const cardStatus = getCardStatusInfo()
+                const Icon = cardStatus.icon
+                return (
+                  <Badge variant={cardStatus.variant} className={`text-xs px-2 py-1 flex items-center gap-1 ${cardStatus.className}`}>
+                    <Icon className="h-3 w-3" />
+                    {cardStatus.label}
+                  </Badge>
+                )
+              })()}
 
-            {/* Additional info badges for super admin */}
-            {isSuperAdmin && member.tenant && (
-              <Badge variant="outline" className="text-xs px-3 py-1 w-fit">
-                {member.tenant.name}
-              </Badge>
+              {/* Additional info badges for super admin */}
+              {isSuperAdmin && member.tenant && (
+                <Badge variant="outline" className="text-xs px-3 py-1 w-fit">
+                  {member.tenant.name}
+                </Badge>
+              )}
+            </div>
+
+            {/* Card UID display for verification */}
+            {member.gymMemberProfile?.cardUid && (
+              <div className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded text-center">
+                UID: {member.gymMemberProfile.cardUid}
+              </div>
             )}
           </div>
 
