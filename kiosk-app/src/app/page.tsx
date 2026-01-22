@@ -37,20 +37,35 @@ export default function KioskPage() {
 
     console.log('🔍 UID Analysis - Raw:', rawUid, 'Cleaned:', normalized);
 
-    // If it looks like a reversed UID (common RFID reader issue), try reversing byte order
-    // This handles cases where tablet reader sends LSB first vs MSB first
+    // Handle different UID formats from various RFID readers
     if (normalized.length >= 8 && /^\d+$/.test(normalized)) {
-      // For numeric UIDs, show the reversed version for comparison
-      const reversed = normalized.match(/.{2}/g)?.reverse()?.join('') || normalized;
-      console.log('🔄 UID Comparison:', {
+      const options = {
         original: normalized,
-        reversed: reversed,
-        length: normalized.length,
-        isNumeric: /^\d+$/.test(normalized)
-      });
+        // Reverse byte pairs (common RFID reader difference)
+        reversed: normalized.match(/.{2}/g)?.reverse()?.join('') || normalized,
+        // Take first 10 characters (truncate long readings)
+        truncated: normalized.substring(0, 10),
+        // Reverse and truncate
+        reversedTruncated: (normalized.match(/.{2}/g)?.reverse()?.join('') || normalized).substring(0, 10),
+      };
 
-      // For now, we'll use the original format
-      // TODO: Add database lookup to determine correct format
+      console.log('🔄 UID Transformation Options:', options);
+
+      // Priority: try truncated first (handles long concatenated readings), then reversed
+      if (normalized.length > 10) {
+        console.log('📏 Long UID detected, using truncated version:', options.truncated);
+        return options.truncated;
+      }
+
+      // For shorter UIDs, try reversed if it looks like it should be reversed
+      // (This is a heuristic - you may need to adjust based on your reader)
+      const reversed = options.reversed;
+      if (reversed !== normalized && reversed.length === normalized.length) {
+        console.log('🔄 Using reversed format:', reversed);
+        return reversed;
+      }
+
+      console.log('📝 Using original format:', normalized);
       return normalized;
     }
 
