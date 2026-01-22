@@ -277,7 +277,7 @@ export default function KioskPage() {
   }, [result]);
 
   return (
-    <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${getBackgroundColor()}`}>
+    <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${getBackgroundColor()} relative`}>
       {/* Debug info display - only in development */}
       {debugInfo && process.env.NODE_ENV === 'development' && (
         <div className="absolute top-4 left-4 bg-black bg-opacity-90 text-white p-4 rounded-lg text-sm font-mono max-w-md z-50">
@@ -310,14 +310,14 @@ export default function KioskPage() {
         className="absolute top-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
         autoFocus={!result}
       />
-      <div className="w-[min(800px,90vw,90vh)] h-[min(800px,90vw,90vh)] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center">
+      <div className="w-[min(900px,95vw,95vh)] h-[min(900px,95vw,95vh)] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center">
         <div className="text-center text-white px-8">
-          <h1 className={`font-bold mb-6 ${!result ? 'text-6xl sm:text-8xl lg:text-9xl' : 'text-5xl sm:text-6xl lg:text-7xl'}`}>
+          <h1 className={`font-bold mb-6 ${!result ? 'text-7xl sm:text-9xl lg:text-9xl' : 'text-6xl sm:text-7xl lg:text-8xl'}`}>
             {getText()}
           </h1>
           {!result && cardUid && (
             <div className="flex flex-col items-center space-y-4">
-              <div className="text-2xl sm:text-3xl lg:text-4xl opacity-70">Reading card</div>
+              <div className="text-3xl sm:text-4xl lg:text-5xl opacity-70">Reading card</div>
               <div className="flex space-x-2">
                 <div className="w-6 h-6 bg-white rounded-full animate-pulse"></div>
                 <div className="w-6 h-6 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
@@ -330,8 +330,8 @@ export default function KioskPage() {
 
       {/* Detailed message below circle */}
       {getDetailedMessage() && (
-        <div className="mt-8 text-center text-white max-w-2xl">
-          <p className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-relaxed whitespace-pre-line px-4">
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-center text-white max-w-4xl px-8">
+          <p className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-medium leading-relaxed whitespace-pre-line drop-shadow-lg">
             {getDetailedMessage()}
           </p>
         </div>
