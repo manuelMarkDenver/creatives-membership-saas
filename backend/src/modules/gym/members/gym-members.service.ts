@@ -10,6 +10,7 @@ import { PrismaService } from '../../../core/prisma/prisma.service';
 import { S3UploadService } from '../../../core/supabase/s3-upload.service';
 import { NotificationsService } from '../../../core/notifications/notifications.service';
 import { EmailService } from '../../../core/email/email.service';
+import { EventsService } from '../../access/events.service';
 
 @Injectable()
 export class GymMembersService {
@@ -20,6 +21,7 @@ export class GymMembersService {
     private s3UploadService: S3UploadService,
     private notificationsService: NotificationsService,
     private emailService: EmailService,
+    private eventsService: EventsService,
   ) {}
 
   // ========================================
@@ -597,22 +599,22 @@ export class GymMembersService {
       });
       this.logger.log(`Gym ${gymId} inventory cards:`, gymCards);
 
-      // Log audit event for card assignment failure
-      await this.createAuditLog({
-        memberId,
-        action: 'CARD_ASSIGNMENT_FAILED',
-        reason: 'No available card inventory',
-        previousState: purpose === 'ONBOARD' ? 'PENDING_CARD' : 'ACTIVE',
-        newState: purpose === 'ONBOARD' ? 'PENDING_CARD' : 'ACTIVE',
-        performedBy: performedBy,
-        metadata: {
+      // Log event for card assignment failure
+      if (this.eventsService) {
+        await this.eventsService.logEvent({
           gymId,
-          purpose,
-          availableInventory: 0,
-          totalInventory,
-          gymCardsCount: gymCards.length,
-        },
-      });
+          type: 'CARD_ASSIGNMENT_FAILED',
+          memberId,
+          actorUserId: performedBy,
+          meta: {
+            purpose,
+            reason: 'No available card inventory',
+            availableInventory: 0,
+            totalInventory,
+            gymCardsCount: gymCards.length,
+          },
+        });
+      }
 
       throw new BadRequestException(
         `No available card inventory for this gym (gymId: ${gymId}). Found ${totalInventory} available cards total, but none allocated to this gym. Please allocate cards to this branch first.`,
