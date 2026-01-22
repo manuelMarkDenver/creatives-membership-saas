@@ -353,21 +353,21 @@ export function MemberActionsModal({
               </div>
 
               {/* Current subscription info */}
-              {memberData.subscription && (
-                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <div className="grid grid-cols-2 gap-4 text-xs">
-                    <div>
-                      <span className="text-muted-foreground">Plan:</span>
-                      <p className="font-medium">{memberData.subscription.gymMembershipPlan.name}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Price:</span>
-                      <p className="font-medium text-green-600">₱{memberData.subscription.gymMembershipPlan.price}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Start:</span>
-                      <p className="font-medium">{new Date(memberData.subscription.startDate).toLocaleDateString()}</p>
-                    </div>
+               {memberData.subscription && (
+                 <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                   <div className="grid grid-cols-2 gap-4 text-xs">
+                     <div>
+                       <span className="text-muted-foreground">Plan:</span>
+                       <p className="font-medium">{memberData.subscription.gymMembershipPlan?.name || 'Unknown Plan'}</p>
+                     </div>
+                     <div>
+                       <span className="text-muted-foreground">Price:</span>
+                       <p className="font-medium text-green-600">₱{memberData.subscription.gymMembershipPlan?.price || 'N/A'}</p>
+                     </div>
+                     <div>
+                       <span className="text-muted-foreground">Start:</span>
+                       <p className="font-medium">{new Date(memberData.subscription.startDate).toLocaleDateString()}</p>
+                     </div>
                     <div>
                       <span className="text-muted-foreground">End:</span>
                       <p className="font-medium">{new Date(memberData.subscription.endDate).toLocaleDateString()}</p>
@@ -508,7 +508,7 @@ export function MemberActionsModal({
            <Button
              variant={config.buttonVariant}
              onClick={handleSubmit}
-             disabled={(actionType !== 'assign_plan' && !reason) || ((actionType === 'renew' || actionType === 'assign_plan') && !selectedPlanId) || isMutating}
+             disabled={(actionType !== 'assign_plan' && !reason) || ((actionType === 'renew' || actionType === 'assign_plan') && !selectedPlanId) || (actionType === 'enable_card' && !selectedCardUid) || isMutating}
            >
             <IconComponent className="w-4 h-4 mr-2" />
             {isMutating ? `${config.buttonText.split(' ')[0]}ing...` : config.buttonText}

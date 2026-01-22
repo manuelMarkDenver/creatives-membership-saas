@@ -1102,7 +1102,25 @@ export class GymMembersService {
   }
 
   async getMemberWithStatus(memberId: string) {
-    const member = await this.getMemberById(memberId);
+    const member = await this.prisma.user.findUnique({
+      where: { id: memberId },
+      include: {
+        gymMemberProfile: true,
+        gymMemberSubscriptions: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          include: {
+            gymMembershipPlan: true, // Include plan details for UI display
+          },
+        },
+        cards: true, // Include cards for enable/disable functionality
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+
     const state = await this.getMemberState(member);
 
     // Get the active subscription if it exists
@@ -1116,6 +1134,7 @@ export class GymMembersService {
       phoneNumber: member.phoneNumber,
       currentState: state,
       subscription: subscription,
+      cards: member.cards, // Include cards in response
     };
   }
 
