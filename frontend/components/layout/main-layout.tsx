@@ -102,7 +102,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const handleSignOut = async () => {
     // Use the centralized auth manager for consistent logout
     const { authManager } = await import('@/lib/auth/auth-utils')
-    authManager.logout() // This will clear all auth data and redirect automatically
+    await authManager.logout() // This will clear all auth data and redirect automatically
   }
 
   // Wrap content with OnboardingWrapper for OWNER role only

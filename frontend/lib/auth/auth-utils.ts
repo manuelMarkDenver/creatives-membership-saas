@@ -35,13 +35,15 @@ export class AuthManager {
    */
   getCurrentUser(): AuthUser | null {
     if (typeof window === 'undefined') return null
-    
+
     try {
       const userData = localStorage.getItem('user_data')
+      console.log('getCurrentUser: localStorage user_data exists:', !!userData)
       if (!userData) return null
-      
+
       const user = JSON.parse(userData)
-      
+      console.log('getCurrentUser: parsed user:', user?.id, user?.email)
+
       // Validate user data structure
       if (!user.id || !user.email || !user.role) {
         console.warn('Invalid user data structure, clearing auth')
@@ -196,7 +198,7 @@ export class AuthManager {
   /**
    * Complete logout - clear all auth data and redirect
    */
-  logout(redirectToLogin = true): void {
+  async logout(redirectToLogin = true): Promise<void> {
     if (typeof window === 'undefined') return
 
     // Get user data BEFORE clearing localStorage for logout event logging
@@ -220,9 +222,12 @@ export class AuthManager {
     console.log('User logged out - all auth data cleared')
 
     // Log logout event (using user data retrieved before clearing)
+    console.log('Logout: user data retrieved:', user ? 'YES' : 'NO', user?.id)
     if (user) {
       console.log('Logging LOGOUT event for user:', user.id)
-      this.logAuthEvent('LOGOUT', user.id, user.tenantId || undefined)
+      await this.logAuthEvent('LOGOUT', user.id, user.tenantId || undefined)
+    } else {
+      console.log('No user data found for logout event logging')
     }
 
     // Redirect to login page
@@ -325,7 +330,7 @@ export const authManager = AuthManager.getInstance()
 export const authUtils = {
   getCurrentUser: () => authManager.getCurrentUser(),
   isAuthenticated: () => authManager.isAuthenticated(),
-  logout: () => authManager.logout(),
+  logout: () => authManager.logout(), // This will return a Promise now
   getAuthToken: () => authManager.getAuthToken(),
   hasRole: (roles: string[]) => authManager.hasRole(roles)
 }
