@@ -403,7 +403,10 @@ export class GymMembersService {
     }
 
     // Re-enable disabled card if member had one
-    if (member.gymMemberProfile?.cardUid && member.gymMemberProfile.cardStatus === 'DISABLED') {
+    if (
+      member.gymMemberProfile?.cardUid &&
+      member.gymMemberProfile.cardStatus === 'DISABLED'
+    ) {
       await this.prisma.gymMemberProfile.update({
         where: { id: member.gymMemberProfile.id },
         data: {
@@ -463,7 +466,10 @@ export class GymMembersService {
     }
 
     // Disable associated card for security - cancelled members should not have access
-    if (member.gymMemberProfile?.cardUid && member.gymMemberProfile.cardStatus === 'ACTIVE') {
+    if (
+      member.gymMemberProfile?.cardUid &&
+      member.gymMemberProfile.cardStatus === 'ACTIVE'
+    ) {
       await this.prisma.gymMemberProfile.update({
         where: { id: member.gymMemberProfile.id },
         data: {

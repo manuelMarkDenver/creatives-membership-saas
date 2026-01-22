@@ -49,7 +49,12 @@ export class CardAssignmentService {
           where: { uid: oldCardUid },
         });
 
-        if (!oldCard || oldCard.memberId !== memberId || oldCard.gymId !== gymId || !oldCard.active) {
+        if (
+          !oldCard ||
+          oldCard.memberId !== memberId ||
+          oldCard.gymId !== gymId ||
+          !oldCard.active
+        ) {
           throw new Error('Invalid old card for replacement');
         }
 

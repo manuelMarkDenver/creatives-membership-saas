@@ -83,6 +83,14 @@ export class AccessService {
 
     // Check for gym/branch mismatches and deny access
     if (operationalCard && operationalCard.gymId !== gymId) {
+      // Get member's home branch from profile
+      const memberProfile = operationalCard.memberId
+        ? await this.prisma.gymMemberProfile.findUnique({
+            where: { userId: operationalCard.memberId },
+            select: { primaryBranchId: true },
+          })
+        : null;
+
       await this.eventsService.logEvent({
         gymId,
         terminalId,
@@ -92,6 +100,7 @@ export class AccessService {
         meta: {
           cardGymId: operationalCard.gymId,
           terminalGymId: gymId,
+          memberHomeBranchId: memberProfile?.primaryBranchId,
           mismatchType: 'gym',
         },
       });
@@ -348,7 +357,7 @@ export class AccessService {
       memberId: pending.memberId,
       meta:
         pending.purpose === 'REPLACE'
-          ? { oldCardUid: assignmentResult.oldCardUid }
+          ? { oldCardUid: assignmentResult.oldCardUid, newCardUid: cardUid }
           : undefined,
     });
 
