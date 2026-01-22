@@ -49,6 +49,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // Mark as mounted to prevent hydration issues
   useEffect(() => {
     setMounted(true)
+
+    // Initialize auth manager to clean up any corrupted localStorage data
+    authManager.initialize()
   }, [])
 
   // Set tenant context when profile loads

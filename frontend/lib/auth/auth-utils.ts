@@ -1,6 +1,38 @@
 // Authentication utilities for session management and validation
 import { devAuth } from './dev-auth'
 
+// Utility to safely serialize objects
+function safeStringify(obj: any): string {
+  try {
+    return JSON.stringify(obj, (key, value) => {
+      // Remove functions, undefined values, and potential cross-origin objects
+      if (typeof value === 'function') return undefined
+      if (value === undefined) return undefined
+      if (value && typeof value === 'object') {
+        // Check for potential cross-origin wrappers
+        if (value.constructor && value.constructor.name === 'XrayWrapper') return undefined
+        // Remove DOM elements
+        if (value.nodeType || value.tagName) return undefined
+      }
+      return value
+    })
+  } catch (error) {
+    console.error('Failed to safely stringify object:', error)
+    return '{}'
+  }
+}
+
+// Utility to safely parse JSON
+function safeParse(jsonString: string): any {
+  try {
+    if (!jsonString || typeof jsonString !== 'string') return null
+    return JSON.parse(jsonString)
+  } catch (error) {
+    console.error('Failed to safely parse JSON:', error)
+    return null
+  }
+}
+
 // Get API URL from environment with fallback for development
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
 if (!API_URL || API_URL === 'undefined') {
@@ -41,20 +73,50 @@ export class AuthManager {
       console.log('getCurrentUser: localStorage user_data exists:', !!userData)
       if (!userData) return null
 
-      const user = JSON.parse(userData)
+      // Use safe parse to handle corrupted data gracefully
+      const user = safeParse(userData)
+      if (!user) {
+        console.warn('Failed to parse user_data, clearing auth')
+        this.logout()
+        return null
+      }
       console.log('getCurrentUser: parsed user:', user?.id, user?.email)
 
       // Validate user data structure
+      if (!user || typeof user !== 'object') {
+        console.warn('User data is not an object, clearing auth')
+        this.logout()
+        return null
+      }
+
       if (!user.id || !user.email || !user.role) {
         console.warn('Invalid user data structure, clearing auth')
         this.logout()
         return null
       }
-      
-      return user
+
+      // Ensure only serializable properties are present
+      const sanitizedUser: AuthUser = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        role: user.role,
+        tenantId: user.tenantId || null,
+        tenant: user.tenant || null
+      }
+
+      return sanitizedUser
     } catch (error) {
       console.error('Error parsing user data:', error)
-      this.logout()
+      // Clear corrupted data
+      try {
+        localStorage.removeItem('user_data')
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('currentTenant')
+      } catch (clearError) {
+        console.error('Error clearing corrupted auth data:', clearError)
+      }
       return null
     }
   }
@@ -65,6 +127,92 @@ export class AuthManager {
   getAuthToken(): string | null {
     if (typeof window === 'undefined') return null
     return localStorage.getItem('auth_token')
+  }
+
+  /**
+   * Initialize auth manager - clean up any corrupted data
+   */
+  initialize(): void {
+    if (typeof window === 'undefined') return
+
+    try {
+      // Global error handler for localStorage issues
+      const handleStorageError = (error: any) => {
+        if (error?.message?.includes('XrayWrapper') ||
+            error?.message?.includes('cross-origin') ||
+            error?.name === 'SyntaxError') {
+          console.warn('Detected cross-origin or corruption error, clearing all storage')
+          try {
+            localStorage.clear()
+            sessionStorage.clear()
+          } catch (clearError) {
+            console.error('Failed to clear storage:', clearError)
+          }
+          return true
+        }
+        return false
+      }
+
+      // Check if user data exists and is valid
+      const userData = localStorage.getItem('user_data')
+      if (userData) {
+        try {
+          const parsed = safeParse(userData)
+
+          if (!parsed || typeof parsed !== 'object') {
+            console.warn('User data is corrupted or not an object, clearing auth')
+            this.logout()
+            return // Don't continue with other checks
+          }
+
+          // Additional validation - ensure required properties exist
+          if (!parsed.id || !parsed.email || !parsed.role) {
+            console.warn('User data missing required properties, clearing auth')
+            this.logout()
+            return // Don't continue with other checks
+          }
+        } catch (parseError) {
+          if (handleStorageError(parseError)) return
+          console.warn('Error parsing user_data during init, clearing auth:', parseError)
+          this.logout()
+          return
+        }
+      }
+
+      // Check if auth token exists
+      const token = localStorage.getItem('auth_token')
+      if (!token && userData) {
+        console.warn('Found user_data but no auth_token, clearing auth')
+        this.logout()
+      }
+
+      // Check tenant data as well
+      const tenantData = localStorage.getItem('currentTenant')
+      if (tenantData) {
+        try {
+          safeParse(tenantData)
+        } catch (parseError) {
+          if (handleStorageError(parseError)) return
+          console.warn('Tenant data corrupted, removing:', parseError)
+          localStorage.removeItem('currentTenant')
+        }
+      }
+
+    } catch (error) {
+      console.error('Error during auth initialization:', error)
+      // Clear everything if there are any issues
+      try {
+        this.logout()
+      } catch (logoutError) {
+        // If logout fails, manually clear
+        try {
+          localStorage.clear()
+          sessionStorage.clear()
+        } catch (clearError) {
+          console.error('Failed to clear storage:', clearError)
+        }
+      }
+    }
   }
   
   /**
@@ -258,12 +406,38 @@ export class AuthManager {
   setAuthData(user: AuthUser, token: string): void {
     if (typeof window === 'undefined') return
 
-    localStorage.setItem('user_data', JSON.stringify(user))
-    localStorage.setItem('auth_token', token)
+    try {
+      // Sanitize user object to ensure it's serializable
+      const sanitizedUser: AuthUser = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        role: user.role,
+        tenantId: user.tenantId || null,
+        tenant: user.tenant || null
+      }
 
-    // Log login event
-    console.log('Logging LOGIN event for user:', user.id)
-    this.logAuthEvent('LOGIN', user.id, user.tenantId || undefined)
+      // Use safe stringify to handle any potential cross-origin objects
+      const serializedUser = safeStringify(sanitizedUser)
+
+      // Test that it can be parsed back
+      const parsedBack = safeParse(serializedUser)
+      if (!parsedBack) {
+        throw new Error('Failed to serialize/deserialize user data')
+      }
+
+      localStorage.setItem('user_data', serializedUser)
+      localStorage.setItem('auth_token', token)
+
+      // Log login event
+      console.log('Logging LOGIN event for user:', user.id)
+      this.logAuthEvent('LOGIN', user.id, user.tenantId || undefined)
+    } catch (error) {
+      console.error('Error storing auth data:', error)
+      // Don't store corrupted data
+      this.logout()
+    }
   }
   
   /**

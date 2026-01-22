@@ -51,15 +51,44 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentTenant, mounted])
 
+  // Safe serialization utilities
+  const safeStringify = (obj: any): string => {
+    try {
+      return JSON.stringify(obj, (key, value) => {
+        if (typeof value === 'function') return undefined
+        if (value === undefined) return undefined
+        if (value && typeof value === 'object') {
+          if (value.constructor && value.constructor.name === 'XrayWrapper') return undefined
+          if (value.nodeType || value.tagName) return undefined
+        }
+        return value
+      })
+    } catch (error) {
+      console.error('Failed to safely stringify tenant:', error)
+      return '{}'
+    }
+  }
+
+  const safeParse = (jsonString: string): any => {
+    try {
+      if (!jsonString || typeof jsonString !== 'string') return null
+      return JSON.parse(jsonString)
+    } catch (error) {
+      console.error('Failed to safely parse tenant JSON:', error)
+      return null
+    }
+  }
+
   // Load tenant from localStorage on mount (only on client)
   useEffect(() => {
     if (mounted) {
       const savedTenant = localStorage.getItem('currentTenant')
       if (savedTenant) {
-        try {
-          setCurrentTenant(JSON.parse(savedTenant))
-        } catch (error) {
-          console.warn('Failed to parse saved tenant:', error)
+        const parsed = safeParse(savedTenant)
+        if (parsed) {
+          setCurrentTenant(parsed)
+        } else {
+          console.warn('Failed to parse saved tenant, clearing')
           localStorage.removeItem('currentTenant')
         }
       }
@@ -71,7 +100,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     console.log('currentTenant updated:', currentTenant)
     if (mounted) {
       if (currentTenant && authManager.isAuthenticated()) {
-        localStorage.setItem('currentTenant', JSON.stringify(currentTenant))
+        const serialized = safeStringify(currentTenant)
+        localStorage.setItem('currentTenant', serialized)
       } else {
         localStorage.removeItem('currentTenant')
       }

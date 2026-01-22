@@ -50,11 +50,19 @@ apiClient.interceptors.request.use(
       try {
         const userData = localStorage.getItem('user_data');
         if (userData) {
-          const storedUser = JSON.parse(userData);
-          tenantId = storedUser?.tenantId;
+          // Safe JSON parsing to handle corrupted data
+          try {
+            const storedUser = JSON.parse(userData);
+            tenantId = storedUser?.tenantId;
+          } catch (parseError) {
+            console.warn('Failed to parse user_data in API client, clearing:', parseError);
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('auth_token');
+          }
         }
       } catch (error) {
-        // Ignore localStorage errors
+        // Ignore localStorage access errors
+        console.warn('Error accessing localStorage in API client:', error);
       }
     }
 
