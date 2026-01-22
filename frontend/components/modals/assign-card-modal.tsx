@@ -20,7 +20,6 @@ interface AssignCardModalProps {
 export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: AssignCardModalProps) {
   const [countdown, setCountdown] = useState(600) // 10 minutes in seconds
   const [isPolling, setIsPolling] = useState(false)
-  const [forceCloseModal, setForceCloseModal] = useState(false)
   const queryClient = useQueryClient()
 
   const memberName = member ? `${member.firstName || ''} ${member.lastName || ''}`.trim() : 'Unknown'
@@ -61,12 +60,6 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
       refetchPending()
       // Additional refetch after a short delay
       setTimeout(() => refetchPending(), 500)
-
-      // Backup: force close modal after 3 seconds if polling doesn't detect completion
-      setTimeout(() => {
-        console.log('Backup: forcing modal close after 3 seconds')
-        setForceCloseModal(true)
-      }, 3000)
     },
     onError: (error: any) => {
       toast.error(`Failed to assign card: ${error.message}`)
@@ -131,19 +124,7 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
     }
   }, [pendingData, isPolling, isFetching, onCardAssigned, onClose, queryClient])
 
-  // Force close modal as backup
-  useEffect(() => {
-    if (forceCloseModal) {
-      console.log('Force closing modal')
-      setIsPolling(false)
-      setForceCloseModal(false)
-      toast.success('Card assignment completed!')
-      onCardAssigned?.()
-      onClose()
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-      queryClient.invalidateQueries({ queryKey: ['gym-members'] })
-    }
-  }, [forceCloseModal, onCardAssigned, onClose, queryClient])
+
 
   // Reset state when modal opens
   useEffect(() => {
