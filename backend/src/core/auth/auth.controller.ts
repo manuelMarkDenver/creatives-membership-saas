@@ -522,6 +522,7 @@ export class AuthController {
     reason?: string;
     meta?: any;
   }) {
+    console.log('Auth event received:', body);
     try {
       await this.authEventsService.logAuthEvent({
         type: body.type,
@@ -533,6 +534,7 @@ export class AuthController {
         meta: body.meta,
       });
 
+      console.log('Auth event logged successfully:', body.type);
       return { success: true };
     } catch (error) {
       console.error('Failed to log auth event:', error);

@@ -219,6 +219,7 @@ export class AuthManager {
     // Log logout event
     const user = this.getCurrentUser()
     if (user) {
+      console.log('Logging LOGOUT event for user:', user.id, 'reason:', reason)
       this.logAuthEvent('LOGOUT', user.id, user.tenantId, reason)
     }
 
@@ -254,6 +255,7 @@ export class AuthManager {
     localStorage.setItem('auth_token', token)
 
     // Log login event
+    console.log('Logging LOGIN event for user:', user.id)
     this.logAuthEvent('LOGIN', user.id, user.tenantId)
   }
   
@@ -287,6 +289,7 @@ export class AuthManager {
     reason?: string
   ): Promise<void> {
     try {
+      console.log('Sending auth event:', { type, userId, tenantId, reason })
       const response = await fetch(`${API_URL}/auth/events`, {
         method: 'POST',
         headers: {
@@ -302,8 +305,11 @@ export class AuthManager {
         }),
       })
 
+      console.log('Auth event response:', response.status, response.statusText)
       if (!response.ok) {
         console.warn('Failed to log auth event:', response.status)
+      } else {
+        console.log('Auth event logged successfully')
       }
     } catch (error) {
       console.warn('Error logging auth event:', error)

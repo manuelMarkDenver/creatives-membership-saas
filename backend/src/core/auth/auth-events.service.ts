@@ -14,9 +14,12 @@ export class AuthEventsService {
     reason?: string;
     meta?: any;
   }) {
-    return this.prisma.authEvent.create({
+    console.log('Creating auth event in database:', data);
+    const result = await this.prisma.authEvent.create({
       data,
     });
+    console.log('Auth event created with ID:', result.id);
+    return result;
   }
 
   // Helper methods for common events
