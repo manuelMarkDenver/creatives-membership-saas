@@ -3,14 +3,14 @@
 
 export interface MemberEffectiveStatus {
   canAccessFacilities: boolean
-  displayStatus: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'SUSPENDED' | 'NO_SUBSCRIPTION' | 'DELETED' | 'PENDING_CARD'
+  displayStatus: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'SUSPENDED' | 'NO_SUBSCRIPTION' | 'DELETED' | 'PENDING_CARD' | 'CARD_REQUIRED'
   primaryIssue?: string
   statusColor: 'green' | 'orange' | 'yellow' | 'red' | 'gray' | 'blue' | 'purple'
   statusIcon: 'check' | 'clock' | 'x' | 'alert' | 'info' | 'trash' | 'card'
 }
 
 export interface DisplayStatus {
-  status: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'NO_SUBSCRIPTION' | 'DELETED' | 'PENDING_CARD'
+  status: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'NO_SUBSCRIPTION' | 'DELETED' | 'PENDING_CARD' | 'CARD_REQUIRED'
   label: string
   color: 'green' | 'orange' | 'yellow' | 'red' | 'gray' | 'purple'
   canAccess: boolean
@@ -70,17 +70,28 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
     }
   }
 
-  // Check if member is pending card assignment (highest priority)
-  const cardStatus = member.gymMemberProfile?.cardStatus
-  if (cardStatus === 'PENDING_CARD') {
-    return {
-      canAccessFacilities: false,
-      displayStatus: 'PENDING_CARD',
-      primaryIssue: 'Waiting for card assignment',
-      statusColor: 'purple',
-      statusIcon: 'card'
-    }
-  }
+   // Check if member needs card assignment (highest priority)
+   const cardStatus = member.gymMemberProfile?.cardStatus
+   if (cardStatus === 'PENDING_CARD') {
+     return {
+       canAccessFacilities: false,
+       displayStatus: 'PENDING_CARD',
+       primaryIssue: 'Waiting for card assignment',
+       statusColor: 'purple',
+       statusIcon: 'card'
+     }
+   }
+
+   // Members without cards cannot access the gym
+   if (cardStatus === 'NO_CARD') {
+     return {
+       canAccessFacilities: false,
+       displayStatus: 'CARD_REQUIRED',
+       primaryIssue: 'Card required for gym access',
+       statusColor: 'orange',
+       statusIcon: 'alert'
+     }
+   }
 
   // Get the most recent subscription matching backend logic
   // Backend uses the most recent subscription by creation date
@@ -240,6 +251,7 @@ export function getAvailableMemberActions(member: MemberData) {
   // Status-specific actions
   switch (status.displayStatus) {
     case 'PENDING_CARD':
+    case 'CARD_REQUIRED':
       actions.push('assign-card')
       break
 
