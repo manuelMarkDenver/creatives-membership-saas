@@ -277,7 +277,7 @@ export default function KioskPage() {
   }, [result]);
 
   return (
-    <div className={`min-h-screen flex flex-col items-center transition-colors duration-300 ${getBackgroundColor()} relative pb-48 pt-8`}>
+    <div className={`h-screen flex flex-col transition-colors duration-300 ${getBackgroundColor()} relative overflow-hidden landscape:pb-48 portrait:justify-center portrait:items-center`}>
       {/* Debug info display - only in development */}
       {debugInfo && process.env.NODE_ENV === 'development' && (
         <div className="absolute top-4 left-4 bg-black bg-opacity-90 text-white p-4 rounded-lg text-sm font-mono max-w-md z-50">
@@ -310,9 +310,9 @@ export default function KioskPage() {
         className="absolute top-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
         autoFocus={!result}
       />
-      <div className="w-[min(700px,80vw,70vh)] h-[min(700px,80vw,70vh)] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center">
+      <div className="w-[min(600px,70vw,60vh)] h-[min(600px,70vw,60vh)] portrait:w-[min(500px,80vw,70vh)] portrait:h-[min(500px,80vw,70vh)] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center landscape:mt-8">
         <div className="text-center text-white px-8">
-          <h1 className={`font-bold mb-6 ${!result ? 'text-6xl sm:text-8xl lg:text-9xl' : 'text-5xl sm:text-6xl lg:text-7xl'}`}>
+          <h1 className={`font-bold mb-6 ${!result ? 'text-5xl portrait:text-6xl landscape:text-7xl lg:text-8xl' : 'text-4xl portrait:text-5xl landscape:text-6xl lg:text-7xl'}`}>
             {getText()}
           </h1>
           {!result && cardUid && (
@@ -328,10 +328,10 @@ export default function KioskPage() {
         </div>
       </div>
 
-      {/* Detailed message below circle */}
+      {/* Detailed message - positioned differently for portrait vs landscape */}
       {getDetailedMessage() && (
-        <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 text-center text-white max-w-5xl px-8">
-          <p className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold leading-relaxed whitespace-pre-line drop-shadow-xl bg-black bg-opacity-30 rounded-lg px-6 py-4">
+        <div className="absolute left-1/2 transform -translate-x-1/2 text-center text-white max-w-5xl px-8 portrait:top-1/2 portrait:-translate-y-1/2 landscape:bottom-16">
+          <p className="text-xl portrait:text-2xl landscape:text-3xl lg:text-4xl xl:text-5xl font-bold leading-relaxed whitespace-pre-line drop-shadow-xl bg-black bg-opacity-30 rounded-lg px-6 py-4">
             {getDetailedMessage()}
           </p>
         </div>
