@@ -30,10 +30,39 @@ export default function KioskPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [cardUid, result]);
 
+  // Normalize card UID - handle common RFID reader differences
+  const normalizeCardUid = (rawUid: string): string => {
+    // Remove any whitespace and convert to uppercase
+    let normalized = rawUid.trim().toUpperCase();
+
+    console.log('🔍 UID Analysis - Raw:', rawUid, 'Cleaned:', normalized);
+
+    // If it looks like a reversed UID (common RFID reader issue), try reversing byte order
+    // This handles cases where tablet reader sends LSB first vs MSB first
+    if (normalized.length >= 8 && /^\d+$/.test(normalized)) {
+      // For numeric UIDs, show the reversed version for comparison
+      const reversed = normalized.match(/.{2}/g)?.reverse()?.join('') || normalized;
+      console.log('🔄 UID Comparison:', {
+        original: normalized,
+        reversed: reversed,
+        length: normalized.length,
+        isNumeric: /^\d+$/.test(normalized)
+      });
+
+      // For now, we'll use the original format
+      // TODO: Add database lookup to determine correct format
+      return normalized;
+    }
+
+    return normalized;
+  };
+
   const handleTap = async () => {
-    console.log('handleTap called with cardUid:', cardUid);
-    if (isProcessing || cardUid.length === 0) {
-      console.log('Skipping tap - isProcessing:', isProcessing, 'cardUid length:', cardUid.length);
+    const normalizedUid = normalizeCardUid(cardUid);
+    console.log('handleTap called with raw cardUid:', cardUid, 'normalized:', normalizedUid);
+
+    if (isProcessing || normalizedUid.length === 0) {
+      console.log('Skipping tap - isProcessing:', isProcessing, 'normalizedUid length:', normalizedUid.length);
       return;
     }
 
@@ -65,7 +94,7 @@ export default function KioskPage() {
       console.log('API URL:', apiBase, 'ENV:', process.env.NODE_ENV, 'NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
 
       const requestUrl = `${apiBase}/api/v1/access/check`;
-      console.log('🚀 KIOSK: Making API call to:', requestUrl, 'with cardUid:', cardUid);
+      console.log('🚀 KIOSK: Making API call to:', requestUrl, 'with normalized cardUid:', normalizedUid);
 
       const response = await fetch(requestUrl, {
         method: 'POST',
@@ -74,7 +103,7 @@ export default function KioskPage() {
           'X-Terminal-Id-Encoded': encodedId,
           'X-Terminal-Secret-Encoded': encodedSecret,
         },
-        body: JSON.stringify({ cardUid }),
+        body: JSON.stringify({ cardUid: normalizedUid }),
       });
 
       console.log('API Response status:', response.status);
