@@ -514,22 +514,28 @@ export class AuthController {
    * POST /auth/events
    */
   @Post('events')
-  async logAuthEvent(@Body() body: {
+  async logAuthEvent(@Req() req: Request, @Body() body: {
     type: string;
     userId?: string;
     tenantId?: string;
-    ipAddress?: string;
     userAgent?: string;
     reason?: string;
     meta?: any;
   }) {
-    console.log('Auth event received:', body);
+    // Get real client IP from request headers
+    const clientIP = req.ip ||
+                     req.connection.remoteAddress ||
+                     (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
+                     (req.headers['x-real-ip'] as string) ||
+                     'unknown';
+
+    console.log('Auth event received:', body, 'IP:', clientIP);
     try {
       await this.authEventsService.logAuthEvent({
         type: body.type,
         userId: body.userId,
         tenantId: body.tenantId,
-        ipAddress: body.ipAddress,
+        ipAddress: clientIP,
         userAgent: body.userAgent,
         reason: body.reason,
         meta: body.meta,

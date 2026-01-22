@@ -199,6 +199,9 @@ export class AuthManager {
   logout(redirectToLogin = true): void {
     if (typeof window === 'undefined') return
 
+    // Get user data BEFORE clearing localStorage for logout event logging
+    const user = this.getCurrentUser()
+
     // Clear localStorage
     localStorage.removeItem('user_data')
     localStorage.removeItem('auth_token')
@@ -216,8 +219,7 @@ export class AuthManager {
 
     console.log('User logged out - all auth data cleared')
 
-    // Log logout event
-    const user = this.getCurrentUser()
+    // Log logout event (using user data retrieved before clearing)
     if (user) {
       console.log('Logging LOGOUT event for user:', user.id)
       this.logAuthEvent('LOGOUT', user.id, user.tenantId || undefined)
@@ -299,7 +301,6 @@ export class AuthManager {
           type,
           userId,
           tenantId,
-          ipAddress: undefined, // Browser can't get real IP
           userAgent: navigator.userAgent,
           reason,
         }),
