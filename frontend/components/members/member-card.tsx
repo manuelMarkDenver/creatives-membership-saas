@@ -352,7 +352,8 @@ export function MemberCard({
             )}
           </div>
 
-          {/* Primary Card Actions */}
+         <div className="flex flex-row items-center justify-end gap-2 w-full">
+          {/* Primary Card Actions - Moved to right side */}
           {(() => {
             const cardStatus = member.gymMemberProfile?.cardStatus
             const canManage = canManageMember()
@@ -361,12 +362,12 @@ export function MemberCard({
             if (!canManage || currentState === 'DELETED') return null
 
             return (
-              <div className="flex flex-wrap gap-2">
+              <>
                 {/* Assign Card Button - for members without cards */}
                 {(cardStatus === 'NO_CARD' || !cardStatus) && currentState === 'ACTIVE' && (
                   <button
                     type="button"
-                    className="px-4 py-2.5 text-sm bg-green-600 hover:bg-green-700 text-white border border-green-600 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex items-center gap-2"
+                    className="px-4 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
                     onClick={() => onAssignCard(member)}
                   >
                     <CreditCard className="h-4 w-4" />
@@ -378,18 +379,16 @@ export function MemberCard({
                 {cardStatus === 'ACTIVE' && currentState === 'ACTIVE' && (
                   <button
                     type="button"
-                    className="px-4 py-2.5 text-sm bg-transparent hover:bg-blue-50 dark:hover:bg-blue-950 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex items-center gap-2"
+                    className="px-4 py-2.5 text-sm bg-transparent hover:bg-purple-50 dark:hover:bg-purple-950 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
                     onClick={() => onReplaceCard(member)}
                   >
                     <RefreshCw className="h-4 w-4" />
                     Replace Card
                   </button>
                 )}
-              </div>
+              </>
             )
           })()}
-
-         <div className="flex flex-row items-center justify-end gap-2 w-full">
           {/* Status Button - Larger and More Touch-Friendly */}
           {(() => {
             const canManage = canManageMember();
@@ -456,8 +455,8 @@ export function MemberCard({
               switch (memberStatus.displayStatus) {
                 case 'PENDING_CARD':
                   return `${baseClasses} bg-purple-700 dark:bg-purple-400 text-white dark:text-black border-purple-700 dark:border-purple-400 hover:bg-purple-800 dark:hover:bg-purple-500 hover:border-purple-800 dark:hover:border-purple-500 hover:shadow-md`
-                case 'ACTIVE':
-                  return `${baseClasses} bg-green-800 dark:bg-green-400 text-white dark:text-black border-green-800 dark:border-green-400 hover:bg-green-900 dark:hover:bg-green-500 hover:border-green-900 dark:hover:border-green-500 hover:shadow-md`
+                 case 'ACTIVE':
+                   return `${baseClasses} bg-orange-600 dark:bg-orange-500 text-white dark:text-black border-orange-600 dark:border-orange-500 hover:bg-orange-700 dark:hover:bg-orange-600 hover:border-orange-700 dark:hover:border-orange-600 hover:shadow-md`
                 case 'CANCELLED':
                   return `${baseClasses} bg-orange-700 dark:bg-orange-400 text-white dark:text-black border-orange-700 dark:border-orange-400 hover:bg-orange-800 dark:hover:bg-orange-500 hover:border-orange-800 dark:hover:border-orange-500 hover:shadow-md`
                 case 'DELETED':
