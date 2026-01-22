@@ -23,27 +23,33 @@ export class AccessService {
 
     // Try to decode if base64, otherwise use as is
     let cardUid: string;
+    console.log('🔍 Raw encodedCardUid received:', encodedCardUid);
+
     try {
-      cardUid = Buffer.from(encodedCardUid, 'base64').toString('utf-8');
-      // Check if it looks valid (not gibberish)
+      const decodedAttempt = Buffer.from(encodedCardUid, 'base64').toString('utf-8');
+      console.log('🔄 Base64 decode attempt:', decodedAttempt);
+
+      // Check if it looks valid (not gibberish and reasonable length)
       if (
-        cardUid.length > 0 &&
-        cardUid.length < 50 &&
-        !cardUid.includes('\ufffd')
+        decodedAttempt.length > 0 &&
+        decodedAttempt.length < 50 &&
+        !decodedAttempt.includes('\ufffd') &&
+        /^\d+$/.test(decodedAttempt) // Should be numeric
       ) {
-        console.log('Decoded cardUid:', cardUid);
+        cardUid = decodedAttempt;
+        console.log('✅ Using decoded cardUid:', cardUid);
       } else {
-        // Not valid base64, use as plain
+        // Not valid base64 result, use as plain
         cardUid = encodedCardUid;
-        console.log('Using plain cardUid:', cardUid);
+        console.log('📝 Using plain cardUid (invalid base64):', cardUid);
       }
-    } catch {
+    } catch (error) {
       // Not base64, use as plain
       cardUid = encodedCardUid;
-      console.log('Using plain cardUid:', cardUid);
+      console.log('📝 Using plain cardUid (decode error):', cardUid, 'Error:', error.message);
     }
 
-    console.log('Final cardUid used:', cardUid);
+    console.log('🎯 Final cardUid used:', cardUid);
 
     // Terminal already validated by guard
     const terminal = await this.prisma.terminal.findUnique({
@@ -215,6 +221,7 @@ export class AccessService {
     }
 
     if (!pending) {
+      console.log('🚨 ACCESS_DENY_UNKNOWN: No pending assignment found for cardUid:', cardUid, 'in gym:', gymId);
       await this.eventsService.logEvent({
         gymId,
         terminalId,
