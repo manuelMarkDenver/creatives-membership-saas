@@ -277,7 +277,7 @@ export default function KioskPage() {
   }, [result]);
 
   return (
-    <div className={`h-screen flex flex-col transition-colors duration-300 ${getBackgroundColor()} relative overflow-hidden landscape:pb-32 portrait:pb-48 portrait:justify-center portrait:items-center`}>
+    <div className={`h-screen flex flex-col transition-colors duration-300 ${getBackgroundColor()} relative overflow-hidden landscape:pb-64 portrait:pb-48 portrait:justify-center portrait:items-center`}>
       {/* Debug info display - only in development */}
       {debugInfo && process.env.NODE_ENV === 'development' && (
         <div className="absolute top-4 left-4 bg-black bg-opacity-90 text-white p-4 rounded-lg text-sm font-mono max-w-md z-50">
@@ -310,7 +310,7 @@ export default function KioskPage() {
         className="absolute top-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
         autoFocus={!result}
       />
-      <div className="w-[min(600px,70vw,60vh)] h-[min(600px,70vw,60vh)] portrait:w-[min(450px,75vw,65vh)] portrait:h-[min(450px,75vw,65vh)] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center landscape:mt-12 portrait:mb-8">
+      <div className="w-[min(600px,70vw,60vh)] h-[min(600px,70vw,60vh)] portrait:w-[min(450px,75vw,65vh)] portrait:h-[min(450px,75vw,65vh)] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center mx-auto landscape:mt-8 portrait:mb-8">
         <div className="text-center text-white px-8">
           <h1 className={`font-bold mb-6 ${!result ? 'text-5xl portrait:text-6xl landscape:text-7xl lg:text-8xl' : 'text-4xl portrait:text-5xl landscape:text-6xl lg:text-7xl'}`}>
             {getText()}
@@ -330,8 +330,8 @@ export default function KioskPage() {
 
       {/* Detailed message - positioned below circle for both orientations */}
       {getDetailedMessage() && (
-        <div className="absolute left-1/2 transform -translate-x-1/2 text-center text-white max-w-5xl px-8 portrait:bottom-24 landscape:bottom-16">
-          <p className="text-xl portrait:text-2xl landscape:text-3xl lg:text-4xl xl:text-5xl font-bold leading-relaxed whitespace-pre-line drop-shadow-xl bg-black bg-opacity-30 rounded-lg px-6 py-4">
+        <div className="absolute left-1/2 transform -translate-x-1/2 text-center text-white max-w-4xl px-8 portrait:bottom-24 landscape:bottom-1/4">
+          <p className="text-lg portrait:text-xl landscape:text-2xl lg:text-3xl xl:text-4xl font-bold leading-relaxed whitespace-pre-line drop-shadow-xl bg-black bg-opacity-30 rounded-lg px-4 py-3">
             {getDetailedMessage()}
           </p>
         </div>
