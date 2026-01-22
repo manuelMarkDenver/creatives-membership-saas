@@ -52,7 +52,8 @@ model Tenant {
     emailTemplates         EmailTemplate[]
     emailLogs              EmailLog[]
     terminals              Terminal[]
-}
+    authEvents             AuthEvent[]
+  }
 
 model Branch {
   id                     String                  @id @default(uuid())
@@ -233,13 +234,14 @@ model User {
    createdBranches        Branch[]              @relation("BranchCreatedBy")
    deletedBranches        Branch[]              @relation("BranchDeletedBy")
 
-   // Access control relations
-   cards                  Card[]
-   pendingAssignments     PendingMemberAssignment[]
-   createdAssignments     PendingMemberAssignment[] @relation("AssignmentCreators")
-   eventMembers           Event[]
-   eventActors            Event[] @relation("EventActors")
-}
+    // Access control relations
+    cards                  Card[]
+    pendingAssignments     PendingMemberAssignment[]
+    createdAssignments     PendingMemberAssignment[] @relation("AssignmentCreators")
+    eventMembers           Event[]
+    eventActors            Event[] @relation("EventActors")
+    authEvents             AuthEvent[]
+  }
 
 model GymUserBranch {
   id          String      @id @default(uuid())
@@ -873,6 +875,25 @@ model Event {
   actor        User?     @relation("EventActors", fields: [actorUserId], references: [id])
 
   @@index([gymId, createdAt])
+  @@index([type])
+}
+
+model AuthEvent {
+  id          String   @id @default(uuid())
+  tenantId    String?  // Tenant ID (null for system events)
+  userId      String?  // User ID
+  type        String   // Event type: LOGIN, LOGOUT, LOGIN_FAILED, TOKEN_EXPIRED, etc.
+  ipAddress   String?  // Client IP
+  userAgent   String?  // Browser/client info
+  reason      String?  // Reason for failure/logout
+  meta        Json?    // Additional data
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([userId, createdAt])
   @@index([type])
 }
 

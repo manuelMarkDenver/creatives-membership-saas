@@ -99,6 +99,12 @@ apiClient.interceptors.response.use(
 
     // Handle authentication errors (401 - Unauthorized)
     if (error.response?.status === 401) {
+      console.error('401 Authentication error:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        status: error.response.status,
+        data: error.response.data
+      })
       authManager.handleAuthFailure('Authentication token invalid or expired')
       return Promise.reject(new Error('Authentication failed. Please log in again.'))
     }
