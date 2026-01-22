@@ -402,6 +402,16 @@ export class GymMembersService {
       });
     }
 
+    // Re-enable disabled card if member had one
+    if (member.gymMemberProfile?.cardUid && member.gymMemberProfile.cardStatus === 'DISABLED') {
+      await this.prisma.gymMemberProfile.update({
+        where: { id: member.gymMemberProfile.id },
+        data: {
+          cardStatus: 'ACTIVE',
+        },
+      });
+    }
+
     // Create audit log
     await this.createAuditLog({
       memberId,
@@ -450,6 +460,28 @@ export class GymMembersService {
           cancellationNotes: request.notes,
         },
       });
+    }
+
+    // Disable associated card for security - cancelled members should not have access
+    if (member.gymMemberProfile?.cardUid && member.gymMemberProfile.cardStatus === 'ACTIVE') {
+      await this.prisma.gymMemberProfile.update({
+        where: { id: member.gymMemberProfile.id },
+        data: {
+          cardStatus: 'DISABLED',
+        },
+      });
+
+      // Move inventory card back to available if it exists
+      const inventoryCard = await this.prisma.inventoryCard.findUnique({
+        where: { uid: member.gymMemberProfile.cardUid },
+      });
+
+      if (inventoryCard && inventoryCard.status === 'ASSIGNED') {
+        await this.prisma.inventoryCard.update({
+          where: { uid: member.gymMemberProfile.cardUid },
+          data: { status: 'AVAILABLE' },
+        });
+      }
     }
 
     // Create audit log
