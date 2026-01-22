@@ -57,44 +57,24 @@ export default function KioskPage() {
         debug += `✅ 10 digits: ${candidate}\n`;
       }
 
-      // Try different reversal methods for various RFID reader formats
-      const reversedBytes = candidate.match(/.{2}/g)?.reverse()?.join('') || candidate;
-      const reversedBytesPadded = reversedBytes.padStart(10, '0');
-
-      // Some readers send the entire UID string reversed
-      const reversedString = candidate.split('').reverse().join('');
-      const reversedStringPadded = reversedString.padStart(10, '0');
-
-      debug += `🔄 Options:\n`;
-      debug += `  Original: ${candidate} (${candidate.startsWith('000') ? '✓' : '✗'})\n`;
-      debug += `  Reversed bytes: ${reversedBytesPadded} (${reversedBytesPadded.startsWith('000') ? '✓' : '✗'})\n`;
-      debug += `  Reversed string: ${reversedStringPadded} (${reversedStringPadded.startsWith('000') ? '✓' : '✗'})\n`;
-
-      // Priority: prefer formats that start with '000' (database pattern)
-      if (reversedStringPadded.startsWith('000')) {
-        debug += `🎯 Selected: Reversed string\n`;
-        debug += `📤 Final UID: ${reversedStringPadded}`;
-        setDebugInfo(debug);
-        return reversedStringPadded;
-      }
-      if (reversedBytesPadded.startsWith('000')) {
-        debug += `🎯 Selected: Reversed bytes\n`;
-        debug += `📤 Final UID: ${reversedBytesPadded}`;
-        setDebugInfo(debug);
-        return reversedBytesPadded;
-      }
-      if (candidate.startsWith('000')) {
-        debug += `🎯 Selected: Original\n`;
-        debug += `📤 Final UID: ${candidate}`;
-        setDebugInfo(debug);
-        return candidate;
+      // Simple approach: if it doesn't start with '000', try reversing the string
+      // This handles the tablet reader issue where UIDs come reversed
+      let finalUid = candidate;
+      if (!candidate.startsWith('000')) {
+        const reversed = candidate.split('').reverse().join('');
+        if (reversed.startsWith('000')) {
+          finalUid = reversed;
+          debug += `🔄 Reversed (tablet reader fix): ${reversed}\n`;
+        } else {
+          debug += `⚠️  No transformation applied\n`;
+        }
+      } else {
+        debug += `✅ Already correct format\n`;
       }
 
-      // Fallback: use reversed string (common tablet reader issue)
-      debug += `📝 Fallback: Reversed string\n`;
-      debug += `📤 Final UID: ${reversedStringPadded}`;
+      debug += `📤 Final UID: ${finalUid}`;
       setDebugInfo(debug);
-      return reversedStringPadded;
+      return finalUid;
     }
 
     debug += `📤 Final UID: ${normalized}`;
