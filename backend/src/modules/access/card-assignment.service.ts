@@ -49,19 +49,22 @@ export class CardAssignmentService {
           where: { uid: oldCardUid },
         });
 
-        if (
-          !oldCard ||
-          oldCard.memberId !== memberId ||
-          oldCard.gymId !== gymId ||
-          !oldCard.active
-        ) {
+        if (!oldCard || oldCard.memberId !== memberId || oldCard.gymId !== gymId || !oldCard.active) {
           throw new Error('Invalid old card for replacement');
         }
 
+        // Deactivate the old operational card
         await tx.card.update({
           where: { uid: oldCardUid },
           data: { active: false },
         });
+
+        // Mark the old inventory card as DISABLED since it's no longer usable
+        await tx.inventoryCard.update({
+          where: { uid: oldCardUid },
+          data: { status: 'DISABLED' },
+        });
+
         deactivatedOldCardUid = oldCardUid;
       }
 
