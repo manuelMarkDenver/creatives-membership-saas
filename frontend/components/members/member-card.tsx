@@ -549,6 +549,24 @@ export function MemberCard({
                             className="text-green-600"
                             onClick={() => openMemberActionModal('enable_card')}
                           >
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Enable Card
+                          </DropdownMenuItem>
+                        )}
+                        {(member.gymMemberProfile?.cardStatus === 'NO_CARD' || !member.gymMemberProfile?.cardStatus) && (
+                          <DropdownMenuItem
+                            className="text-green-600"
+                            onClick={() => onAssignCard(member)}
+                          >
+                            <CreditCard className="mr-2 h-4 w-4" />
+                            Assign Card
+                          </DropdownMenuItem>
+                        )}
+                        {member.gymMemberProfile?.cardStatus === 'DISABLED' && (
+                          <DropdownMenuItem
+                            className="text-green-600"
+                            onClick={() => openMemberActionModal('enable_card')}
+                          >
                             <CreditCard className="mr-2 h-4 w-4" />
                             Enable Card
                           </DropdownMenuItem>

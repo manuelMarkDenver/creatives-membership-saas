@@ -87,15 +87,6 @@ export const getMemberStatusDisplay = (status: string): StatusDisplay => {
         buttonVariant: 'default'
       }
 
-    case 'CARD_REQUIRED':
-      return {
-        label: 'Card Required',
-        color: 'orange',
-        description: 'RFID card required for gym access',
-        icon: '⚠️',
-        buttonVariant: 'default'
-      }
-
     case 'NO_SUBSCRIPTION':
       return {
         label: 'Assign Membership Plan',

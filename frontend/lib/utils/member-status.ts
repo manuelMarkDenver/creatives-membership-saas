@@ -3,14 +3,14 @@
 
 export interface MemberEffectiveStatus {
   canAccessFacilities: boolean
-  displayStatus: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'SUSPENDED' | 'NO_SUBSCRIPTION' | 'DELETED' | 'PENDING_CARD' | 'CARD_REQUIRED'
+  displayStatus: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'SUSPENDED' | 'NO_SUBSCRIPTION' | 'DELETED' | 'PENDING_CARD'
   primaryIssue?: string
   statusColor: 'green' | 'orange' | 'yellow' | 'red' | 'gray' | 'blue' | 'purple'
   statusIcon: 'check' | 'clock' | 'x' | 'alert' | 'info' | 'trash' | 'card'
 }
 
 export interface DisplayStatus {
-  status: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'NO_SUBSCRIPTION' | 'DELETED' | 'PENDING_CARD' | 'CARD_REQUIRED'
+  status: 'ACTIVE' | 'EXPIRED' | 'EXPIRING' | 'CANCELLED' | 'NO_SUBSCRIPTION' | 'DELETED' | 'PENDING_CARD'
   label: string
   color: 'green' | 'orange' | 'yellow' | 'red' | 'gray' | 'purple'
   canAccess: boolean
@@ -79,17 +79,6 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
        primaryIssue: 'Waiting for card assignment',
        statusColor: 'purple',
        statusIcon: 'card'
-     }
-   }
-
-   // Members without cards cannot access the gym
-   if (cardStatus === 'NO_CARD') {
-     return {
-       canAccessFacilities: false,
-       displayStatus: 'CARD_REQUIRED',
-       primaryIssue: 'Card required for gym access',
-       statusColor: 'orange',
-       statusIcon: 'alert'
      }
    }
 
@@ -212,16 +201,24 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
 
   if (subscriptionStatus === 'ACTIVE' && subscriptionEndDate && subscriptionEndDate >= currentDate) {
     const daysRemaining = Math.ceil((subscriptionEndDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
-    
+
+    // Check if member has a card - if not, they cannot access facilities
+    const hasCard = cardStatus === 'ACTIVE'
+    const canAccess = hasCard
+
     const result = {
-      canAccessFacilities: true,
+      canAccessFacilities: canAccess,
       displayStatus: 'ACTIVE' as const,
-      primaryIssue: daysRemaining <= 7 ? `Expires in ${daysRemaining} days` : undefined,
-      statusColor: 'green' as const,
-      statusIcon: 'check' as const
+      primaryIssue: !hasCard
+        ? 'Card required for gym access'
+        : daysRemaining <= 7
+          ? `Expires in ${daysRemaining} days`
+          : undefined,
+      statusColor: hasCard ? 'green' as const : 'orange' as const,
+      statusIcon: hasCard ? 'check' as const : 'alert' as const
     }
-    
-    
+
+
     return result
   }
 
@@ -248,11 +245,16 @@ export function getAvailableMemberActions(member: MemberData) {
   // Always available actions
   actions.push('view-info', 'view-history', 'view-transactions')
 
+  // Check if member needs card assignment
+  const cardStatus = member.gymMemberProfile?.cardStatus
+  if (cardStatus === 'NO_CARD') {
+    actions.push('assign-card')
+  }
+
   // Status-specific actions
   switch (status.displayStatus) {
     case 'PENDING_CARD':
-    case 'CARD_REQUIRED':
-      actions.push('assign-card')
+      // assign-card already added above for NO_CARD check
       break
 
     case 'ACTIVE':
