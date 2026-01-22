@@ -1,6 +1,12 @@
 // Authentication utilities for session management and validation
 import { devAuth } from './dev-auth'
 
+// Get API URL from environment with fallback for development
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
+if (!API_URL || API_URL === 'undefined') {
+  throw new Error('NEXT_PUBLIC_API_URL is not defined. Please check your .env.local file.')
+}
+
 export interface AuthUser {
   id: string
   email: string
@@ -101,7 +107,7 @@ export class AuthManager {
    */
   private async validateTokenOnly(token: string): Promise<{ isValid: boolean; reason?: string }> {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+      const response = await fetch(`${API_URL}/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -163,7 +169,7 @@ export class AuthManager {
           return { isValid: false, reason: `Unknown role: ${role}` }
       }
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${validationEndpoint}`, {
+      const response = await fetch(`${API_URL}${validationEndpoint}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'x-tenant-id': tenantId,
@@ -281,7 +287,7 @@ export class AuthManager {
     reason?: string
   ): Promise<void> {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/events`, {
+      const response = await fetch(`${API_URL}/auth/events`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
