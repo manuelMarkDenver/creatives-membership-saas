@@ -1595,7 +1595,7 @@ export class GymMembersService {
 
       // Update member profile
       await tx.gymMemberProfile.update({
-        where: { id: member.gymMemberProfile.id },
+        where: { id: member.gymMemberProfile!.id },
         data: { cardStatus: 'ACTIVE' },
       });
 
