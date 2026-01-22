@@ -108,8 +108,8 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
 
   // Check if replacement was completed
   useEffect(() => {
-    console.log('Modal state check:', { pendingData: !!pendingData, isPolling, isFetching })
-    if (pendingData === null && isPolling && !isFetching) {
+    console.log('Modal state check:', { pendingData, isPolling, isFetching })
+    if ((pendingData === null || pendingData === false) && isPolling && !isFetching) {
       // Pending assignment disappeared - either replaced or cancelled
       console.log('Replacement completed - closing modal')
       setIsPolling(false)
