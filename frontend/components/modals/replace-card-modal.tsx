@@ -25,14 +25,22 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
   const memberName = member ? `${member.firstName || ''} ${member.lastName || ''}`.trim() : 'Unknown'
 
   // Get current pending assignment status
-  const { data: pendingData, refetch: refetchPending } = useQuery({
+  const { data: pendingData, refetch: refetchPending, isFetching } = useQuery({
     queryKey: ['pending-assignment', member?.gymMemberProfile?.primaryBranchId],
     queryFn: async () => {
       if (!member?.gymMemberProfile?.primaryBranchId) return null
-      return membersApi.getPendingAssignment(member.gymMemberProfile.primaryBranchId)
+      try {
+        const result = await membersApi.getPendingAssignment(member.gymMemberProfile.primaryBranchId)
+        console.log('Polling pending assignment:', result)
+        return result
+      } catch (error) {
+        console.warn('Error polling pending assignment:', error)
+        return null
+      }
     },
     enabled: isOpen && !!member?.gymMemberProfile?.primaryBranchId,
-    refetchInterval: isPolling ? 2000 : false, // Poll every 2 seconds when modal is open
+    refetchInterval: isPolling ? 1000 : false, // Poll every 1 second when modal is open (more frequent)
+    retry: false, // Don't retry on error
   })
 
   // Replace card mutation
@@ -45,7 +53,8 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
       toast.success('Card replacement initiated! Member has 10 minutes to tap their new card.')
       setIsPolling(true)
       setCountdown(600) // Reset countdown
-      refetchPending()
+      // Force immediate refetch to ensure we have latest state
+      setTimeout(() => refetchPending(), 100)
     },
     onError: (error: any) => {
       toast.error(`Failed to replace card: ${error.message}`)
@@ -94,8 +103,9 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
 
   // Check if replacement was completed
   useEffect(() => {
-    if (pendingData === null && isPolling) {
+    if (pendingData === null && isPolling && !isFetching) {
       // Pending assignment disappeared - either replaced or cancelled
+      console.log('Replacement completed - closing modal')
       setIsPolling(false)
       toast.success('Card replaced successfully!')
       onCardReplaced?.()
@@ -105,7 +115,7 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['gym-members'] })
     }
-  }, [pendingData, isPolling, onCardReplaced, onClose, queryClient])
+  }, [pendingData, isPolling, isFetching, onCardReplaced, onClose, queryClient])
 
   // Reset state when modal opens
   useEffect(() => {

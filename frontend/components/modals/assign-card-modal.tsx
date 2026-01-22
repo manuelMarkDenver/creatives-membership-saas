@@ -25,14 +25,22 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
   const memberName = member ? `${member.firstName || ''} ${member.lastName || ''}`.trim() : 'Unknown'
 
   // Get current pending assignment status
-  const { data: pendingData, refetch: refetchPending } = useQuery({
+  const { data: pendingData, refetch: refetchPending, isFetching } = useQuery({
     queryKey: ['pending-assignment', member?.gymMemberProfile?.primaryBranchId],
     queryFn: async () => {
       if (!member?.gymMemberProfile?.primaryBranchId) return null
-      return membersApi.getPendingAssignment(member.gymMemberProfile.primaryBranchId)
+      try {
+        const result = await membersApi.getPendingAssignment(member.gymMemberProfile.primaryBranchId)
+        console.log('Polling pending assignment:', result)
+        return result
+      } catch (error) {
+        console.warn('Error polling pending assignment:', error)
+        return null
+      }
     },
     enabled: isOpen && !!member?.gymMemberProfile?.primaryBranchId,
-    refetchInterval: isPolling ? 2000 : false, // Poll every 2 seconds when modal is open
+    refetchInterval: isPolling ? 1000 : false, // Poll every 1 second when modal is open (more frequent)
+    retry: false, // Don't retry on error
   })
 
   // Assign card mutation
@@ -45,7 +53,8 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
       toast.success('Card assignment initiated! Member has 10 minutes to tap their card.')
       setIsPolling(true)
       setCountdown(600) // Reset countdown
-      refetchPending()
+      // Force immediate refetch to ensure we have latest state
+      setTimeout(() => refetchPending(), 100)
     },
     onError: (error: any) => {
       toast.error(`Failed to assign card: ${error.message}`)
@@ -96,8 +105,9 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
 
   // Check if assignment was completed
   useEffect(() => {
-    if (pendingData === null && isPolling) {
+    if (pendingData === null && isPolling && !isFetching) {
       // Pending assignment disappeared - either assigned or cancelled
+      console.log('Assignment completed - closing modal')
       setIsPolling(false)
       toast.success('Card assigned successfully!')
       onCardAssigned?.()
@@ -107,7 +117,7 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['gym-members'] })
     }
-  }, [pendingData, isPolling, onCardAssigned, onClose, queryClient])
+  }, [pendingData, isPolling, isFetching, onCardAssigned, onClose, queryClient])
 
   // Reset state when modal opens
   useEffect(() => {
