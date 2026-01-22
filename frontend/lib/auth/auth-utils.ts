@@ -210,6 +210,12 @@ export class AuthManager {
 
     console.log('User logged out - all auth data cleared')
 
+    // Log logout event
+    const user = this.getCurrentUser()
+    if (user) {
+      this.logAuthEvent('LOGOUT', user.id, user.tenantId, reason)
+    }
+
     // Redirect to login page
     if (redirectToLogin && !window.location.pathname.includes('/auth')) {
       window.location.href = '/auth/login'
@@ -237,9 +243,12 @@ export class AuthManager {
    */
   setAuthData(user: AuthUser, token: string): void {
     if (typeof window === 'undefined') return
-    
+
     localStorage.setItem('user_data', JSON.stringify(user))
     localStorage.setItem('auth_token', token)
+
+    // Log login event
+    this.logAuthEvent('LOGIN', user.id, user.tenantId)
   }
   
   /**
@@ -258,8 +267,41 @@ export class AuthManager {
   getUserDisplayName(): string {
     const user = this.getCurrentUser()
     if (!user) return 'Guest'
-    
+
     return `${user.firstName} ${user.lastName}`.trim() || user.email
+  }
+
+  /**
+   * Log authentication events
+   */
+  private async logAuthEvent(
+    type: string,
+    userId?: string,
+    tenantId?: string,
+    reason?: string
+  ): Promise<void> {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type,
+          userId,
+          tenantId,
+          ipAddress: undefined, // Browser can't get real IP
+          userAgent: navigator.userAgent,
+          reason,
+        }),
+      })
+
+      if (!response.ok) {
+        console.warn('Failed to log auth event:', response.status)
+      }
+    } catch (error) {
+      console.warn('Error logging auth event:', error)
+    }
   }
 }
 

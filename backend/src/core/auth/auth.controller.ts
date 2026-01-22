@@ -104,6 +104,7 @@ export class AuthController {
     private readonly supabaseService: SupabaseService,
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
+    private readonly authEventsService: AuthEventsService,
     private readonly systemSettingsService: SystemSettingsService,
   ) {}
 
@@ -505,5 +506,38 @@ export class AuthController {
       throw new BadRequestException('Email is required');
     }
     return this.authService.resendVerificationEmail(body.email);
+  }
+
+  /**
+   * Log authentication events
+   * POST /auth/events
+   */
+  @Post('events')
+  async logAuthEvent(@Body() body: {
+    type: string;
+    userId?: string;
+    tenantId?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    reason?: string;
+    meta?: any;
+  }) {
+    try {
+      await this.authEventsService.logAuthEvent({
+        type: body.type,
+        userId: body.userId,
+        tenantId: body.tenantId,
+        ipAddress: body.ipAddress,
+        userAgent: body.userAgent,
+        reason: body.reason,
+        meta: body.meta,
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to log auth event:', error);
+      // Don't fail the request if logging fails
+      return { success: false, error: 'Failed to log event' };
+    }
   }
 }

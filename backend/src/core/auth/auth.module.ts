@@ -3,6 +3,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
+import { AuthEventsService } from './auth-events.service';
 import { GoogleStrategy } from './google.strategy';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -18,7 +19,7 @@ import { SystemSettingsModule } from '../system-settings/system-settings.module'
     SystemSettingsModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthGuard, GoogleStrategy],
-  exports: [AuthService, AuthGuard],
+  providers: [AuthService, AuthGuard, AuthEventsService, GoogleStrategy],
+  exports: [AuthService, AuthGuard, AuthEventsService],
 })
 export class AuthModule {}
