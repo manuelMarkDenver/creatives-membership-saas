@@ -128,6 +128,42 @@ export function MemberCard({
   const getMemberStatus = () => {
     return memberStatus.displayStatus
   }
+
+  // Helper function to get card status information
+  const getCardStatusInfo = () => {
+    const cardStatus = member.gymMemberProfile?.cardStatus
+    const hasActiveCard = member.gymMemberProfile?.cardUid && cardStatus === 'ACTIVE'
+
+    if (hasActiveCard) {
+      return {
+        label: 'Card Active',
+        variant: 'default' as const,
+        icon: CreditCard,
+        className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800'
+      }
+    } else if (cardStatus === 'DISABLED') {
+      return {
+        label: 'Card Disabled',
+        variant: 'secondary' as const,
+        icon: Ban,
+        className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800'
+      }
+    } else if (cardStatus === 'PENDING_CARD') {
+      return {
+        label: 'Card Pending',
+        variant: 'secondary' as const,
+        icon: Clock,
+        className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+      }
+    } else {
+      return {
+        label: 'No Card',
+        variant: 'outline' as const,
+        icon: AlertTriangle,
+        className: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700'
+      }
+    }
+  }
   
   // Helper function to determine the appropriate action based on member state
   const getAppropriateAction = (): MemberActionType => {
@@ -293,14 +329,28 @@ export function MemberCard({
         </div>
       )}
 
-      {/* Action section */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-        {/* Additional info badges for super admin */}
-        {isSuperAdmin && member.tenant && (
-          <Badge variant="outline" className="text-xs px-3 py-1 w-fit">
-            {member.tenant.name}
-          </Badge>
-        )}
+       {/* Action section */}
+       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+         {/* Card Status Badge */}
+         <div className="flex items-center gap-2">
+           {(() => {
+             const cardStatus = getCardStatusInfo()
+             const Icon = cardStatus.icon
+             return (
+               <Badge variant={cardStatus.variant} className={`text-xs px-2 py-1 flex items-center gap-1 ${cardStatus.className}`}>
+                 <Icon className="h-3 w-3" />
+                 {cardStatus.label}
+               </Badge>
+             )
+           })()}
+
+           {/* Additional info badges for super admin */}
+           {isSuperAdmin && member.tenant && (
+             <Badge variant="outline" className="text-xs px-3 py-1 w-fit">
+               {member.tenant.name}
+             </Badge>
+           )}
+         </div>
 
         <div className="flex flex-row items-center justify-end gap-2 w-full">
          {/* Status Button - Larger and More Touch-Friendly */}
