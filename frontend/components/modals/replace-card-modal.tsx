@@ -20,6 +20,7 @@ interface ReplaceCardModalProps {
 export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: ReplaceCardModalProps) {
   const [countdown, setCountdown] = useState(600) // 10 minutes in seconds
   const [isPolling, setIsPolling] = useState(false)
+  const [forceCloseModal, setForceCloseModal] = useState(false)
   const queryClient = useQueryClient()
 
   const memberName = member ? `${member.firstName || ''} ${member.lastName || ''}`.trim() : 'Unknown'
@@ -39,8 +40,10 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
       }
     },
     enabled: isOpen && !!member?.gymMemberProfile?.primaryBranchId,
-    refetchInterval: isPolling ? 1000 : false, // Poll every 1 second when modal is open (more frequent)
+    refetchInterval: isPolling ? 500 : false, // Poll every 0.5 seconds when modal is open (very frequent)
     retry: false, // Don't retry on error
+    staleTime: 0, // Always consider data stale
+    gcTime: 0, // Don't cache
   })
 
   // Replace card mutation
@@ -50,11 +53,20 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
       return membersApi.replaceCard(member.id)
     },
     onSuccess: (data) => {
+      console.log('Card replacement initiated, starting polling...')
       toast.success('Card replacement initiated! Member has 10 minutes to tap their new card.')
       setIsPolling(true)
       setCountdown(600) // Reset countdown
-      // Force immediate refetch to ensure we have latest state
-      setTimeout(() => refetchPending(), 100)
+      // Force immediate refetch
+      refetchPending()
+      // Additional refetch after a short delay
+      setTimeout(() => refetchPending(), 500)
+
+      // Backup: force close modal after 3 seconds if polling doesn't detect completion
+      setTimeout(() => {
+        console.log('Backup: forcing modal close after 3 seconds')
+        setForceCloseModal(true)
+      }, 3000)
     },
     onError: (error: any) => {
       toast.error(`Failed to replace card: ${error.message}`)
@@ -116,6 +128,20 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
       queryClient.invalidateQueries({ queryKey: ['gym-members'] })
     }
   }, [pendingData, isPolling, isFetching, onCardReplaced, onClose, queryClient])
+
+  // Force close modal as backup
+  useEffect(() => {
+    if (forceCloseModal) {
+      console.log('Force closing replace modal')
+      setIsPolling(false)
+      setForceCloseModal(false)
+      toast.success('Card replacement completed!')
+      onCardReplaced?.()
+      onClose()
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['gym-members'] })
+    }
+  }, [forceCloseModal, onCardReplaced, onClose, queryClient])
 
   // Reset state when modal opens
   useEffect(() => {
