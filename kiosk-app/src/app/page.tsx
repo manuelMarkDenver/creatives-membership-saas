@@ -13,6 +13,7 @@ export default function KioskPage() {
   const [cardUid, setCardUid] = useState('');
   const [result, setResult] = useState<AccessResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -35,40 +36,69 @@ export default function KioskPage() {
     // Remove any whitespace and convert to uppercase
     let normalized = rawUid.trim().toUpperCase();
 
-    console.log('🔍 UID Analysis - Raw:', rawUid, 'Cleaned:', normalized);
+    let debug = `🔍 Raw: ${rawUid}\n`;
+    debug += `📝 Cleaned: ${normalized}\n`;
 
     // Handle different UID formats from various RFID readers
     if (normalized.length >= 8 && /^\d+$/.test(normalized)) {
-      const options = {
-        original: normalized,
-        // Reverse byte pairs (common RFID reader difference)
-        reversed: normalized.match(/.{2}/g)?.reverse()?.join('') || normalized,
-        // Take first 10 characters (truncate long readings)
-        truncated: normalized.substring(0, 10),
-        // Reverse and truncate
-        reversedTruncated: (normalized.match(/.{2}/g)?.reverse()?.join('') || normalized).substring(0, 10),
-      };
+      // Database format appears to be 10-digit with leading zeros
+      // Standardize to 10-digit format with leading zeros
 
-      console.log('🔄 UID Transformation Options:', options);
+      let candidate = normalized;
 
-      // Priority: try truncated first (handles long concatenated readings), then reversed
-      if (normalized.length > 10) {
-        console.log('📏 Long UID detected, using truncated version:', options.truncated);
-        return options.truncated;
+      // Ensure exactly 10 digits by padding with leading zeros
+      if (candidate.length < 10) {
+        candidate = candidate.padStart(10, '0');
+        debug += `📏 Padded: ${candidate}\n`;
+      } else if (candidate.length > 10) {
+        candidate = candidate.substring(0, 10);
+        debug += `✂️ Truncated: ${candidate}\n`;
+      } else {
+        debug += `✅ 10 digits: ${candidate}\n`;
       }
 
-      // For shorter UIDs, try reversed if it looks like it should be reversed
-      // (This is a heuristic - you may need to adjust based on your reader)
-      const reversed = options.reversed;
-      if (reversed !== normalized && reversed.length === normalized.length) {
-        console.log('🔄 Using reversed format:', reversed);
-        return reversed;
+      // Try different reversal methods for various RFID reader formats
+      const reversedBytes = candidate.match(/.{2}/g)?.reverse()?.join('') || candidate;
+      const reversedBytesPadded = reversedBytes.padStart(10, '0');
+
+      // Some readers send the entire UID string reversed
+      const reversedString = candidate.split('').reverse().join('');
+      const reversedStringPadded = reversedString.padStart(10, '0');
+
+      debug += `🔄 Options:\n`;
+      debug += `  Original: ${candidate} (${candidate.startsWith('000') ? '✓' : '✗'})\n`;
+      debug += `  Reversed bytes: ${reversedBytesPadded} (${reversedBytesPadded.startsWith('000') ? '✓' : '✗'})\n`;
+      debug += `  Reversed string: ${reversedStringPadded} (${reversedStringPadded.startsWith('000') ? '✓' : '✗'})\n`;
+
+      // Priority: prefer formats that start with '000' (database pattern)
+      if (reversedStringPadded.startsWith('000')) {
+        debug += `🎯 Selected: Reversed string\n`;
+        debug += `📤 Final UID: ${reversedStringPadded}`;
+        setDebugInfo(debug);
+        return reversedStringPadded;
+      }
+      if (reversedBytesPadded.startsWith('000')) {
+        debug += `🎯 Selected: Reversed bytes\n`;
+        debug += `📤 Final UID: ${reversedBytesPadded}`;
+        setDebugInfo(debug);
+        return reversedBytesPadded;
+      }
+      if (candidate.startsWith('000')) {
+        debug += `🎯 Selected: Original\n`;
+        debug += `📤 Final UID: ${candidate}`;
+        setDebugInfo(debug);
+        return candidate;
       }
 
-      console.log('📝 Using original format:', normalized);
-      return normalized;
+      // Fallback: use reversed string (common tablet reader issue)
+      debug += `📝 Fallback: Reversed string\n`;
+      debug += `📤 Final UID: ${reversedStringPadded}`;
+      setDebugInfo(debug);
+      return reversedStringPadded;
     }
 
+    debug += `📤 Final UID: ${normalized}`;
+    setDebugInfo(debug);
     return normalized;
   };
 
@@ -224,6 +254,23 @@ export default function KioskPage() {
 
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${getBackgroundColor()}`}>
+      {/* Debug info display - only in development */}
+      {debugInfo && process.env.NODE_ENV === 'development' && (
+        <div className="absolute top-4 left-4 bg-black bg-opacity-90 text-white p-4 rounded-lg text-sm font-mono max-w-md z-50">
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-xs opacity-70">UID Debug</span>
+            <button
+              onClick={() => setDebugInfo('')}
+              className="text-white hover:text-red-400 text-lg leading-none ml-2"
+              aria-label="Close debug"
+            >
+              ×
+            </button>
+          </div>
+          <div className="whitespace-pre-line text-xs">{debugInfo}</div>
+        </div>
+      )}
+
       {/* Hidden input for RFID keyboard emulation */}
       <input
         ref={inputRef}
