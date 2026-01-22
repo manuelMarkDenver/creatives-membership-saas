@@ -16,6 +16,7 @@ import type { Response, Request } from 'express';
 import { SupabaseService } from '../supabase/supabase.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
+import { AuthEventsService } from './auth-events.service';
 import { AuthGuard } from './auth.guard';
 import { RegisterTenantDto } from './dto/register-tenant.dto';
 import { SetInitialPasswordDto } from './dto/set-initial-password.dto';
