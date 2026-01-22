@@ -160,7 +160,7 @@ export function MemberCard({
         label: 'No Card',
         variant: 'outline' as const,
         icon: AlertTriangle,
-        className: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700'
+        className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800'
       }
     }
   }
