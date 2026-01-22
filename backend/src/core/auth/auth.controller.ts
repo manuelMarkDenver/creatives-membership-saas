@@ -529,7 +529,13 @@ export class AuthController {
                      (req.headers['x-real-ip'] as string) ||
                      'unknown';
 
-    console.log('Auth event received:', body, 'IP:', clientIP);
+    console.log('Auth event received:', body, 'IP sources:', {
+      reqIp: req.ip,
+      remoteAddr: req.connection?.remoteAddress,
+      forwarded: req.headers['x-forwarded-for'],
+      realIp: req.headers['x-real-ip'],
+      finalIP: clientIP
+    });
     try {
       await this.authEventsService.logAuthEvent({
         type: body.type,
