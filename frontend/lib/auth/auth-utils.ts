@@ -219,8 +219,8 @@ export class AuthManager {
     // Log logout event
     const user = this.getCurrentUser()
     if (user) {
-      console.log('Logging LOGOUT event for user:', user.id, 'reason:', reason)
-      this.logAuthEvent('LOGOUT', user.id, user.tenantId, reason)
+      console.log('Logging LOGOUT event for user:', user.id)
+      this.logAuthEvent('LOGOUT', user.id, user.tenantId || undefined)
     }
 
     // Redirect to login page
@@ -256,7 +256,7 @@ export class AuthManager {
 
     // Log login event
     console.log('Logging LOGIN event for user:', user.id)
-    this.logAuthEvent('LOGIN', user.id, user.tenantId)
+    this.logAuthEvent('LOGIN', user.id, user.tenantId || undefined)
   }
   
   /**
