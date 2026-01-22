@@ -329,30 +329,68 @@ export function MemberCard({
         </div>
       )}
 
-       {/* Action section */}
-       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-         {/* Card Status Badge */}
-         <div className="flex items-center gap-2">
-           {(() => {
-             const cardStatus = getCardStatusInfo()
-             const Icon = cardStatus.icon
-             return (
-               <Badge variant={cardStatus.variant} className={`text-xs px-2 py-1 flex items-center gap-1 ${cardStatus.className}`}>
-                 <Icon className="h-3 w-3" />
-                 {cardStatus.label}
-               </Badge>
-             )
-           })()}
+        {/* Action section */}
+        <div className="flex flex-col gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          {/* Card Status Badge */}
+          <div className="flex items-center gap-2">
+            {(() => {
+              const cardStatus = getCardStatusInfo()
+              const Icon = cardStatus.icon
+              return (
+                <Badge variant={cardStatus.variant} className={`text-xs px-2 py-1 flex items-center gap-1 ${cardStatus.className}`}>
+                  <Icon className="h-3 w-3" />
+                  {cardStatus.label}
+                </Badge>
+              )
+            })()}
 
-           {/* Additional info badges for super admin */}
-           {isSuperAdmin && member.tenant && (
-             <Badge variant="outline" className="text-xs px-3 py-1 w-fit">
-               {member.tenant.name}
-             </Badge>
-           )}
-         </div>
+            {/* Additional info badges for super admin */}
+            {isSuperAdmin && member.tenant && (
+              <Badge variant="outline" className="text-xs px-3 py-1 w-fit">
+                {member.tenant.name}
+              </Badge>
+            )}
+          </div>
 
-        <div className="flex flex-row items-center justify-end gap-2 w-full">
+          {/* Primary Card Actions */}
+          {(() => {
+            const cardStatus = member.gymMemberProfile?.cardStatus
+            const canManage = canManageMember()
+            const currentState = getMemberStatus()
+
+            if (!canManage || currentState === 'DELETED') return null
+
+            return (
+              <div className="flex flex-wrap gap-2">
+                {/* Assign Card Button - for members without cards */}
+                {(cardStatus === 'NO_CARD' || !cardStatus) && currentState === 'ACTIVE' && (
+                  <Button
+                    size="sm"
+                    onClick={() => onAssignCard(member)}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <CreditCard className="h-4 w-4 mr-1" />
+                    Assign Card
+                  </Button>
+                )}
+
+                {/* Replace Card Button - for members with active cards */}
+                {cardStatus === 'ACTIVE' && currentState === 'ACTIVE' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onReplaceCard(member)}
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Replace Card
+                  </Button>
+                )}
+              </div>
+            )
+          })()}
+
+         <div className="flex flex-row items-center justify-end gap-2 w-full">
          {/* Status Button - Larger and More Touch-Friendly */}
          {(() => {
            const canManage = canManageMember();
@@ -527,22 +565,13 @@ export function MemberCard({
                           Change Plan
                         </DropdownMenuItem>
                         {member.gymMemberProfile?.cardStatus === 'ACTIVE' && (
-                          <>
-                            <DropdownMenuItem
-                              className="text-blue-600"
-                              onClick={() => onReplaceCard(member)}
-                            >
-                              <RefreshCw className="mr-2 h-4 w-4" />
-                              Replace Card
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() => openMemberActionModal('disable_card')}
-                            >
-                              <Ban className="mr-2 h-4 w-4" />
-                              Disable Card
-                            </DropdownMenuItem>
-                          </>
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => openMemberActionModal('disable_card')}
+                          >
+                            <Ban className="mr-2 h-4 w-4" />
+                            Disable Card
+                          </DropdownMenuItem>
                         )}
                         {member.gymMemberProfile?.cardStatus === 'DISABLED' && (
                           <DropdownMenuItem
@@ -551,15 +580,6 @@ export function MemberCard({
                           >
                             <CheckCircle className="mr-2 h-4 w-4" />
                             Enable Card
-                          </DropdownMenuItem>
-                        )}
-                        {(member.gymMemberProfile?.cardStatus === 'NO_CARD' || !member.gymMemberProfile?.cardStatus) && (
-                          <DropdownMenuItem
-                            className="text-green-600"
-                            onClick={() => onAssignCard(member)}
-                          >
-                            <CreditCard className="mr-2 h-4 w-4" />
-                            Assign Card
                           </DropdownMenuItem>
                         )}
                         {member.gymMemberProfile?.cardStatus === 'DISABLED' && (
