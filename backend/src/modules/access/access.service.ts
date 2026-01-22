@@ -26,7 +26,9 @@ export class AccessService {
     console.log('🔍 Raw encodedCardUid received:', encodedCardUid);
 
     try {
-      const decodedAttempt = Buffer.from(encodedCardUid, 'base64').toString('utf-8');
+      const decodedAttempt = Buffer.from(encodedCardUid, 'base64').toString(
+        'utf-8',
+      );
       console.log('🔄 Base64 decode attempt:', decodedAttempt);
 
       // Check if it looks valid (not gibberish and reasonable length)
@@ -46,7 +48,12 @@ export class AccessService {
     } catch (error) {
       // Not base64, use as plain
       cardUid = encodedCardUid;
-      console.log('📝 Using plain cardUid (decode error):', cardUid, 'Error:', error.message);
+      console.log(
+        '📝 Using plain cardUid (decode error):',
+        cardUid,
+        'Error:',
+        error.message,
+      );
     }
 
     console.log('🎯 Final cardUid used:', cardUid);
@@ -185,11 +192,13 @@ export class AccessService {
         cardUid,
         memberId: operationalCard.memberId!,
       });
-      const memberName = operationalCard.member ? `${operationalCard.member.firstName || 'Unknown'} ${operationalCard.member.lastName || 'User'}` : 'Unknown Member';
+      const memberName = operationalCard.member
+        ? `${operationalCard.member.firstName || 'Unknown'} ${operationalCard.member.lastName || 'User'}`
+        : 'Unknown Member';
       console.log('DENY_DISABLED: memberName =', memberName);
       return {
         result: 'DENY_DISABLED',
-        memberName
+        memberName,
       };
     }
 
@@ -221,7 +230,12 @@ export class AccessService {
     }
 
     if (!pending) {
-      console.log('🚨 ACCESS_DENY_UNKNOWN: No pending assignment found for cardUid:', cardUid, 'in gym:', gymId);
+      console.log(
+        '🚨 ACCESS_DENY_UNKNOWN: No pending assignment found for cardUid:',
+        cardUid,
+        'in gym:',
+        gymId,
+      );
       await this.eventsService.logEvent({
         gymId,
         terminalId,
@@ -285,6 +299,7 @@ export class AccessService {
       pending.memberId,
       cardUid,
       pending.purpose,
+      pending.oldCardUid,
     );
 
     // Get subscription for expiry

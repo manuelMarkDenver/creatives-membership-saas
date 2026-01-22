@@ -52,6 +52,7 @@ interface MemberCardProps {
   onCancelSubscription: (member: User) => void
   onChangePlan: (member: User) => void
   onAssignCard: (member: User) => void
+  onReplaceCard: (member: User) => void
   onMemberDeleted: () => void
 }
 
@@ -64,6 +65,7 @@ export function MemberCard({
   onCancelSubscription,
   onChangePlan,
   onAssignCard,
+  onReplaceCard,
   onMemberDeleted
 }: MemberCardProps) {
   const [showTransactionModal, setShowTransactionModal] = useState(false)
@@ -475,13 +477,22 @@ export function MemberCard({
                           Change Plan
                         </DropdownMenuItem>
                         {member.gymMemberProfile?.cardStatus === 'ACTIVE' && (
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => openMemberActionModal('disable_card')}
-                          >
-                            <Ban className="mr-2 h-4 w-4" />
-                            Disable Card
-                          </DropdownMenuItem>
+                          <>
+                            <DropdownMenuItem
+                              className="text-blue-600"
+                              onClick={() => onReplaceCard(member)}
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Replace Card
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => openMemberActionModal('disable_card')}
+                            >
+                              <Ban className="mr-2 h-4 w-4" />
+                              Disable Card
+                            </DropdownMenuItem>
+                          </>
                         )}
                         {member.gymMemberProfile?.cardStatus === 'DISABLED' && (
                           <DropdownMenuItem

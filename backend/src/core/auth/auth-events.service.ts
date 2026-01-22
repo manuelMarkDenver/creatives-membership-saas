@@ -23,7 +23,12 @@ export class AuthEventsService {
   }
 
   // Helper methods for common events
-  async logLogin(userId: string, tenantId?: string, ipAddress?: string, userAgent?: string) {
+  async logLogin(
+    userId: string,
+    tenantId?: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     return this.logAuthEvent({
       userId,
       tenantId,
@@ -42,7 +47,12 @@ export class AuthEventsService {
     });
   }
 
-  async logLoginFailure(tenantId?: string, reason?: string, ipAddress?: string, userAgent?: string) {
+  async logLoginFailure(
+    tenantId?: string,
+    reason?: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     return this.logAuthEvent({
       tenantId,
       type: 'LOGIN_FAILED',

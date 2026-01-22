@@ -534,17 +534,41 @@ export class GymMembersService {
       throw new BadRequestException('Member profile not found');
     }
 
-    // Check if member has PENDING_CARD status
-    if (member.gymMemberProfile.cardStatus !== 'PENDING_CARD') {
-      throw new BadRequestException(
-        `Cannot assign card to member with status ${member.gymMemberProfile.cardStatus}. Member must be in PENDING_CARD status.`,
-      );
-    }
-
     // Get member's gym (tenant)
     const gymId = member.gymMemberProfile.primaryBranchId;
     if (!gymId) {
       throw new BadRequestException('Member has no primary branch assigned');
+    }
+
+    // Check member status based on purpose
+    if (purpose === 'ONBOARD') {
+      if (member.gymMemberProfile.cardStatus !== 'PENDING_CARD') {
+        throw new BadRequestException(
+          `Cannot assign card to member with status ${member.gymMemberProfile.cardStatus}. Member must be in PENDING_CARD status.`,
+        );
+      }
+    } else if (purpose === 'REPLACE') {
+      if (member.gymMemberProfile.cardStatus !== 'ACTIVE') {
+        throw new BadRequestException(
+          `Cannot replace card for member with status ${member.gymMemberProfile.cardStatus}. Member must be ACTIVE.`,
+        );
+      }
+
+      // For REPLACE, check if member has an active MONTHLY card
+      const activeCard = await this.prisma.card.findFirst({
+        where: {
+          gymId,
+          memberId,
+          type: 'MONTHLY',
+          active: true,
+        },
+      });
+
+      if (!activeCard) {
+        throw new BadRequestException(
+          'Member has no active MONTHLY card to replace.',
+        );
+      }
     }
 
     // Check if there's available inventory for this gym
@@ -578,6 +602,23 @@ export class GymMembersService {
       );
     }
 
+    // For REPLACE, get the old card UID
+    let oldCardUid: string | null = null;
+    if (purpose === 'REPLACE') {
+      const activeCard = await this.prisma.card.findFirst({
+        where: {
+          gymId,
+          memberId,
+          type: 'MONTHLY',
+          active: true,
+        },
+      });
+      oldCardUid = activeCard?.uid || null;
+      if (!oldCardUid) {
+        throw new BadRequestException('Could not find active card to replace.');
+      }
+    }
+
     // Create or update pending assignment (expires in 10 minutes, upsert replaces existing)
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 10);
@@ -587,6 +628,7 @@ export class GymMembersService {
       update: {
         memberId,
         purpose,
+        oldCardUid,
         expiresAt,
         createdByUserId: performedBy,
       },
@@ -594,6 +636,7 @@ export class GymMembersService {
         gymId,
         memberId,
         purpose,
+        oldCardUid,
         expiresAt,
         createdByUserId: performedBy,
       },
@@ -1561,7 +1604,7 @@ export class GymMembersService {
 
     return {
       success: true,
-      message: `Member ${(member.firstName || 'Unknown')} ${(member.lastName || 'User')}'s card disabled successfully`,
+      message: `Member ${member.firstName || 'Unknown'} ${member.lastName || 'User'}'s card disabled successfully`,
       eventId: result.eventId,
     };
   }
@@ -1588,15 +1631,17 @@ export class GymMembersService {
     }
 
     // Find the disabled card
-    const card = member.cards.find(c => c.uid === data.cardUid && !c.active);
+    const card = member.cards.find((c) => c.uid === data.cardUid && !c.active);
     if (!card) {
       throw new BadRequestException('Disabled card not found for this member');
     }
 
     // Check no other active card for this member
-    const activeCards = member.cards.filter(c => c.active);
+    const activeCards = member.cards.filter((c) => c.active);
     if (activeCards.length > 0) {
-      throw new BadRequestException('Member already has an active card - disable it first');
+      throw new BadRequestException(
+        'Member already has an active card - disable it first',
+      );
     }
 
     const gymId = member.gymMemberProfile.primaryBranchId;
@@ -1639,7 +1684,7 @@ export class GymMembersService {
 
     return {
       success: true,
-      message: `Member ${(member.firstName || 'Unknown')} ${(member.lastName || 'User')}'s card enabled successfully`,
+      message: `Member ${member.firstName || 'Unknown'} ${member.lastName || 'User'}'s card enabled successfully`,
       eventId: result.eventId,
     };
   }

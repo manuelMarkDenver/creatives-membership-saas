@@ -8,113 +8,101 @@ datasource db {
 }
 
 model Tenant {
-  id                     String                  @id @default(uuid())
-  name                   String
-  slug                   String                  @unique
-  category               BusinessCategory
-  status                 TenantStatus            @default(PENDING) // PENDING until email verified
-  logoUrl                String?
-  address                String?
-  phoneNumber            String?
-  email                  String?
-  primaryColor           String?
-  secondaryColor         String?
-  websiteUrl             String?
-  description            String?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  freeBranchOverride     Int                     @default(0)
-  onboardingCompletedAt  DateTime?               // When tenant completed initial setup
-  ownerPasswordChanged   Boolean                 @default(false) // Track if owner changed from temp password
-   paidModeEnabled        Boolean                 @default(false) // Global paid mode toggle
-   freeUnitsLimit         Int                     @default(1) // How many free units allowed
-   trialDurationDays      Int                     @default(28) // Default trial duration
-
-    // Email notification preferences
-    emailNotificationsEnabled    Boolean                 @default(true)
-    welcomeEmailEnabled          Boolean                 @default(true)
-    adminAlertEmailEnabled       Boolean                 @default(true)
-     tenantNotificationEmailEnabled Boolean               @default(false)
-    tenantSignupNotificationEnabled Boolean              @default(true) // Controls tenant notifications for new member signups
-   digestFrequency              String?                 // "daily", "weekly", "monthly"
-   adminEmailRecipients         String[]                // Array of admin email addresses
-
-   branches               Branch[]
-  businessUnits          BusinessUnit[]
-  gymMemberSubscriptions GymMemberSubscription[]
-  customerTransactions   CustomerTransaction[]
-  gymMembershipPlans     GymMembershipPlan[]     // Gym-specific plans
-   platformRevenues       PlatformRevenue[]
-   users                  User[]
-   gymMemberProfiles      GymMemberProfile[]
-   coffeeCustomerProfiles CoffeeCustomerProfile[]
-   gymUserBranches        GymUserBranch[]
-    emailTemplates         EmailTemplate[]
-    emailLogs              EmailLog[]
-    terminals              Terminal[]
-    authEvents             AuthEvent[]
-  }
+  id                              String                  @id @default(uuid())
+  name                            String
+  slug                            String                  @unique
+  category                        BusinessCategory
+  status                          TenantStatus            @default(PENDING)
+  logoUrl                         String?
+  address                         String?
+  phoneNumber                     String?
+  email                           String?
+  primaryColor                    String?
+  secondaryColor                  String?
+  websiteUrl                      String?
+  description                     String?
+  createdAt                       DateTime                @default(now())
+  updatedAt                       DateTime                @updatedAt
+  freeBranchOverride              Int                     @default(0)
+  onboardingCompletedAt           DateTime?
+  ownerPasswordChanged            Boolean                 @default(false)
+  paidModeEnabled                 Boolean                 @default(false)
+  freeUnitsLimit                  Int                     @default(1)
+  trialDurationDays               Int                     @default(28)
+  emailNotificationsEnabled       Boolean                 @default(true)
+  welcomeEmailEnabled             Boolean                 @default(true)
+  adminAlertEmailEnabled          Boolean                 @default(true)
+  tenantNotificationEmailEnabled  Boolean                 @default(false)
+  tenantSignupNotificationEnabled Boolean                 @default(true)
+  digestFrequency                 String?
+  adminEmailRecipients            String[]
+  authEvents                      AuthEvent[]
+  branches                        Branch[]
+  businessUnits                   BusinessUnit[]
+  coffeeCustomerProfiles          CoffeeCustomerProfile[]
+  customerTransactions            CustomerTransaction[]
+  emailLogs                       EmailLog[]
+  emailTemplates                  EmailTemplate[]
+  gymMemberProfiles               GymMemberProfile[]
+  gymMemberSubscriptions          GymMemberSubscription[]
+  gymMembershipPlans              GymMembershipPlan[]
+  gymUserBranches                 GymUserBranch[]
+  platformRevenues                PlatformRevenue[]
+  terminals                       Terminal[]
+  users                           User[]
+}
 
 model Branch {
-  id                     String                  @id @default(uuid())
+  id                     String                   @id @default(uuid())
   tenantId               String
   name                   String
   address                String?
   phoneNumber            String?
   email                  String?
-  isActive               Boolean                 @default(true)
-  isMainBranch           Boolean                 @default(false)
+  isActive               Boolean                  @default(true)
+  isMainBranch           Boolean                  @default(false)
   branchData             Json?
-  
-  // Audit fields
-  createdAt              DateTime                @default(now())
-  createdBy              String?                 // User ID who created
-  updatedAt              DateTime                @updatedAt
-  deletedAt              DateTime?               // Soft delete timestamp
-  deletedBy              String?                 // User ID who deleted
-  
-  tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt              DateTime                 @default(now())
+  createdBy              String?
+  updatedAt              DateTime                 @updatedAt
+  deletedAt              DateTime?
+  deletedBy              String?
+  createdByUser          User?                    @relation("BranchCreatedBy", fields: [createdBy], references: [id])
+  deletedByUser          User?                    @relation("BranchDeletedBy", fields: [deletedBy], references: [id])
+  tenant                 Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  cards                  Card[]
+  events                 Event[]
+  primaryMemberProfiles  GymMemberProfile[]       @relation("PrimaryBranchProfiles")
   gymMemberSubscriptions GymMemberSubscription[]
-  subscriptions          Subscription[]
   gymUserBranches        GymUserBranch[]
-  
-  // Audit relations
-  createdByUser          User?                   @relation("BranchCreatedBy", fields: [createdBy], references: [id])
-  deletedByUser          User?                   @relation("BranchDeletedBy", fields: [deletedBy], references: [id])
-  
-   // Primary branch relationships
-   primaryMemberProfiles  GymMemberProfile[]      @relation("PrimaryBranchProfiles")
+  inventoryCards         InventoryCard[]
+  pendingAssignments     PendingMemberAssignment?
+  subscriptions          Subscription[]
+  terminals              Terminal[]
 
-   // Access control relations
-   terminals              Terminal[]
-   inventoryCards         InventoryCard[]
-   cards                  Card[]
-   pendingAssignments     PendingMemberAssignment[]
-   events                 Event[]
-
-   @@unique([tenantId, name])
-   @@index([deletedAt])
+  @@unique([tenantId, name])
+  @@index([deletedAt])
 }
 
 model BusinessUnit {
   id                String             @id @default(uuid())
   tenantId          String
   name              String
-  unitType          BusinessUnitType   @default(LOCATION) // LOCATION for gyms, CHANNEL for ecommerce
+  unitType          BusinessUnitType   @default(LOCATION)
   address           String?
   phoneNumber       String?
   email             String?
   isActive          Boolean            @default(true)
-  isPaid            Boolean            @default(false) // For paid mode toggle
-  trialEndsAt       DateTime? // When trial expires
-  subscriptionTier  String?            @default("basic") // basic, premium, enterprise
-  monthlyPrice      Decimal?           @default(3999) @db.Decimal(8, 2) // PHP pricing
-  businessUnitData  Json? // Business-specific configuration
-  settings          Json? // Unit-specific settings
+  isPaid            Boolean            @default(false)
+  trialEndsAt       DateTime?
+  subscriptionTier  String?            @default("basic")
+  monthlyPrice      Decimal?           @default(3999) @db.Decimal(8, 2)
+  businessUnitData  Json?
+  settings          Json?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  saasSubscriptions SaasSubscription[] // SaaS subscriptions for this unit
+  saasSubscriptions SaasSubscription[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -162,86 +150,67 @@ model Payment {
 }
 
 model SystemSettings {
-  id                     String                 @id @default("system") // Single row with fixed ID
-   passwordSecurityLevel  PasswordSecurityLevel  @default(MEDIUM)
-
-    // Global admin notifications
-    globalAdminEmails      String[]               // Array of global admin email addresses
-    newTenantAlertsEnabled Boolean                @default(true)
-    systemAlertsEnabled    Boolean                @default(true)
-    securityAlertsEnabled  Boolean                @default(true)
-    tenantNotificationsEnabled Boolean            @default(true) // Platform control for tenant notifications
-
-   // Future settings can be added here:
-   // entityNames            Json?                  // Custom entity names per business type
-   // maxFileUploadSizeMB    Int                    @default(10)
-   // emailDailyLimit        Int                    @default(1000)
-   updatedAt              DateTime               @updatedAt
-  updatedBy              String?                // Super admin user ID who last updated
+  id                         String                @id @default("system")
+  passwordSecurityLevel      PasswordSecurityLevel @default(MEDIUM)
+  globalAdminEmails          String[]
+  newTenantAlertsEnabled     Boolean               @default(true)
+  systemAlertsEnabled        Boolean               @default(true)
+  securityAlertsEnabled      Boolean               @default(true)
+  tenantNotificationsEnabled Boolean               @default(true)
+  updatedAt                  DateTime              @updatedAt
+  updatedBy                  String?
 }
 
 model User {
-  id                        String                  @id @default(uuid())
+  id                        String                    @id @default(uuid())
   firstName                 String
   lastName                  String
-  displayName               String? // Full display name from OAuth providers
-  email                     String?                 @unique
+  displayName               String?
+  email                     String?                   @unique
   phoneNumber               String?
   notes                     String?
-  photoUrl                  String? // Main profile photo
-  profilePicture            String? // OAuth profile picture URL
-  photos                    Json?   // Array of additional photo URLs for future features
-  role                      Role?   // Platform-level roles (SUPER_ADMIN, OWNER, MANAGER, STAFF)
-  tenantId                  String? // Current tenant context
+  photoUrl                  String?
+  profilePicture            String?
+  photos                    Json?
+  role                      Role?
+  tenantId                  String?
   businessData              Json?
   deletedAt                 DateTime?
   deletedBy                 String?
-  createdAt                 DateTime                @default(now())
-  updatedAt                 DateTime                @updatedAt
-   password                  String?
-   initialPasswordSet        Boolean                 @default(false) // Track if user has set their own password
-
-   // Email preferences
-   emailNotificationsEnabled Boolean                 @default(true)
-   marketingEmailsEnabled    Boolean                 @default(false)
-
-     // Email verification fields
-    emailVerified             Boolean                 @default(false)
-    emailVerificationToken    String?                 @unique
-    emailVerificationExpiry   DateTime?
-    emailVerifiedAt           DateTime?
-
-    // OAuth fields
-     googleId                  String?                 @unique
-     authProvider              AuthProvider            @default(LOCAL)
-
-     // Onboarding tracking
-     onboardingCompletedAt     DateTime?
-  tenant                 Tenant?                 @relation(fields: [tenantId], references: [id])
-  gymMemberSubscriptions GymMemberSubscription[] @relation("GymMemberSubscriptions")
-  customerTransactions   CustomerTransaction[]   @relation("CustomerTransactions")
-  processedTransactions  CustomerTransaction[]   @relation("ProcessedTransactions")
-  memberAuditLogs        MemberAuditLog[]        @relation("MemberAuditLogs")
-  performedAuditLogs     MemberAuditLog[]        @relation("PerformedAuditLogs")
-  deletedByUser          User?                 @relation("UserDeletions", fields: [deletedBy], references: [id])
-  deletedUsers           User[]                @relation("UserDeletions")
-  deletedGymPlans        GymMembershipPlan[]   @relation("DeletedGymPlans")
-  gymUserBranches        GymUserBranch[]
-  gymMemberProfile       GymMemberProfile?
-  coffeeCustomerProfile  CoffeeCustomerProfile?
-  
-   // Branch audit relations
-   createdBranches        Branch[]              @relation("BranchCreatedBy")
-   deletedBranches        Branch[]              @relation("BranchDeletedBy")
-
-    // Access control relations
-    cards                  Card[]
-    pendingAssignments     PendingMemberAssignment[]
-    createdAssignments     PendingMemberAssignment[] @relation("AssignmentCreators")
-    eventMembers           Event[]
-    eventActors            Event[] @relation("EventActors")
-    authEvents             AuthEvent[]
-  }
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+  password                  String?
+  initialPasswordSet        Boolean                   @default(false)
+  emailNotificationsEnabled Boolean                   @default(true)
+  marketingEmailsEnabled    Boolean                   @default(false)
+  emailVerified             Boolean                   @default(false)
+  emailVerificationToken    String?                   @unique
+  emailVerificationExpiry   DateTime?
+  emailVerifiedAt           DateTime?
+  googleId                  String?                   @unique
+  authProvider              AuthProvider              @default(LOCAL)
+  onboardingCompletedAt     DateTime?
+  authEvents                AuthEvent[]
+  createdBranches           Branch[]                  @relation("BranchCreatedBy")
+  deletedBranches           Branch[]                  @relation("BranchDeletedBy")
+  cards                     Card[]
+  coffeeCustomerProfile     CoffeeCustomerProfile?
+  customerTransactions      CustomerTransaction[]     @relation("CustomerTransactions")
+  processedTransactions     CustomerTransaction[]     @relation("ProcessedTransactions")
+  eventActors               Event[]                   @relation("EventActors")
+  eventMembers              Event[]
+  gymMemberProfile          GymMemberProfile?
+  gymMemberSubscriptions    GymMemberSubscription[]   @relation("GymMemberSubscriptions")
+  deletedGymPlans           GymMembershipPlan[]       @relation("DeletedGymPlans")
+  gymUserBranches           GymUserBranch[]
+  memberAuditLogs           MemberAuditLog[]          @relation("MemberAuditLogs")
+  performedAuditLogs        MemberAuditLog[]          @relation("PerformedAuditLogs")
+  createdAssignments        PendingMemberAssignment[] @relation("AssignmentCreators")
+  pendingAssignments        PendingMemberAssignment?
+  deletedByUser             User?                     @relation("UserDeletions", fields: [deletedBy], references: [id])
+  deletedUsers              User[]                    @relation("UserDeletions")
+  tenant                    Tenant?                   @relation(fields: [tenantId], references: [id])
+}
 
 model GymUserBranch {
   id          String      @id @default(uuid())
@@ -254,143 +223,113 @@ model GymUserBranch {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   branch      Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, branchId])
   @@index([tenantId])
 }
 
- model GymMemberProfile {
-  id                String   @id @default(uuid())
-  userId            String   @unique // One profile per user (across all tenants)
-  tenantId          String
-  
-  // Primary branch relationship
-  primaryBranchId   String?  // Where member signed up/pays membership
-  accessLevel       BranchAccessLevel @default(ALL_BRANCHES) // Default: can visit all branches
-  
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  primaryBranch     Branch?  @relation("PrimaryBranchProfiles", fields: [primaryBranchId], references: [id])
-
-  // Business-specific fields
-  role              GymRole  @default(GYM_MEMBER)
-  status            GymMemberSubscriptionStatus @default(ACTIVE)
-
-   // Gym-specific fields
-   emergencyContactName     String?
-   emergencyContactPhone    String?
-   emergencyContactRelation String?
-   medicalConditions String?
-   fitnessGoals      String?
-   preferredTrainer  String?
-   trainerContactNumber     String?
-
-  // Profile fields
-  gender             String?
-  height             Int?
-  weight             Int?
-  allergies          Json? // Array of strings
-  lastVisit          DateTime?
-  dateOfBirth        DateTime?
-  totalVisits        Int?     @default(0)
-  fitnessLevel       String?
-  notifications      Json? // Object with sms, push, email
-  favoriteEquipment  String?
-  averageVisitsPerWeek Int?
-   preferredWorkoutTime String?
-
-   joinedDate         DateTime? // Date when member first joined the gym
-
-   membershipHistory  Json? // Past memberships, achievements, etc.
-   profileMetadata    Json? // For any additional dynamic data
-
-    // Gym-level soft deletion
-    deletedAt         DateTime?
-    deletedBy         String?
-    deletionReason    String?
-    deletionNotes     String?
-
-    // Access control fields
-    cardStatus        GymMemberCardStatus? @default(NO_CARD)
-    cardUid           String?
-    cardAssignedAt    DateTime?
-
-    createdAt         DateTime @default(now())
-   updatedAt         DateTime @updatedAt
+model GymMemberProfile {
+  id                       String                      @id @default(uuid())
+  userId                   String                      @unique
+  tenantId                 String
+  primaryBranchId          String?
+  accessLevel              BranchAccessLevel           @default(ALL_BRANCHES)
+  role                     GymRole                     @default(GYM_MEMBER)
+  status                   GymMemberSubscriptionStatus @default(ACTIVE)
+  emergencyContactName     String?
+  emergencyContactPhone    String?
+  emergencyContactRelation String?
+  medicalConditions        String?
+  fitnessGoals             String?
+  preferredTrainer         String?
+  trainerContactNumber     String?
+  gender                   String?
+  height                   Int?
+  weight                   Int?
+  allergies                Json?
+  lastVisit                DateTime?
+  dateOfBirth              DateTime?
+  totalVisits              Int?                        @default(0)
+  fitnessLevel             String?
+  notifications            Json?
+  favoriteEquipment        String?
+  averageVisitsPerWeek     Int?
+  preferredWorkoutTime     String?
+  joinedDate               DateTime?
+  membershipHistory        Json?
+  profileMetadata          Json?
+  deletedAt                DateTime?
+  deletedBy                String?
+  deletionReason           String?
+  deletionNotes            String?
+  cardStatus               GymMemberCardStatus?        @default(NO_CARD)
+  cardUid                  String?
+  cardAssignedAt           DateTime?
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+  primaryBranch            Branch?                     @relation("PrimaryBranchProfiles", fields: [primaryBranchId], references: [id])
+  tenant                   Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user                     User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }
 
 model CoffeeCustomerProfile {
-  id                  String     @id @default(uuid())
-  userId              String     @unique // One profile per user (across all tenants)
-  tenantId            String
-  user                User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant              Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  // Business-specific fields
-  role                CoffeeRole @default(COFFEE_CUSTOMER)
-  status              String     @default("active")
-
-  // Coffee shop-specific fields
-  favoriteDrinks      String[]
-  dietaryPreferences  String?
-  loyaltyPoints       Int      @default(0)
-  visitHistory        Json?
-
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String     @id @default(uuid())
+  userId             String     @unique
+  tenantId           String
+  role               CoffeeRole @default(COFFEE_CUSTOMER)
+  status             String     @default("active")
+  favoriteDrinks     String[]
+  dietaryPreferences String?
+  loyaltyPoints      Int        @default(0)
+  visitHistory       Json?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  tenant             Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }
 
-// SaaS Platform Plans (what tenants pay us for using the platform)
 model SaasTenantPlan {
-  id                    String             @id @default(uuid())
-  name                  String             @unique // "Basic", "Pro", "Enterprise"
-  displayName           String             // "Basic Plan", "Professional Plan"
-  description           String?
-  monthlyPrice          Decimal            @db.Decimal(8, 2) // What tenant pays us monthly
-  yearlyPrice           Decimal?           @db.Decimal(8, 2) // Optional yearly pricing
-  maxMembers            Int                @default(100) // Member limit per tenant
-  maxBranches           Int                @default(1)   // Branch limit per tenant  
-  features              Json?              // Array of features: ["analytics", "integrations"]
-  isActive              Boolean            @default(true)
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
-  saasSubscriptions     SaasSubscription[] // Tenant subscriptions to this plan
+  id                String             @id @default(uuid())
+  name              String             @unique
+  displayName       String
+  description       String?
+  monthlyPrice      Decimal            @db.Decimal(8, 2)
+  yearlyPrice       Decimal?           @db.Decimal(8, 2)
+  maxMembers        Int                @default(100)
+  maxBranches       Int                @default(1)
+  features          Json?
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  saasSubscriptions SaasSubscription[]
 }
 
-// Business Unit SaaS Subscriptions - using existing model below
-
-// Gym-specific membership plans (what gym members pay the gym)
 model GymMembershipPlan {
   id                     String                  @id @default(uuid())
   tenantId               String
   name                   String
   description            String?
   price                  Decimal                 @db.Decimal(8, 2)
-  duration               Int                     // Duration in days
+  duration               Int
   type                   MembershipType
-  benefits               Json?                   // Array of benefits
-  accessLevel            BranchAccessLevel       @default(ALL_BRANCHES) // Branch access level for this plan
+  benefits               Json?
+  accessLevel            BranchAccessLevel       @default(ALL_BRANCHES)
   isActive               Boolean                 @default(true)
-  
-  // Soft delete fields (matching GymMemberProfile pattern)
   deletedAt              DateTime?
-  deletedBy              String?                 // User ID who deleted
-  deleteReason           String?                 // Reason for deletion
-  deleteNotes            String?                 // Additional notes
-  
+  deletedBy              String?
+  deleteReason           String?
+  deleteNotes            String?
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
-  
-  // Relations
   gymMemberSubscriptions GymMemberSubscription[]
-  tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   deletedByUser          User?                   @relation("DeletedGymPlans", fields: [deletedBy], references: [id])
+  tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -398,24 +337,23 @@ model GymMembershipPlan {
   @@index([deletedAt])
 }
 
-
 model CustomerTransaction {
-  id                      String                     @id @default(uuid())
+  id                      String                 @id @default(uuid())
   tenantId                String
   customerId              String
-  gymMemberSubscriptionId String?                    // Link to gym subscription for analytics
-  businessType            String                     @default("gym")
-  transactionCategory     String                     @default("membership")
-  amount                  Decimal                    @db.Decimal(12, 2)
-  currency                String?                    @default("PHP")
-  taxAmount               Decimal?                   @default(0) @db.Decimal(12, 2)
-  discountAmount          Decimal?                   @default(0) @db.Decimal(12, 2)
-  netAmount               Decimal                    @db.Decimal(12, 2)
-  paymentMethod           String?                    @default("cash")
+  gymMemberSubscriptionId String?
+  businessType            String                 @default("gym")
+  transactionCategory     String                 @default("membership")
+  amount                  Decimal                @db.Decimal(12, 2)
+  currency                String?                @default("PHP")
+  taxAmount               Decimal?               @default(0) @db.Decimal(12, 2)
+  discountAmount          Decimal?               @default(0) @db.Decimal(12, 2)
+  netAmount               Decimal                @db.Decimal(12, 2)
+  paymentMethod           String?                @default("cash")
   paymentReference        String?
   gatewayTransactionId    String?
-  transactionType         TransactionType            @default(PAYMENT)
-  status                  TransactionStatus          @default(COMPLETED)
+  transactionType         TransactionType        @default(PAYMENT)
+  status                  TransactionStatus      @default(COMPLETED)
   relatedEntityType       String?
   relatedEntityId         String?
   relatedEntityName       String?
@@ -423,12 +361,12 @@ model CustomerTransaction {
   notes                   String?
   metadata                Json?
   processedBy             String?
-  createdAt               DateTime                   @default(now())
-  updatedAt               DateTime                   @updatedAt
-  customer                User                       @relation("CustomerTransactions", fields: [customerId], references: [id], onDelete: Cascade)
-  processor               User?                      @relation("ProcessedTransactions", fields: [processedBy], references: [id])
-  tenant                  Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  gymMemberSubscription   GymMemberSubscription?     @relation(fields: [gymMemberSubscriptionId], references: [id])
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  customer                User                   @relation("CustomerTransactions", fields: [customerId], references: [id], onDelete: Cascade)
+  gymMemberSubscription   GymMemberSubscription? @relation(fields: [gymMemberSubscriptionId], references: [id])
+  processor               User?                  @relation("ProcessedTransactions", fields: [processedBy], references: [id])
+  tenant                  Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   platformRevenue         PlatformRevenue[]
 
   @@index([tenantId])
@@ -441,29 +379,29 @@ model CustomerTransaction {
 }
 
 model GymMemberSubscription {
-  id                    String                      @id @default(uuid())
-  tenantId              String
-  branchId              String?
-  memberId              String
-  gymMembershipPlanId   String                      // Gym-specific plan ID (required)
-  status                GymMemberSubscriptionStatus @default(ACTIVE)
-  startDate             DateTime                    @db.Date
-  endDate               DateTime                    @db.Date
-  price                 Decimal                     @db.Decimal(12, 2)
-  currency              String?                     @default("PHP")
-  usageData             Json?
-  cancelledAt           DateTime?
-  cancellationReason    String?
-  cancellationNotes     String?
-  autoRenew             Boolean?                    @default(true)
-  nextBillingDate       DateTime?                   @db.Date
-  createdAt             DateTime                    @default(now())
-  updatedAt             DateTime                    @updatedAt
-  branch                Branch?                     @relation(fields: [branchId], references: [id])
-  member                User                        @relation("GymMemberSubscriptions", fields: [memberId], references: [id], onDelete: Cascade)
-  gymMembershipPlan     GymMembershipPlan           @relation(fields: [gymMembershipPlanId], references: [id])  
-  tenant                Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customerTransactions  CustomerTransaction[]       // Payment transactions for this subscription
+  id                   String                      @id @default(uuid())
+  tenantId             String
+  branchId             String?
+  memberId             String
+  gymMembershipPlanId  String
+  status               GymMemberSubscriptionStatus @default(ACTIVE)
+  startDate            DateTime                    @db.Date
+  endDate              DateTime                    @db.Date
+  price                Decimal                     @db.Decimal(12, 2)
+  currency             String?                     @default("PHP")
+  usageData            Json?
+  cancelledAt          DateTime?
+  cancellationReason   String?
+  cancellationNotes    String?
+  autoRenew            Boolean?                    @default(true)
+  nextBillingDate      DateTime?                   @db.Date
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+  customerTransactions CustomerTransaction[]
+  branch               Branch?                     @relation(fields: [branchId], references: [id])
+  gymMembershipPlan    GymMembershipPlan           @relation(fields: [gymMembershipPlanId], references: [id])
+  member               User                        @relation("GymMemberSubscriptions", fields: [memberId], references: [id], onDelete: Cascade)
+  tenant               Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([branchId])
@@ -518,9 +456,9 @@ model MemberAuditLog {
   member        User              @relation("MemberAuditLogs", fields: [memberId], references: [id], onDelete: Cascade)
   performer     User?             @relation("PerformedAuditLogs", fields: [performedBy], references: [id])
 
-   @@index([memberId])
-   @@index([performedAt])
-   @@index([action])
+  @@index([memberId])
+  @@index([performedAt])
+  @@index([action])
 }
 
 model EmailSettings {
@@ -538,19 +476,19 @@ model EmailSettings {
 }
 
 model EmailTemplate {
-  id           String    @id @default(uuid())
+  id           String     @id @default(uuid())
   tenantId     String?
-  templateType String    // "welcome", "admin_alert", "tenant_notification", "digest"
+  templateType String
   name         String
   subject      String
   htmlContent  String
   textContent  String?
-  variables    Json?     // Available variables for template
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  tenant       Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  variables    Json?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   emailLogs    EmailLog[]
+  tenant       Tenant?    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([templateType])
@@ -558,21 +496,21 @@ model EmailTemplate {
 }
 
 model EmailLog {
-  id             String       @id @default(uuid())
+  id             String         @id @default(uuid())
   tenantId       String?
   recipientEmail String
   recipientName  String?
   templateType   String
   templateId     String?
   subject        String
-  status         String       // "sent", "failed", "pending"
+  status         String
   errorMessage   String?
   sentAt         DateTime?
-  provider       String       // "mailpit", "brevo"
+  provider       String
   metadata       Json?
-  createdAt      DateTime     @default(now())
-  tenant         Tenant?      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
   template       EmailTemplate? @relation(fields: [templateId], references: [id])
+  tenant         Tenant?        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([templateId])
@@ -583,22 +521,22 @@ model EmailLog {
 model SaasSubscription {
   id                 String                 @id @default(uuid())
   businessUnitId     String
-  saasPlanId         String?                // Reference to SaasTenantPlan
-  planName           String                 @default("basic") // basic, premium, enterprise - legacy
+  saasPlanId         String?
+  planName           String                 @default("basic")
   status             SaasSubscriptionStatus @default(TRIAL)
   startDate          DateTime               @db.Date
   endDate            DateTime?              @db.Date
   trialEndsAt        DateTime?              @db.Date
-  monthlyPrice       Decimal                @default(3999) @db.Decimal(8, 2) // PHP pricing
+  monthlyPrice       Decimal                @default(3999) @db.Decimal(8, 2)
   currency           String                 @default("PHP")
-  paymentMethod      String? // gcash, paymongo, bank_transfer
-  paymentReference   String? // Reference from payment gateway
+  paymentMethod      String?
+  paymentReference   String?
   lastPaymentDate    DateTime?
   nextBillingDate    DateTime?              @db.Date
   autoRenew          Boolean                @default(true)
   cancelledAt        DateTime?
   cancellationReason String?
-  metadata           Json? // Additional subscription data
+  metadata           Json?
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
   businessUnit       BusinessUnit           @relation(fields: [businessUnitId], references: [id], onDelete: Cascade)
@@ -612,6 +550,96 @@ model SaasSubscription {
   @@index([trialEndsAt])
 }
 
+model Terminal {
+  id         String    @id @default(uuid())
+  gymId      String
+  tenantId   String?
+  name       String
+  secretHash String
+  isActive   Boolean   @default(true)
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+  events     Event[]
+  gym        Branch    @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  tenant     Tenant?   @relation(fields: [tenantId], references: [id])
+
+  @@index([gymId])
+}
+
+model InventoryCard {
+  uid            String              @id
+  status         InventoryCardStatus @default(AVAILABLE)
+  allocatedGymId String
+  batchId        String?
+  createdAt      DateTime            @default(now())
+  gym            Branch              @relation(fields: [allocatedGymId], references: [id], onDelete: Cascade)
+
+  @@index([allocatedGymId, status])
+}
+
+model Card {
+  uid       String   @id
+  gymId     String
+  type      CardType @default(MONTHLY)
+  memberId  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  gym       Branch   @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member    User?    @relation(fields: [memberId], references: [id])
+
+  @@index([gymId, uid])
+}
+
+model PendingMemberAssignment {
+  gymId           String            @id @unique
+  memberId        String            @unique
+  purpose         AssignmentPurpose @default(ONBOARD)
+  expiresAt       DateTime
+  createdByUserId String?
+  createdAt       DateTime          @default(now())
+  oldCardUid      String?
+  createdBy       User?             @relation("AssignmentCreators", fields: [createdByUserId], references: [id])
+  gym             Branch            @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member          User              @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id          String    @id @default(uuid())
+  gymId       String
+  terminalId  String?
+  type        String
+  cardUid     String?
+  memberId    String?
+  actorUserId String?
+  meta        Json?
+  createdAt   DateTime  @default(now())
+  actor       User?     @relation("EventActors", fields: [actorUserId], references: [id])
+  gym         Branch    @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member      User?     @relation(fields: [memberId], references: [id])
+  terminal    Terminal? @relation(fields: [terminalId], references: [id])
+
+  @@index([gymId, createdAt])
+  @@index([type])
+}
+
+model AuthEvent {
+  id        String   @id @default(uuid())
+  tenantId  String?
+  userId    String?
+  type      String
+  ipAddress String?
+  userAgent String?
+  reason    String?
+  meta      Json?
+  createdAt DateTime @default(now())
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([userId, createdAt])
+  @@index([type])
+}
+
 enum BusinessCategory {
   GYM
   COFFEE_SHOP
@@ -620,13 +648,12 @@ enum BusinessCategory {
 }
 
 enum TenantStatus {
-  PENDING    // Email not verified yet
-  ACTIVE     // Email verified, can use system
-  SUSPENDED  // Admin suspended
-  CANCELLED  // Owner cancelled
+  PENDING
+  ACTIVE
+  SUSPENDED
+  CANCELLED
 }
 
-// Global roles for platform-wide access
 enum Role {
   SUPER_ADMIN
   OWNER
@@ -635,7 +662,6 @@ enum Role {
   CLIENT
 }
 
-// Business-specific role enums
 enum GymRole {
   GYM_TRAINER
   GYM_NUTRITIONIST
@@ -771,133 +797,33 @@ enum MemberAuditAction {
 }
 
 enum BusinessUnitType {
-  LOCATION // Physical locations (gyms, coffee shops)
-  CHANNEL // Sales channels (ecommerce stores)
-  DEPARTMENT // Departments within a business
-  FRANCHISE // Franchise units
+  LOCATION
+  CHANNEL
+  DEPARTMENT
+  FRANCHISE
 }
 
 enum SaasSubscriptionStatus {
-  TRIAL // Free trial period
-  ACTIVE // Paid and active
-  PAST_DUE // Payment failed, grace period
-  SUSPENDED // Temporarily suspended
-  CANCELLED // User cancelled
-  EXPIRED // Trial or subscription expired
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELLED
+  EXPIRED
 }
 
 enum BranchAccessLevel {
-  SINGLE_BRANCH    // Can only visit primary branch
-  MULTI_BRANCH     // Can visit specific allowed branches
-  ALL_BRANCHES     // Can visit any branch (premium memberships)
+  SINGLE_BRANCH
+  MULTI_BRANCH
+  ALL_BRANCHES
 }
 
 enum PasswordSecurityLevel {
-  LOW      // 6+ chars, basic requirements
-  MEDIUM   // 8+ chars, mixed case + number
-  HIGH     // 8+ chars, mixed case + number + special char
+  LOW
+  MEDIUM
+  HIGH
 }
 
-// Access Control Models
-model Terminal {
-  id          String   @id @default(uuid())
-  gymId       String   // Branch ID
-  tenantId    String?  // Tenant ID
-  name        String
-  secretHash  String   // Bcrypt hash
-  isActive    Boolean  @default(true)
-  lastSeenAt  DateTime?
-  createdAt   DateTime @default(now())
-
-  gym         Branch   @relation(fields: [gymId], references: [id], onDelete: Cascade)
-  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
-
-  events      Event[]
-
-  @@index([gymId])
-}
-
-model InventoryCard {
-  uid              String   @id // RFID UID
-  status           InventoryCardStatus @default(AVAILABLE)
-  allocatedGymId   String   // Branch ID, not nullable for gym-specific
-  batchId          String?
-  createdAt        DateTime @default(now())
-
-  gym              Branch   @relation(fields: [allocatedGymId], references: [id], onDelete: Cascade)
-
-  @@index([allocatedGymId, status])
-}
-
-model Card {
-  uid       String        @id // RFID UID
-  gymId     String        // Branch ID
-  type      CardType      @default(MONTHLY)
-  memberId  String?       // User ID (GymMemberProfile.userId)
-  active    Boolean       @default(true)
-  createdAt DateTime      @default(now())
-
-  gym       Branch        @relation(fields: [gymId], references: [id], onDelete: Cascade)
-  member    User?         @relation(fields: [memberId], references: [id])
-
-  @@index([gymId, uid])
-}
-
-model PendingMemberAssignment {
-  gymId           String   @id // Unique per gym (Branch ID)
-  memberId        String   @unique // User ID
-  purpose         AssignmentPurpose @default(ONBOARD)
-  expiresAt       DateTime
-  createdByUserId String?
-  createdAt       DateTime @default(now())
-
-  gym             Branch   @relation(fields: [gymId], references: [id], onDelete: Cascade)
-  member          User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  createdBy       User?   @relation("AssignmentCreators", fields: [createdByUserId], references: [id])
-
-  @@unique([gymId]) // Only one pending per gym
-}
-
-model Event {
-  id           String    @id @default(uuid())
-  gymId        String    // Branch ID
-  terminalId   String?   // Terminal ID
-  type         String    // Event type (e.g., ACCESS_ALLOW)
-  cardUid      String?   // RFID UID
-  memberId     String?   // User ID
-  actorUserId  String?   // User who performed action
-  meta         Json?     // Additional data
-  createdAt    DateTime  @default(now())
-
-  gym          Branch    @relation(fields: [gymId], references: [id], onDelete: Cascade)
-  terminal     Terminal? @relation(fields: [terminalId], references: [id])
-  member       User?     @relation(fields: [memberId], references: [id])
-  actor        User?     @relation("EventActors", fields: [actorUserId], references: [id])
-
-  @@index([gymId, createdAt])
-  @@index([type])
-}
-
-model AuthEvent {
-  id          String   @id @default(uuid())
-  tenantId    String?  // Tenant ID (null for system events)
-  userId      String?  // User ID
-  type        String   // Event type: LOGIN, LOGOUT, LOGIN_FAILED, TOKEN_EXPIRED, etc.
-  ipAddress   String?  // Client IP
-  userAgent   String?  // Browser/client info
-  reason      String?  // Reason for failure/logout
-  meta        Json?    // Additional data
-  createdAt   DateTime @default(now())
-
-  user        User?    @relation(fields: [userId], references: [id])
-  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
-
-  @@index([tenantId, createdAt])
-  @@index([userId, createdAt])
-  @@index([type])
-}
-
-// Access Control Enums
 enum InventoryCardStatus {
   AVAILABLE
   ASSIGNED
@@ -915,6 +841,6 @@ enum AssignmentPurpose {
 }
 
 enum AuthProvider {
-  LOCAL    // Email/password authentication
-  GOOGLE   // Google OAuth authentication
+  LOCAL
+  GOOGLE
 }

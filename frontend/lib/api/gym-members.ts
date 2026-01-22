@@ -220,6 +220,12 @@ export const membersApi = {
     return response.data
   },
 
+  // Start card replacement for a member
+  async replaceCard(memberId: string): Promise<any> {
+    const response = await apiClient.post(`/admin/members/${memberId}/replace/start`)
+    return response.data
+  },
+
   // Cancel pending assignment for a gym
   async cancelPendingAssignment(gymId: string): Promise<any> {
     const response = await apiClient.post(`/admin/members/gyms/${gymId}/pending-assignment/cancel`)

@@ -41,6 +41,7 @@ import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MembershipPlansRequiredModal } from '@/components/modals/membership-plans-required-modal'
 import { ChangePlanModal } from '@/components/modals/change-plan-modal'
 import { AssignCardModal } from '@/components/modals/assign-card-modal'
+import { ReplaceCardModal } from '@/components/modals/replace-card-modal'
 import { MemberCard } from '@/components/members/member-card'
 import { StatsOverview } from '@/components/members/stats-overview'
 import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-gym-member-actions'
@@ -71,8 +72,10 @@ export default function MembersPage() {
   const [showPlansRequiredModal, setShowPlansRequiredModal] = useState(false)
   const [showChangePlanModal, setShowChangePlanModal] = useState(false)
   const [selectedMemberForChangePlan, setSelectedMemberForChangePlan] = useState<User | null>(null)
-  const [showAssignCardModal, setShowAssignCardModal] = useState(false)
-  const [selectedMemberForAssignCard, setSelectedMemberForAssignCard] = useState<User | null>(null)
+   const [showAssignCardModal, setShowAssignCardModal] = useState(false)
+   const [selectedMemberForAssignCard, setSelectedMemberForAssignCard] = useState<User | null>(null)
+   const [showReplaceCardModal, setShowReplaceCardModal] = useState(false)
+   const [selectedMemberForReplaceCard, setSelectedMemberForReplaceCard] = useState<User | null>(null)
 
   const isSuperAdmin = profile?.role === 'SUPER_ADMIN'
 
@@ -530,14 +533,18 @@ export default function MembersPage() {
                        setSelectedMemberForChangePlan(member)
                       setShowChangePlanModal(true)
                     }}
-                     onAssignCard={(member: User) => {
-                       setSelectedMemberForAssignCard(member)
-                       setShowAssignCardModal(true)
-                     }}
-                   onMemberDeleted={async () => {
-                     // Refresh members list after deletion
-                     await refreshMembersData()
-                   }}
+                      onAssignCard={(member: User) => {
+                        setSelectedMemberForAssignCard(member)
+                        setShowAssignCardModal(true)
+                      }}
+                      onReplaceCard={(member: User) => {
+                        setSelectedMemberForReplaceCard(member)
+                        setShowReplaceCardModal(true)
+                      }}
+                    onMemberDeleted={async () => {
+                      // Refresh members list after deletion
+                      await refreshMembersData()
+                    }}
                  />
               ))
             )}
@@ -608,6 +615,21 @@ export default function MembersPage() {
           await refreshMembersData()
           setShowAssignCardModal(false)
           setSelectedMemberForAssignCard(null)
+        }}
+      />
+
+      <ReplaceCardModal
+        isOpen={showReplaceCardModal}
+        onClose={() => {
+          setShowReplaceCardModal(false)
+          setSelectedMemberForReplaceCard(null)
+        }}
+        member={selectedMemberForReplaceCard}
+        onCardReplaced={async () => {
+          // Refresh members data to show updated card status
+          await refreshMembersData()
+          setShowReplaceCardModal(false)
+          setSelectedMemberForReplaceCard(null)
         }}
       />
 

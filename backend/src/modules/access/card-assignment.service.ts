@@ -10,6 +10,7 @@ export class CardAssignmentService {
     memberId: string,
     cardUid: string,
     purpose: 'ONBOARD' | 'REPLACE',
+    oldCardUid?: string | null,
   ) {
     return this.prisma.$transaction(async (tx) => {
       // Check inventory availability
@@ -37,22 +38,31 @@ export class CardAssignmentService {
       }
 
       // For REPLACE, deactivate old card
-      let oldCardUid: string | undefined;
+      let deactivatedOldCardUid: string | undefined;
       if (purpose === 'REPLACE') {
-        const oldCard = await tx.card.findFirst({
-          where: {
-            gymId,
-            memberId,
-            active: true,
-          },
-        });
-        if (oldCard) {
-          await tx.card.update({
-            where: { uid: oldCard.uid },
-            data: { active: false },
-          });
-          oldCardUid = oldCard.uid;
+        if (!oldCardUid) {
+          throw new Error('Old card UID required for REPLACE purpose');
         }
+
+        // Check if the old card exists and belongs to this member
+        const oldCard = await tx.card.findUnique({
+          where: { uid: oldCardUid },
+        });
+
+        if (
+          !oldCard ||
+          oldCard.memberId !== memberId ||
+          oldCard.gymId !== gymId ||
+          !oldCard.active
+        ) {
+          throw new Error('Invalid old card for replacement');
+        }
+
+        await tx.card.update({
+          where: { uid: oldCardUid },
+          data: { active: false },
+        });
+        deactivatedOldCardUid = oldCardUid;
       }
 
       // Create operational card
@@ -82,7 +92,7 @@ export class CardAssignmentService {
         },
       });
 
-      return { cardUid, memberId, oldCardUid };
+      return { cardUid, memberId, oldCardUid: deactivatedOldCardUid };
     });
   }
 
