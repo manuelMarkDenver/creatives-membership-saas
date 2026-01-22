@@ -81,7 +81,33 @@ export class AccessService {
       operationalCard?.gymId === gymId ? 'same gym' : 'different gym',
     );
 
-    // Log tenant/branch mismatches for operational cards
+    // Check for gym/branch mismatches and deny access
+    if (operationalCard && operationalCard.gymId !== gymId) {
+      await this.eventsService.logEvent({
+        gymId,
+        terminalId,
+        type: 'ACCESS_DENY_GYM_MISMATCH',
+        cardUid,
+        memberId: operationalCard.memberId || undefined,
+        meta: {
+          cardGymId: operationalCard.gymId,
+          terminalGymId: gymId,
+          mismatchType: 'gym',
+        },
+      });
+      console.log(
+        `🚨 GYM MISMATCH: Card gym ${operationalCard.gymId} != Terminal gym ${gymId} - ACCESS DENIED`,
+      );
+      const memberName = operationalCard.member
+        ? `${operationalCard.member.firstName || 'Unknown'} ${operationalCard.member.lastName || 'User'}`
+        : 'Unknown Member';
+      return {
+        result: 'DENY_GYM_MISMATCH',
+        memberName,
+      };
+    }
+
+    // Log tenant mismatches for operational cards (same tenant, different gym)
     if (operationalCard) {
       const cardTenantId = operationalCard.gym?.tenantId;
       const terminalTenantId = terminal.gym?.tenantId;
