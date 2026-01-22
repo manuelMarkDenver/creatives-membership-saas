@@ -206,6 +206,8 @@ export default function KioskPage() {
           return 'Access Denied - Unknown Card';
         case 'DENY_DISABLED':
           return `MEMBER DISABLED - ${result.memberName}`;
+        case 'DENY_GYM_MISMATCH':
+          return 'Access Denied';
         case 'ASSIGNED':
           return `Card Assigned to ${result.memberName}`;
         case 'IGNORED_DUPLICATE_TAP':
@@ -215,6 +217,13 @@ export default function KioskPage() {
       }
     }
     return 'TAP CARD';
+  };
+
+  const getDetailedMessage = () => {
+    if (result && result.result === 'DENY_GYM_MISMATCH') {
+      return 'This card belongs to a different gym location.\nPlease visit the gym where your membership is registered.';
+    }
+    return null;
   };
 
   // Check if terminal is configured
@@ -266,24 +275,24 @@ export default function KioskPage() {
         className="absolute top-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
         autoFocus={!result}
       />
-      <div className="w-[800px] h-[800px] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center">
+      <div className="w-[min(800px,90vw)] h-[min(800px,90vw)] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center">
         <div className="text-center text-white px-8">
-          <h1 className={`font-bold mb-6 ${!result ? 'text-9xl' : 'text-7xl'}`}>
+          <h1 className={`font-bold mb-6 ${!result ? 'text-6xl sm:text-8xl lg:text-9xl' : 'text-5xl sm:text-6xl lg:text-7xl'}`}>
             {getText()}
           </h1>
           {result && result.expiresAt && result.result !== 'DENY_EXPIRED' && (
-            <p className="text-6xl font-bold">
+            <p className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold">
               Expires: {new Date(result.expiresAt).toLocaleDateString()}
             </p>
           )}
           {result && result.expiresAt && result.result === 'DENY_EXPIRED' && (
-            <p className="text-6xl font-bold">
+            <p className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold">
               Expired: {new Date(result.expiresAt).toLocaleDateString()}
             </p>
           )}
           {!result && cardUid && (
             <div className="flex flex-col items-center space-y-4">
-              <div className="text-4xl opacity-70">Reading card</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl opacity-70">Reading card</div>
               <div className="flex space-x-2">
                 <div className="w-6 h-6 bg-white rounded-full animate-pulse"></div>
                 <div className="w-6 h-6 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
@@ -293,6 +302,15 @@ export default function KioskPage() {
           )}
         </div>
       </div>
+
+      {/* Detailed message below circle */}
+      {getDetailedMessage() && (
+        <div className="mt-8 text-center text-white max-w-2xl">
+          <p className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-relaxed whitespace-pre-line px-4">
+            {getDetailedMessage()}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
