@@ -156,20 +156,20 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
 
         <div className="space-y-4 py-4">
           {/* Member Info */}
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
               {memberName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <p className="font-medium">{memberName}</p>
-              <p className="text-sm text-gray-600">{member?.email}</p>
+              <p className="font-medium text-foreground">{memberName}</p>
+              <p className="text-sm text-muted-foreground">{member?.email}</p>
             </div>
           </div>
 
           {/* Status */}
           {!isPolling && !pendingData && (
             <div className="text-center p-4">
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Click "Start Replacement" to begin the card replacement process. The old card will be permanently disabled.
               </p>
               <Badge variant="outline" className="text-blue-600">
@@ -179,30 +179,30 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
           )}
 
           {isPolling && (
-            <div className="text-center p-4 border rounded-lg">
+            <div className="text-center p-4 border rounded-lg bg-card">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                <span className="font-medium text-blue-700">Waiting for new card tap...</span>
+                <span className="font-medium text-foreground">Waiting for new card tap...</span>
               </div>
-              <p className="text-sm text-gray-600 mb-3">
-                Take the member to the physical kiosk location. They have <strong>{formatTime(countdown)}</strong> to tap their new card on the kiosk screen.
+              <p className="text-sm text-muted-foreground mb-3">
+                Take the member to the physical kiosk location. They have <strong className="text-foreground">{formatTime(countdown)}</strong> to tap their new card on the kiosk screen.
               </p>
-              <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border mt-2">
-                <strong>Important:</strong> The old card will be permanently disabled after replacement. Ensure the kiosk terminal is configured for the same gym as this member.
+              <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-400 p-2 rounded border mt-2">
+                <strong className="text-foreground">Important:</strong> The old card will be permanently disabled after replacement. Ensure the kiosk terminal is configured for the same gym as this member.
               </div>
               <div className="flex items-center justify-center gap-2">
                 <Clock className="h-4 w-4 text-amber-500" />
-                <span className="text-sm font-medium text-amber-700">Expires: {formatTime(countdown)}</span>
+                <span className="text-sm font-medium text-amber-700 dark:text-amber-400">Expires: {formatTime(countdown)}</span>
               </div>
             </div>
           )}
 
           {pendingData && !isPolling && (
-            <div className="text-center p-4 border rounded-lg bg-amber-50">
-              <p className="text-sm text-amber-800 mb-2">
+            <div className="text-center p-4 border rounded-lg bg-amber-50 dark:bg-amber-950">
+              <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
                 Another assignment is in progress for this gym
               </p>
-              <Badge variant="outline" className="text-amber-600">
+              <Badge variant="outline" className="text-amber-600 dark:text-amber-400">
                 {pendingData.memberName} - {formatTime(Math.ceil((new Date(pendingData.expiresAt).getTime() - Date.now()) / 1000))}
               </Badge>
             </div>
