@@ -2,7 +2,7 @@ import { type MemberData } from './member-status'
 
 export interface StatusDisplay {
   label: string
-  color: 'green' | 'orange' | 'red' | 'yellow' | 'blue' | 'gray'
+  color: 'green' | 'orange' | 'red' | 'yellow' | 'blue' | 'gray' | 'purple'
   description: string
   icon: string
   buttonVariant: 'default' | 'secondary' | 'destructive' | 'outline'
@@ -316,6 +316,12 @@ export const getStatusColorClasses = (color: StatusDisplay['color']) => {
       text: 'text-gray-600',
       badge: 'bg-gray-100 text-gray-800 border-gray-300',
       icon: 'text-gray-600'
+    },
+    purple: {
+      bg: 'bg-purple-500 hover:bg-purple-600',
+      text: 'text-purple-600',
+      badge: 'bg-purple-100 text-purple-800 border-purple-300',
+      icon: 'text-purple-600'
     }
   }
   

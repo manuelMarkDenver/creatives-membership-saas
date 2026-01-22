@@ -510,30 +510,30 @@ export default function MembersPage() {
                    key={member.id}
                    member={member as User}
                    isSuperAdmin={isSuperAdmin}
-                   onViewMemberInfo={(member) => {
-                     setSelectedMember(member)
-                     setShowMemberInfoModal(true)
-                   }}
-                   onViewTransactions={(member) => {
-                     setSelectedMemberForTransactions(member)
-                     setShowTransactionModal(true)
-                   }}
-                    onRenewSubscription={(member) => {
-                      setSelectedMemberForAction(member)
-                      setShowRenewalModal(true)
+                    onViewMemberInfo={(member: User) => {
+                      setSelectedMember(member)
+                      setShowMemberInfoModal(true)
                     }}
-                    onCancelSubscription={(member) => {
-                      setSelectedMemberForAction(member)
-                      setShowCancellationModal(true)
+                    onViewTransactions={(member: User) => {
+                      setSelectedMemberForTransactions(member)
+                      setShowTransactionModal(true)
                     }}
-                    onChangePlan={(member) => {
-                      setSelectedMemberForChangePlan(member)
+                     onRenewSubscription={(member: User) => {
+                       setSelectedMemberForAction(member)
+                       setShowRenewalModal(true)
+                     }}
+                     onCancelSubscription={(member: User) => {
+                       setSelectedMemberForAction(member)
+                       setShowCancellationModal(true)
+                     }}
+                     onChangePlan={(member: User) => {
+                       setSelectedMemberForChangePlan(member)
                       setShowChangePlanModal(true)
                     }}
-                    onAssignCard={(member) => {
-                      setSelectedMemberForAssignCard(member)
-                      setShowAssignCardModal(true)
-                    }}
+                     onAssignCard={(member: User) => {
+                       setSelectedMemberForAssignCard(member)
+                       setShowAssignCardModal(true)
+                     }}
                    onMemberDeleted={async () => {
                      // Refresh members list after deletion
                      await refreshMembersData()

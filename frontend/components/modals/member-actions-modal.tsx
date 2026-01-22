@@ -145,7 +145,7 @@ export function MemberActionsModal({
   const { data: membershipPlans } = useActiveMembershipPlans()
 
   // For enable_card, fetch member's disabled cards
-  const disabledCards = memberData?.cards?.filter(card => !card.active) || []
+  const disabledCards = memberData?.cards?.filter((card: any) => !card.active) || []
   
   // Ensure membershipPlans is always an array
   const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []

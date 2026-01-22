@@ -2,8 +2,24 @@
 
 import { useState } from 'react'
 import { User } from '@/types'
+import { toast } from 'react-toastify'
+import { MemberActionType, MemberActionsModal } from '@/components/modals/member-actions-modal'
+import { TransactionHistoryModal } from '@/components/modals/transaction-history-modal'
+import { DeleteMemberModal } from '@/components/modals/delete-member-modal'
+import { MemberHistoryModal } from '@/components/modals/member-history-modal'
+import { RestoreMemberModal } from '@/components/modals/restore-member-modal'
+import { useProfile, useSoftDeleteUser, useActivateUser, useDeactivateUser, useRestoreUser } from '@/lib/hooks/use-gym-users'
+import { calculateMemberStatus, MemberData } from '@/lib/utils/member-status'
+import { getMemberStatusDisplay } from '@/lib/utils/member-status-display'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Calendar,
   MoreHorizontal,
@@ -21,6 +37,22 @@ import {
   AlertTriangle,
   Ban,
   CreditCard,
+  Lock,
+  Building,
+  Settings,
+  Eye,
+} from "lucide-react"
+
+interface MemberCardProps {
+  member: User
+  isSuperAdmin?: boolean
+  onViewMemberInfo: (member: User) => void
+  onViewTransactions: (member: User) => void
+  onRenewSubscription: (member: User) => void
+  onCancelSubscription: (member: User) => void
+  onChangePlan: (member: User) => void
+  onAssignCard: (member: User) => void
+  onMemberDeleted: () => void
 }
 
 export function MemberCard({

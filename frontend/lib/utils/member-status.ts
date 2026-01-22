@@ -30,16 +30,17 @@ export interface MemberData {
   lastName?: string
   email: string
   deletedAt?: string | null  // Keep for backwards compatibility
-  gymMemberProfile?: {
-    id: string
-    deletedAt?: string | null
-    deletedBy?: string | null
-    deletionReason?: string | null
-    deletionNotes?: string | null
-    primaryBranchId?: string
-    primaryBranch?: { id: string; name: string; address?: string }
-    accessLevel?: 'SINGLE_BRANCH' | 'MULTI_BRANCH' | 'ALL_BRANCHES'
-  } | null
+   gymMemberProfile?: {
+     id: string
+     deletedAt?: string | null
+     deletedBy?: string | null
+     deletionReason?: string | null
+     deletionNotes?: string | null
+     primaryBranchId?: string
+     primaryBranch?: { id: string; name: string; address?: string }
+     accessLevel?: 'SINGLE_BRANCH' | 'MULTI_BRANCH' | 'ALL_BRANCHES'
+     cardStatus?: string
+   } | null
   gymSubscriptions?: Array<{
     id: string
     status: string
