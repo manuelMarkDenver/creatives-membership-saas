@@ -364,37 +364,59 @@ export function MemberCard({
               <div className="flex flex-wrap gap-2">
                 {/* Assign Card Button - for members without cards */}
                 {(cardStatus === 'NO_CARD' || !cardStatus) && currentState === 'ACTIVE' && (
-                  <Button
-                    size="sm"
+                  <button
+                    type="button"
+                    className="px-4 py-2.5 text-sm bg-green-600 hover:bg-green-700 text-white border border-green-600 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex items-center gap-2"
                     onClick={() => onAssignCard(member)}
-                    className="bg-green-600 hover:bg-green-700 text-white"
                   >
-                    <CreditCard className="h-4 w-4 mr-1" />
+                    <CreditCard className="h-4 w-4" />
                     Assign Card
-                  </Button>
+                  </button>
                 )}
 
                 {/* Replace Card Button - for members with active cards */}
                 {cardStatus === 'ACTIVE' && currentState === 'ACTIVE' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  <button
+                    type="button"
+                    className="px-4 py-2.5 text-sm bg-transparent hover:bg-blue-50 dark:hover:bg-blue-950 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex items-center gap-2"
                     onClick={() => onReplaceCard(member)}
-                    className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
                   >
-                    <RefreshCw className="h-4 w-4 mr-1" />
+                    <RefreshCw className="h-4 w-4" />
                     Replace Card
-                  </Button>
+                  </button>
                 )}
               </div>
             )
           })()}
 
          <div className="flex flex-row items-center justify-end gap-2 w-full">
-         {/* Status Button - Larger and More Touch-Friendly */}
-         {(() => {
-           const canManage = canManageMember();
-           const displayLabel = memberDisplayInfo.label;
+          {/* Status Button - Larger and More Touch-Friendly */}
+          {(() => {
+            const canManage = canManageMember();
+
+            // Use action-oriented labels instead of status labels
+            const getActionLabel = () => {
+              switch (memberStatus.displayStatus) {
+                case 'ACTIVE':
+                  return 'Cancel Membership'
+                case 'CANCELLED':
+                  return 'Activate Member'
+                case 'EXPIRED':
+                  return 'Renew Membership'
+                case 'EXPIRING':
+                  return 'Renew Membership'
+                case 'PENDING_CARD':
+                  return 'Assign Card'
+                case 'NO_SUBSCRIPTION':
+                  return 'Assign Plan'
+                case 'DELETED':
+                  return 'Restore Account'
+                default:
+                  return memberDisplayInfo.label
+              }
+            }
+
+            const displayLabel = getActionLabel();
 
            // Get appropriate click handler based on member status
            const getClickHandler = () => {
