@@ -84,8 +84,9 @@ export default function LoginPage() {
       const result = await authApi.login(loginEmail, loginPassword);
 
       if (result.success && result.data.user && result.data.token) {
-        localStorage.setItem("auth_token", result.data.token);
-        localStorage.setItem("user_data", JSON.stringify(result.data.user));
+        // Store auth data using authManager (this will trigger LOGIN event logging)
+        const { authManager } = await import('@/lib/auth/auth-utils');
+        authManager.setAuthData(result.data.user, result.data.token);
 
         // Handle remember me
         if (rememberMe) {

@@ -31,9 +31,6 @@ function AuthSuccessContent() {
           throw new Error('No authentication token provided');
         }
 
-        // Store auth data
-        localStorage.setItem('auth_token', token);
-
         // For OAuth users, we need to fetch the full user data
         // The token should be valid for getting user info
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
@@ -50,7 +47,9 @@ function AuthSuccessContent() {
         const userData = await response.json();
 
         if (userData.success && userData.user) {
-          localStorage.setItem('user_data', JSON.stringify(userData.user));
+          // Store auth data using authManager (this will trigger LOGIN event logging)
+          const { authManager } = await import('@/lib/auth/auth-utils');
+          authManager.setAuthData(userData.user, token);
 
           // Set tenant context
           if (userData.user.tenant) {

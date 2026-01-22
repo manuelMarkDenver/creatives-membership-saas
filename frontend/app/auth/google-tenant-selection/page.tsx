@@ -89,9 +89,7 @@ function GoogleTenantSelectionContent() {
       });
 
       if (result.success && result.data?.token) {
-        // Store auth data and redirect to success page
-        localStorage.setItem('auth_token', result.data.token);
-        localStorage.setItem('user_data', JSON.stringify(result.data.user));
+        // Redirect to success page for proper auth data storage and LOGIN event logging
 
         // Redirect to success page with token for proper setup
         const params = new URLSearchParams({

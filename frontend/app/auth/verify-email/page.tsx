@@ -52,10 +52,10 @@ function VerifyEmailContent() {
         setStatus('success')
         setMessage(result.message || 'Email verified successfully!')
 
-        // Store auth data
+        // Store auth data using authManager (this will trigger LOGIN event logging)
         if (result.data?.token && result.data?.user) {
-          localStorage.setItem('auth_token', result.data.token)
-          localStorage.setItem('user_data', JSON.stringify(result.data.user))
+          const { authManager } = await import('@/lib/auth/auth-utils');
+          authManager.setAuthData(result.data.user, result.data.token);
         }
         
         // Store verification token for password setup if needed
