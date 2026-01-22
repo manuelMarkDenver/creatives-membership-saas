@@ -199,31 +199,66 @@ export default function KioskPage() {
     if (result) {
       switch (result.result) {
         case 'ALLOW':
-          return `Welcome, ${result.memberName}!`;
-        case 'DENY_EXPIRED':
-          return `MEMBER EXPIRED - ${result.memberName}`;
-        case 'DENY_UNKNOWN':
-          return 'Access Denied - Unknown Card';
-        case 'DENY_DISABLED':
-          return `MEMBER DISABLED - ${result.memberName}`;
-        case 'DENY_GYM_MISMATCH':
-          return 'Access Denied';
+          return 'SUCCESS';
         case 'ASSIGNED':
-          return `Card Assigned to ${result.memberName}`;
+          return 'SUCCESS';
+        case 'DENY_EXPIRED':
+        case 'DENY_UNKNOWN':
+        case 'DENY_DISABLED':
+        case 'DENY_GYM_MISMATCH':
+          return 'ERROR';
         case 'IGNORED_DUPLICATE_TAP':
-          return 'Please Wait - Duplicate Tap';
+          return 'ERROR';
         default:
-          return result.message || 'Error';
+          return 'ERROR';
       }
     }
     return 'TAP CARD';
   };
 
   const getDetailedMessage = () => {
-    if (result && result.result === 'DENY_GYM_MISMATCH') {
-      return 'This card belongs to a different gym location.\nPlease visit the gym where your membership is registered.';
+    if (!result) return null;
+
+    let message = '';
+
+    switch (result.result) {
+      case 'ALLOW':
+        message = result.memberName || 'Member';
+        break;
+      case 'DENY_EXPIRED':
+        message = `${result.memberName || 'Member'} - Membership Expired`;
+        break;
+      case 'DENY_UNKNOWN':
+        message = 'Unknown Card - Please contact staff';
+        break;
+      case 'DENY_DISABLED':
+        message = `${result.memberName || 'Member'} - Card Disabled`;
+        break;
+      case 'DENY_GYM_MISMATCH':
+        message = 'This card belongs to a different gym location.\nPlease visit the gym where your membership is registered.';
+        break;
+      case 'ASSIGNED':
+        message = `Card Assigned to ${result.memberName || 'Member'}`;
+        break;
+      case 'IGNORED_DUPLICATE_TAP':
+        message = 'Please Wait - Duplicate Tap Detected';
+        break;
+      default:
+        message = result.message || 'Error';
+        break;
     }
-    return null;
+
+    // Add expiration info for relevant cases
+    if (result.expiresAt && (result.result === 'ALLOW' || result.result === 'DENY_EXPIRED')) {
+      const dateStr = new Date(result.expiresAt).toLocaleDateString();
+      if (result.result === 'ALLOW') {
+        message += `\nExpires: ${dateStr}`;
+      } else if (result.result === 'DENY_EXPIRED') {
+        message += `\nExpired: ${dateStr}`;
+      }
+    }
+
+    return message;
   };
 
   // Check if terminal is configured
@@ -275,21 +310,11 @@ export default function KioskPage() {
         className="absolute top-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
         autoFocus={!result}
       />
-      <div className="w-[min(800px,90vw)] h-[min(800px,90vw)] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center">
+      <div className="w-[min(800px,90vw,90vh)] h-[min(800px,90vw,90vh)] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center">
         <div className="text-center text-white px-8">
           <h1 className={`font-bold mb-6 ${!result ? 'text-6xl sm:text-8xl lg:text-9xl' : 'text-5xl sm:text-6xl lg:text-7xl'}`}>
             {getText()}
           </h1>
-          {result && result.expiresAt && result.result !== 'DENY_EXPIRED' && (
-            <p className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold">
-              Expires: {new Date(result.expiresAt).toLocaleDateString()}
-            </p>
-          )}
-          {result && result.expiresAt && result.result === 'DENY_EXPIRED' && (
-            <p className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold">
-              Expired: {new Date(result.expiresAt).toLocaleDateString()}
-            </p>
-          )}
           {!result && cardUid && (
             <div className="flex flex-col items-center space-y-4">
               <div className="text-2xl sm:text-3xl lg:text-4xl opacity-70">Reading card</div>
