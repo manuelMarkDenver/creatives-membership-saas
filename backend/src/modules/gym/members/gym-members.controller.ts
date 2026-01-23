@@ -36,12 +36,14 @@ interface CreateGymMemberDto {
   emergencyContactName?: string;
   emergencyContactPhone?: string;
   emergencyContactRelation?: string;
-  membershipPlanId?: string;
-  gymMembershipPlanId?: string; // Alias for membershipPlanId
+  days?: number; // Days-based membership instead of plan
   paymentMethod?: string;
-  paymentAmount?: number; // Optional: override payment amount
-  startDate?: string; // Optional: custom start date
+  paymentAmount?: number; // Required payment amount
   branchId?: string; // Optional: specific branch assignment
+  // Legacy fields for backward compatibility
+  membershipPlanId?: string;
+  gymMembershipPlanId?: string;
+  startDate?: string;
 }
 
 interface UpdateGymMemberDto {

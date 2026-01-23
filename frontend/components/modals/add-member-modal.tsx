@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useMembershipPlans } from '@/lib/hooks/use-membership-plans'
+
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
 import { useSendWelcomeEmail } from '@/lib/hooks/use-email'
@@ -109,9 +109,8 @@ export function AddMemberModal({
     favoriteEquipment: '',
     
     // Membership
-    selectedPlanId: '',
+    membershipDays: null as number | null,
     selectedBranchId: '',
-    membershipStartDate: '',
     paymentAmount: '',
     paymentMethod: 'CASH',
     
@@ -119,28 +118,21 @@ export function AddMemberModal({
      createAccountForMember: false
   })
 
-  const { data: membershipPlans, isLoading: plansLoading } = useMembershipPlans()
   const { data: branches, isLoading: branchesLoading } = useBranchesByTenant(profile?.tenantId || '')
-
-
-  
-  // Ensure membershipPlans is always an array
-  const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
   
   // Ensure branches is always an array and filter active ones
   const safeBranches = Array.isArray(branches) ? branches.filter((b: any) => b.isActive) : []
   const showBranchSelection = safeBranches.length > 1
 
-  const selectedPlan = safeMembershipPlans.find((plan: any) => plan.id === formData.selectedPlanId)
-
   const calculateEndDate = () => {
-    if (!selectedPlan || !formData.membershipStartDate) return ''
-    
-    const start = new Date(formData.membershipStartDate)
+    if (!formData.membershipDays) return ''
+
+    const start = new Date()
     const end = new Date(start)
-    end.setDate(end.getDate() + selectedPlan.duration)
-    
-    return end.toISOString().split('T')[0]
+    end.setDate(end.getDate() + formData.membershipDays)
+    end.setHours(23, 59, 59, 999) // End of day
+
+    return end.toLocaleDateString()
   }
 
   const handleInputChange = (field: string, value: any) => {
@@ -186,17 +178,14 @@ export function AddMemberModal({
 
   const getMembershipValidation = () => {
     const errors: Record<string, string> = {}
-    
-    if (!formData.selectedPlanId) {
-      errors.selectedPlanId = 'Please select a membership plan'
+
+    if (!formData.membershipDays || formData.membershipDays < 1 || formData.membershipDays > 365) {
+      errors.membershipDays = 'Please select membership duration (1-365 days)'
     }
-    if (!formData.membershipStartDate) {
-      errors.membershipStartDate = 'Please select a start date'
-    }
-    if (!formData.paymentAmount || parseFloat(formData.paymentAmount) < 0) {
+    if (!formData.paymentAmount || parseFloat(formData.paymentAmount) <= 0) {
       errors.paymentAmount = 'Please enter a valid payment amount'
     }
-    
+
     return {
       isValid: Object.keys(errors).length === 0,
       errors
@@ -276,9 +265,8 @@ export function AddMemberModal({
       emergencyContactPhone: formData.emergencyContactPhone || undefined,
       emergencyContactRelation: formData.emergencyContactRelationship || undefined,
       branchId: formData.selectedBranchId || undefined,
-      gymMembershipPlanId: formData.selectedPlanId,
+      days: formData.membershipDays,
       paymentMethod: formData.paymentMethod,
-      startDate: formData.membershipStartDate || undefined,
       paymentAmount: formData.paymentAmount ? parseFloat(formData.paymentAmount) : undefined
     }
 
@@ -305,15 +293,15 @@ export function AddMemberModal({
                 console.warn('📧 No subscription data in API response, backend will fetch from database');
               }
 
-              await sendWelcomeEmailMutation.mutateAsync({
-                email: formData.email,
-                name: `${formData.firstName} ${formData.lastName}`,
-                tenantId: profile?.tenantId || '',
-                membershipPlanName: selectedPlan?.name,
-                registrationDate: new Date().toLocaleDateString(),
-                startDate,
-                endDate,
-              })
+               await sendWelcomeEmailMutation.mutateAsync({
+                 email: formData.email,
+                 name: `${formData.firstName} ${formData.lastName}`,
+                 tenantId: profile?.tenantId || '',
+                 membershipPlanName: `${formData.membershipDays}-Day Custom Membership`,
+                 registrationDate: new Date().toLocaleDateString(),
+                 startDate,
+                 endDate,
+               })
               console.log('✅ Welcome email sent successfully')
             } catch (emailError) {
               console.warn('Welcome email failed to send, but member was created:', emailError)
@@ -384,24 +372,19 @@ export function AddMemberModal({
       emergencyContactRelationship: '',
       preferredWorkoutTime: '',
       favoriteEquipment: '',
-      selectedPlanId: '',
-      selectedBranchId: '',
-      membershipStartDate: '',
-      paymentAmount: '',
-       paymentMethod: 'CASH',
+       membershipDays: null,
+       selectedBranchId: '',
+       paymentAmount: '',
+        paymentMethod: 'CASH',
        createAccountForMember: false
     })
     setPhotoPreview(null)
     onClose()
   }
 
-  // Auto-fill payment amount when plan is selected
-  const handlePlanChange = (planId: string) => {
-    handleInputChange('selectedPlanId', planId)
-    const plan = safeMembershipPlans.find((p: any) => p.id === planId)
-    if (plan) {
-      handleInputChange('paymentAmount', plan.price.toString())
-    }
+  // Handle membership days selection
+  const handleDaysChange = (days: number) => {
+    handleInputChange('membershipDays', days)
   }
 
   return (
@@ -669,120 +652,106 @@ export function AddMemberModal({
             </div>
           )}
 
-          {/* Step 2: Membership Plan */}
-          {step === 'membership' && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="membershipPlan">Membership Plan *</Label>
-                <Select value={formData.selectedPlanId} onValueChange={handlePlanChange}>
-                  <SelectTrigger className={currentMembershipErrors.selectedPlanId ? "border-red-500" : ""}>
-                    <SelectValue placeholder="Select a membership plan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {plansLoading ? (
-                      <div className="p-2 text-sm text-muted-foreground">Loading plans...</div>
-                    ) : safeMembershipPlans.filter((plan: any) => plan.isActive).map((plan: any) => (
-                      <SelectItem key={plan.id} value={plan.id}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{plan.name}</span>
-                          <div className="flex items-center gap-2 ml-4">
-                            <span className="text-green-600 font-medium">
-                              {formatPHP(parseFloat(plan.price))}
-                            </span>
-                            <Badge variant="outline" className="text-xs">
-                              {plan.duration} days
-                            </Badge>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {currentMembershipErrors.selectedPlanId && (
-                  <p className="text-sm text-red-500 mt-1">{currentMembershipErrors.selectedPlanId}</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="membershipStartDate">Start Date *</Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="membershipStartDate"
-                      type="date"
-                      value={formData.membershipStartDate}
-                      onChange={(e) => handleInputChange('membershipStartDate', e.target.value)}
-                      className={`pl-10 ${currentMembershipErrors.membershipStartDate ? "border-red-500" : ""}`}
-                    />
-                  </div>
-                  {currentMembershipErrors.membershipStartDate && (
-                    <p className="text-sm text-red-500 mt-1">{currentMembershipErrors.membershipStartDate}</p>
-                  )}
-                </div>
-                <div>
-                   <Label htmlFor="paymentAmount">Payment Amount (₱)</Label>
+           {/* Step 2: Membership Duration */}
+           {step === 'membership' && (
+             <div className="space-y-4">
+               <div>
+                 <Label>Membership Duration *</Label>
+                 <p className="text-sm text-muted-foreground mb-3">
+                   Choose how many days the membership should be valid for
+                 </p>
+                 <div className="grid grid-cols-2 gap-2 mb-3">
+                   {[30, 60, 90, 180].map((days) => (
+                     <Button
+                       key={days}
+                       type="button"
+                       variant={formData.membershipDays === days ? "default" : "outline"}
+                       onClick={() => handleDaysChange(days)}
+                       className="h-12"
+                     >
+                       {days} days
+                     </Button>
+                   ))}
+                 </div>
+                 <div>
+                   <Label htmlFor="customDays" className="text-sm">Custom days (1-365)</Label>
                    <Input
-                     id="paymentAmount"
+                     id="customDays"
                      type="number"
-                     min="0"
-                     step="0.01"
-                     value={formData.paymentAmount}
-                     onChange={(e) => handleInputChange('paymentAmount', e.target.value)}
-                     placeholder="0.00"
-                     disabled
-                     className={currentMembershipErrors.paymentAmount ? "border-red-500" : ""}
+                     min="1"
+                     max="365"
+                     value={formData.membershipDays && ![30, 60, 90, 180].includes(formData.membershipDays) ? formData.membershipDays : ''}
+                     onChange={(e) => {
+                       const value = parseInt(e.target.value)
+                       if (value >= 1 && value <= 365) {
+                         handleDaysChange(value)
+                       }
+                     }}
+                     placeholder="Enter custom days"
+                     className={`mt-1 ${currentMembershipErrors.membershipDays ? "border-red-500" : ""}`}
                    />
-                  {selectedPlan && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Plan price: ₱{parseFloat(selectedPlan.price).toFixed(2)}
-                    </p>
-                  )}
-                  {currentMembershipErrors.paymentAmount && (
-                    <p className="text-sm text-red-500 mt-1">{currentMembershipErrors.paymentAmount}</p>
-                  )}
-                </div>
-              </div>
+                 </div>
+                 {currentMembershipErrors.membershipDays && (
+                   <p className="text-sm text-red-500 mt-1">{currentMembershipErrors.membershipDays}</p>
+                 )}
+               </div>
 
-              <div>
-                <Label htmlFor="paymentMethod">Payment Method</Label>
-                <Select value={formData.paymentMethod} onValueChange={(value) => handleInputChange('paymentMethod', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CASH">Cash</SelectItem>
-                    <SelectItem value="CARD" disabled>Credit/Debit Card (Coming Soon)</SelectItem>
-                    <SelectItem value="GCASH" disabled>GCash (Coming Soon)</SelectItem>
-                    <SelectItem value="BANK_TRANSFER" disabled>Bank Transfer (Coming Soon)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+               <div>
+                 <Label htmlFor="paymentAmount">Payment Amount (₱) *</Label>
+                 <Input
+                   id="paymentAmount"
+                   type="number"
+                   min="0"
+                   step="0.01"
+                   value={formData.paymentAmount}
+                   onChange={(e) => handleInputChange('paymentAmount', e.target.value)}
+                   placeholder="Enter payment amount"
+                   className={currentMembershipErrors.paymentAmount ? "border-red-500" : ""}
+                 />
+                 {currentMembershipErrors.paymentAmount && (
+                   <p className="text-sm text-red-500 mt-1">{currentMembershipErrors.paymentAmount}</p>
+                 )}
+               </div>
 
-              {/* Plan Summary */}
-              {selectedPlan && formData.membershipStartDate && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-3">Membership Summary</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-blue-700 dark:text-blue-300">Plan:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{selectedPlan.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-blue-700 dark:text-blue-300">Duration:</span>
-                      <span className="text-gray-900 dark:text-gray-100">{selectedPlan.duration} days</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-blue-700 dark:text-blue-300">Start Date:</span>
-                      <span className="text-gray-900 dark:text-gray-100">{new Date(formData.membershipStartDate).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-blue-700 dark:text-blue-300">End Date:</span>
-                      <span className="text-gray-900 dark:text-gray-100">{calculateEndDate() ? new Date(calculateEndDate()).toLocaleDateString() : 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+               <div>
+                 <Label htmlFor="paymentMethod">Payment Method</Label>
+                 <Select value={formData.paymentMethod} onValueChange={(value) => handleInputChange('paymentMethod', value)}>
+                   <SelectTrigger>
+                     <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="CASH">Cash</SelectItem>
+                     <SelectItem value="CARD" disabled>Credit/Debit Card (Coming Soon)</SelectItem>
+                     <SelectItem value="GCASH" disabled>GCash (Coming Soon)</SelectItem>
+                     <SelectItem value="BANK_TRANSFER" disabled>Bank Transfer (Coming Soon)</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+
+               {/* Membership Summary */}
+               {formData.membershipDays && formData.paymentAmount && (
+                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                   <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-3">Membership Summary</h4>
+                   <div className="space-y-2 text-sm">
+                     <div className="flex justify-between">
+                       <span className="text-blue-700 dark:text-blue-300">Duration:</span>
+                       <span className="font-medium text-gray-900 dark:text-gray-100">{formData.membershipDays} days</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="text-blue-700 dark:text-blue-300">Start Date:</span>
+                       <span className="text-gray-900 dark:text-gray-100">{new Date().toLocaleDateString()}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="text-blue-700 dark:text-blue-300">End Date:</span>
+                       <span className="text-gray-900 dark:text-gray-100">{calculateEndDate()}</span>
+                     </div>
+                     <div className="flex justify-between font-medium">
+                       <span className="text-blue-700 dark:text-blue-300">Amount:</span>
+                       <span className="text-green-600 dark:text-green-400">₱{parseFloat(formData.paymentAmount).toFixed(2)}</span>
+                     </div>
+                   </div>
+                 </div>
+               )}
 
               {/* Options - Feature Flagged */}
               {(process.env.NEXT_PUBLIC_FEATURE_WELCOME_EMAIL === 'true' || process.env.NEXT_PUBLIC_FEATURE_CREATE_ACCOUNT === 'true') && (
@@ -828,35 +797,34 @@ export function AddMemberModal({
                       )}
                     </div>
                     
-                    {selectedPlan && (
-                      <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                          <span className="font-medium text-blue-900 dark:text-blue-100">Membership Plan</span>
-                        </div>
-                        <div className="space-y-1 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-700 dark:text-gray-300">Plan:</span>
-                            <span className="font-medium text-gray-900 dark:text-gray-100">{selectedPlan.name}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-700 dark:text-gray-300">Period:</span>
-                            <span className="text-gray-900 dark:text-gray-100">
-                              {new Date(formData.membershipStartDate).toLocaleDateString()} - {' '}
-                              {calculateEndDate() ? new Date(calculateEndDate()).toLocaleDateString() : 'N/A'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between font-medium">
-                            <span className="text-gray-700 dark:text-gray-300">Amount:</span>
-                            <span className="text-green-600 dark:text-green-400">{formatPHP(parseFloat(formData.paymentAmount))}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-700 dark:text-gray-300">Payment:</span>
-                            <span className="text-gray-900 dark:text-gray-100">{formData.paymentMethod}</span>
-                          </div>
-                        </div>
-                      </div>
-                     )}
+                     {formData.membershipDays && (
+                       <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-3">
+                         <div className="flex items-center gap-2 mb-2">
+                           <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                           <span className="font-medium text-blue-900 dark:text-blue-100">Custom Membership</span>
+                         </div>
+                         <div className="space-y-1 text-sm">
+                           <div className="flex justify-between">
+                             <span className="text-gray-700 dark:text-gray-300">Duration:</span>
+                             <span className="font-medium text-gray-900 dark:text-gray-100">{formData.membershipDays} days</span>
+                           </div>
+                           <div className="flex justify-between">
+                             <span className="text-gray-700 dark:text-gray-300">Period:</span>
+                             <span className="text-gray-900 dark:text-gray-100">
+                               {new Date().toLocaleDateString()} - {calculateEndDate()}
+                             </span>
+                           </div>
+                           <div className="flex justify-between font-medium">
+                             <span className="text-gray-700 dark:text-gray-300">Amount:</span>
+                             <span className="text-green-600 dark:text-green-400">₱{parseFloat(formData.paymentAmount).toFixed(2)}</span>
+                           </div>
+                           <div className="flex justify-between">
+                             <span className="text-gray-700 dark:text-gray-300">Payment:</span>
+                             <span className="text-gray-900 dark:text-gray-100">{formData.paymentMethod}</span>
+                           </div>
+                         </div>
+                       </div>
+                      )}
 
 
 

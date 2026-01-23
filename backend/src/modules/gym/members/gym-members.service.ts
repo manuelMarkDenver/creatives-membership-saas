@@ -71,7 +71,7 @@ export class GymMembersService {
         }
       }
 
-      // Create user, gym member profile, branch assignment, and optionally subscription in a transaction
+      // Create user, gym member profile, branch assignment, and subscription in a transaction
       const result = await this.prisma.$transaction(async (tx) => {
         // 1. Create the user
         const user = await tx.user.create({
@@ -113,161 +113,76 @@ export class GymMembersService {
           },
         });
 
-        // 4. Create subscription if membershipPlanId is provided
+        // 4. Create subscription - days-based instead of plan-based
         let subscription: any = null;
-        const planId = data.gymMembershipPlanId || data.membershipPlanId;
-        if (planId) {
-          const membershipPlan = await tx.gymMembershipPlan.findUnique({
-            where: { id: planId },
-          });
+        const days = data.days;
 
-          if (!membershipPlan) {
-            throw new BadRequestException(
-              `Membership plan with ID ${planId} not found`,
-            );
-          }
-
-          // Use provided start date or default to current date
-          const startDate = data.startDate
-            ? new Date(data.startDate)
-            : new Date();
-          const endDate = new Date(startDate);
-          endDate.setDate(endDate.getDate() + membershipPlan.duration);
-
-          // Use provided payment amount or default to membership plan price
-          const paymentAmount = data.paymentAmount ?? membershipPlan.price;
-
-          subscription = await tx.gymMemberSubscription.create({
-            data: {
-              tenantId: tenantId,
-              memberId: user.id,
-              gymMembershipPlanId: planId,
-              branchId: branch.id,
-              status: 'ACTIVE',
-              startDate: startDate,
-              endDate: endDate,
-              price: paymentAmount,
-              currency: 'PHP',
-              autoRenew: false,
-            },
-            include: {
-              gymMembershipPlan: true,
-            },
-          });
-
-          // 5. Create payment transaction if subscription was created
-          if (subscription && data.paymentMethod) {
-            await tx.customerTransaction.create({
-              data: {
-                tenantId: tenantId,
-                customerId: user.id,
-                gymMemberSubscriptionId: subscription.id, // Link to subscription for revenue tracking
-                businessType: 'gym',
-                transactionCategory: 'membership',
-                amount: paymentAmount,
-                currency: 'PHP',
-                netAmount: paymentAmount,
-                paymentMethod: data.paymentMethod.toLowerCase(),
-                transactionType: 'PAYMENT',
-                status: 'COMPLETED',
-                description: `Initial payment for ${membershipPlan.name} membership`,
-                processedBy: user.id, // Self-processed for new member signup
-                createdAt: new Date(), // Use current date for transaction
-              },
-            });
-          }
+        // Validate days parameter
+        if (!days || days <= 0 || days > 365) {
+          throw new BadRequestException('days must be between 1 and 365');
         }
 
-        // Return the gym profile with related data
-        const fullGymProfile = await tx.gymMemberProfile.findUnique({
-          where: { id: gymProfile.id },
-          include: {
-            user: true,
-            tenant: {
-              select: {
-                id: true,
-                name: true,
-                category: true,
-              },
-            },
+        // Validate payment amount is provided
+        if (!data.paymentAmount || data.paymentAmount <= 0) {
+          throw new BadRequestException('paymentAmount is required and must be greater than 0');
+        }
+
+        // Create subscription with custom duration
+        const startDate = new Date();
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + days);
+        endDate.setHours(23, 59, 59, 999); // End of day
+
+        subscription = await tx.gymMemberSubscription.create({
+          data: {
+            tenantId: tenantId,
+            memberId: user.id,
+            gymMembershipPlanId: '', // Empty string for custom memberships
+            branchId: branch.id,
+            status: 'ACTIVE',
+            startDate: startDate,
+            endDate: endDate,
+            price: data.paymentAmount,
+            currency: 'PHP',
+            autoRenew: false,
           },
         });
 
-        // Ensure subscription data is included (fetch if not available)
-        let finalSubscription = subscription;
-        if (!finalSubscription && planId) {
-          // If subscription was supposed to be created but isn't available, fetch it
-          finalSubscription = await tx.gymMemberSubscription.findFirst({
-            where: {
-              memberId: user.id,
-              gymMembershipPlanId: planId,
+        // 5. Create payment transaction if subscription was created
+        if (subscription && data.paymentMethod) {
+          await tx.customerTransaction.create({
+            data: {
               tenantId: tenantId,
-            },
-            include: {
-              gymMembershipPlan: true,
+              customerId: user.id,
+              gymMemberSubscriptionId: subscription.id, // Link to subscription for revenue tracking
+              businessType: 'gym',
+              transactionCategory: 'membership',
+              amount: data.paymentAmount,
+              currency: 'PHP',
+              netAmount: data.paymentAmount,
+              paymentMethod: data.paymentMethod.toLowerCase(),
+              transactionType: 'PAYMENT',
+              status: 'COMPLETED',
+              description: `Initial payment for ${days}-day custom membership`,
+              processedBy: user.id, // Self-processed for new member signup
+              createdAt: new Date(), // Use current date for transaction
             },
           });
         }
 
-        const result = {
-          ...fullGymProfile,
-          subscription: finalSubscription,
+        return {
+          userId: user.id,
+          subscription: subscription,
           branch: {
             id: branch.id,
             name: branch.name,
           },
         };
-
-        console.log('🏋️ Member creation result:', {
-          userId: result.userId,
-          hasSubscription: !!result.subscription,
-          subscription: result.subscription
-            ? {
-                id: result.subscription.id,
-                startDate: result.subscription.startDate,
-                endDate: result.subscription.endDate,
-                planName: result.subscription.gymMembershipPlan?.name,
-              }
-            : null,
-        });
-
-        return result;
       });
 
       this.logger.log(
-        `Created gym member: ${result.user?.firstName || 'Unknown'} ${result.user?.lastName || 'User'} (${result.userId}) with subscription: ${!!result.subscription}`,
+        `Created gym member: ${result.userId} with subscription: ${!!result.subscription}`,
       );
-
-      // Note: Welcome email is sent by frontend if requested
-      // This prevents duplicate emails since frontend handles email sending
-
-      // Send tenant notification for new member signup (if enabled)
-      try {
-        if (result.tenant && result.user) {
-          const memberName = `${result.user.firstName} ${result.user.lastName}`;
-          const membershipPlan =
-            result.subscription?.gymMembershipPlan?.name || 'No Plan';
-
-          await this.emailService.sendTenantNotification(
-            result.tenant.id,
-            memberName,
-            result.user.email || '',
-            membershipPlan,
-            result.subscription?.startDate,
-            result.subscription?.endDate,
-          );
-        } else {
-          this.logger.warn(
-            'Tenant or user information not available for signup notification',
-          );
-        }
-      } catch (emailError) {
-        this.logger.error(
-          `Failed to send tenant notification for new member: ${emailError.message}`,
-          emailError.stack,
-        );
-        // Don't fail member creation if email fails
-      }
 
       return result;
     } catch (error) {
