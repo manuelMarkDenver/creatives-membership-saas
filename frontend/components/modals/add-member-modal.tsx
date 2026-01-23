@@ -110,6 +110,7 @@ export function AddMemberModal({
     
     // Membership
     membershipDays: null as number | null,
+    showCustomDaysInput: false,
     selectedBranchId: '',
     paymentAmount: '',
     paymentMethod: 'CASH',
@@ -180,7 +181,9 @@ export function AddMemberModal({
     const errors: Record<string, string> = {}
 
     if (!formData.membershipDays || formData.membershipDays < 1 || formData.membershipDays > 365) {
-      errors.membershipDays = 'Please select membership duration (1-365 days)'
+      errors.membershipDays = formData.showCustomDaysInput
+        ? 'Please enter custom days (1-365)'
+        : 'Please select membership duration'
     }
     if (!formData.paymentAmount || parseFloat(formData.paymentAmount) <= 0) {
       errors.paymentAmount = 'Please enter a valid payment amount'
@@ -373,6 +376,7 @@ export function AddMemberModal({
       preferredWorkoutTime: '',
       favoriteEquipment: '',
        membershipDays: null,
+       showCustomDaysInput: false,
        selectedBranchId: '',
        paymentAmount: '',
         paymentMethod: 'CASH',
@@ -385,6 +389,18 @@ export function AddMemberModal({
   // Handle membership days selection
   const handleDaysChange = (days: number) => {
     handleInputChange('membershipDays', days)
+    handleInputChange('showCustomDaysInput', false) // Hide custom input when preset is selected
+  }
+
+  // Handle custom days input
+  const handleCustomDaysChange = (days: number) => {
+    handleInputChange('membershipDays', days)
+  }
+
+  // Show custom days input
+  const handleShowCustomDays = () => {
+    handleInputChange('membershipDays', null) // Clear preset selection
+    handleInputChange('showCustomDaysInput', true)
   }
 
   return (
@@ -665,32 +681,47 @@ export function AddMemberModal({
                      <Button
                        key={days}
                        type="button"
-                       variant={formData.membershipDays === days ? "default" : "outline"}
+                       variant={formData.membershipDays === days && !formData.showCustomDaysInput ? "default" : "outline"}
                        onClick={() => handleDaysChange(days)}
                        className="h-12"
+                       disabled={formData.showCustomDaysInput}
                      >
                        {days} days
                      </Button>
                    ))}
+                   <Button
+                     type="button"
+                     variant={formData.showCustomDaysInput ? "default" : "outline"}
+                     onClick={handleShowCustomDays}
+                     className="h-12"
+                   >
+                     Custom
+                   </Button>
                  </div>
-                 <div>
-                   <Label htmlFor="customDays" className="text-sm">Custom days (1-365)</Label>
-                   <Input
-                     id="customDays"
-                     type="number"
-                     min="1"
-                     max="365"
-                     value={formData.membershipDays && ![30, 60, 90, 180].includes(formData.membershipDays) ? formData.membershipDays : ''}
-                     onChange={(e) => {
-                       const value = parseInt(e.target.value)
-                       if (value >= 1 && value <= 365) {
-                         handleDaysChange(value)
-                       }
-                     }}
-                     placeholder="Enter custom days"
-                     className={`mt-1 ${currentMembershipErrors.membershipDays ? "border-red-500" : ""}`}
-                   />
-                 </div>
+
+                 {formData.showCustomDaysInput && (
+                   <div>
+                     <Label htmlFor="customDays" className="text-sm">Enter custom days (1-365)</Label>
+                     <Input
+                       id="customDays"
+                       type="number"
+                       min="1"
+                       max="365"
+                       value={formData.membershipDays || ''}
+                       onChange={(e) => {
+                         const value = parseInt(e.target.value)
+                         if (value >= 1 && value <= 365) {
+                           handleCustomDaysChange(value)
+                         } else if (e.target.value === '') {
+                           handleCustomDaysChange(null as any)
+                         }
+                       }}
+                       placeholder="Enter number of days"
+                       className={`mt-1 ${currentMembershipErrors.membershipDays ? "border-red-500" : ""}`}
+                     />
+                   </div>
+                 )}
+
                  {currentMembershipErrors.membershipDays && (
                    <p className="text-sm text-red-500 mt-1">{currentMembershipErrors.membershipDays}</p>
                  )}

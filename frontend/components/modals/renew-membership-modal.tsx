@@ -30,9 +30,27 @@ export function RenewMembershipModal({
   onRenewed
 }: RenewMembershipModalProps) {
   const [selectedDays, setSelectedDays] = useState<number | null>(null)
+  const [showCustomDaysInput, setShowCustomDaysInput] = useState(false)
   const [isConfirming, setIsConfirming] = useState(false)
 
   const renewMembershipMutation = useRenewMembership()
+
+  // Handle preset days selection
+  const handleDaysChange = (days: number) => {
+    setSelectedDays(days)
+    setShowCustomDaysInput(false) // Hide custom input when preset is selected
+  }
+
+  // Handle custom days input
+  const handleCustomDaysChange = (days: number) => {
+    setSelectedDays(days)
+  }
+
+  // Show custom days input
+  const handleShowCustomDays = () => {
+    setSelectedDays(null) // Clear preset selection
+    setShowCustomDaysInput(true)
+  }
 
   const handleRenew = async () => {
     if (!selectedDays) {
@@ -59,6 +77,7 @@ export function RenewMembershipModal({
 
   const handleClose = () => {
     setSelectedDays(null)
+    setShowCustomDaysInput(false)
     setIsConfirming(false)
     onClose()
   }
@@ -83,42 +102,55 @@ export function RenewMembershipModal({
         <div className="space-y-4">
           {!isConfirming ? (
             <>
-              <div>
-                <Label>Extension Period</Label>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Choose how many days to extend the membership
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {[30, 60, 90, 180].map((days) => (
-                    <Button
-                      key={days}
-                      variant={selectedDays === days ? "default" : "outline"}
-                      onClick={() => setSelectedDays(days)}
-                      className="h-12"
-                    >
-                      {days} days
-                    </Button>
-                  ))}
-                </div>
-                <div className="mt-3">
-                  <Label htmlFor="customDays" className="text-sm">Custom days (1-365)</Label>
-                  <Input
-                    id="customDays"
-                    type="number"
-                    min="1"
-                    max="365"
-                    value={selectedDays && ![30, 60, 90, 180].includes(selectedDays) ? selectedDays : ''}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value)
-                      if (value >= 1 && value <= 365) {
-                        setSelectedDays(value)
-                      }
-                    }}
-                    placeholder="Enter custom days"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
+               <div>
+                 <Label>Extension Period</Label>
+                 <p className="text-sm text-muted-foreground mb-3">
+                   Choose how many days to extend the membership
+                 </p>
+                 <div className="grid grid-cols-2 gap-2">
+                   {[30, 60, 90, 180].map((days) => (
+                     <Button
+                       key={days}
+                       variant={selectedDays === days && !showCustomDaysInput ? "default" : "outline"}
+                       onClick={() => handleDaysChange(days)}
+                       className="h-12"
+                       disabled={showCustomDaysInput}
+                     >
+                       {days} days
+                     </Button>
+                   ))}
+                   <Button
+                     variant={showCustomDaysInput ? "default" : "outline"}
+                     onClick={handleShowCustomDays}
+                     className="h-12"
+                   >
+                     Custom
+                   </Button>
+                 </div>
+
+                 {showCustomDaysInput && (
+                   <div className="mt-3">
+                     <Label htmlFor="customDays" className="text-sm">Enter custom days (1-365)</Label>
+                     <Input
+                       id="customDays"
+                       type="number"
+                       min="1"
+                       max="365"
+                       value={selectedDays || ''}
+                       onChange={(e) => {
+                         const value = parseInt(e.target.value)
+                         if (value >= 1 && value <= 365) {
+                           handleCustomDaysChange(value)
+                         } else if (e.target.value === '') {
+                           setSelectedDays(null)
+                         }
+                       }}
+                       placeholder="Enter number of days"
+                       className="mt-1"
+                     />
+                   </div>
+                 )}
+               </div>
             </>
           ) : (
             <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
