@@ -734,6 +734,7 @@ enum MembershipType {
   STUDENT
   SENIOR
   CORPORATE
+  CUSTOM
 }
 
 enum TransactionType {

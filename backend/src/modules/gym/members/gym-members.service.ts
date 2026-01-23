@@ -145,7 +145,7 @@ export class GymMembersService {
               description: 'Flexible membership with custom duration and pricing',
               duration: 30, // Default duration, will be overridden
               price: 0, // Will be overridden by actual payment
-              type: 'UNLIMITED',
+              type: 'CUSTOM',
               isActive: true,
             },
           });
