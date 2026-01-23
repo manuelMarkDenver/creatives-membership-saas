@@ -1351,6 +1351,17 @@ export class GymMembersService {
         ],
       },
       {
+        category: 'CARD',
+        reasons: [
+          'Lost card',
+          'Stolen card',
+          'Card damaged',
+          'Member violation',
+          'Technical issue',
+          'Administrative decision',
+        ],
+      },
+      {
         category: 'SUBSCRIPTION',
         reasons: [
           'Member request',

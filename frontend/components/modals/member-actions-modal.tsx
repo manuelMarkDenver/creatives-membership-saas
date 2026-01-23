@@ -174,7 +174,7 @@ export function MemberActionsModal({
         case 'assign_plan':
           return false // No reasons needed for assign_plan
         case 'disable_card':
-          return category.category === 'ACCOUNT'
+          return category.category === 'CARD'
         case 'enable_card':
           return category.category === 'ACCOUNT'
         default:
