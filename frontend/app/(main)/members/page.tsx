@@ -65,6 +65,7 @@ export default function MembersPage() {
   const [showCancellationModal, setShowCancellationModal] = useState(false)
   const [selectedMemberForAction, setSelectedMemberForAction] = useState<User | null>(null)
   const [renewalDays, setRenewalDays] = useState<number | null>(null)
+  const [showCustomRenewalInput, setShowCustomRenewalInput] = useState(false)
   const [cancellationReason, setCancellationReason] = useState('')
   const [cancellationNotes, setCancellationNotes] = useState('')
   const [showTransactionModal, setShowTransactionModal] = useState(false)
@@ -205,6 +206,21 @@ export default function MembersPage() {
   // Helper function to get member's branch ID (use primaryBranchId as source of truth)
   const getMemberBranchId = (member: MemberData): string | null => {
     return member.gymMemberProfile?.primaryBranchId || member.gymSubscriptions?.[0]?.branchId || null
+  }
+
+  // Renewal days selection handlers
+  const handleRenewalDaysChange = (days: number) => {
+    setRenewalDays(days)
+    setShowCustomRenewalInput(false) // Hide custom input when preset is selected
+  }
+
+  const handleCustomRenewalDaysChange = (days: number) => {
+    setRenewalDays(days)
+  }
+
+  const handleShowCustomRenewal = () => {
+    setRenewalDays(null) // Clear preset selection
+    setShowCustomRenewalInput(true)
   }
 
   const handleRenewal = () => {
@@ -661,42 +677,54 @@ export default function MembersPage() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label>Extension Period</Label>
-              <p className="text-sm text-muted-foreground">
-                Choose how many days to extend the membership
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {[30, 60, 90, 180].map((days) => (
-                  <Button
-                    key={days}
-                    variant={renewalDays === days ? "default" : "outline"}
-                    onClick={() => setRenewalDays(days)}
-                    className="h-12"
-                  >
-                    {days} days
-                  </Button>
-                ))}
-              </div>
-              <div className="mt-3">
-                <Label htmlFor="customDays" className="text-sm">Custom days (1-365)</Label>
-                <Input
-                  id="customDays"
-                  type="number"
-                  min="1"
-                  max="365"
-                  value={renewalDays && ![30, 60, 90, 180].includes(renewalDays) ? renewalDays : ''}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value)
-                    if (value >= 1 && value <= 365) {
-                      setRenewalDays(value)
-                    }
-                  }}
-                  placeholder="Enter custom days"
-                  className="mt-1"
-                />
-              </div>
-            </div>
+             <div className="space-y-2">
+               <Label>Extension Period</Label>
+               <p className="text-sm text-muted-foreground">
+                 Choose how many days to extend the membership
+               </p>
+               <div className="grid grid-cols-2 gap-2">
+                 {[30, 60, 90, 180].map((days) => (
+                   <Button
+                     key={days}
+                     variant={renewalDays === days ? "default" : "outline"}
+                     onClick={() => handleRenewalDaysChange(days)}
+                     className="h-12"
+                   >
+                     {days} days
+                   </Button>
+                 ))}
+                 <Button
+                   variant={showCustomRenewalInput ? "default" : "outline"}
+                   onClick={handleShowCustomRenewal}
+                   className="h-12"
+                 >
+                   Custom
+                 </Button>
+               </div>
+
+               {showCustomRenewalInput && (
+                 <div className="mt-3">
+                   <Label htmlFor="customDays" className="text-sm">Enter custom days (1-365)</Label>
+                   <Input
+                     id="customDays"
+                     type="number"
+                     min="1"
+                     max="365"
+                     value={renewalDays || ''}
+                     onChange={(e) => {
+                       const value = parseInt(e.target.value)
+                       if (value >= 1 && value <= 365) {
+                         handleCustomRenewalDaysChange(value)
+                       } else if (e.target.value === '') {
+                         setRenewalDays(null)
+                       }
+                     }}
+                     placeholder="Enter number of days"
+                     className="mt-1"
+                   />
+                 </div>
+               )}
+             </div>
 
             {renewalDays && (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
@@ -712,6 +740,7 @@ export default function MembersPage() {
               setShowRenewalModal(false)
               setSelectedMemberForAction(null)
               setRenewalDays(null)
+              setShowCustomRenewalInput(false)
             }}>
               Cancel
             </Button>
