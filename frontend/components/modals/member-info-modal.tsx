@@ -47,6 +47,7 @@ import { useBranchesByTenant } from '@/lib/hooks/use-branches'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { BranchTransferModal } from './branch-transfer-modal'
 import { ChangePlanModal } from './change-plan-modal'
+import { RenewMembershipModal } from './renew-membership-modal'
 
 interface MemberInfoModalProps {
   isOpen: boolean
@@ -100,6 +101,7 @@ export function MemberInfoModal({
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [showBranchTransferModal, setShowBranchTransferModal] = useState(false)
   const [showChangePlanModal, setShowChangePlanModal] = useState(false)
+  const [showRenewModal, setShowRenewModal] = useState(false)
   
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
@@ -769,18 +771,30 @@ export function MemberInfoModal({
                     </div>
                   )}
                   
-                   {/* Action Buttons */}
-                   <div className="flex justify-end gap-2 mt-3 pt-2 border-t">
-                     <Button
-                       variant="outline"
-                       size="sm"
-                       onClick={() => setShowChangePlanModal(true)}
-                       className="flex items-center gap-2 text-xs"
-                       disabled={member.gymSubscriptions?.[0]?.status !== 'ACTIVE'}
-                     >
-                       <CreditCard className="h-3 w-3" />
-                       Change Plan
-                     </Button>
+                    {/* Action Buttons */}
+                    <div className="flex justify-end gap-2 mt-3 pt-2 border-t">
+                       {/* TODO: Re-enable in V2 with feature flags */}
+                       {true && (
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => setShowRenewModal(true)}
+                           className="flex items-center gap-2 text-xs"
+                         >
+                           <Calendar className="h-3 w-3" />
+                           Renew Membership
+                         </Button>
+                       )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowChangePlanModal(true)}
+                        className="flex items-center gap-2 text-xs"
+                        disabled={member.gymSubscriptions?.[0]?.status !== 'ACTIVE'}
+                      >
+                        <CreditCard className="h-3 w-3" />
+                        Change Plan
+                      </Button>
                      <Button
                        variant="outline"
                        size="sm"
@@ -874,6 +888,19 @@ export function MemberInfoModal({
         onMemberUpdated?.()
       }}
     />
+
+     {/* TODO: Re-enable in V2 with feature flags */}
+     {true && (
+       <RenewMembershipModal
+         isOpen={showRenewModal}
+         onClose={() => setShowRenewModal(false)}
+         member={member}
+         onRenewed={() => {
+           setShowRenewModal(false)
+           onMemberUpdated?.()
+         }}
+       />
+     )}
 
     {/* Change Plan Modal */}
     <ChangePlanModal

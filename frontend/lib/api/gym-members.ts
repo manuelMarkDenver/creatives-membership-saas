@@ -9,6 +9,10 @@ export interface MemberRenewRequest {
   gymMembershipPlanId: string
 }
 
+export interface MemberRenewMembershipRequest {
+  expires_at: string
+}
+
 export interface MemberHistoryQuery {
   page?: number
   limit?: number
@@ -223,6 +227,12 @@ export const membersApi = {
   // Start card replacement for a member
   async replaceCard(memberId: string): Promise<any> {
     const response = await apiClient.post(`/admin/members/${memberId}/replace/start`)
+    return response.data
+  },
+
+  // Renew membership (same card - extend by days)
+  async renewMembership(memberId: string, data: { days: number }): Promise<MemberActionResponse> {
+    const response = await apiClient.post(`/gym/members/${memberId}/renew-membership`, data)
     return response.data
   },
 

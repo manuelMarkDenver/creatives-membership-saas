@@ -173,12 +173,22 @@ export default function KioskPage() {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
 
-    if (result === 'ALLOW') {
+    const isDenyResult = ['DENY_EXPIRED', 'DENY_DISABLED', 'DENY_GYM_MISMATCH', 'DENY_AUTO_ASSIGNED_EXPIRED', 'DENY_EXPIRED_PENDING'].includes(result);
+
+    if (result === 'ALLOW' || result === 'ASSIGNED' || result === 'ALLOW_AUTO_ASSIGNED') {
+      // Success sound - high pitch, short
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.2);
+    } else if (isDenyResult) {
+      // Deny sound - medium pitch, medium duration
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
     } else {
+      // Error sound - low pitch, long
       oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
       gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
       oscillator.start(audioContext.currentTime);
@@ -191,6 +201,7 @@ export default function KioskPage() {
     switch (result.result) {
       case 'ALLOW': return 'bg-green-500';
       case 'ASSIGNED': return 'bg-green-500';
+      case 'ALLOW_AUTO_ASSIGNED': return 'bg-green-500';
       default: return 'bg-red-500';
     }
   };
@@ -202,11 +213,17 @@ export default function KioskPage() {
           return 'SUCCESS';
         case 'ASSIGNED':
           return 'SUCCESS';
+        case 'ALLOW_AUTO_ASSIGNED':
+          return 'SUCCESS';
         case 'DENY_EXPIRED':
-        case 'DENY_UNKNOWN':
         case 'DENY_DISABLED':
         case 'DENY_GYM_MISMATCH':
-          return 'ERROR';
+        case 'DENY_AUTO_ASSIGNED_EXPIRED':
+        case 'DENY_EXPIRED_PENDING':
+          return 'ACCESS DENIED';
+        case 'DENY_UNKNOWN':
+        case 'DENY_INVENTORY':
+        case 'ERROR':
         case 'IGNORED_DUPLICATE_TAP':
           return 'ERROR';
         default:

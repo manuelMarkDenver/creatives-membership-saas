@@ -44,7 +44,7 @@ import { AssignCardModal } from '@/components/modals/assign-card-modal'
 import { ReplaceCardModal } from '@/components/modals/replace-card-modal'
 import { MemberCard } from '@/components/members/member-card'
 import { StatsOverview } from '@/components/members/stats-overview'
-import { useRenewMemberSubscription, useCancelMember } from '@/lib/hooks/use-gym-member-actions'
+import { useRenewMemberSubscription, useRenewMembership, useCancelMember } from '@/lib/hooks/use-gym-member-actions'
 import { toast } from 'react-toastify'
 import { filterMembersByStatus, calculateMemberStats, type MemberData } from '@/lib/utils/member-status'
 import { useExpiringMembersCount } from '@/lib/hooks/use-expiring-members'
@@ -64,7 +64,7 @@ export default function MembersPage() {
   const [showRenewalModal, setShowRenewalModal] = useState(false)
   const [showCancellationModal, setShowCancellationModal] = useState(false)
   const [selectedMemberForAction, setSelectedMemberForAction] = useState<User | null>(null)
-  const [selectedPlanId, setSelectedPlanId] = useState('')
+  const [renewalDays, setRenewalDays] = useState<number | null>(null)
   const [cancellationReason, setCancellationReason] = useState('')
   const [cancellationNotes, setCancellationNotes] = useState('')
   const [showTransactionModal, setShowTransactionModal] = useState(false)
@@ -128,7 +128,7 @@ export default function MembersPage() {
   })
   
   // Mutation hooks for membership operations
-  const renewMembershipMutation = useRenewMemberSubscription()
+  const renewMembershipMutation = useRenewMembership()
   const cancelMembershipMutation = useCancelMember()
   
   // Helper function to refresh all members data
@@ -165,46 +165,6 @@ export default function MembersPage() {
   }
 
   // Helper functions
-  const handleRenewal = () => {
-    if (!selectedMemberForAction || !selectedPlanId) {
-      toast.error('Please select a member and plan')
-      return
-    }
-
-    const selectedPlan = safeMembershipPlans.find(plan => plan.id === selectedPlanId)
-    if (!selectedPlan) {
-      toast.error('Selected plan not found')
-      return
-    }
-
-    const memberName = `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`
-    
-    renewMembershipMutation.mutate({
-      memberId: selectedMemberForAction.id,
-      data: { gymMembershipPlanId: selectedPlanId }
-    }, {
-      onSuccess: async (result) => {
-        toast.success(`Membership renewed successfully for ${memberName}!\n${result.message}`, {
-          autoClose: 5000
-        })
-        
-        // Refresh members data to show updated status
-        await refreshMembersData()
-        
-        setShowRenewalModal(false)
-        setSelectedMemberForAction(null)
-        setSelectedPlanId('')
-      },
-      onError: (error: unknown) => {
-        const errorMessage = error && typeof error === 'object' && 'response' in error 
-          ? (error.response as { data?: { message?: string } })?.data?.message 
-          : 'Please try again.'
-        toast.error(`Failed to renew membership\n${errorMessage || 'Please try again.'}`, {
-          autoClose: 5000
-        })
-      }
-    })
-  }
 
   const handleCancellation = () => {
     if (!selectedMemberForAction) {
@@ -245,6 +205,46 @@ export default function MembersPage() {
   // Helper function to get member's branch ID (use primaryBranchId as source of truth)
   const getMemberBranchId = (member: MemberData): string | null => {
     return member.gymMemberProfile?.primaryBranchId || member.gymSubscriptions?.[0]?.branchId || null
+  }
+
+  const handleRenewal = () => {
+    if (!selectedMemberForAction || !renewalDays) {
+      toast.error('Please select a member and extension period')
+      return
+    }
+
+    if (renewalDays < 1 || renewalDays > 365) {
+      toast.error('Extension period must be between 1 and 365 days')
+      return
+    }
+
+    const memberName = `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`
+
+    renewMembershipMutation.mutate({
+      memberId: selectedMemberForAction.id,
+      data: { days: renewalDays }
+    }, {
+      onSuccess: async (result) => {
+        toast.success(`Membership extended successfully for ${memberName}!\n${result.message}`, {
+          autoClose: 5000
+        })
+
+        // Refresh members data to show updated status
+        await refreshMembersData()
+
+        setShowRenewalModal(false)
+        setSelectedMemberForAction(null)
+        setRenewalDays(null)
+      },
+      onError: (error: unknown) => {
+        const errorMessage = error && typeof error === 'object' && 'response' in error
+          ? (error.response as { data?: { message?: string } })?.data?.message
+          : 'Please try again.'
+        toast.error(`Failed to extend membership\n${errorMessage || 'Please try again.'}`, {
+          autoClose: 5000
+        })
+      }
+    })
   }
 
   // Helper function to check if current user can manage a member based on branch access
@@ -351,8 +351,9 @@ export default function MembersPage() {
             {isSuperAdmin ? 'View all members across all tenants' : 'Manage gym members and their memberships'}
           </p>
         </div>
-        {!isSuperAdmin && (
-          <Button 
+        {/* TODO: Re-enable member creation in V2 with days-based duration */}
+        {true && !isSuperAdmin && (
+          <Button
             onClick={() => {
               if (safeMembershipPlans.length === 0) {
                 setShowPlansRequiredModal(true)
@@ -568,16 +569,18 @@ export default function MembersPage() {
         />
       )}
 
-      {/* Add Member Modal */}
-      <AddMemberModal
-        isOpen={showAddMemberModal}
-        onClose={() => setShowAddMemberModal(false)}
-        onMemberAdded={async () => {
-          // Refresh the members list
-          await refreshMembersData()
-          setShowAddMemberModal(false)
-        }}
-      />
+      {/* TODO: Re-enable member creation in V2 with days-based duration */}
+      {true && (
+        <AddMemberModal
+          isOpen={showAddMemberModal}
+          onClose={() => setShowAddMemberModal(false)}
+          onMemberAdded={async () => {
+            // Refresh the members list
+            await refreshMembersData()
+            setShowAddMemberModal(false)
+          }}
+        />
+      )}
 
       {/* Membership Plans Required Modal */}
       <MembershipPlansRequiredModal
@@ -637,19 +640,19 @@ export default function MembersPage() {
       <Dialog open={showRenewalModal} onOpenChange={setShowRenewalModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-green-500" />
-              Renew Membership
-            </DialogTitle>
-            <DialogDescription>
-              Renew the expired membership for {`${selectedMemberForAction?.firstName} ${selectedMemberForAction?.lastName}`}
-            </DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-blue-500" />
+            Extend Membership
+          </DialogTitle>
+          <DialogDescription>
+            Extend {selectedMemberForAction ? `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}` : 'member'}'s membership using the same card
+          </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {selectedMemberForAction?.gymSubscriptions?.[0] && (
               <div className="space-y-2">
-                <Label>Current Plan</Label>
+                <Label>Current Membership</Label>
                 <div className="p-3 bg-gray-50 rounded-md">
                   <p className="font-medium text-gray-900">{selectedMemberForAction.gymSubscriptions[0].gymMembershipPlan?.name}</p>
                   <p className="text-sm text-gray-700">₱{selectedMemberForAction.gymSubscriptions[0].price}</p>
@@ -657,58 +660,66 @@ export default function MembersPage() {
                 </div>
               </div>
             )}
-            
+
             <div className="space-y-2">
-              <Label>Select New Plan</Label>
-              <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a membership plan" />
-                </SelectTrigger>
-                <SelectContent>
-                  {safeMembershipPlans.length === 0 ? (
-                    <SelectItem value="no-plans" disabled>No membership plans available</SelectItem>
-                  ) : (
-                    safeMembershipPlans.map((plan) => (
-                      <SelectItem key={plan.id} value={plan.id}>
-                        {plan.name} - ₱{plan.price} ({plan.duration} days)
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              <Label>Extension Period</Label>
+              <p className="text-sm text-muted-foreground">
+                Choose how many days to extend the membership
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {[30, 60, 90, 180].map((days) => (
+                  <Button
+                    key={days}
+                    variant={renewalDays === days ? "default" : "outline"}
+                    onClick={() => setRenewalDays(days)}
+                    className="h-12"
+                  >
+                    {days} days
+                  </Button>
+                ))}
+              </div>
+              <div className="mt-3">
+                <Label htmlFor="customDays" className="text-sm">Custom days (1-365)</Label>
+                <Input
+                  id="customDays"
+                  type="number"
+                  min="1"
+                  max="365"
+                  value={renewalDays && ![30, 60, 90, 180].includes(renewalDays) ? renewalDays : ''}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value)
+                    if (value >= 1 && value <= 365) {
+                      setRenewalDays(value)
+                    }
+                  }}
+                  placeholder="Enter custom days"
+                  className="mt-1"
+                />
+              </div>
             </div>
-            
-            {selectedPlanId && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                <p className="text-sm text-green-800">
-                  <strong>Selected Plan:</strong> {safeMembershipPlans.find(p => p.id === selectedPlanId)?.name}
-                </p>
-                <p className="text-sm text-green-700">
-                  Price: ₱{safeMembershipPlans.find(p => p.id === selectedPlanId)?.price}
-                </p>
-                <p className="text-sm text-green-700">
-                  Duration: {safeMembershipPlans.find(p => p.id === selectedPlanId)?.duration} days
+
+            {renewalDays && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-sm text-blue-800">
+                  <strong>Extension:</strong> {renewalDays} days from today
                 </p>
               </div>
             )}
           </div>
 
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setShowRenewalModal(false)
-                setSelectedMemberForAction(null)
-                setSelectedPlanId('')
-              }}
-            >
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowRenewalModal(false)
+              setSelectedMemberForAction(null)
+              setRenewalDays(null)
+            }}>
               Cancel
             </Button>
-            <Button 
-              disabled={!selectedPlanId || renewMembershipMutation.isPending}
+            <Button
+              disabled={!renewalDays || renewMembershipMutation.isPending}
               onClick={handleRenewal}
             >
-              <UserCheck className="w-4 h-4 mr-2" />
+              <Calendar className="w-4 h-4 mr-2" />
               {renewMembershipMutation.isPending ? 'Renewing...' : 'Renew Membership'}
             </Button>
           </DialogFooter>

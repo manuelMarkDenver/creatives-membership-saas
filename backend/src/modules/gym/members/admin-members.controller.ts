@@ -79,24 +79,7 @@ export class AdminMembersController {
     return this.gymMembersService.disableCard(memberId, body, performedBy);
   }
 
-  @Post(':memberId/renew')
-  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
-  async renewMembership(
-    @Param('memberId') memberId: string,
-    @Body() body: { planId: string },
-    @Req() req: RequestWithUser,
-  ) {
-    const performedBy = req.user?.id;
-    if (!performedBy) {
-      throw new Error('User not authenticated');
-    }
 
-    return this.gymMembersService.renewMemberSubscription(
-      memberId,
-      body.planId,
-      performedBy,
-    );
-  }
 
   @Post(':memberId/cancel')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)

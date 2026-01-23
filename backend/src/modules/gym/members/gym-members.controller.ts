@@ -7,6 +7,7 @@ import {
   UseGuards,
   Req,
   Param,
+  BadRequestException,
 } from '@nestjs/common';
 import { GymMembersService } from './gym-members.service';
 import { AuthGuard } from '../../../core/auth/auth.guard';
@@ -199,6 +200,34 @@ export class GymMembersController {
     return this.gymMembersService.renewMemberSubscription(
       id,
       membershipPlanId,
+      performedBy,
+    );
+  }
+
+  @Post(':id/renew-membership')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  async renewMembership(
+    @Param('id') id: string,
+    @Body() body: { days: number },
+    @Req() req: RequestWithUser,
+  ) {
+    const performedBy = req.user?.id;
+    if (!performedBy) {
+      throw new Error('User not authenticated');
+    }
+
+    const days = body.days;
+    if (!days || days <= 0 || days > 365) {
+      throw new BadRequestException('days must be between 1 and 365');
+    }
+
+    const newEndDate = new Date();
+    newEndDate.setDate(newEndDate.getDate() + days);
+    newEndDate.setHours(23, 59, 59, 999); // End of day
+
+    return this.gymMembersService.renewMembership(
+      id,
+      newEndDate,
       performedBy,
     );
   }

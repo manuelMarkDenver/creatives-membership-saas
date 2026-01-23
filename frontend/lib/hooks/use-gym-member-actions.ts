@@ -133,29 +133,29 @@ export function useRenewMemberSubscription() {
       membersApi.renewMemberSubscription(memberId, data),
     onSuccess: (result, { memberId }) => {
       console.log('✅ RENEW MEMBER SUCCESS:', { result, memberId })
-      
+
       // Invalidate member status and history
       queryClient.invalidateQueries({ queryKey: memberKeys.status(memberId) })
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: [...memberKeys.all, 'history', memberId]
       })
-      
+
       // Invalidate user data to refresh member list
       queryClient.invalidateQueries({ queryKey: userKeys.lists() })
       queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'tenant'] })
-      
+
       // Invalidate gym subscription data
-      queryClient.invalidateQueries({ 
-        queryKey: ['gym-subscriptions', 'subscription', memberId] 
+      queryClient.invalidateQueries({
+        queryKey: ['gym-subscriptions', 'subscription', memberId]
       })
-      queryClient.invalidateQueries({ 
-        queryKey: ['gym-subscriptions', 'history', memberId] 
+      queryClient.invalidateQueries({
+        queryKey: ['gym-subscriptions', 'history', memberId]
       })
-      queryClient.invalidateQueries({ 
-        queryKey: ['gym-subscriptions', 'transactions', memberId] 
+      queryClient.invalidateQueries({
+        queryKey: ['gym-subscriptions', 'transactions', memberId]
       })
-      queryClient.invalidateQueries({ 
-        queryKey: ['gym-subscriptions', 'stats'] 
+      queryClient.invalidateQueries({
+        queryKey: ['gym-subscriptions', 'stats']
       })
     },
     onError: (error: any, { memberId }) => {
@@ -163,7 +163,7 @@ export function useRenewMemberSubscription() {
       // Import toast dynamically to avoid import issues
       import('react-toastify').then(({ toast }) => {
         let errorMessage = 'Failed to renew membership'
-        
+
         // Extract error message from the response - try multiple paths
         if (error?.response?.data?.message) {
           errorMessage = error.response.data.message
@@ -172,7 +172,65 @@ export function useRenewMemberSubscription() {
         } else if (error?.message) {
           errorMessage = error.message
         }
-        
+
+        toast.error(errorMessage, {
+          position: 'top-center',
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        })
+      })
+    },
+  })
+}
+
+// Renew membership (same card) mutation
+export function useRenewMembership() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ memberId, data }: { memberId: string; data: { days: number } }) =>
+      membersApi.renewMembership(memberId, data),
+    onSuccess: (result, { memberId }) => {
+      console.log('✅ RENEW MEMBERSHIP SUCCESS:', { result, memberId })
+
+      // Invalidate member status and history
+      queryClient.invalidateQueries({ queryKey: memberKeys.status(memberId) })
+      queryClient.invalidateQueries({
+        queryKey: [...memberKeys.all, 'history', memberId]
+      })
+
+      // Invalidate user data to refresh member list
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'tenant'] })
+
+      // Invalidate gym member data
+      queryClient.invalidateQueries({
+        queryKey: ['gym-members']
+      })
+
+      // Invalidate gym subscription data (since we updated subscription endDate and status)
+      queryClient.invalidateQueries({
+        queryKey: ['gym-subscriptions', 'subscription', memberId]
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['gym-subscriptions', 'history', memberId]
+      })
+    },
+    onError: (error: any, { memberId }) => {
+      import('react-toastify').then(({ toast }) => {
+        let errorMessage = 'Failed to renew membership'
+
+        if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message
+        } else if (error?.data?.message) {
+          errorMessage = error.data.message
+        } else if (error?.message) {
+          errorMessage = error.message
+        }
+
         toast.error(errorMessage, {
           position: 'top-center',
           autoClose: 6000,

@@ -998,6 +998,78 @@ export class GymMembersService {
     };
   }
 
+  async renewMembership(
+    memberId: string,
+    newEndDate: Date,
+    performedBy: string,
+  ) {
+    const member = await this.getMemberById(memberId);
+
+    // Check if member has an ACTIVE operational MONTHLY card
+    const activeCard = await this.prisma.card.findFirst({
+      where: {
+        memberId: memberId,
+        active: true,
+        type: 'MONTHLY',
+      },
+    });
+
+    if (!activeCard) {
+      throw new BadRequestException('Member must have an active operational MONTHLY card');
+    }
+
+    // Validate end_date is in the future
+    if (newEndDate <= new Date()) {
+      throw new BadRequestException('end_date must be in the future');
+    }
+
+    // Find the latest subscription (for renewal, we can extend expired subscriptions)
+    const latestSubscription = await this.prisma.gymMemberSubscription.findFirst({
+      where: {
+        memberId: memberId,
+        tenantId: member.tenantId!,
+      },
+      orderBy: { endDate: 'desc' },
+    });
+
+    if (!latestSubscription) {
+      throw new BadRequestException('Member must have an existing subscription to renew');
+    }
+
+    // Get current endDate for audit
+    const currentEndDate = latestSubscription.endDate;
+
+    // Update the subscription endDate and status
+    await this.prisma.gymMemberSubscription.update({
+      where: { id: latestSubscription.id },
+      data: {
+        endDate: newEndDate,
+        status: 'ACTIVE',  // Set status to ACTIVE since we're renewing/extending
+        updatedAt: new Date(),
+      },
+    });
+
+    // Create audit log
+    await this.createAuditLog({
+      memberId,
+      action: 'SUBSCRIPTION_RENEWED',
+      reason: 'Subscription extended via same-card renewal',
+      performedBy,
+      metadata: {
+        oldEndDate: currentEndDate.toISOString(),
+        newEndDate: newEndDate.toISOString(),
+        subscriptionId: latestSubscription.id,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Membership renewed successfully',
+      oldEndDate: currentEndDate,
+      newEndDate,
+    };
+  }
+
   async softDeleteMember(
     memberId: string,
     performedBy: string,
