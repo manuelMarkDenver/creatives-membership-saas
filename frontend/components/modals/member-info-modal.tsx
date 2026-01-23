@@ -785,25 +785,31 @@ export function MemberInfoModal({
                            Renew Membership
                          </Button>
                        )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowChangePlanModal(true)}
-                        className="flex items-center gap-2 text-xs"
-                        disabled={member.gymSubscriptions?.[0]?.status !== 'ACTIVE'}
-                      >
-                        <CreditCard className="h-3 w-3" />
-                        Change Plan
-                      </Button>
-                     <Button
-                       variant="outline"
-                       size="sm"
-                       onClick={() => setShowBranchTransferModal(true)}
-                       className="flex items-center gap-2 text-xs"
-                     >
-                       <ArrowRightLeft className="h-3 w-3" />
-                       Transfer Branch
-                     </Button>
+                       {/* TODO: Re-enable in future version with proper implementation */}
+                       {false && (
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => setShowChangePlanModal(true)}
+                           className="flex items-center gap-2 text-xs"
+                           disabled={member.gymSubscriptions?.[0]?.status !== 'ACTIVE'}
+                         >
+                           <CreditCard className="h-3 w-3" />
+                           Change Plan
+                         </Button>
+                       )}
+                       {/* TODO: Re-enable in future version with proper implementation */}
+                       {false && (
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => setShowBranchTransferModal(true)}
+                           className="flex items-center gap-2 text-xs"
+                         >
+                           <ArrowRightLeft className="h-3 w-3" />
+                           Transfer Branch
+                         </Button>
+                       )}
                    </div>
                 </div>
               </div>
@@ -878,16 +884,18 @@ export function MemberInfoModal({
       </DialogContent>
     </Dialog>
 
-    {/* Branch Transfer Modal */}
-    <BranchTransferModal
-      isOpen={showBranchTransferModal}
-      onClose={() => setShowBranchTransferModal(false)}
-      member={member}
-      onTransferComplete={() => {
-        setShowBranchTransferModal(false)
-        onMemberUpdated?.()
-      }}
-    />
+    {/* TODO: Re-enable in future version with proper implementation */}
+    {false && (
+      <BranchTransferModal
+        isOpen={showBranchTransferModal}
+        onClose={() => setShowBranchTransferModal(false)}
+        member={member}
+        onTransferComplete={() => {
+          setShowBranchTransferModal(false)
+          onMemberUpdated?.()
+        }}
+      />
+    )}
 
      {/* TODO: Re-enable in V2 with feature flags */}
      {true && (
@@ -902,16 +910,18 @@ export function MemberInfoModal({
        />
      )}
 
-    {/* Change Plan Modal */}
-    <ChangePlanModal
-      isOpen={showChangePlanModal}
-      onClose={() => setShowChangePlanModal(false)}
-      member={member}
-      onPlanChanged={() => {
-        setShowChangePlanModal(false)
-        onMemberUpdated?.()
-      }}
-    />
+     {/* TODO: Re-enable in future version with proper implementation */}
+     {false && (
+       <ChangePlanModal
+         isOpen={showChangePlanModal}
+         onClose={() => setShowChangePlanModal(false)}
+         member={member}
+         onPlanChanged={() => {
+           setShowChangePlanModal(false)
+           onMemberUpdated?.()
+         }}
+       />
+     )}
     </>
   )
 }
