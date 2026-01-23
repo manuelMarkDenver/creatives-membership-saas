@@ -678,14 +678,13 @@ export function AddMemberModal({
                  </p>
                  <div className="grid grid-cols-2 gap-2 mb-3">
                    {[30, 60, 90, 180].map((days) => (
-                     <Button
-                       key={days}
-                       type="button"
-                       variant={formData.membershipDays === days && !formData.showCustomDaysInput ? "default" : "outline"}
-                       onClick={() => handleDaysChange(days)}
-                       className="h-12"
-                       disabled={formData.showCustomDaysInput}
-                     >
+                      <Button
+                        key={days}
+                        type="button"
+                        variant={formData.membershipDays === days ? "default" : "outline"}
+                        onClick={() => handleDaysChange(days)}
+                        className="h-12"
+                      >
                        {days} days
                      </Button>
                    ))}
