@@ -127,6 +127,30 @@ export class GymMembersService {
           throw new BadRequestException('paymentAmount is required and must be greater than 0');
         }
 
+        // Find or create a "Custom Membership" plan
+        let customPlan = await tx.gymMembershipPlan.findFirst({
+          where: {
+            tenantId: tenantId,
+            name: 'Custom Membership',
+            isActive: true,
+          },
+        });
+
+        if (!customPlan) {
+          // Create the custom plan if it doesn't exist
+          customPlan = await tx.gymMembershipPlan.create({
+            data: {
+              tenantId: tenantId,
+              name: 'Custom Membership',
+              description: 'Flexible membership with custom duration and pricing',
+              duration: 30, // Default duration, will be overridden
+              price: 0, // Will be overridden by actual payment
+              type: 'UNLIMITED',
+              isActive: true,
+            },
+          });
+        }
+
         // Create subscription with custom duration
         const startDate = new Date();
         const endDate = new Date(startDate);
@@ -137,7 +161,7 @@ export class GymMembersService {
           data: {
             tenantId: tenantId,
             memberId: user.id,
-            gymMembershipPlanId: '', // Empty string for custom memberships
+            gymMembershipPlanId: customPlan.id,
             branchId: branch.id,
             status: 'ACTIVE',
             startDate: startDate,
