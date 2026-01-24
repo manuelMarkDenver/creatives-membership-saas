@@ -817,20 +817,30 @@ export default function MembersPage() {
 
             <div className="space-y-2">
               <Label>Card Returned?</Label>
-              <div className="flex gap-2">
-                <Button
-                  className={`flex-1 ${cardReturned ? 'bg-red-600 text-white' : 'bg-white text-gray-700 border'}`}
-                  onClick={() => setCardReturned(true)}
-                >
-                  Yes
-                </Button>
-                <Button
-                  className={`flex-1 ${!cardReturned ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 border'}`}
-                  onClick={() => setCardReturned(false)}
-                >
-                  No
-                </Button>
-              </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className={`flex-1 rounded-lg border px-4 py-2 text-sm font-semibold transition duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
+                      cardReturned
+                        ? 'bg-white text-slate-900 border-slate-900 shadow-sm'
+                        : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
+                    }`}
+                    onClick={() => setCardReturned(true)}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 rounded-lg border px-4 py-2 text-sm font-semibold transition duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
+                      !cardReturned
+                        ? 'bg-white text-slate-900 border-slate-900 shadow-sm'
+                        : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
+                    }`}
+                    onClick={() => setCardReturned(false)}
+                  >
+                    No
+                  </button>
+                </div>
               <p className="text-xs text-slate-500">
                 Select "Yes" only if the member handed back the card. This will open a reclaim flow that waits for a tap at the kiosk.
               </p>

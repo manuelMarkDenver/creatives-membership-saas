@@ -20,6 +20,8 @@ interface AssignCardModalProps {
 export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: AssignCardModalProps) {
   const [countdown, setCountdown] = useState(600) // 10 minutes in seconds
   const [isPolling, setIsPolling] = useState(false)
+  const [isRefetchingPending, setIsRefetchingPending] = useState(false)
+  const [hasSeenPending, setHasSeenPending] = useState(false)
   const queryClient = useQueryClient()
 
   const memberName = member ? `${member.firstName || ''} ${member.lastName || ''}`.trim() : 'Unknown'
@@ -53,14 +55,18 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
     },
     onSuccess: (data) => {
       console.log('Card assignment initiated, starting polling...')
-      toast.success('Card assignment initiated! Member has 10 minutes to tap their card.')
-      setIsPolling(true)
-      setCountdown(600) // Reset countdown
-      // Force immediate refetch
-      refetchPending()
-      // Additional refetch after a short delay
-      setTimeout(() => refetchPending(), 500)
-    },
+        toast.success('Card assignment initiated! Member has 10 minutes to tap their card.')
+        setIsPolling(true)
+        setCountdown(600) // Reset countdown
+        // Force immediate refetch
+        setIsRefetchingPending(true)
+        refetchPending().finally(() => setIsRefetchingPending(false))
+        // Additional refetch after a short delay
+        setTimeout(() => {
+          setIsRefetchingPending(true)
+          refetchPending().finally(() => setIsRefetchingPending(false))
+        }, 500)
+      },
     onError: (error: any) => {
       toast.error(`Failed to assign card: ${error.message}`)
     }
@@ -77,6 +83,7 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
     onSuccess: () => {
       toast.success('Card assignment cancelled')
       setIsPolling(false)
+      setHasSeenPending(false)
       onClose()
     },
     onError: (error: any) => {
@@ -111,7 +118,10 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
   // Check if assignment was completed
   useEffect(() => {
     console.log('Modal state check:', { pendingData, isPolling, isFetching })
-    if (!pendingData && isPolling && !isFetching) {
+    if (pendingData) {
+      setHasSeenPending(true)
+    }
+    if (!pendingData && isPolling && !isFetching && hasSeenPending) {
       // Pending assignment disappeared - either assigned or cancelled
       console.log('Assignment completed - closing modal')
       setIsPolling(false)
@@ -125,6 +135,23 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
     }
   }, [pendingData, isPolling, isFetching, onCardAssigned, onClose, queryClient])
 
+  useEffect(() => {
+    if (
+      pendingData &&
+      member?.id &&
+      pendingData.memberId === member.id &&
+      pendingData.purpose === 'ONBOARD'
+    ) {
+      const expiresAt = new Date(pendingData.expiresAt).getTime()
+      const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000))
+      setCountdown(remaining)
+      if (!isPolling) {
+        setIsPolling(true)
+        toast.info('Card assignment already pending — waiting for tap')
+      }
+    }
+  }, [pendingData, member?.id, isPolling])
+
 
 
   // Reset state when modal opens
@@ -132,6 +159,7 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
     if (isOpen) {
       setIsPolling(false)
       setCountdown(600)
+      setHasSeenPending(false)
     }
   }, [isOpen])
 
@@ -157,6 +185,7 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
         onClose()
       }
     } else {
+      setHasSeenPending(false)
       onClose()
     }
   }

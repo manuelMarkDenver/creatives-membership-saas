@@ -430,18 +430,28 @@ export function MemberActionsModal({
               <div className="space-y-2">
                 <Label>Card Returned?</Label>
                 <div className="flex gap-2">
-                  <Button
-                    className={`flex-1 ${cancelCardReturned ? 'bg-red-600 text-white' : 'bg-white text-gray-700 border'}`}
+                  <button
+                    type="button"
+                    className={`flex-1 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
+                      cancelCardReturned
+                        ? 'bg-white text-slate-900 border-slate-900 shadow-sm'
+                        : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
+                    }`}
                     onClick={() => setCancelCardReturned(true)}
                   >
                     Yes
-                  </Button>
-                  <Button
-                    className={`flex-1 ${!cancelCardReturned ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 border'}`}
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
+                      !cancelCardReturned
+                        ? 'bg-white text-slate-900 border-slate-900 shadow-sm'
+                        : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
+                    }`}
                     onClick={() => setCancelCardReturned(false)}
                   >
                     No
-                  </Button>
+                  </button>
                 </div>
                 <p className="text-xs text-slate-500">
                   Choose "Yes" only if the member handed back their card. The kiosk will then verify it before updating inventory.

@@ -418,6 +418,22 @@ export class GymMembersService {
         orderBy: { createdAt: 'desc' },
       });
 
+      const latestSubscription = await tx.gymMemberSubscription.findFirst({
+        where: { memberId },
+        orderBy: { endDate: 'desc' },
+      });
+
+      if (latestSubscription) {
+        await tx.gymMemberSubscription.update({
+          where: { id: latestSubscription.id },
+          data: {
+            status: 'CANCELLED',
+            cancelledAt: new Date(),
+            cancellationReason: request.reason ?? 'Admin cancellation',
+          },
+        });
+      }
+
       const lastAssignedCard = await tx.card.findFirst({
         where: {
           memberId,
@@ -430,7 +446,12 @@ export class GymMembersService {
 
       await tx.gymMemberProfile.update({
         where: { id: member.gymMemberProfile!.id },
-        data: { status: 'SUSPENDED' },
+        data: {
+          status: 'SUSPENDED',
+          cardStatus: 'NO_CARD',
+          cardUid: null,
+          cardAssignedAt: null,
+        },
       });
 
       await tx.card.updateMany({
@@ -621,9 +642,9 @@ export class GymMembersService {
 
     // Check member status based on purpose
     if (purpose === 'ONBOARD') {
-      if (member.gymMemberProfile.cardStatus !== 'PENDING_CARD') {
+      if (!['PENDING_CARD', 'NO_CARD'].includes(member.gymMemberProfile.cardStatus || '')) {
         throw new BadRequestException(
-          `Cannot assign card to member with status ${member.gymMemberProfile.cardStatus}. Member must be in PENDING_CARD status.`,
+          `Cannot assign card to member with status ${member.gymMemberProfile.cardStatus}. Member must be in NO_CARD or PENDING_CARD status.`,
         );
       }
     } else if (purpose === 'REPLACE') {
@@ -738,12 +759,18 @@ export class GymMembersService {
       },
     });
 
+    const previousCardStatus = member.gymMemberProfile.cardStatus ?? 'NO_CARD';
+    await this.prisma.gymMemberProfile.update({
+      where: { id: member.gymMemberProfile.id },
+      data: { cardStatus: 'PENDING_CARD', cardUid: null, cardAssignedAt: null },
+    });
+
     // Create audit log
     await this.createAuditLog({
       memberId,
       action: 'CARD_ASSIGNMENT_INITIATED',
       reason: `Card assignment initiated for ${purpose}`,
-      previousState: 'PENDING_CARD',
+      previousState: previousCardStatus,
       newState: 'PENDING_CARD', // Status stays pending until card is tapped
       performedBy,
       metadata: {

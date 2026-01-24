@@ -340,13 +340,15 @@ export class AccessService {
 
       // Reclaim: set inventory to AVAILABLE, delete pending, log
       await this.prisma.$transaction(async (tx) => {
-        if (inventoryCard.status === 'ASSIGNED') {
-          await tx.inventoryCard.update({
-            where: { uid: cardUid },
-            data: { status: 'AVAILABLE' },
-          });
-        }
         await tx.pendingMemberAssignment.delete({ where: { gymId } });
+        await tx.inventoryCard.updateMany({
+          where: { uid: cardUid },
+          data: { status: 'AVAILABLE' },
+        });
+        await tx.card.updateMany({
+          where: { uid: cardUid },
+          data: { active: false, memberId: null },
+        });
       });
 
       await this.eventsService.logEvent({
@@ -355,7 +357,11 @@ export class AccessService {
         type: 'CARD_RECLAIMED',
         cardUid,
         memberId: pending.memberId,
-        meta: { uid: cardUid, memberId: pending.memberId },
+        meta: {
+          reclaimedUid: cardUid,
+          memberId: pending.memberId,
+          inventoryStatus: 'AVAILABLE',
+        },
       });
 
       return {

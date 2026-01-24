@@ -236,7 +236,7 @@ export const membersApi = {
 
   // Get pending assignment for a gym
   async getPendingAssignment(gymId: string): Promise<PendingAssignmentData | null> {
-    const response = await apiClient.get('/admin/pending-assignment', {
+    const response = await apiClient.get(`/admin/members/pending-assignment`, {
       params: { gymId },
     })
     return response.data
@@ -256,7 +256,7 @@ export const membersApi = {
 
   // Cancel pending assignment for a gym
   async cancelPendingAssignment(gymId: string): Promise<any> {
-    const response = await apiClient.delete('/admin/pending-assignment', {
+    const response = await apiClient.delete(`/admin/members/pending-assignment`, {
       params: { gymId },
     })
     return response.data
