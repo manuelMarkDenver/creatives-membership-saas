@@ -141,18 +141,18 @@ export default function KioskPage() {
       // Play sound based on result
       playSound(data.result);
 
-      // Auto reset after 2 seconds
+      // Auto reset after 1 second
       setTimeout(() => {
         setCardUid('');
         setResult(null);
-      }, 2000);
+      }, 1000);
 
     } catch (error) {
-      setResult({ result: 'ERROR', message: 'Network error' });
-      setTimeout(() => {
-        setCardUid('');
-        setResult(null);
-      }, 2000);
+       setResult({ result: 'ERROR', message: 'Network error' });
+       setTimeout(() => {
+         setCardUid('');
+         setResult(null);
+       }, 1000);
     } finally {
       setIsProcessing(false);
     }

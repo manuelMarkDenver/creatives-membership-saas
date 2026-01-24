@@ -11,7 +11,7 @@ const ToastContainer = dynamic(() => import('react-toastify').then(mod => ({ def
 export function ClientToastContainer() {
   return (
     <Suspense fallback={null}>
-      <ToastContainer
+       <ToastContainer
         position="top-center"
         autoClose={6000}
         hideProgressBar={false}

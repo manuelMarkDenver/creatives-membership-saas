@@ -215,16 +215,16 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Member Info */}
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-              {memberName.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <p className="font-medium">{memberName}</p>
-              <p className="text-sm text-gray-600">{member?.email}</p>
-            </div>
-          </div>
+           {/* Member Info */}
+           <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+               {memberName.charAt(0).toUpperCase()}
+             </div>
+             <div>
+               <p className="font-medium text-foreground">{memberName}</p>
+               <p className="text-sm text-muted-foreground">{member?.email}</p>
+             </div>
+           </div>
 
           {/* Status */}
           {!isPolling && !pendingData && (

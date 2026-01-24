@@ -823,7 +823,7 @@ export class GymMembersService {
       }
 
       throw new BadRequestException(
-        `No available card inventory for this gym (gymId: ${gymId}). Found ${totalInventory} available cards total, but none allocated to this gym. Please allocate cards to this branch first.`,
+        'No available cards allocated to this gym. Please allocate cards to this branch first.',
       );
     }
 

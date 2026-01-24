@@ -211,7 +211,7 @@ export default function MembersPage() {
             error && typeof error === 'object' && 'response' in error
               ? (error.response as { data?: { message?: string } })?.data?.message
               : 'Please try again.'
-          toast.error(`Failed to cancel membership\n${errorMessage || 'Please try again.'}`, {
+           toast.error(`Failed to cancel membership\n${errorMessage || 'Please try again.'}`, {
             autoClose: 5000,
           })
         },
@@ -257,7 +257,7 @@ export default function MembersPage() {
       data: { days: renewalDays }
     }, {
       onSuccess: async (result) => {
-        toast.success(`Membership extended successfully for ${memberName}!\n${result.message}`, {
+         toast.success(`Membership extended successfully for ${memberName}!\n${result.message}`, {
           autoClose: 5000
         })
 
