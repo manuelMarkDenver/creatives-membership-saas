@@ -206,6 +206,7 @@ export default function KioskPage() {
       case 'ASSIGNED': return 'bg-green-500';
       case 'ALLOW_AUTO_ASSIGNED': return 'bg-green-500';
       case 'RECLAIMED': return 'bg-green-500';
+      case 'IGNORED_DUPLICATE_TAP': return 'bg-amber-500';
       default: return 'bg-red-500';
     }
   };
@@ -233,7 +234,7 @@ export default function KioskPage() {
         case 'DENY_INVENTORY':
         case 'ERROR':
         case 'IGNORED_DUPLICATE_TAP':
-          return 'ERROR';
+          return 'WAIT';
         default:
           return 'ERROR';
       }
@@ -272,7 +273,7 @@ export default function KioskPage() {
         message = `Card reclaimed for ${result.memberName || 'Member'}`;
         break;
       case 'IGNORED_DUPLICATE_TAP':
-        message = 'Please Wait - Duplicate Tap Detected';
+        message = 'Tap Once';
         break;
       default:
         message = result.message || 'Error';
