@@ -41,10 +41,10 @@ export function ReclaimPendingModal({
   const [countdown, setCountdown] = useState(0)
   const [stopRequested, setStopRequested] = useState(false)
   const stopRef = useRef(false)
+  const [hasSeenPending, setHasSeenPending] = useState(false)
   const lastExpiresRef = useRef<number | null>(
     initialExpiresAt ? new Date(initialExpiresAt).getTime() : null,
   )
-  const pendingPresentRef = useRef(false)
 
   const { data: pendingData, isFetching } = useQuery({
     queryKey: ['pending-assignment', gymId],
@@ -82,25 +82,25 @@ export function ReclaimPendingModal({
 
   useEffect(() => {
     if (!isOpen) {
-      pendingPresentRef.current = false
+      setHasSeenPending(false)
       stopRef.current = false
       setStopRequested(false)
       return
     }
 
     if (pendingData) {
-      pendingPresentRef.current = true
+      setHasSeenPending(true)
       return
     }
 
-    if (!pendingPresentRef.current) {
+    if (!hasSeenPending || isFetching) {
       return
     }
 
     const wasStopping = stopRef.current
     stopRef.current = false
-    pendingPresentRef.current = false
     setStopRequested(false)
+    setHasSeenPending(false)
 
     const expired = lastExpiresRef.current ? Date.now() > lastExpiresRef.current : false
 
@@ -111,7 +111,7 @@ export function ReclaimPendingModal({
     }
 
     onClose()
-  }, [pendingData, isOpen, onClose])
+  }, [pendingData, isOpen, onClose, hasSeenPending, isFetching])
 
   const stopMutation = useMutation({
     mutationFn: () => membersApi.cancelPendingAssignment(gymId),
@@ -119,6 +119,7 @@ export function ReclaimPendingModal({
       stopRef.current = true
       setStopRequested(true)
       queryClient.invalidateQueries({ queryKey: ['pending-assignment', gymId] })
+      setHasSeenPending(false)
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || 'Failed to stop reclaim')

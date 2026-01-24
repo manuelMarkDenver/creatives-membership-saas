@@ -418,6 +418,10 @@ export class GymMembersService {
         orderBy: { createdAt: 'desc' },
       });
 
+      // If there is an in-flight card assignment for this member, cancellation should
+      // clear it to prevent a stale kiosk tap from doing anything later.
+      await tx.pendingMemberAssignment.deleteMany({ where: { memberId } });
+
       const latestSubscription = await tx.gymMemberSubscription.findFirst({
         where: { memberId },
         orderBy: { endDate: 'desc' },
@@ -444,6 +448,8 @@ export class GymMembersService {
 
       const expectedCardUid = lastAssignedCard?.uid ?? null;
 
+      const shouldCreateReclaimPending = !!request.cardReturned && !!expectedCardUid;
+
       await tx.gymMemberProfile.update({
         where: { id: member.gymMemberProfile!.id },
         data: {
@@ -454,15 +460,36 @@ export class GymMembersService {
         },
       });
 
-      await tx.card.updateMany({
-        where: {
-          gymId,
-          memberId,
-          type: 'MONTHLY',
-          active: true,
-        },
-        data: { active: false },
-      });
+      if (shouldCreateReclaimPending) {
+        // Cancellation + reclaim flow:
+        // - Keep ONLY the expected card record (deactivated) so the kiosk can verify UID.
+        // - Remove any other historical card rows for this member to avoid showing
+        //   DISABLED on unrelated old cards.
+        await tx.card.deleteMany({
+          where: {
+            gymId,
+            memberId,
+            uid: { not: expectedCardUid! },
+          },
+        });
+
+        await tx.card.updateMany({
+          where: {
+            gymId,
+            memberId,
+            uid: expectedCardUid!,
+          },
+          data: { active: false },
+        });
+      } else {
+        // No reclaim flow; remove operational cards immediately.
+        await tx.card.deleteMany({
+          where: {
+            gymId,
+            memberId,
+          },
+        });
+      }
 
       await tx.event.create({
         data: {
@@ -483,9 +510,10 @@ export class GymMembersService {
       let reclaimPending = false;
       let expiresAt: Date | null = null;
 
-      if (request.cardReturned && expectedCardUid) {
+      if (shouldCreateReclaimPending) {
         const pendingExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
+        // Ensure only one pending assignment exists per gym.
         await tx.pendingMemberAssignment.deleteMany({ where: { gymId } });
         await tx.pendingMemberAssignment.create({
           data: {

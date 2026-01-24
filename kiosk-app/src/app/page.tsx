@@ -167,7 +167,14 @@ export default function KioskPage() {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
 
-    const isDenyResult = ['DENY_EXPIRED', 'DENY_DISABLED', 'DENY_GYM_MISMATCH', 'DENY_AUTO_ASSIGNED_EXPIRED', 'DENY_EXPIRED_PENDING'].includes(result);
+    const isDenyResult = [
+      'DENY_EXPIRED',
+      'DENY_DISABLED',
+      'DENY_GYM_MISMATCH',
+      'DENY_AUTO_ASSIGNED_EXPIRED',
+      'DENY_EXPIRED_PENDING',
+      'DENY_RECLAIM_MISMATCH',
+    ].includes(result);
 
     if (
       ['ALLOW', 'ASSIGNED', 'ALLOW_AUTO_ASSIGNED', 'RECLAIMED'].includes(result)
@@ -220,6 +227,8 @@ export default function KioskPage() {
         case 'DENY_AUTO_ASSIGNED_EXPIRED':
         case 'DENY_EXPIRED_PENDING':
           return 'ACCESS DENIED';
+        case 'DENY_RECLAIM_MISMATCH':
+          return 'ERROR';
         case 'DENY_UNKNOWN':
         case 'DENY_INVENTORY':
         case 'ERROR':
@@ -246,6 +255,9 @@ export default function KioskPage() {
         break;
       case 'DENY_UNKNOWN':
         message = 'Unknown Card - Please contact staff';
+        break;
+      case 'DENY_RECLAIM_MISMATCH':
+        message = result.message || 'Wrong card - please tap the returned card';
         break;
       case 'DENY_DISABLED':
         message = `${result.memberName || 'Member'} - Card Disabled`;

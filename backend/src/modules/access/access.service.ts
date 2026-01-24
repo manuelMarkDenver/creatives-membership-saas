@@ -67,6 +67,113 @@ export class AccessService {
     const gymId = terminal.gymId;
     console.log('Terminal gymId:', gymId, 'Terminal ID:', terminalId);
 
+    // If there's an active RECLAIM pending assignment, handle it first.
+    // This must run before the operational-card checks so a disabled/expired operational card
+    // does not block the reclaim flow.
+    const reclaimPending = await this.prisma.pendingMemberAssignment.findUnique({
+      where: { gymId },
+      include: { member: true },
+    });
+
+    if (reclaimPending?.purpose === 'RECLAIM') {
+      // Check if expired
+      if (new Date() > reclaimPending.expiresAt) {
+        await this.prisma.pendingMemberAssignment.delete({ where: { gymId } });
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'PENDING_ASSIGNMENT_EXPIRED',
+          cardUid,
+          memberId: reclaimPending.memberId,
+          meta: { purpose: 'RECLAIM' },
+        });
+        return { result: 'DENY_UNKNOWN' };
+      }
+
+      // Check inventory first for disabled status (disabled beats unknown)
+      const inventoryCard = await this.prisma.inventoryCard.findUnique({
+        where: { uid: cardUid },
+        include: { gym: true },
+      });
+
+      if (inventoryCard && inventoryCard.status === 'DISABLED') {
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'ACCESS_DENY_DISABLED',
+          cardUid,
+          memberId: reclaimPending.memberId,
+        });
+        return { result: 'DENY_DISABLED', memberName: 'Unknown Member' };
+      }
+
+      // Check if UID matches expected
+      if (cardUid !== reclaimPending.expectedCardUid) {
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'ACCESS_DENY_RECLAIM_MISMATCH',
+          cardUid,
+          memberId: reclaimPending.memberId,
+          meta: {
+            expectedUid: reclaimPending.expectedCardUid,
+            tappedUid: cardUid,
+          },
+        });
+
+        return {
+          result: 'DENY_RECLAIM_MISMATCH',
+          memberName: reclaimPending.member
+            ? `${reclaimPending.member.firstName} ${reclaimPending.member.lastName}`
+            : 'Unknown Member',
+          message:
+            'Wrong card for reclaim. Tap the returned card assigned to this member.',
+        };
+      }
+
+      // UID matches, now check inventory
+      if (!inventoryCard) {
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'ACCESS_DENY_UNKNOWN',
+          cardUid,
+          memberId: reclaimPending.memberId,
+        });
+        return { result: 'DENY_UNKNOWN' };
+      }
+
+      // Reclaim: set inventory to AVAILABLE, delete pending, delete operational card row
+      await this.prisma.$transaction(async (tx) => {
+        await tx.pendingMemberAssignment.delete({ where: { gymId } });
+        await tx.inventoryCard.updateMany({
+          where: { uid: cardUid },
+          data: { status: 'AVAILABLE' },
+        });
+        await tx.card.deleteMany({ where: { uid: cardUid } });
+      });
+
+      await this.eventsService.logEvent({
+        gymId,
+        terminalId,
+        type: 'CARD_RECLAIMED',
+        cardUid,
+        memberId: reclaimPending.memberId,
+        meta: {
+          reclaimedUid: cardUid,
+          memberId: reclaimPending.memberId,
+          inventoryStatus: 'AVAILABLE',
+        },
+      });
+
+      return {
+        result: 'RECLAIMED',
+        memberName: reclaimPending.member
+          ? `${reclaimPending.member.firstName} ${reclaimPending.member.lastName}`
+          : 'Unknown Member',
+      };
+    }
+
     // Check cooldown (implement Redis later)
     // For now, skip cooldown check
 
@@ -241,7 +348,9 @@ export class AccessService {
     console.log('Looking for pending assignment for gymId:', gymId);
 
     // Not operational - check pending assignment
-    const pending = await this.prisma.pendingMemberAssignment.findUnique({
+    const pending = reclaimPending
+      ? reclaimPending
+      : await this.prisma.pendingMemberAssignment.findUnique({
       where: { gymId },
       include: { member: true },
     });
@@ -323,7 +432,14 @@ export class AccessService {
           memberId: pending.memberId,
           meta: { expectedUid: pending.expectedCardUid, tappedUid: cardUid },
         });
-        return { result: 'DENY_UNKNOWN' };
+
+        return {
+          result: 'DENY_RECLAIM_MISMATCH',
+          memberName: pending.member
+            ? `${pending.member.firstName} ${pending.member.lastName}`
+            : 'Unknown Member',
+          message: 'Wrong card for reclaim. Tap the returned card assigned to this member.',
+        };
       }
 
       // UID matches, now check inventory
@@ -345,10 +461,7 @@ export class AccessService {
           where: { uid: cardUid },
           data: { status: 'AVAILABLE' },
         });
-        await tx.card.updateMany({
-          where: { uid: cardUid },
-          data: { active: false, memberId: null },
-        });
+        await tx.card.deleteMany({ where: { uid: cardUid } });
       });
 
       await this.eventsService.logEvent({
