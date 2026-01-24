@@ -481,14 +481,18 @@ export function MemberActionsModal({
               >
                 Keep Active
               </Button>
-              <Button
-                variant="destructive"
-                disabled={cancelMutation.isPending}
-                onClick={handleCancelAction}
-              >
-                <UserX className="w-4 h-4 mr-2" />
-                {cancelMutation.isPending ? 'Cancelling...' : 'Cancel Membership'}
-              </Button>
+               <Button
+                 variant="destructive"
+                 disabled={cancelMutation.isPending}
+                 onClick={handleCancelAction}
+               >
+                 <UserX className="w-4 h-4 mr-2" />
+                 {cancelMutation.isPending 
+                   ? 'Processing...' 
+                   : cancelCardReturned 
+                     ? 'Proceed with Reclaim' 
+                     : 'Cancel Membership'}
+               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

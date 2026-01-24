@@ -583,6 +583,7 @@ model InventoryCard {
   allocatedGymId String
   batchId        String?
   createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
   gym            Branch              @relation(fields: [allocatedGymId], references: [id], onDelete: Cascade)
 
   @@index([allocatedGymId, status])
@@ -596,6 +597,7 @@ model Card {
   active          Boolean  @default(true)
   isReclaimPending Boolean @default(false)
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   gym             Branch   @relation(fields: [gymId], references: [id], onDelete: Cascade)
   member          User?    @relation(fields: [memberId], references: [id])
 

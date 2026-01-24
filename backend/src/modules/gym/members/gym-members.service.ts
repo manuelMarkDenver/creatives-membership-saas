@@ -478,10 +478,10 @@ export class GymMembersService {
       // For both cancel flows we always disable the member's operational cards.
       // - If card is returned: card row stays until reclaim succeeds.
       // - If card is NOT returned: card row stays (lost/stolen) and inventory is DISABLED.
-      if (cardUidsToDisable.length > 0) {
-         const cardUpdateData = shouldCreateReclaimPending 
+       if (cardUidsToDisable.length > 0) {
+          const cardUpdateData = shouldCreateReclaimPending 
           ? { active: false, isReclaimPending: true }
-          : { active: false };
+          : { active: false, isReclaimPending: false };
         
         await tx.card.updateMany({
           where: { gymId, memberId, uid: { in: cardUidsToDisable } },

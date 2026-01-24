@@ -115,19 +115,24 @@ export function ReclaimPendingModal({
       toast.success('Card reclaimed (reusable)')
     }
 
-    // Invalidate pending assignments when reclaim completes
-    queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
-    onClose()
+       // Invalidate pending assignments and member data when reclaim completes
+      queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
+      queryClient.invalidateQueries({ queryKey: ['members'] })
+      // Invalidate member queries - the memberId should be available from props or pendingData
+      queryClient.invalidateQueries({ queryKey: ['member'] })
+      onClose()
   }, [pendingData, isOpen, onClose, hasSeenPending, isFetching, isError])
 
-  const stopMutation = useMutation({
+   const stopMutation = useMutation({
     mutationFn: () => membersApi.cancelPendingAssignment(gymId),
     onSuccess: () => {
       stopRef.current = true
       setStopRequested(true)
-      // Invalidate all pending assignment queries
+      // Invalidate all pending assignment and member queries
       queryClient.invalidateQueries({ queryKey: ['pending-assignment', gymId] })
       queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
+      queryClient.invalidateQueries({ queryKey: ['members'] })
+      queryClient.invalidateQueries({ queryKey: ['member'] })
       setHasSeenPending(false)
     },
     onError: (error: any) => {
@@ -218,27 +223,28 @@ export function ReclaimPendingModal({
           )}
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} disabled={stopMutation.isPending}>
-            Close
-          </Button>
-          {isExpired && (
-            <Button
-              onClick={() => restartMutation.mutate()}
-              disabled={restartMutation.isPending || stopMutation.isPending || !pendingData?.memberId}
-            >
-              {restartMutation.isPending ? 'Restarting...' : 'Restart reclaim'}
-            </Button>
-          )}
-          <Button
-            variant="destructive"
-            onClick={handleStopReclaim}
-            disabled={stopMutation.isPending || restartMutation.isPending}
-          >
-            <X className="h-4 w-4 mr-2" />
-            Stop reclaim (card not returned)
-          </Button>
-        </DialogFooter>
+         <DialogFooter className="gap-2">
+           <Button variant="outline" onClick={onClose} disabled={stopMutation.isPending}>
+             Close
+           </Button>
+           {isExpired && (
+             <Button
+               variant="secondary"
+               onClick={() => restartMutation.mutate()}
+               disabled={restartMutation.isPending || stopMutation.isPending || !pendingData?.memberId}
+             >
+               {restartMutation.isPending ? 'Restarting...' : 'Restart reclaim'}
+             </Button>
+           )}
+           <Button
+             variant="destructive"
+             onClick={handleStopReclaim}
+             disabled={stopMutation.isPending || restartMutation.isPending}
+           >
+             <X className="h-4 w-4 mr-2" />
+             Stop reclaim (card not returned)
+           </Button>
+         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
