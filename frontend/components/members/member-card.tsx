@@ -8,9 +8,11 @@ import { TransactionHistoryModal } from '@/components/modals/transaction-history
 import { DeleteMemberModal } from '@/components/modals/delete-member-modal'
 import { MemberHistoryModal } from '@/components/modals/member-history-modal'
 import { RestoreMemberModal } from '@/components/modals/restore-member-modal'
+import { ReclaimPendingModal } from '@/components/modals/reclaim-pending-modal'
 import { useProfile, useSoftDeleteUser, useActivateUser, useDeactivateUser, useRestoreUser } from '@/lib/hooks/use-gym-users'
 import { calculateMemberStatus, MemberData } from '@/lib/utils/member-status'
 import { getMemberStatusDisplay } from '@/lib/utils/member-status-display'
+import { membersApi } from '@/lib/api/gym-members'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -76,7 +78,34 @@ export function MemberCard({
   const [showMemberActionsModal, setShowMemberActionsModal] = useState(false)
   const [currentAction, setCurrentAction] = useState<MemberActionType>('activate')
   const [showMemberHistoryModal, setShowMemberHistoryModal] = useState(false)
+  const [showReclaimModal, setShowReclaimModal] = useState(false)
+  const [reclaimInfo, setReclaimInfo] = useState<{ gymId: string; memberName: string; expiresAt: string } | null>(null)
   const memberName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email || 'Unknown'
+
+  const resumeReclaim = async () => {
+    const gymId = member.gymMemberProfile?.primaryBranchId
+    if (!gymId) {
+      toast.error('Member has no associated gym')
+      return
+    }
+
+    try {
+      const pending = await membersApi.getPendingAssignment(gymId)
+      if (!pending || pending.memberId !== member.id || pending.purpose !== 'RECLAIM') {
+        toast.info('No reclaim pending for this member')
+        return
+      }
+
+      setReclaimInfo({
+        gymId,
+        memberName,
+        expiresAt: pending.expiresAt,
+      })
+      setShowReclaimModal(true)
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Failed to load reclaim status')
+    }
+  }
   
   // Get current user profile for branch permissions
   const { data: profile } = useProfile()
@@ -566,13 +595,24 @@ export function MemberCard({
                 
                 case 'CANCELLED':
                   return (
-                    <DropdownMenuItem 
-                      className="text-green-600"
-                      onClick={() => openMemberActionModal('activate')}
-                    >
-                      <UserCheck className="mr-2 h-4 w-4" />
-                      Activate Member
-                    </DropdownMenuItem>
+                    <>
+                      {member.gymMemberProfile?.cardUid && (
+                        <DropdownMenuItem
+                          className="text-purple-600"
+                          onClick={resumeReclaim}
+                        >
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          Resume Card Reclaim
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem 
+                        className="text-green-600"
+                        onClick={() => openMemberActionModal('activate')}
+                      >
+                        <UserCheck className="mr-2 h-4 w-4" />
+                        Activate Member
+                      </DropdownMenuItem>
+                    </>
                   )
                 
                 case 'EXPIRED':
@@ -731,18 +771,28 @@ export function MemberCard({
         memberName={memberName}
       />
       
-      {/* Restore Member Modal */}
-      <RestoreMemberModal
-        isOpen={showRestoreModal}
-        onClose={() => setShowRestoreModal(false)}
-        member={member}
-        onRestoreComplete={() => {
-          setShowRestoreModal(false)
-          if (onMemberDeleted) {
-            onMemberDeleted()
-          }
-        }}
-      />
+       {/* Restore Member Modal */}
+       <RestoreMemberModal
+         isOpen={showRestoreModal}
+         onClose={() => setShowRestoreModal(false)}
+         member={member}
+         onRestoreComplete={() => {
+           setShowRestoreModal(false)
+           if (onMemberDeleted) {
+             onMemberDeleted()
+           }
+         }}
+       />
+
+       {reclaimInfo && (
+         <ReclaimPendingModal
+           gymId={reclaimInfo.gymId}
+           memberName={reclaimInfo.memberName}
+           initialExpiresAt={reclaimInfo.expiresAt}
+           isOpen={showReclaimModal}
+           onClose={() => setShowReclaimModal(false)}
+         />
+       )}
     </div>
   )
 }

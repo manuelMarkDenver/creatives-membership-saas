@@ -453,36 +453,24 @@ export class GymMembersService {
       await tx.gymMemberProfile.update({
         where: { id: member.gymMemberProfile!.id },
         data: {
-          status: 'SUSPENDED',
-          cardStatus: 'NO_CARD',
-          cardUid: null,
-          cardAssignedAt: null,
+          status: 'CANCELLED',
+          ...(shouldCreateReclaimPending
+            ? {
+                // Keep card details unchanged until reclaim succeeds (or reclaim is stopped).
+              }
+            : {
+                cardStatus: 'NO_CARD',
+                cardUid: null,
+                cardAssignedAt: null,
+              }),
         },
       });
 
-      if (shouldCreateReclaimPending) {
-        // Cancellation + reclaim flow:
-        // - Keep ONLY the expected card record (deactivated) so the kiosk can verify UID.
-        // - Remove any other historical card rows for this member to avoid showing
-        //   DISABLED on unrelated old cards.
-        await tx.card.deleteMany({
-          where: {
-            gymId,
-            memberId,
-            uid: { not: expectedCardUid! },
-          },
-        });
-
-        await tx.card.updateMany({
-          where: {
-            gymId,
-            memberId,
-            uid: expectedCardUid!,
-          },
-          data: { active: false },
-        });
-      } else {
-        // No reclaim flow; remove operational cards immediately.
+      // Card cleanup happens only when:
+      // - reclaim succeeds (correct card tapped), OR
+      // - staff explicitly stops reclaim (card not returned), OR
+      // - cancel happens with cardReturned = false.
+      if (!shouldCreateReclaimPending) {
         await tx.card.deleteMany({
           where: {
             gymId,
@@ -500,8 +488,8 @@ export class GymMembersService {
           meta: {
             reason: request.reason ?? null,
             oldStatus: currentStatus,
-            newStatus: 'SUSPENDED',
-            deactivatedCardUids: activeCards.map((card) => card.uid),
+            newStatus: 'CANCELLED',
+            memberCardUids: activeCards.map((card) => card.uid),
             cardReturned: !!request.cardReturned,
           },
         },
@@ -583,6 +571,15 @@ export class GymMembersService {
       where: { gymId },
     });
 
+    // If we were waiting for a reclaim tap but staff stopped it (card not returned),
+    // clear the member's card details now.
+    if (pending.purpose === 'RECLAIM') {
+      await this.prisma.gymMemberProfile.update({
+        where: { userId: pending.memberId },
+        data: { cardStatus: 'NO_CARD', cardUid: null, cardAssignedAt: null },
+      });
+    }
+
     await this.eventsService.logEvent({
       gymId,
       type: 'PENDING_ASSIGNMENT_CANCELLED',
@@ -631,6 +628,7 @@ export class GymMembersService {
       memberName: `${pending.member.firstName} ${pending.member.lastName}`,
       purpose: pending.purpose,
       expiresAt: pending.expiresAt,
+      expectedUidMasked: maskUid(pending.expectedCardUid || undefined),
       mismatch: mismatchEvent
         ? {
             expectedUidMasked: maskUid(mismatchMeta?.expectedUid),

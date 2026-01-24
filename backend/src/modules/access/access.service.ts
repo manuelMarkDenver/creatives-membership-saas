@@ -151,6 +151,11 @@ export class AccessService {
           data: { status: 'AVAILABLE' },
         });
         await tx.card.deleteMany({ where: { uid: cardUid } });
+
+        await tx.gymMemberProfile.update({
+          where: { userId: reclaimPending.memberId },
+          data: { cardStatus: 'NO_CARD', cardUid: null, cardAssignedAt: null },
+        });
       });
 
       await this.eventsService.logEvent({

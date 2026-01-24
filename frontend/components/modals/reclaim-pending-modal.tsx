@@ -46,13 +46,17 @@ export function ReclaimPendingModal({
     initialExpiresAt ? new Date(initialExpiresAt).getTime() : null,
   )
 
-  const { data: pendingData, isFetching } = useQuery({
+  const { data: pendingData, isFetching, isError } = useQuery({
     queryKey: ['pending-assignment', gymId],
     queryFn: () => membersApi.getPendingAssignment(gymId),
     enabled: isOpen && !!gymId,
     refetchInterval: isOpen ? 1500 : false,
     retry: false,
   })
+
+  const expectedMessage = pendingData?.expectedUidMasked
+    ? `Expecting card ${pendingData.expectedUidMasked}.`
+    : null
 
   useEffect(() => {
     if (pendingData?.expiresAt) {
@@ -93,7 +97,7 @@ export function ReclaimPendingModal({
       return
     }
 
-    if (!hasSeenPending || isFetching) {
+    if (!hasSeenPending || isFetching || isError) {
       return
     }
 
@@ -111,7 +115,7 @@ export function ReclaimPendingModal({
     }
 
     onClose()
-  }, [pendingData, isOpen, onClose, hasSeenPending, isFetching])
+  }, [pendingData, isOpen, onClose, hasSeenPending, isFetching, isError])
 
   const stopMutation = useMutation({
     mutationFn: () => membersApi.cancelPendingAssignment(gymId),
@@ -132,7 +136,7 @@ export function ReclaimPendingModal({
   }
 
   const mismatchMessage = pendingData?.mismatch
-    ? `Last tap from ${pendingData.mismatch.tappedUidMasked || 'a card'} didn't match the expected card ${pendingData.mismatch.expectedUidMasked || ''}.`
+    ? `Incorrect card tapped: ${pendingData.mismatch.tappedUidMasked || 'a card'}. Expected ${pendingData.mismatch.expectedUidMasked || 'the assigned card'}.`
     : null
 
   return (
@@ -166,6 +170,11 @@ export function ReclaimPendingModal({
             <p>
               The kiosk will verify the returned card. This modal will close automatically once the tap is accepted or the pending assignment is cancelled or expired.
             </p>
+            {expectedMessage && (
+              <p className="mt-2 font-semibold text-slate-700">
+                {expectedMessage}
+              </p>
+            )}
           </div>
 
           {mismatchMessage && (

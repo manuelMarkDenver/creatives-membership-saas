@@ -892,7 +892,6 @@ export default function MembersPage() {
           isOpen={showReclaimModal}
           onClose={() => {
             setShowReclaimModal(false)
-            setReclaimInfo(null)
           }}
         />
       )}

@@ -501,7 +501,6 @@ export function MemberActionsModal({
             isOpen={showCancelReclaimModal}
             onClose={() => {
               setShowCancelReclaimModal(false)
-              setCancelReclaimInfo(null)
             }}
           />
         )}

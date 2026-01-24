@@ -67,6 +67,7 @@ export interface PendingAssignmentData {
   memberName: string
   purpose: string
   expiresAt: string
+  expectedUidMasked?: string
   mismatch?: {
     expectedUidMasked?: string
     tappedUidMasked?: string
