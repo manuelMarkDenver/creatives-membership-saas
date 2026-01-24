@@ -16,20 +16,7 @@ export default function KioskPage() {
   const [debugInfo, setDebugInfo] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (result) return; // Don't capture while showing result
 
-      if (event.key === 'Enter' && cardUid.length > 0) {
-        handleTap();
-      } else if (event.key.length === 1) { // Single character
-        setCardUid(prev => prev + event.key);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cardUid, result]);
 
   // Normalize card UID - handle common RFID reader differences
   const normalizeCardUid = (rawUid: string): string => {
@@ -46,15 +33,22 @@ export default function KioskPage() {
 
       let candidate = normalized;
 
-      // Ensure exactly 10 digits by padding with leading zeros
-      if (candidate.length < 10) {
-        candidate = candidate.padStart(10, '0');
-        debug += `📏 Padded: ${candidate}\n`;
-      } else if (candidate.length > 10) {
-        candidate = candidate.substring(0, 10);
-        debug += `✂️ Truncated: ${candidate}\n`;
+      // Special handling for 20-character raw (hex UID format)
+      if (candidate.length === 20) {
+        // Extract the embedded decimal ID from hex UID format
+        candidate = candidate[2] + candidate[3] + candidate[4] + candidate[6] + candidate[8] + candidate[10] + candidate[12] + candidate[14] + candidate[16] + candidate[18];
+        debug += `🔧 Extracted ID from hex UID: ${candidate}\n`;
       } else {
-        debug += `✅ 10 digits: ${candidate}\n`;
+        // Ensure exactly 10 digits by padding with leading zeros
+        if (candidate.length < 10) {
+          candidate = candidate.padStart(10, '0');
+          debug += `📏 Padded: ${candidate}\n`;
+        } else if (candidate.length > 10) {
+          candidate = candidate.substring(0, 10);
+          debug += `✂️ Truncated: ${candidate}\n`;
+        } else {
+          debug += `✅ 10 digits: ${candidate}\n`;
+        }
       }
 
       // Simple approach: if it doesn't start with '000', try reversing the string
