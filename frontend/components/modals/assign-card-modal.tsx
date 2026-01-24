@@ -205,13 +205,13 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-purple-500" />
-            Assign Card
-          </DialogTitle>
-          <DialogDescription>
-            Assign an RFID card to {memberName}
-          </DialogDescription>
+           <DialogTitle className="flex items-center gap-2">
+             <CreditCard className="h-5 w-5 text-purple-500" />
+             Card Assignment
+           </DialogTitle>
+           <DialogDescription>
+             Assign a new RFID card to {memberName}
+           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -259,17 +259,23 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
 
             {pendingData && !isPolling && (
               <div className="text-center p-4 border rounded-lg bg-amber-50">
-                <p className="text-sm text-amber-800 mb-2">
-                  {pendingData.isExpired ? 'Assignment expired' : 'Another assignment is in progress for this gym'}
-                </p>
-                <Badge variant="outline" className={`mb-3 ${pendingData.isExpired ? 'text-gray-600' : 'text-amber-600'}`}>
-                  {pendingData.memberName} - {formatTime(Math.ceil((new Date(pendingData.expiresAt).getTime() - Date.now()) / 1000))}
-                </Badge>
-                <p className="text-xs text-amber-700 mb-3">
-                  {pendingData.isExpired 
-                    ? 'This assignment has expired. You can restart it or cancel to start a new one.'
-                    : 'You must cancel the existing assignment before starting a new one.'}
-                </p>
+                 <p className="text-sm text-amber-800 mb-2">
+                   {pendingData.isExpired 
+                     ? 'Card assignment expired' 
+                     : pendingData.purpose === 'REPLACE' 
+                       ? 'Card replacement in progress for this gym'
+                       : pendingData.purpose === 'RECLAIM'
+                         ? 'Card reclaim in progress for this gym'
+                         : 'Card assignment in progress for this gym'}
+                 </p>
+                 <Badge variant="outline" className={`mb-3 ${pendingData.isExpired ? 'text-gray-600' : 'text-amber-600'}`}>
+                   {pendingData.memberName} - {pendingData.purpose === 'REPLACE' ? 'Replace' : pendingData.purpose === 'RECLAIM' ? 'Reclaim' : 'Assign'} - {formatTime(Math.ceil((new Date(pendingData.expiresAt).getTime() - Date.now()) / 1000))}
+                 </Badge>
+                 <p className="text-xs text-amber-700 mb-3">
+                   {pendingData.isExpired 
+                     ? 'This card action has expired. You can restart it or cancel to start a new one.'
+                     : 'You must cancel the existing card action before starting a new one.'}
+                 </p>
                 <div className="flex gap-2 justify-center">
                   {pendingData.isExpired && (
                     <Button
@@ -279,7 +285,7 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
                       disabled={assignCardMutation.isPending}
                       className="text-green-700 border-green-300 hover:bg-green-100"
                     >
-                      Restart Assignment
+                       Continue Card Assignment
                     </Button>
                   )}
                   <Button
@@ -290,7 +296,9 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
                     className="text-amber-700 border-amber-300 hover:bg-amber-100"
                   >
                     <X className="w-3 h-3 mr-1" />
-                    {pendingData.isExpired ? 'Cancel Expired Assignment' : `Cancel ${pendingData.memberName}'s Assignment`}
+                     {pendingData.isExpired 
+                       ? `Cancel Expired ${pendingData.purpose === 'REPLACE' ? 'Replacement' : pendingData.purpose === 'RECLAIM' ? 'Reclaim' : 'Assignment'}`
+                       : `Cancel ${pendingData.memberName}'s ${pendingData.purpose === 'REPLACE' ? 'Replacement' : pendingData.purpose === 'RECLAIM' ? 'Reclaim' : 'Assignment'}`}
                   </Button>
                 </div>
               </div>
@@ -309,7 +317,7 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
               disabled={cancelMutation.isPending}
             >
               <X className="w-4 h-4 mr-2" />
-              Cancel Assignment
+               Cancel Card Assignment
             </Button>
           )}
 
@@ -319,7 +327,7 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
               disabled={assignCardMutation.isPending}
             >
               <CreditCard className="w-4 h-4 mr-2" />
-              {assignCardMutation.isPending ? 'Starting...' : 'Start Assignment'}
+               {assignCardMutation.isPending ? 'Starting...' : 'Start Card Assignment'}
             </Button>
           )}
         </DialogFooter>

@@ -174,13 +174,13 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <RefreshCw className="h-5 w-5 text-blue-500" />
-            Replace Card
-          </DialogTitle>
-          <DialogDescription>
-            Replace the RFID card for {memberName}
-          </DialogDescription>
+           <DialogTitle className="flex items-center gap-2">
+             <RefreshCw className="h-5 w-5 text-blue-500" />
+             Card Replacement
+           </DialogTitle>
+           <DialogDescription>
+             Replace existing RFID card for {memberName}
+           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -228,17 +228,23 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
 
             {pendingData && !isPolling && (
               <div className="text-center p-4 border rounded-lg bg-amber-50 dark:bg-amber-950">
-                <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
-                  {pendingData.isExpired ? 'Assignment expired' : 'Another assignment is in progress for this gym'}
-                </p>
-                <Badge variant="outline" className={`mb-3 ${pendingData.isExpired ? 'text-gray-600 dark:text-gray-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                  {pendingData.memberName} - {formatTime(Math.ceil((new Date(pendingData.expiresAt).getTime() - Date.now()) / 1000))}
-                </Badge>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
-                  {pendingData.isExpired 
-                    ? 'This assignment has expired. You can restart it or cancel to start a new one.'
-                    : 'You must cancel the existing assignment before starting a new one.'}
-                </p>
+                 <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                   {pendingData.isExpired 
+                     ? 'Card action expired' 
+                     : pendingData.purpose === 'ONBOARD' 
+                       ? 'Card assignment in progress for this gym'
+                       : pendingData.purpose === 'REPLACE'
+                         ? 'Card replacement in progress for this gym'
+                         : 'Card reclaim in progress for this gym'}
+                 </p>
+                 <Badge variant="outline" className={`mb-3 ${pendingData.isExpired ? 'text-gray-600 dark:text-gray-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                   {pendingData.memberName} - {pendingData.purpose === 'ONBOARD' ? 'Assign' : pendingData.purpose === 'REPLACE' ? 'Replace' : 'Reclaim'} - {formatTime(Math.ceil((new Date(pendingData.expiresAt).getTime() - Date.now()) / 1000))}
+                 </Badge>
+                 <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                   {pendingData.isExpired 
+                     ? 'This card action has expired. You can restart it or cancel to start a new one.'
+                     : 'You must cancel the existing card action before starting a new one.'}
+                 </p>
                 <div className="flex gap-2 justify-center">
                   {pendingData.isExpired && (
                     <Button
@@ -248,7 +254,7 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
                       disabled={replaceCardMutation.isPending}
                       className="text-green-700 dark:text-green-400 border-green-300 dark:border-green-600 hover:bg-green-100 dark:hover:bg-green-900"
                     >
-                      Restart Replacement
+                       Continue Card Replacement
                     </Button>
                   )}
                   <Button
@@ -259,7 +265,9 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
                     className="text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900"
                   >
                     <X className="w-3 h-3 mr-1" />
-                    {pendingData.isExpired ? 'Cancel Expired Assignment' : `Cancel ${pendingData.memberName}'s Assignment`}
+                     {pendingData.isExpired 
+                       ? `Cancel Expired ${pendingData.purpose === 'ONBOARD' ? 'Assignment' : pendingData.purpose === 'REPLACE' ? 'Replacement' : 'Reclaim'}`
+                       : `Cancel ${pendingData.memberName}'s ${pendingData.purpose === 'ONBOARD' ? 'Assignment' : pendingData.purpose === 'REPLACE' ? 'Replacement' : 'Reclaim'}`}
                   </Button>
                 </div>
               </div>
@@ -290,7 +298,7 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
                 disabled={cancelMutation.isPending}
               >
                 <X className="w-4 h-4 mr-2" />
-                Cancel Replacement
+                 Cancel Card Replacement
               </Button>
             </>
           )}
@@ -301,7 +309,7 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
               disabled={replaceCardMutation.isPending}
             >
               <RefreshCw className="w-4 h-4 mr-2" />
-              {replaceCardMutation.isPending ? 'Starting...' : 'Start Replacement'}
+               {replaceCardMutation.isPending ? 'Starting...' : 'Start Card Replacement'}
             </Button>
           )}
         </DialogFooter>

@@ -52,6 +52,23 @@ export function PendingAssignmentBanner({ pendingAssignments, isLoading }: Pendi
     }
   }
 
+  const getActionButtonLabel = (purpose: string, isExpired: boolean) => {
+    if (isExpired) {
+      switch (purpose) {
+        case 'ONBOARD': return 'Continue Card Assignment'
+        case 'REPLACE': return 'Continue Card Replacement'
+        case 'RECLAIM': return 'Continue Card Reclaim'
+        default: return 'Continue'
+      }
+    }
+    switch (purpose) {
+      case 'ONBOARD': return 'Start Card Assignment'
+      case 'REPLACE': return 'Start Card Replacement'
+      case 'RECLAIM': return 'Start Card Reclaim'
+      default: return 'Start'
+    }
+  }
+
   const getPurposeColor = (purpose: string) => {
     switch (purpose) {
       case 'ONBOARD': return 'bg-blue-100 text-blue-800 border-blue-300'
@@ -88,9 +105,9 @@ export function PendingAssignmentBanner({ pendingAssignments, isLoading }: Pendi
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-            <CardTitle className="text-amber-800 dark:text-amber-300">
-              Pending Card Assignments ({totalPending})
-            </CardTitle>
+             <CardTitle className="text-amber-800 dark:text-amber-300">
+               Pending Card Actions ({totalPending})
+             </CardTitle>
           </div>
           <Button
             variant="ghost"
@@ -101,11 +118,11 @@ export function PendingAssignmentBanner({ pendingAssignments, isLoading }: Pendi
             {expanded ? 'Hide' : 'Show Details'}
           </Button>
         </div>
-        <CardDescription className="text-amber-700 dark:text-amber-400">
-          {activeAssignments.length > 0
-            ? `${activeAssignments.length} active assignment(s) waiting for card tap`
-            : `${expiredAssignments.length} expired assignment(s) need cleanup`}
-        </CardDescription>
+         <CardDescription className="text-amber-700 dark:text-amber-400">
+           {activeAssignments.length > 0
+             ? `${activeAssignments.length} active card action(s) waiting for tap`
+             : `${expiredAssignments.length} expired card action(s) need attention`}
+         </CardDescription>
       </CardHeader>
 
       {expanded && (
