@@ -50,6 +50,8 @@ import { toast } from 'react-toastify'
 import { filterMembersByStatus, calculateMemberStats, type MemberData } from '@/lib/utils/member-status'
 import { useExpiringMembersCount } from '@/lib/hooks/use-expiring-members'
 import { useGymSubscriptionStats } from '@/lib/hooks/use-gym-subscriptions'
+import { usePendingAssignments } from '@/lib/hooks/use-pending-assignments'
+import { PendingAssignmentBanner } from '@/components/members/pending-assignment-banner'
 
 export default function MembersPage() {
   const { data: profile } = useProfile()
@@ -116,19 +118,8 @@ export default function MembersPage() {
     { enabled: !!profile?.tenantId && !isSuperAdmin }
   )
 
-  // Get pending assignment for dashboard banner
-  const { data: pendingAssignment } = useQuery({
-    queryKey: ['pending-assignment-dashboard', profile?.tenantId],
-    queryFn: async () => {
-      if (!profile?.tenantId) return null
-      // For dashboard, we need to check all gyms in the tenant
-      // For simplicity, let's assume we check the first gym or need to modify API
-      // For now, we'll skip the banner until we have a proper endpoint
-      return null
-    },
-    enabled: !!profile?.tenantId && !isSuperAdmin,
-    refetchInterval: 5000, // Poll every 5 seconds
-  })
+   // Get pending assignments across all accessible branches
+   const { data: pendingAssignments = [], isLoading: pendingLoading } = usePendingAssignments()
   
   // Mutation hooks for membership operations
   const renewMembershipMutation = useRenewMembership()
@@ -192,25 +183,28 @@ export default function MembersPage() {
           setCancellationReason('')
           setCardReturned(false)
 
-          await refreshMembersData()
+           await refreshMembersData()
+           
+           // Invalidate pending assignments query when reclaim is created
+           queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
 
-          if (
-            result.reclaimPending &&
-            selectedMemberForAction.gymMemberProfile?.primaryBranchId
-          ) {
-            const expiresAt =
-              result.expiresAt || new Date(Date.now() + 10 * 60 * 1000).toISOString()
-            setReclaimInfo({
-              gymId: selectedMemberForAction.gymMemberProfile.primaryBranchId,
-              memberName: memberName || 'Member',
-              expiresAt,
-            })
-            setShowReclaimModal(true)
-            toast.info(`Reclaim pending for ${memberName || 'this member'}`)
-            return
-          }
+           if (
+             result.reclaimPending &&
+             selectedMemberForAction.gymMemberProfile?.primaryBranchId
+           ) {
+             const expiresAt =
+               result.expiresAt || new Date(Date.now() + 10 * 60 * 1000).toISOString()
+             setReclaimInfo({
+               gymId: selectedMemberForAction.gymMemberProfile.primaryBranchId,
+               memberName: memberName || 'Member',
+               expiresAt,
+             })
+             setShowReclaimModal(true)
+             toast.info(`Reclaim pending for ${memberName || 'this member'}`)
+             return
+           }
 
-          toast.success(`Membership cancelled successfully for ${memberName || 'this member'}`)
+           toast.success(`Membership cancelled successfully for ${memberName || 'this member'}`)
         },
         onError: (error: unknown) => {
           const errorMessage =
@@ -418,8 +412,13 @@ export default function MembersPage() {
         )}
       </div>
 
-      {/* Mobile-First Stats Overview */}
-      <StatsOverview stats={stats} isSuperAdmin={isSuperAdmin} />
+       {/* Pending Assignment Banner */}
+       {!isSuperAdmin && (
+         <PendingAssignmentBanner pendingAssignments={pendingAssignments} isLoading={pendingLoading} />
+       )}
+
+       {/* Mobile-First Stats Overview */}
+       <StatsOverview stats={stats} isSuperAdmin={isSuperAdmin} />
 
       {/* Search and Filters - Priority Position for Mobile */}
       <Card className="border-2 shadow-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">

@@ -23,6 +23,7 @@ interface ReclaimPendingModalProps {
 }
 
 const formatTime = (seconds: number) => {
+  if (seconds <= 0) return '00:00'
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return `${mins.toString().padStart(2, '0')}:${secs
@@ -114,6 +115,8 @@ export function ReclaimPendingModal({
       toast.success('Card reclaimed (reusable)')
     }
 
+    // Invalidate pending assignments when reclaim completes
+    queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
     onClose()
   }, [pendingData, isOpen, onClose, hasSeenPending, isFetching, isError])
 
@@ -122,7 +125,9 @@ export function ReclaimPendingModal({
     onSuccess: () => {
       stopRef.current = true
       setStopRequested(true)
+      // Invalidate all pending assignment queries
       queryClient.invalidateQueries({ queryKey: ['pending-assignment', gymId] })
+      queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
       setHasSeenPending(false)
     },
     onError: (error: any) => {

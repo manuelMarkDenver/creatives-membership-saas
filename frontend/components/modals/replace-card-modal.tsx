@@ -56,6 +56,8 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
       toast.success('Card replacement initiated! Member has 10 minutes to tap their new card.')
       setIsPolling(true)
       setCountdown(600) // Reset countdown
+      // Invalidate banner query so it appears immediately
+      queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
       // Force immediate refetch
       refetchPending()
       // Additional refetch after a short delay
@@ -77,6 +79,9 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
     onSuccess: () => {
       toast.success('Card replacement cancelled')
       setIsPolling(false)
+      // Invalidate all pending assignment queries
+      queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
+      queryClient.invalidateQueries({ queryKey: ['pending-assignment'] })
       onClose()
     },
     onError: (error: any) => {
@@ -91,11 +96,13 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
     if (isPolling && countdown > 0) {
       interval = setInterval(() => {
         setCountdown(prev => {
-          if (prev <= 1) {
-            setIsPolling(false)
-            toast.error('Replacement expired - member didn\'t tap card in time')
-            return 0
-          }
+    if (prev <= 1) {
+      setIsPolling(false)
+      toast.error('Replacement expired - member didn\'t tap card in time')
+      // Invalidate pending assignments when replacement expires
+      queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
+      return 0
+    }
           return prev - 1
         })
       }, 1000)
@@ -115,11 +122,14 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
       setIsPolling(false)
       toast.success('Card replaced successfully!')
       onCardReplaced?.()
-      onClose()
-
+      
+      // Invalidate pending assignments when replacement completes
+      queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
+      
       // Refresh members data
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['gym-members'] })
+      onClose()
     }
   }, [pendingData, isPolling, isFetching, onCardReplaced, onClose, queryClient])
 
@@ -134,6 +144,7 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
   }, [isOpen])
 
   const formatTime = (seconds: number) => {
+    if (seconds <= 0) return 'Expired'
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins}:${secs.toString().padStart(2, '0')}`
@@ -215,16 +226,44 @@ export function ReplaceCardModal({ isOpen, onClose, member, onCardReplaced }: Re
             </div>
           )}
 
-          {pendingData && !isPolling && (
-            <div className="text-center p-4 border rounded-lg bg-amber-50 dark:bg-amber-950">
-              <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
-                Another assignment is in progress for this gym
-              </p>
-              <Badge variant="outline" className="text-amber-600 dark:text-amber-400">
-                {pendingData.memberName} - {formatTime(Math.ceil((new Date(pendingData.expiresAt).getTime() - Date.now()) / 1000))}
-              </Badge>
-            </div>
-          )}
+            {pendingData && !isPolling && (
+              <div className="text-center p-4 border rounded-lg bg-amber-50 dark:bg-amber-950">
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                  {pendingData.isExpired ? 'Assignment expired' : 'Another assignment is in progress for this gym'}
+                </p>
+                <Badge variant="outline" className={`mb-3 ${pendingData.isExpired ? 'text-gray-600 dark:text-gray-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                  {pendingData.memberName} - {formatTime(Math.ceil((new Date(pendingData.expiresAt).getTime() - Date.now()) / 1000))}
+                </Badge>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                  {pendingData.isExpired 
+                    ? 'This assignment has expired. You can restart it or cancel to start a new one.'
+                    : 'You must cancel the existing assignment before starting a new one.'}
+                </p>
+                <div className="flex gap-2 justify-center">
+                  {pendingData.isExpired && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleReplaceCard}
+                      disabled={replaceCardMutation.isPending}
+                      className="text-green-700 dark:text-green-400 border-green-300 dark:border-green-600 hover:bg-green-100 dark:hover:bg-green-900"
+                    >
+                      Restart Replacement
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancel}
+                    disabled={cancelMutation.isPending}
+                    className="text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    {pendingData.isExpired ? 'Cancel Expired Assignment' : `Cancel ${pendingData.memberName}'s Assignment`}
+                  </Button>
+                </div>
+              </div>
+            )}
         </div>
 
         <DialogFooter className="gap-2">

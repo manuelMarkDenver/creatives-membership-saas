@@ -653,6 +653,7 @@ export class GymMembersService {
       | undefined;
 
     return {
+      gymId: pending.gymId,
       memberId: pending.memberId,
       memberName: `${pending.member.firstName} ${pending.member.lastName}`,
       purpose: pending.purpose,

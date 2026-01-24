@@ -55,18 +55,20 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
     },
     onSuccess: (data) => {
       console.log('Card assignment initiated, starting polling...')
-        toast.success('Card assignment initiated! Member has 10 minutes to tap their card.')
-        setIsPolling(true)
-        setCountdown(600) // Reset countdown
-        // Force immediate refetch
+      toast.success('Card assignment initiated! Member has 10 minutes to tap their card.')
+      setIsPolling(true)
+      setCountdown(600) // Reset countdown
+      // Invalidate banner query so it appears immediately
+      queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
+      // Force immediate refetch
+      setIsRefetchingPending(true)
+      refetchPending().finally(() => setIsRefetchingPending(false))
+      // Additional refetch after a short delay
+      setTimeout(() => {
         setIsRefetchingPending(true)
         refetchPending().finally(() => setIsRefetchingPending(false))
-        // Additional refetch after a short delay
-        setTimeout(() => {
-          setIsRefetchingPending(true)
-          refetchPending().finally(() => setIsRefetchingPending(false))
-        }, 500)
-      },
+      }, 500)
+    },
     onError: (error: any) => {
       toast.error(`Failed to assign card: ${error.message}`)
     }
@@ -84,6 +86,9 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
       toast.success('Card assignment cancelled')
       setIsPolling(false)
       setHasSeenPending(false)
+      // Invalidate all pending assignment queries
+      queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
+      queryClient.invalidateQueries({ queryKey: ['pending-assignment'] })
       onClose()
     },
     onError: (error: any) => {
@@ -100,11 +105,13 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
     if (isPolling && countdown > 0) {
       interval = setInterval(() => {
         setCountdown(prev => {
-          if (prev <= 1) {
-            setIsPolling(false)
-            toast.error('Assignment expired - member didn\'t tap card in time')
-            return 0
-          }
+    if (prev <= 1) {
+      setIsPolling(false)
+      toast.error('Assignment expired - member didn\'t tap card in time')
+      // Invalidate pending assignments when assignment expires
+      queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
+      return 0
+    }
           return prev - 1
         })
       }, 1000)
@@ -127,11 +134,14 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
       setIsPolling(false)
       toast.success('Card assigned successfully!')
       onCardAssigned?.()
-      onClose()
-
+      
+      // Invalidate pending assignments when assignment completes
+      queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
+      
       // Refresh members data
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['gym-members'] })
+      onClose()
     }
   }, [pendingData, isPolling, isFetching, onCardAssigned, onClose, queryClient])
 
@@ -164,6 +174,7 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
   }, [isOpen])
 
   const formatTime = (seconds: number) => {
+    if (seconds <= 0) return 'Expired'
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins}:${secs.toString().padStart(2, '0')}`
@@ -246,16 +257,44 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
             </div>
           )}
 
-          {pendingData && !isPolling && (
-            <div className="text-center p-4 border rounded-lg bg-amber-50">
-              <p className="text-sm text-amber-800 mb-2">
-                Another assignment is in progress for this gym
-              </p>
-              <Badge variant="outline" className="text-amber-600">
-                {pendingData.memberName} - {formatTime(Math.ceil((new Date(pendingData.expiresAt).getTime() - Date.now()) / 1000))}
-              </Badge>
-            </div>
-          )}
+            {pendingData && !isPolling && (
+              <div className="text-center p-4 border rounded-lg bg-amber-50">
+                <p className="text-sm text-amber-800 mb-2">
+                  {pendingData.isExpired ? 'Assignment expired' : 'Another assignment is in progress for this gym'}
+                </p>
+                <Badge variant="outline" className={`mb-3 ${pendingData.isExpired ? 'text-gray-600' : 'text-amber-600'}`}>
+                  {pendingData.memberName} - {formatTime(Math.ceil((new Date(pendingData.expiresAt).getTime() - Date.now()) / 1000))}
+                </Badge>
+                <p className="text-xs text-amber-700 mb-3">
+                  {pendingData.isExpired 
+                    ? 'This assignment has expired. You can restart it or cancel to start a new one.'
+                    : 'You must cancel the existing assignment before starting a new one.'}
+                </p>
+                <div className="flex gap-2 justify-center">
+                  {pendingData.isExpired && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAssignCard}
+                      disabled={assignCardMutation.isPending}
+                      className="text-green-700 border-green-300 hover:bg-green-100"
+                    >
+                      Restart Assignment
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancel}
+                    disabled={cancelMutation.isPending}
+                    className="text-amber-700 border-amber-300 hover:bg-amber-100"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    {pendingData.isExpired ? 'Cancel Expired Assignment' : `Cancel ${pendingData.memberName}'s Assignment`}
+                  </Button>
+                </div>
+              </div>
+            )}
         </div>
 
         <DialogFooter className="gap-2">

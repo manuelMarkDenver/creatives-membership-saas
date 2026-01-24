@@ -63,6 +63,7 @@ export interface MemberActionResponse {
 }
 
 export interface PendingAssignmentData {
+  gymId: string
   memberId: string
   memberName: string
   purpose: string
