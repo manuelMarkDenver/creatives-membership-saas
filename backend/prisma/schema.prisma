@@ -560,10 +560,23 @@ model Terminal {
   lastSeenAt DateTime?
   createdAt  DateTime  @default(now())
   events     Event[]
+  tapCooldowns TapCooldown[]
   gym        Branch    @relation(fields: [gymId], references: [id], onDelete: Cascade)
   tenant     Tenant?   @relation(fields: [tenantId], references: [id])
 
   @@index([gymId])
+}
+
+model TapCooldown {
+  terminalId String
+  cardUid    String
+  lastTapAt  DateTime
+  createdAt  DateTime @default(now())
+
+  terminal Terminal @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+
+  @@id([terminalId, cardUid])
+  @@index([terminalId, lastTapAt])
 }
 
 model InventoryCard {

@@ -3,6 +3,7 @@ import { PrismaService } from '../../core/prisma/prisma.service';
 import { TerminalsService } from './terminals.service';
 import { EventsService } from './events.service';
 import { CardAssignmentService } from './card-assignment.service';
+import { TapCooldownService } from './tap-cooldown.service';
 
 @Injectable()
 export class AccessService {
@@ -11,6 +12,7 @@ export class AccessService {
     private terminalsService: TerminalsService,
     private eventsService: EventsService,
     private cardAssignmentService: CardAssignmentService,
+    private tapCooldownService: TapCooldownService,
   ) {}
 
   async checkAccess(terminalId: string, encodedCardUid: string) {
@@ -66,6 +68,27 @@ export class AccessService {
     if (!terminal) throw new Error('Terminal not found');
     const gymId = terminal.gymId;
     console.log('Terminal gymId:', gymId, 'Terminal ID:', terminalId);
+
+    // 0) Cooldown -> IGNORED_DUPLICATE_TAP
+    const cooldownCheck = await this.tapCooldownService.isDuplicateAndRecordTap({
+      terminalId,
+      cardUid,
+    });
+
+    if (cooldownCheck.isDuplicate) {
+      await this.eventsService.logEvent({
+        gymId,
+        terminalId,
+        type: 'IGNORED_DUPLICATE_TAP',
+        cardUid,
+        meta: {
+          cooldownMs: cooldownCheck.cooldownMs,
+          deltaMs: cooldownCheck.deltaMs,
+        },
+      });
+
+      return { result: 'IGNORED_DUPLICATE_TAP' };
+    }
 
     // If there's an active RECLAIM pending assignment, handle it first.
     // This must run before the operational-card checks so a disabled/expired operational card
@@ -178,9 +201,6 @@ export class AccessService {
           : 'Unknown Member',
       };
     }
-
-    // Check cooldown (implement Redis later)
-    // For now, skip cooldown check
 
     // Check if card is operational
     const operationalCard = await this.prisma.card.findUnique({
