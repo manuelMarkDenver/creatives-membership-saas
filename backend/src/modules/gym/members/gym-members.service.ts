@@ -479,9 +479,13 @@ export class GymMembersService {
       // - If card is returned: card row stays until reclaim succeeds.
       // - If card is NOT returned: card row stays (lost/stolen) and inventory is DISABLED.
       if (cardUidsToDisable.length > 0) {
+         const cardUpdateData = shouldCreateReclaimPending 
+          ? { active: false, isReclaimPending: true }
+          : { active: false };
+        
         await tx.card.updateMany({
           where: { gymId, memberId, uid: { in: cardUidsToDisable } },
-          data: { active: false },
+          data: cardUpdateData,
         });
       }
 

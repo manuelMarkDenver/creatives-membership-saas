@@ -199,16 +199,16 @@ export function ReclaimPendingModal({
             </div>
           )}
 
-          <div className="text-sm text-slate-600">
-            <p>
-              The kiosk will verify the returned card. This modal will close automatically once the tap is accepted or the pending assignment is cancelled or expired.
-            </p>
-            {expectedMessage && (
-              <p className="mt-2 font-semibold text-slate-700">
-                {expectedMessage}
-              </p>
-            )}
-          </div>
+           <div className="text-sm text-muted-foreground">
+             <p>
+               The kiosk will verify the returned card. This modal will close automatically once the tap is accepted or the pending assignment is cancelled or expired.
+             </p>
+             {expectedMessage && (
+               <p className="mt-2 font-semibold text-foreground">
+                 {expectedMessage}
+               </p>
+             )}
+           </div>
 
           {mismatchMessage && (
             <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-sm">

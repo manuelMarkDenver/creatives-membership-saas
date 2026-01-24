@@ -551,18 +551,18 @@ model SaasSubscription {
 }
 
 model Terminal {
-  id         String    @id @default(uuid())
-  gymId      String
-  tenantId   String?
-  name       String
-  secretHash String
-  isActive   Boolean   @default(true)
-  lastSeenAt DateTime?
-  createdAt  DateTime  @default(now())
-  events     Event[]
+  id           String        @id @default(uuid())
+  gymId        String
+  tenantId     String?
+  name         String
+  secretHash   String
+  isActive     Boolean       @default(true)
+  lastSeenAt   DateTime?
+  createdAt    DateTime      @default(now())
+  events       Event[]
   tapCooldowns TapCooldown[]
-  gym        Branch    @relation(fields: [gymId], references: [id], onDelete: Cascade)
-  tenant     Tenant?   @relation(fields: [tenantId], references: [id])
+  gym          Branch        @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  tenant       Tenant?       @relation(fields: [tenantId], references: [id])
 
   @@index([gymId])
 }
@@ -572,11 +572,9 @@ model TapCooldown {
   cardUid    String
   lastTapAt  DateTime
   createdAt  DateTime @default(now())
-
-  terminal Terminal @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+  terminal   Terminal @relation(fields: [terminalId], references: [id], onDelete: Cascade)
 
   @@id([terminalId, cardUid])
-  @@index([terminalId, lastTapAt])
 }
 
 model InventoryCard {
@@ -591,14 +589,15 @@ model InventoryCard {
 }
 
 model Card {
-  uid       String   @id
-  gymId     String
-  type      CardType @default(MONTHLY)
-  memberId  String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  gym       Branch   @relation(fields: [gymId], references: [id], onDelete: Cascade)
-  member    User?    @relation(fields: [memberId], references: [id])
+  uid             String   @id
+  gymId           String
+  type            CardType @default(MONTHLY)
+  memberId        String?
+  active          Boolean  @default(true)
+  isReclaimPending Boolean @default(false)
+  createdAt       DateTime @default(now())
+  gym             Branch   @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member          User?    @relation(fields: [memberId], references: [id])
 
   @@index([gymId, uid])
 }

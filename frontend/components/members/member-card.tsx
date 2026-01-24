@@ -185,13 +185,38 @@ export function MemberCard({
       member.gymMemberProfile?.cardUid &&
       cardStatus === 'ACTIVE'
 
-    if (reclaimPendingForMember) {
+    // Check for any pending assignment for this member
+    const pendingAssignmentForMember = 
+      !!pendingAssignment && pendingAssignment.memberId === member.id
+    
+    if (pendingAssignmentForMember) {
+      const isExpired = pendingAssignment.isExpired
+      let label = ''
+      let className = ''
+      
+      switch (pendingAssignment.purpose) {
+        case 'ONBOARD':
+          label = isExpired ? 'Card Assignment Expired' : 'Card Assignment Pending'
+          className = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+          break
+        case 'REPLACE':
+          label = isExpired ? 'Card Replacement Expired' : 'Card Replacement Pending'
+          className = 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+          break
+        case 'RECLAIM':
+          label = isExpired ? 'Card Reclaim Expired' : 'Card Reclaim Pending'
+          className = 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800'
+          break
+        default:
+          label = isExpired ? 'Card Action Expired' : 'Card Action Pending'
+          className = 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800'
+      }
+      
       return {
-        label: reclaimExpiredForMember ? 'Reclaim Expired' : 'Reclaim In Progress',
+        label,
         variant: 'secondary' as const,
         icon: Clock,
-        className:
-          'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800',
+        className,
       }
     }
 
@@ -210,11 +235,54 @@ export function MemberCard({
         className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800'
       }
     } else if (cardStatus === 'PENDING_CARD') {
+      // PENDING_CARD status means member is ready for card assignment but doesn't have one yet
+      // Only show "Card Pending" if there's actually a pending assignment record
+      // Otherwise show "No Card"
+      const pendingAssignmentForMember = 
+        !!pendingAssignment && pendingAssignment.memberId === member.id
+      
+      if (pendingAssignmentForMember) {
+        // This should have been caught by the earlier pending assignment check
+        // But just in case, return appropriate pending status
+        const isExpired = pendingAssignment.isExpired
+        switch (pendingAssignment.purpose) {
+          case 'ONBOARD':
+            return {
+              label: isExpired ? 'Card Assignment Expired' : 'Card Assignment Pending',
+              variant: 'secondary' as const,
+              icon: Clock,
+              className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+            }
+          case 'REPLACE':
+            return {
+              label: isExpired ? 'Card Replacement Expired' : 'Card Replacement Pending',
+              variant: 'secondary' as const,
+              icon: Clock,
+              className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+            }
+          case 'RECLAIM':
+            return {
+              label: isExpired ? 'Card Reclaim Expired' : 'Card Reclaim Pending',
+              variant: 'secondary' as const,
+              icon: Clock,
+              className: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800'
+            }
+          default:
+            return {
+              label: isExpired ? 'Card Action Expired' : 'Card Action Pending',
+              variant: 'secondary' as const,
+              icon: Clock,
+              className: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800'
+            }
+        }
+      }
+      
+      // No pending assignment record - member is just ready for card assignment
       return {
-        label: 'Card Pending',
-        variant: 'secondary' as const,
-        icon: Clock,
-        className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+        label: 'No Card',
+        variant: 'outline' as const,
+        icon: AlertTriangle,
+        className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800'
       }
     } else {
       return {
@@ -445,29 +513,33 @@ export function MemberCard({
 
             return (
               <>
-                {/* Assign Card Button - for members without cards */}
-                {(cardStatus === 'NO_CARD' || !cardStatus) && currentState === 'ACTIVE' && (
-                  <button
-                    type="button"
-                    className="px-4 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
-                    onClick={() => onAssignCard(member)}
-                  >
-                    <CreditCard className="h-4 w-4" />
-                    Assign Card
-                  </button>
-                )}
+                 {/* Assign Card Button - for members without cards or with PENDING_CARD status */}
+                 {(cardStatus === 'NO_CARD' || cardStatus === 'PENDING_CARD' || !cardStatus) && currentState === 'ACTIVE' && (
+                   <button
+                     type="button"
+                     className="px-4 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
+                     onClick={() => onAssignCard(member)}
+                   >
+                     <CreditCard className="h-4 w-4" />
+                     {pendingAssignment?.memberId === member.id && pendingAssignment.purpose === 'ONBOARD'
+                       ? pendingAssignment.isExpired ? 'Continue Card Assignment' : 'Continue Card Assignment'
+                       : 'Assign Card'}
+                   </button>
+                 )}
 
-                {/* Replace Card Button - for members with active cards */}
-                {cardStatus === 'ACTIVE' && currentState === 'ACTIVE' && (
-                  <button
-                    type="button"
-                    className="px-4 py-2.5 text-sm bg-transparent hover:bg-purple-50 dark:hover:bg-purple-950 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
-                    onClick={() => onReplaceCard(member)}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Replace Card
-                  </button>
-                )}
+                 {/* Replace Card Button - for members with active cards */}
+                 {cardStatus === 'ACTIVE' && currentState === 'ACTIVE' && (
+                   <button
+                     type="button"
+                     className="px-4 py-2.5 text-sm bg-transparent hover:bg-purple-50 dark:hover:bg-purple-950 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
+                     onClick={() => onReplaceCard(member)}
+                   >
+                     <RefreshCw className="h-4 w-4" />
+                     {pendingAssignment?.memberId === member.id && pendingAssignment.purpose === 'REPLACE'
+                       ? pendingAssignment.isExpired ? 'Continue Card Replacement' : 'Continue Card Replacement'
+                       : 'Replace Card'}
+                   </button>
+                 )}
               </>
             )
           })()}
@@ -475,69 +547,121 @@ export function MemberCard({
           {(() => {
             const canManage = canManageMember();
 
-            // Use action-oriented labels instead of status labels
-            const getActionLabel = () => {
-              switch (memberStatus.displayStatus) {
-                case 'ACTIVE':
-                  return 'Cancel Membership'
-                case 'CANCELLED':
-                  return 'Activate Member'
-                case 'EXPIRED':
-                  return 'Renew Membership'
-                 case 'EXPIRING':
+             // Use action-oriented labels instead of status labels
+             const getActionLabel = () => {
+               // Check for pending assignment first
+               const pendingAssignmentForMember = 
+                 !!pendingAssignment && pendingAssignment.memberId === member.id
+               
+               if (pendingAssignmentForMember) {
+                 const isExpired = pendingAssignment.isExpired
+                 switch (pendingAssignment.purpose) {
+                   case 'ONBOARD':
+                     return isExpired ? 'Continue Card Assignment' : 'Continue Card Assignment'
+                   case 'REPLACE':
+                     return isExpired ? 'Continue Card Replacement' : 'Continue Card Replacement'
+                   case 'RECLAIM':
+                     return isExpired ? 'Continue Card Reclaim' : 'Continue Card Reclaim'
+                   default:
+                     return 'Continue Card Action'
+                 }
+               }
+               
+               switch (memberStatus.displayStatus) {
+                 case 'ACTIVE':
                    return 'Cancel Membership'
-                case 'PENDING_CARD':
-                  return 'Assign Card'
-                case 'NO_SUBSCRIPTION':
-                  return 'Assign Plan'
-                case 'DELETED':
-                  return 'Restore Account'
-                default:
-                  return memberDisplayInfo.label
-              }
-            }
+                 case 'CANCELLED':
+                   return 'Activate Member'
+                 case 'EXPIRED':
+                   return 'Renew Membership'
+                  case 'EXPIRING':
+                    return 'Cancel Membership'
+                 case 'PENDING_CARD':
+                   return 'Assign Card'
+                 case 'NO_SUBSCRIPTION':
+                   return 'Assign Plan'
+                 case 'DELETED':
+                   return 'Restore Account'
+                 default:
+                   return memberDisplayInfo.label
+               }
+             }
 
             const displayLabel = getActionLabel();
 
-           // Get appropriate click handler based on member status
-           const getClickHandler = () => {
-             if (!canManage) {
-               return () => toast.info('You can only manage members from your assigned branches')
-             }
+            // Get appropriate click handler based on member status
+            const getClickHandler = () => {
+              if (!canManage) {
+                return () => toast.info('You can only manage members from your assigned branches')
+              }
+
+              // Check for pending assignment first
+              const pendingAssignmentForMember = 
+                !!pendingAssignment && pendingAssignment.memberId === member.id
+              
+              if (pendingAssignmentForMember) {
+                switch (pendingAssignment.purpose) {
+                  case 'ONBOARD':
+                    return () => onAssignCard?.(member)
+                  case 'REPLACE':
+                    return () => onReplaceCard?.(member)
+                  case 'RECLAIM':
+                    return () => resumeReclaim?.()
+                  default:
+                    return () => onAssignCard?.(member)
+                }
+              }
+
+                switch (memberStatus.displayStatus) {
+                  case 'PENDING_CARD':
+                    return () => onAssignCard?.(member)
+                  case 'DELETED':
+                    return () => openMemberActionModal('restore')
+                  case 'CANCELLED':
+                    return () => openMemberActionModal('activate')
+                  case 'EXPIRED':
+                    return () => onRenewSubscription(member)
+                   case 'EXPIRING':
+                     return () => onCancelSubscription(member)
+                  case 'ACTIVE':
+                    return () => onCancelSubscription(member)
+                  case 'NO_SUBSCRIPTION':
+                    return () => openMemberActionModal('assign_plan')
+                  case 'SUSPENDED':
+                  default:
+                    return () => openMemberActionModal('activate')
+               }
+            }
+
+            // Get button styling based on status and management permissions
+            const getButtonClasses = () => {
+              const baseClasses = 'border font-semibold transition-colors shadow-sm'
+
+              if (!canManage) {
+                return `${baseClasses} bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-not-allowed opacity-60`
+              }
+
+              // Check for pending assignment first
+              const pendingAssignmentForMember = 
+                !!pendingAssignment && pendingAssignment.memberId === member.id
+              
+              if (pendingAssignmentForMember) {
+                switch (pendingAssignment.purpose) {
+                  case 'ONBOARD':
+                    return `${baseClasses} bg-blue-700 dark:bg-blue-400 text-white dark:text-black border-blue-700 dark:border-blue-400 hover:bg-blue-800 dark:hover:bg-blue-500 hover:border-blue-800 dark:hover:border-blue-500 hover:shadow-md`
+                  case 'REPLACE':
+                    return `${baseClasses} bg-amber-700 dark:bg-amber-400 text-white dark:text-black border-amber-700 dark:border-amber-400 hover:bg-amber-800 dark:hover:bg-amber-500 hover:border-amber-800 dark:hover:border-amber-500 hover:shadow-md`
+                  case 'RECLAIM':
+                    return `${baseClasses} bg-purple-700 dark:bg-purple-400 text-white dark:text-black border-purple-700 dark:border-purple-400 hover:bg-purple-800 dark:hover:bg-purple-500 hover:border-purple-800 dark:hover:border-purple-500 hover:shadow-md`
+                  default:
+                    return `${baseClasses} bg-purple-700 dark:bg-purple-400 text-white dark:text-black border-purple-700 dark:border-purple-400 hover:bg-purple-800 dark:hover:bg-purple-500 hover:border-purple-800 dark:hover:border-purple-500 hover:shadow-md`
+                }
+              }
 
                switch (memberStatus.displayStatus) {
                  case 'PENDING_CARD':
-                   return () => onAssignCard?.(member)
-                 case 'DELETED':
-                   return () => openMemberActionModal('restore')
-                 case 'CANCELLED':
-                   return () => openMemberActionModal('activate')
-                 case 'EXPIRED':
-                   return () => onRenewSubscription(member)
-                  case 'EXPIRING':
-                    return () => onCancelSubscription(member)
-                 case 'ACTIVE':
-                   return () => onCancelSubscription(member)
-                 case 'NO_SUBSCRIPTION':
-                   return () => openMemberActionModal('assign_plan')
-                 case 'SUSPENDED':
-                 default:
-                   return () => openMemberActionModal('activate')
-              }
-           }
-
-           // Get button styling based on status and management permissions
-           const getButtonClasses = () => {
-             const baseClasses = 'border font-semibold transition-colors shadow-sm'
-
-             if (!canManage) {
-               return `${baseClasses} bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-not-allowed opacity-60`
-             }
-
-              switch (memberStatus.displayStatus) {
-                case 'PENDING_CARD':
-                  return `${baseClasses} bg-purple-700 dark:bg-purple-400 text-white dark:text-black border-purple-700 dark:border-purple-400 hover:bg-purple-800 dark:hover:bg-purple-500 hover:border-purple-800 dark:hover:border-purple-500 hover:shadow-md`
-                 case 'ACTIVE':
+                   return `${baseClasses} bg-purple-700 dark:bg-purple-400 text-white dark:text-black border-purple-700 dark:border-purple-400 hover:bg-purple-800 dark:hover:bg-purple-500 hover:border-purple-800 dark:hover:border-purple-500 hover:shadow-md`
+                  case 'ACTIVE':
                    return `${baseClasses} bg-orange-600 dark:bg-orange-500 text-white dark:text-black border-orange-600 dark:border-orange-500 hover:bg-orange-700 dark:hover:bg-orange-600 hover:border-orange-700 dark:hover:border-orange-600 hover:shadow-md`
                 case 'CANCELLED':
                   return `${baseClasses} bg-orange-700 dark:bg-orange-400 text-white dark:text-black border-orange-700 dark:border-orange-400 hover:bg-orange-800 dark:hover:bg-orange-500 hover:border-orange-800 dark:hover:border-orange-500 hover:shadow-md`
