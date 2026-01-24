@@ -136,16 +136,17 @@ export default function KioskPage() {
 
       const data = await response.json();
       console.log('API Response data:', data);
-      setResult(data);
+       setResult(data);
 
       // Play sound based on result
       playSound(data.result);
 
-      // Auto reset after 1 second
+      // Auto reset after appropriate time
+      const resetTime = data.result === 'IGNORED_DUPLICATE_TAP' ? 3000 : 1000;
       setTimeout(() => {
         setCardUid('');
         setResult(null);
-      }, 1000);
+      }, resetTime);
 
     } catch (error) {
        setResult({ result: 'ERROR', message: 'Network error' });
