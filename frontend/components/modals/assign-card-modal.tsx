@@ -111,7 +111,7 @@ export function AssignCardModal({ isOpen, onClose, member, onCardAssigned }: Ass
   // Check if assignment was completed
   useEffect(() => {
     console.log('Modal state check:', { pendingData, isPolling, isFetching })
-    if ((!pendingData || pendingData === false || pendingData === '') && isPolling && !isFetching) {
+    if (!pendingData && isPolling && !isFetching) {
       // Pending assignment disappeared - either assigned or cancelled
       console.log('Assignment completed - closing modal')
       setIsPolling(false)

@@ -625,15 +625,6 @@ export function MemberCard({
                             Enable Card
                           </DropdownMenuItem>
                         )}
-                        {member.gymMemberProfile?.cardStatus === 'DISABLED' && (
-                          <DropdownMenuItem
-                            className="text-green-600"
-                            onClick={() => openMemberActionModal('enable_card')}
-                          >
-                            <CreditCard className="mr-2 h-4 w-4" />
-                            Enable Card
-                          </DropdownMenuItem>
-                        )}
                         <DropdownMenuItem
                           className="text-orange-600"
                           onClick={() => openMemberActionModal('cancel')}

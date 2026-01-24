@@ -169,7 +169,9 @@ export default function KioskPage() {
 
     const isDenyResult = ['DENY_EXPIRED', 'DENY_DISABLED', 'DENY_GYM_MISMATCH', 'DENY_AUTO_ASSIGNED_EXPIRED', 'DENY_EXPIRED_PENDING'].includes(result);
 
-    if (result === 'ALLOW' || result === 'ASSIGNED' || result === 'ALLOW_AUTO_ASSIGNED') {
+    if (
+      ['ALLOW', 'ASSIGNED', 'ALLOW_AUTO_ASSIGNED', 'RECLAIMED'].includes(result)
+    ) {
       // Success sound - high pitch, short
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
@@ -196,6 +198,7 @@ export default function KioskPage() {
       case 'ALLOW': return 'bg-green-500';
       case 'ASSIGNED': return 'bg-green-500';
       case 'ALLOW_AUTO_ASSIGNED': return 'bg-green-500';
+      case 'RECLAIMED': return 'bg-green-500';
       default: return 'bg-red-500';
     }
   };
@@ -205,10 +208,12 @@ export default function KioskPage() {
       switch (result.result) {
         case 'ALLOW':
           return 'SUCCESS';
-        case 'ASSIGNED':
-          return 'SUCCESS';
-        case 'ALLOW_AUTO_ASSIGNED':
-          return 'SUCCESS';
+      case 'ASSIGNED':
+        return 'SUCCESS';
+      case 'ALLOW_AUTO_ASSIGNED':
+        return 'SUCCESS';
+      case 'RECLAIMED':
+        return 'SUCCESS';
         case 'DENY_EXPIRED':
         case 'DENY_DISABLED':
         case 'DENY_GYM_MISMATCH':
@@ -250,6 +255,9 @@ export default function KioskPage() {
         break;
       case 'ASSIGNED':
         message = `Card Assigned to ${result.memberName || 'Member'}`;
+        break;
+      case 'RECLAIMED':
+        message = `Card reclaimed for ${result.memberName || 'Member'}`;
         break;
       case 'IGNORED_DUPLICATE_TAP':
         message = 'Please Wait - Duplicate Tap Detected';

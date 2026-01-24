@@ -1,8 +1,9 @@
 import { apiClient } from './client'
 
 export interface MemberActionRequest {
-  reason: string
+  reason?: string
   notes?: string
+  cardReturned?: boolean
 }
 
 export interface MemberRenewRequest {
@@ -52,9 +53,24 @@ export interface MemberHistoryResponse {
 }
 
 export interface MemberActionResponse {
-  success: boolean
-  message: string
+  success?: boolean
+  message?: string
   member?: any
+  cancelled?: boolean
+  reclaimPending?: boolean
+  expiresAt?: string | null
+  expectedUidMasked?: string | null
+}
+
+export interface PendingAssignmentData {
+  memberId: string
+  memberName: string
+  purpose: string
+  expiresAt: string
+  mismatch?: {
+    expectedUidMasked?: string
+    tappedUidMasked?: string
+  }
 }
 
 export interface CreateGymMemberDto {
@@ -219,8 +235,10 @@ export const membersApi = {
   },
 
   // Get pending assignment for a gym
-  async getPendingAssignment(gymId: string): Promise<any> {
-    const response = await apiClient.get(`/admin/members/gyms/${gymId}/pending-assignment`)
+  async getPendingAssignment(gymId: string): Promise<PendingAssignmentData | null> {
+    const response = await apiClient.get('/admin/pending-assignment', {
+      params: { gymId },
+    })
     return response.data
   },
 
@@ -238,7 +256,9 @@ export const membersApi = {
 
   // Cancel pending assignment for a gym
   async cancelPendingAssignment(gymId: string): Promise<any> {
-    const response = await apiClient.post(`/admin/members/gyms/${gymId}/pending-assignment/cancel`)
+    const response = await apiClient.delete('/admin/pending-assignment', {
+      params: { gymId },
+    })
     return response.data
   }
 }

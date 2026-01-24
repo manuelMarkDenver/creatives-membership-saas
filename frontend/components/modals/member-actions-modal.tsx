@@ -38,6 +38,7 @@ import { toast } from 'react-toastify'
 import { useMemberStatus, useActionReasons, useActivateMember, useCancelMember, useRestoreMember, useRenewMemberSubscription, useAssignMembershipPlan, useDisableCard, useEnableCard } from '@/lib/hooks/use-gym-member-actions'
 import type { MemberActionRequest } from '@/lib/api/gym-members'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
+import { ReclaimPendingModal } from '@/components/modals/reclaim-pending-modal'
 
 export type MemberActionType = 'activate' | 'cancel' | 'restore' | 'renew' | 'assign_plan' | 'disable_card' | 'enable_card'
 
@@ -135,6 +136,10 @@ export function MemberActionsModal({
   const [notes, setNotes] = useState('')
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [selectedCardUid, setSelectedCardUid] = useState('')
+  const [cancelReason, setCancelReason] = useState('')
+  const [cancelCardReturned, setCancelCardReturned] = useState(false)
+  const [cancelReclaimInfo, setCancelReclaimInfo] = useState<{ gymId: string; memberName: string; expiresAt: string } | null>(null)
+  const [showCancelReclaimModal, setShowCancelReclaimModal] = useState(false)
   
   const config = actionConfig[actionType]
   const IconComponent = config.icon
@@ -190,6 +195,9 @@ export function MemberActionsModal({
       setNotes('')
       setSelectedPlanId('')
       setSelectedCardUid('')
+      setCancelReason('')
+      setCancelCardReturned(false)
+      setCancelReclaimInfo(null)
     }
   }, [isOpen])
 
@@ -215,14 +223,6 @@ export function MemberActionsModal({
             data: { reason, notes }
           })
           toast.success(`Successfully activated ${memberName}`)
-          break
-
-        case 'cancel':
-          await cancelMutation.mutateAsync({
-            memberId,
-            data: { reason, notes }
-          })
-          toast.success(`Successfully cancelled ${memberName}'s membership`)
           break
 
         case 'restore':
@@ -283,6 +283,61 @@ export function MemberActionsModal({
     }
   }
 
+  const resetCancelForm = () => {
+    setCancelReason('')
+    setCancelCardReturned(false)
+  }
+
+  const handleCancelAction = () => {
+    const memberName = `${memberData.firstName || 'Unknown'} ${memberData.lastName || 'User'}`.trim() || 'Member'
+
+    cancelMutation.mutate(
+      {
+        memberId,
+        data: {
+          reason: cancelReason.trim() || undefined,
+          cardReturned: cancelCardReturned,
+        },
+      },
+      {
+        onSuccess: (result) => {
+          onClose()
+          resetCancelForm()
+          setCancelReclaimInfo(null)
+          onActionComplete?.()
+
+          if (
+            result.reclaimPending &&
+            memberData.gymMemberProfile?.primaryBranchId
+          ) {
+            const expiresAt =
+              result.expiresAt || new Date(Date.now() + 10 * 60 * 1000).toISOString()
+            setCancelReclaimInfo({
+              gymId: memberData.gymMemberProfile.primaryBranchId,
+              memberName,
+              expiresAt,
+            })
+            setShowCancelReclaimModal(true)
+            toast.info(`Reclaim pending for ${memberName}`)
+            return
+          }
+
+          toast.success(`Successfully cancelled ${memberName}'s membership`)
+        },
+        onError: (error: any) => {
+          console.error('cancel failed:', error)
+          const errorMessage =
+            error && typeof error === 'object' && 'response' in error
+              ? (error.response as { data?: { message?: string } })?.data?.message
+              : 'Please try again.'
+          toast.error(`Failed to cancel membership\n${errorMessage || 'Please try again.'}`, {
+            autoClose: 5000,
+          })
+        },
+      },
+    )
+  }
+
   const isLoading = memberLoading || reasonsLoading
   const isMutating = activateMutation.isPending || cancelMutation.isPending || restoreMutation.isPending || renewMutation.isPending || assignPlanMutation.isPending || disableCardMutation.isPending || enableCardMutation.isPending
 
@@ -321,6 +376,128 @@ export function MemberActionsModal({
   const statusColor = (currentState && statusIcons[currentState]) 
     ? statusIcons[currentState].color 
     : 'text-gray-400'
+
+  if (actionType === 'cancel') {
+    const memberName = `${memberData.firstName || 'Unknown'} ${memberData.lastName || 'User'}`.trim() || 'Member'
+    return (
+      <>
+        <Dialog
+          open={isOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              resetCancelForm()
+              setCancelReclaimInfo(null)
+              onClose()
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <UserX className="h-5 w-5" />
+                Cancel Membership
+              </DialogTitle>
+              <DialogDescription>
+                Canceling this membership will immediately remove access for the member. Optionally flag the card as returned to reclaim it.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="font-semibold text-yellow-700">Warning</p>
+                <p className="text-sm text-yellow-800">
+                  The member will be suspended and will need a new membership to regain access.
+                </p>
+              </div>
+
+              {/* Action Warning/Info */}
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <p className="text-sm text-amber-800">
+                  <strong>Warning:</strong> This will immediately cancel the member's access to gym facilities. This action will be logged in their history.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Cancellation Notes (optional)</Label>
+                <Textarea
+                  placeholder="Add a quick reason for auditing"
+                  value={cancelReason}
+                  onChange={(event) => setCancelReason(event.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Card Returned?</Label>
+                <div className="flex gap-2">
+                  <Button
+                    className={`flex-1 ${cancelCardReturned ? 'bg-red-600 text-white' : 'bg-white text-gray-700 border'}`}
+                    onClick={() => setCancelCardReturned(true)}
+                  >
+                    Yes
+                  </Button>
+                  <Button
+                    className={`flex-1 ${!cancelCardReturned ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 border'}`}
+                    onClick={() => setCancelCardReturned(false)}
+                  >
+                    No
+                  </Button>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Choose "Yes" only if the member handed back their card. The kiosk will then verify it before updating inventory.
+                </p>
+              </div>
+
+              {memberData.subscription && (
+                <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                  <p className="text-xs text-gray-600">Active Plan</p>
+                  <p className="font-semibold text-gray-900">{memberData.subscription.gymMembershipPlan?.name || 'Unknown Plan'}</p>
+                  <p className="text-xs text-gray-500">
+                    Valid until {new Date(memberData.subscription.endDate).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  resetCancelForm()
+                  setCancelReclaimInfo(null)
+                  onClose()
+                }}
+                disabled={cancelMutation.isPending}
+              >
+                Keep Active
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={cancelMutation.isPending}
+                onClick={handleCancelAction}
+              >
+                <UserX className="w-4 h-4 mr-2" />
+                {cancelMutation.isPending ? 'Cancelling...' : 'Cancel Membership'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {cancelReclaimInfo && (
+          <ReclaimPendingModal
+            gymId={cancelReclaimInfo.gymId}
+            memberName={cancelReclaimInfo.memberName}
+            initialExpiresAt={cancelReclaimInfo.expiresAt}
+            isOpen={showCancelReclaimModal}
+            onClose={() => {
+              setShowCancelReclaimModal(false)
+              setCancelReclaimInfo(null)
+            }}
+          />
+        )}
+      </>
+    )
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -491,14 +668,6 @@ export function MemberActionsModal({
             </div>
           )}
 
-          {/* Action Warning/Info */}
-          {actionType === 'cancel' && (
-            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
-              <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                <strong>Warning:</strong> This will immediately cancel the member's access to gym facilities. This action will be logged in their history.
-              </p>
-            </div>
-          )}
         </div>
 
         <DialogFooter>

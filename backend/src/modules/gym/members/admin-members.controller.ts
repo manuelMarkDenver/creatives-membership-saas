@@ -6,6 +6,10 @@ import {
   Param,
   UseGuards,
   Req,
+  Query,
+  Delete,
+  BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { GymMembersService } from './gym-members.service';
 import { AuthGuard } from '../../../core/auth/auth.guard';
@@ -20,6 +24,7 @@ interface RequestWithUser extends Request {
     email: string;
     firstName?: string;
     lastName?: string;
+    branchAccess?: { branchId: string }[];
   };
   headers: Request['headers'];
 }
@@ -50,18 +55,21 @@ export class AdminMembersController {
     );
   }
 
-  @Get('gyms/:gymId/pending-assignment')
-  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
-  async getPendingAssignment(@Param('gymId') gymId: string) {
-    const pending = await this.gymMembersService.getPendingAssignment(gymId);
-    if (!pending) return null;
 
-    return {
-      memberId: pending.memberId,
-      memberName: `${pending.member.firstName} ${pending.member.lastName}`,
-      purpose: pending.purpose,
-      expiresAt: pending.expiresAt,
-    };
+  @Get('pending-assignment')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  async getPendingAssignmentData(
+    @Query('gymId') gymId: string | undefined,
+    @Req() req: RequestWithUser,
+  ) {
+    if (!req.user?.id) {
+      throw new Error('User not authenticated');
+    }
+
+    const targetGymId = this.resolveGymId(req, gymId);
+    this.ensureGymAccess(req, targetGymId);
+
+    return this.gymMembersService.getPendingAssignmentForAdmin(targetGymId);
   }
 
   @Post(':memberId/disable-card')
@@ -85,13 +93,21 @@ export class AdminMembersController {
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   async cancelMembership(
     @Param('memberId') memberId: string,
-    @Body() body: { reason: string; notes?: string },
+    @Body() body: { reason?: string; cardReturned?: boolean },
     @Req() req: RequestWithUser,
   ) {
     const performedBy = req.user?.id;
     if (!performedBy) {
       throw new Error('User not authenticated');
     }
+
+    const member = await this.gymMembersService.getMemberById(memberId);
+    const gymId = member.gymMemberProfile?.primaryBranchId;
+    if (!gymId) {
+      throw new BadRequestException('Member has no associated gym');
+    }
+
+    this.ensureGymAccess(req, gymId);
 
     return this.gymMembersService.cancelMember(memberId, body, performedBy);
   }
@@ -129,10 +145,10 @@ export class AdminMembersController {
     );
   }
 
-  @Post('gyms/:gymId/cancel-pending-assignment')
+  @Delete('pending-assignment')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   async cancelPendingAssignment(
-    @Param('gymId') gymId: string,
+    @Query('gymId') gymId: string | undefined,
     @Req() req: RequestWithUser,
   ) {
     const performedBy = req.user?.id;
@@ -140,7 +156,34 @@ export class AdminMembersController {
       throw new Error('User not authenticated');
     }
 
-    await this.gymMembersService.cancelPendingAssignment(gymId, performedBy);
-    return { ok: true };
+    const targetGymId = this.resolveGymId(req, gymId);
+    this.ensureGymAccess(req, targetGymId);
+
+    await this.gymMembersService.cancelPendingAssignment(targetGymId, performedBy);
+    return { cancelled: true };
+  }
+
+  private resolveGymId(req: RequestWithUser, gymId?: string): string {
+    if (gymId) return gymId;
+    const branchAccess = req.user?.branchAccess;
+    if (!branchAccess || branchAccess.length === 0) {
+      throw new BadRequestException('gymId is required');
+    }
+    return branchAccess[0].branchId;
+  }
+
+  private ensureGymAccess(req: RequestWithUser, gymId: string) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('User not authenticated');
+    }
+
+    if (user.role === Role.SUPER_ADMIN || user.role === Role.OWNER) {
+      return;
+    }
+
+    if (!user.branchAccess?.some((branch) => branch.branchId === gymId)) {
+      throw new ForbiddenException('Insufficient branch access for this operation');
+    }
   }
 }

@@ -378,76 +378,138 @@ export class GymMembersService {
 
   async cancelMember(
     memberId: string,
-    request: { reason: string; notes?: string },
+    request: { reason?: string; cardReturned?: boolean },
     performedBy: string,
   ) {
-    const member = await this.getMemberById(memberId);
-    const currentState = await this.getMemberState(member);
-
-    if (currentState !== 'ACTIVE' && currentState !== 'EXPIRED') {
-      throw new BadRequestException(
-        `Cannot cancel member in ${currentState} state. Only active or expired members can be cancelled.`,
-      );
-    }
-
-    // Cancel current subscription if exists
-    const activeSubscription = member.gymMemberSubscriptions?.[0];
-    if (activeSubscription) {
-      await this.prisma.gymMemberSubscription.update({
-        where: { id: activeSubscription.id },
-        data: {
-          status: 'CANCELLED',
-          cancelledAt: new Date(),
-          cancellationReason: request.reason,
-          cancellationNotes: request.notes,
+    const member = await this.prisma.user.findUnique({
+      where: { id: memberId },
+      include: {
+        gymMemberProfile: true,
+        gymMemberSubscriptions: {
+          include: { gymMembershipPlan: true },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
         },
-      });
-    }
-
-    // Disable associated card for security - cancelled members should not have access
-    if (
-      member.gymMemberProfile?.cardUid &&
-      member.gymMemberProfile.cardStatus === 'ACTIVE'
-    ) {
-      await this.prisma.gymMemberProfile.update({
-        where: { id: member.gymMemberProfile.id },
-        data: {
-          cardStatus: 'DISABLED',
-        },
-      });
-
-      // Move inventory card back to available if it exists
-      const inventoryCard = await this.prisma.inventoryCard.findUnique({
-        where: { uid: member.gymMemberProfile.cardUid },
-      });
-
-      if (inventoryCard && inventoryCard.status === 'ASSIGNED') {
-        await this.prisma.inventoryCard.update({
-          where: { uid: member.gymMemberProfile.cardUid },
-          data: { status: 'AVAILABLE' },
-        });
-      }
-    }
-
-    // Create audit log
-    await this.createAuditLog({
-      memberId,
-      action: 'ACCOUNT_DEACTIVATED',
-      reason: request.reason,
-      notes: request.notes,
-      previousState: currentState,
-      newState: 'CANCELLED',
-      performedBy,
-      metadata: {
-        subscriptionId: activeSubscription?.id,
-        subscriptionEndDate: activeSubscription?.endDate,
       },
     });
 
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+
+    if (!member.gymMemberProfile) {
+      throw new BadRequestException('Member profile not found');
+    }
+
+    const currentStatus = member.gymMemberProfile.status;
+    const gymId = member.gymMemberProfile.primaryBranchId;
+    if (!gymId) {
+      throw new BadRequestException('Member has no primary gym');
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const activeCards = await tx.card.findMany({
+        where: {
+          gymId,
+          memberId,
+          type: 'MONTHLY',
+          active: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const lastAssignedCard = await tx.card.findFirst({
+        where: {
+          memberId,
+          type: 'MONTHLY',
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const expectedCardUid = lastAssignedCard?.uid ?? null;
+
+      await tx.gymMemberProfile.update({
+        where: { id: member.gymMemberProfile!.id },
+        data: { status: 'SUSPENDED' },
+      });
+
+      await tx.card.updateMany({
+        where: {
+          gymId,
+          memberId,
+          type: 'MONTHLY',
+          active: true,
+        },
+        data: { active: false },
+      });
+
+      await tx.event.create({
+        data: {
+          gymId,
+          type: 'MEMBER_CANCELLED',
+          memberId,
+          actorUserId: performedBy,
+          meta: {
+            reason: request.reason ?? null,
+            oldStatus: currentStatus,
+            newStatus: 'SUSPENDED',
+            deactivatedCardUids: activeCards.map((card) => card.uid),
+            cardReturned: !!request.cardReturned,
+          },
+        },
+      });
+
+      let reclaimPending = false;
+      let expiresAt: Date | null = null;
+
+      if (request.cardReturned && expectedCardUid) {
+        const pendingExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+        await tx.pendingMemberAssignment.deleteMany({ where: { gymId } });
+        await tx.pendingMemberAssignment.create({
+          data: {
+            gymId,
+            memberId,
+            purpose: 'RECLAIM',
+            expectedCardUid,
+            expiresAt: pendingExpiresAt,
+            createdByUserId: performedBy,
+          },
+        });
+
+        await tx.event.create({
+          data: {
+            gymId,
+            type: 'RECLAIM_PENDING_CREATED',
+            memberId,
+            actorUserId: performedBy,
+            meta: { expectedCardUidMasked: true },
+          },
+        });
+
+        reclaimPending = true;
+        expiresAt = pendingExpiresAt;
+      }
+
+      return {
+        deactivatedCardUids: activeCards.map((card) => card.uid),
+        reclaimPending,
+        expiresAt,
+        expectedCardUid,
+      };
+    });
+
+    this.logger.log(
+      `Member cancelled: ${member.firstName} ${member.lastName} (${memberId}), card returned: ${!!request.cardReturned}, reclaim pending: ${result.reclaimPending}`,
+    );
+
     return {
-      success: true,
-      message: `Member cancelled successfully. Reason: ${request.reason}`,
-      member: member,
+      cancelled: true,
+      reclaimPending: result.reclaimPending,
+      expiresAt: result.expiresAt?.toISOString() ?? null,
+      expectedUidMasked: result.expectedCardUid
+        ? `••••${result.expectedCardUid.slice(-4)}`
+        : null,
     };
   }
 
@@ -472,23 +534,61 @@ export class GymMembersService {
       where: { gymId },
     });
 
-    // Log cancellation
-    await this.createAuditLog({
+    await this.eventsService.logEvent({
+      gymId,
+      type: 'PENDING_ASSIGNMENT_CANCELLED',
       memberId: pending.memberId,
-      action: 'CARD_ASSIGNMENT_CANCELLED',
-      reason: 'Pending card assignment cancelled by admin',
-      previousState: 'PENDING_CARD',
-      newState: 'PENDING_CARD',
-      performedBy,
-      metadata: {
-        cancelledAt: new Date().toISOString(),
+      actorUserId: performedBy,
+      meta: {
         purpose: pending.purpose,
+        cancelledByUserId: performedBy,
       },
     });
 
     this.logger.log(
       `Pending card assignment cancelled for member: ${pending.member.firstName} ${pending.member.lastName}`,
     );
+  }
+
+  async getPendingAssignmentForAdmin(gymId: string) {
+    const pending = await this.getPendingAssignment(gymId);
+    if (!pending) {
+      return null;
+    }
+
+    const mismatchEvent = await this.prisma.event.findFirst({
+      where: {
+        gymId,
+        type: 'ACCESS_DENY_RECLAIM_MISMATCH',
+        createdAt: {
+          gte: pending.createdAt,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const maskUid = (uid?: string) => {
+      if (!uid) return null;
+      if (uid.length <= 4) return uid;
+      return `••••${uid.slice(-4)}`;
+    };
+
+    const mismatchMeta = mismatchEvent?.meta as
+      | { expectedUid?: string; tappedUid?: string }
+      | undefined;
+
+    return {
+      memberId: pending.memberId,
+      memberName: `${pending.member.firstName} ${pending.member.lastName}`,
+      purpose: pending.purpose,
+      expiresAt: pending.expiresAt,
+      mismatch: mismatchEvent
+        ? {
+            expectedUidMasked: maskUid(mismatchMeta?.expectedUid),
+            tappedUidMasked: maskUid(mismatchMeta?.tappedUid),
+          }
+        : undefined,
+    };
   }
 
   async assignCardToMember(
@@ -1662,6 +1762,11 @@ export class GymMembersService {
         data: { cardStatus: 'DISABLED' },
       });
 
+      await tx.inventoryCard.updateMany({
+        where: { uid: activeCard.uid },
+        data: { status: 'DISABLED' },
+      });
+
       // Log event
       const event = await tx.event.create({
         data: {
@@ -1740,6 +1845,11 @@ export class GymMembersService {
       await tx.gymMemberProfile.update({
         where: { id: member.gymMemberProfile!.id },
         data: { cardStatus: 'ACTIVE' },
+      });
+
+      await tx.inventoryCard.updateMany({
+        where: { uid: data.cardUid },
+        data: { status: 'ASSIGNED' },
       });
 
       // Log event

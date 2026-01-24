@@ -280,7 +280,91 @@ export class AccessService {
       return { result: 'DENY_UNKNOWN' };
     }
 
-    // Check if expired
+    // Handle RECLAIM purpose
+    if (pending.purpose === 'RECLAIM') {
+      // Check if expired
+      if (new Date() > pending.expiresAt) {
+        await this.prisma.pendingMemberAssignment.delete({ where: { gymId } });
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'PENDING_ASSIGNMENT_EXPIRED',
+          cardUid,
+          memberId: pending.memberId,
+          meta: { purpose: 'RECLAIM' },
+        });
+        return { result: 'DENY_UNKNOWN' };
+      }
+
+      // Check inventory first for disabled status (disabled beats unknown)
+      const inventoryCard = await this.prisma.inventoryCard.findUnique({
+        where: { uid: cardUid },
+        include: { gym: true },
+      });
+
+      if (inventoryCard && inventoryCard.status === 'DISABLED') {
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'ACCESS_DENY_DISABLED',
+          cardUid,
+          memberId: pending.memberId,
+        });
+        return { result: 'DENY_DISABLED', memberName: 'Unknown Member' };
+      }
+
+      // Check if UID matches expected
+      if (cardUid !== pending.expectedCardUid) {
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'ACCESS_DENY_RECLAIM_MISMATCH',
+          cardUid,
+          memberId: pending.memberId,
+          meta: { expectedUid: pending.expectedCardUid, tappedUid: cardUid },
+        });
+        return { result: 'DENY_UNKNOWN' };
+      }
+
+      // UID matches, now check inventory
+      if (!inventoryCard) {
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'ACCESS_DENY_UNKNOWN',
+          cardUid,
+          memberId: pending.memberId,
+        });
+        return { result: 'DENY_UNKNOWN' };
+      }
+
+      // Reclaim: set inventory to AVAILABLE, delete pending, log
+      await this.prisma.$transaction(async (tx) => {
+        if (inventoryCard.status === 'ASSIGNED') {
+          await tx.inventoryCard.update({
+            where: { uid: cardUid },
+            data: { status: 'AVAILABLE' },
+          });
+        }
+        await tx.pendingMemberAssignment.delete({ where: { gymId } });
+      });
+
+      await this.eventsService.logEvent({
+        gymId,
+        terminalId,
+        type: 'CARD_RECLAIMED',
+        cardUid,
+        memberId: pending.memberId,
+        meta: { uid: cardUid, memberId: pending.memberId },
+      });
+
+      return {
+        result: 'RECLAIMED',
+        memberName: `${pending.member.firstName} ${pending.member.lastName}`,
+      };
+    }
+
+    // Check if expired (for ONBOARD/REPLACE)
     if (new Date() > pending.expiresAt) {
       await this.prisma.pendingMemberAssignment.delete({ where: { gymId } });
       await this.eventsService.logEvent({

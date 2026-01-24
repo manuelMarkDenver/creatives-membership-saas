@@ -598,6 +598,7 @@ model PendingMemberAssignment {
   createdByUserId String?
   createdAt       DateTime          @default(now())
   oldCardUid      String?
+  expectedCardUid String?
   createdBy       User?             @relation("AssignmentCreators", fields: [createdByUserId], references: [id])
   gym             Branch            @relation(fields: [gymId], references: [id], onDelete: Cascade)
   member          User              @relation(fields: [memberId], references: [id], onDelete: Cascade)
@@ -840,6 +841,7 @@ enum CardType {
 enum AssignmentPurpose {
   ONBOARD
   REPLACE
+  RECLAIM
 }
 
 enum AuthProvider {

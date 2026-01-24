@@ -160,23 +160,19 @@ export class GymMembersController {
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   async cancelMember(
     @Param('id') id: string,
-    @Body() body: { reason: string; notes?: string },
+    @Body() body: { reason?: string; cardReturned?: boolean },
     @Req() req: RequestWithUser,
   ) {
-    const { reason, notes } = body;
+    const { reason, cardReturned } = body;
     const performedBy = req.user?.id;
 
     if (!performedBy) {
       throw new Error('User not authenticated');
     }
 
-    if (!reason) {
-      throw new Error('Reason is required');
-    }
-
     return this.gymMembersService.cancelMember(
       id,
-      { reason, notes },
+      { reason: reason?.trim(), cardReturned },
       performedBy,
     );
   }
