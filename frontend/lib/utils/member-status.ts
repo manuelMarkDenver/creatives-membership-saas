@@ -137,7 +137,11 @@ export function calculateMemberStatus(member: MemberData): MemberEffectiveStatus
   const isExpiringSoon = subscriptionEndDate && subscriptionEndDate <= new Date(currentDate.getTime() + (7 * 24 * 60 * 60 * 1000))
 
   // Check if subscription is cancelled
-  const isCancelled = subscriptionStatus === 'CANCELLED' || Boolean(subscriptionCancelledAt)
+  // Treat cancelledAt as a cancellation signal only when the status is not ACTIVE.
+  // (Some flows may reactivate a subscription without clearing cancelledAt.)
+  const isCancelled =
+    subscriptionStatus === 'CANCELLED' ||
+    (subscriptionStatus !== 'ACTIVE' && Boolean(subscriptionCancelledAt))
 
   // Determine effective status with priority:
   // 1. Cancelled subscription - never show as expired

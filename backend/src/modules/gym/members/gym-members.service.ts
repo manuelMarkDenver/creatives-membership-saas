@@ -450,6 +450,15 @@ export class GymMembersService {
 
       const shouldCreateReclaimPending = !!request.cardReturned && !!expectedCardUid;
 
+      const cardUidsToDisable = Array.from(
+        new Set(
+          [
+            ...activeCards.map((card) => card.uid),
+            ...(expectedCardUid ? [expectedCardUid] : []),
+          ].filter(Boolean),
+        ),
+      ) as string[];
+
       await tx.gymMemberProfile.update({
         where: { id: member.gymMemberProfile!.id },
         data: {
@@ -466,16 +475,20 @@ export class GymMembersService {
         },
       });
 
-      // Card cleanup happens only when:
-      // - reclaim succeeds (correct card tapped), OR
-      // - staff explicitly stops reclaim (card not returned), OR
-      // - cancel happens with cardReturned = false.
-      if (!shouldCreateReclaimPending) {
-        await tx.card.deleteMany({
-          where: {
-            gymId,
-            memberId,
-          },
+      // For both cancel flows we always disable the member's operational cards.
+      // - If card is returned: card row stays until reclaim succeeds.
+      // - If card is NOT returned: card row stays (lost/stolen) and inventory is DISABLED.
+      if (cardUidsToDisable.length > 0) {
+        await tx.card.updateMany({
+          where: { gymId, memberId, uid: { in: cardUidsToDisable } },
+          data: { active: false },
+        });
+      }
+
+      if (!shouldCreateReclaimPending && cardUidsToDisable.length > 0) {
+        await tx.inventoryCard.updateMany({
+          where: { uid: { in: cardUidsToDisable } },
+          data: { status: 'DISABLED' },
         });
       }
 
@@ -574,6 +587,20 @@ export class GymMembersService {
     // If we were waiting for a reclaim tap but staff stopped it (card not returned),
     // clear the member's card details now.
     if (pending.purpose === 'RECLAIM') {
+      const expectedCardUid = pending.expectedCardUid;
+
+      if (expectedCardUid) {
+        await this.prisma.card.updateMany({
+          where: { uid: expectedCardUid, gymId, memberId: pending.memberId },
+          data: { active: false },
+        });
+
+        await this.prisma.inventoryCard.updateMany({
+          where: { uid: expectedCardUid },
+          data: { status: 'DISABLED' },
+        });
+      }
+
       await this.prisma.gymMemberProfile.update({
         where: { userId: pending.memberId },
         data: { cardStatus: 'NO_CARD', cardUid: null, cardAssignedAt: null },
@@ -602,6 +629,8 @@ export class GymMembersService {
       return null;
     }
 
+    const isExpired = new Date() > pending.expiresAt;
+
     const mismatchEvent = await this.prisma.event.findFirst({
       where: {
         gymId,
@@ -628,6 +657,7 @@ export class GymMembersService {
       memberName: `${pending.member.firstName} ${pending.member.lastName}`,
       purpose: pending.purpose,
       expiresAt: pending.expiresAt,
+      isExpired,
       expectedUidMasked: maskUid(pending.expectedCardUid || undefined),
       mismatch: mismatchEvent
         ? {
@@ -636,6 +666,57 @@ export class GymMembersService {
           }
         : undefined,
     };
+  }
+
+  async restartReclaimPending(gymId: string, memberId: string, performedBy: string) {
+    const member = await this.getMemberById(memberId);
+    if (!member.gymMemberProfile?.primaryBranchId) {
+      throw new BadRequestException('Member has no primary gym');
+    }
+    if (member.gymMemberProfile.primaryBranchId !== gymId) {
+      throw new BadRequestException('Member does not belong to this gym');
+    }
+
+    // Prefer the profile cardUid (we keep it during cancel+reclaim), fallback to last card.
+    const expectedCardUid =
+      member.gymMemberProfile.cardUid ||
+      (await this.prisma.card.findFirst({
+        where: { memberId, gymId, type: 'MONTHLY' },
+        orderBy: { createdAt: 'desc' },
+        select: { uid: true },
+      }))?.uid;
+
+    if (!expectedCardUid) {
+      throw new BadRequestException('No card UID found to reclaim');
+    }
+
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.pendingMemberAssignment.deleteMany({ where: { gymId } });
+      await tx.pendingMemberAssignment.create({
+        data: {
+          gymId,
+          memberId,
+          purpose: 'RECLAIM',
+          expectedCardUid,
+          expiresAt,
+          createdByUserId: performedBy,
+        },
+      });
+
+      await tx.event.create({
+        data: {
+          gymId,
+          type: 'RECLAIM_PENDING_RESTARTED',
+          memberId,
+          actorUserId: performedBy,
+          meta: { expectedCardUidMasked: true },
+        },
+      });
+    });
+
+    return { restarted: true, expiresAt: expiresAt.toISOString() };
   }
 
   async assignCardToMember(

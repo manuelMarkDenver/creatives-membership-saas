@@ -130,6 +130,25 @@ export function ReclaimPendingModal({
     },
   })
 
+  const restartMutation = useMutation({
+    mutationFn: () => {
+      if (!pendingData?.memberId) {
+        throw new Error('No memberId to restart reclaim')
+      }
+      return membersApi.restartPendingReclaim(pendingData.memberId, gymId)
+    },
+    onSuccess: (result) => {
+      if (result?.expiresAt) {
+        lastExpiresRef.current = new Date(result.expiresAt).getTime()
+      }
+      queryClient.invalidateQueries({ queryKey: ['pending-assignment', gymId] })
+      toast.info('Reclaim restarted')
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Failed to restart reclaim')
+    },
+  })
+
   const handleStopReclaim = () => {
     if (stopMutation.isPending) return
     stopMutation.mutate()
@@ -138,6 +157,8 @@ export function ReclaimPendingModal({
   const mismatchMessage = pendingData?.mismatch
     ? `Incorrect card tapped: ${pendingData.mismatch.tappedUidMasked || 'a card'}. Expected ${pendingData.mismatch.expectedUidMasked || 'the assigned card'}.`
     : null
+
+  const isExpired = !!pendingData?.isExpired
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -166,6 +187,13 @@ export function ReclaimPendingModal({
             </div>
           </div>
 
+          {isExpired && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-3 text-sm">
+              <p className="font-semibold">Reclaim expired</p>
+              <p>The timer ran out. You can restart reclaim to begin a new 10-minute window.</p>
+            </div>
+          )}
+
           <div className="text-sm text-slate-600">
             <p>
               The kiosk will verify the returned card. This modal will close automatically once the tap is accepted or the pending assignment is cancelled or expired.
@@ -189,10 +217,18 @@ export function ReclaimPendingModal({
           <Button variant="outline" onClick={onClose} disabled={stopMutation.isPending}>
             Close
           </Button>
+          {isExpired && (
+            <Button
+              onClick={() => restartMutation.mutate()}
+              disabled={restartMutation.isPending || stopMutation.isPending || !pendingData?.memberId}
+            >
+              {restartMutation.isPending ? 'Restarting...' : 'Restart reclaim'}
+            </Button>
+          )}
           <Button
             variant="destructive"
             onClick={handleStopReclaim}
-            disabled={stopMutation.isPending}
+            disabled={stopMutation.isPending || restartMutation.isPending}
           >
             <X className="h-4 w-4 mr-2" />
             Stop reclaim (card not returned)

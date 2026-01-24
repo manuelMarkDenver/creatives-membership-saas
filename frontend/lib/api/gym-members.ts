@@ -67,6 +67,7 @@ export interface PendingAssignmentData {
   memberName: string
   purpose: string
   expiresAt: string
+  isExpired?: boolean
   expectedUidMasked?: string
   mismatch?: {
     expectedUidMasked?: string
@@ -259,6 +260,15 @@ export const membersApi = {
   async cancelPendingAssignment(gymId: string): Promise<any> {
     const response = await apiClient.delete(`/admin/members/pending-assignment`, {
       params: { gymId },
+    })
+    return response.data
+  },
+
+  // Restart reclaim pending assignment (new timer)
+  async restartPendingReclaim(memberId: string, gymId?: string): Promise<{ restarted: boolean; expiresAt: string }> {
+    const response = await apiClient.post(`/admin/members/pending-assignment/restart`, {
+      memberId,
+      gymId,
     })
     return response.data
   }

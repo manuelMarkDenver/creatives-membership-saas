@@ -13,6 +13,7 @@ import { useProfile, useSoftDeleteUser, useActivateUser, useDeactivateUser, useR
 import { calculateMemberStatus, MemberData } from '@/lib/utils/member-status'
 import { getMemberStatusDisplay } from '@/lib/utils/member-status-display'
 import { membersApi } from '@/lib/api/gym-members'
+import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -154,6 +155,23 @@ export function MemberCard({
   // Use our new status calculation and display utilities
   const memberStatus = calculateMemberStatus(member as MemberData)
   const memberDisplayInfo = getMemberStatusDisplay(memberStatus.displayStatus)
+
+  const gymId = member.gymMemberProfile?.primaryBranchId
+  const shouldCheckReclaim = Boolean(gymId)
+  const { data: pendingAssignment } = useQuery({
+    queryKey: ['pending-assignment', gymId],
+    queryFn: () => membersApi.getPendingAssignment(gymId as string),
+    enabled: shouldCheckReclaim,
+    staleTime: 2 * 1000,
+    refetchInterval: shouldCheckReclaim ? 5 * 1000 : false,
+    retry: false,
+  })
+
+  const reclaimPendingForMember =
+    !!pendingAssignment &&
+    pendingAssignment.purpose === 'RECLAIM' &&
+    pendingAssignment.memberId === member.id
+  const reclaimExpiredForMember = reclaimPendingForMember && !!pendingAssignment?.isExpired
   
   const getMemberStatus = () => {
     return memberStatus.displayStatus
@@ -162,7 +180,20 @@ export function MemberCard({
   // Helper function to get card status information
   const getCardStatusInfo = () => {
     const cardStatus = member.gymMemberProfile?.cardStatus
-    const hasActiveCard = member.gymMemberProfile?.cardUid && cardStatus === 'ACTIVE'
+    const hasActiveCard =
+      memberStatus.displayStatus === 'ACTIVE' &&
+      member.gymMemberProfile?.cardUid &&
+      cardStatus === 'ACTIVE'
+
+    if (reclaimPendingForMember) {
+      return {
+        label: reclaimExpiredForMember ? 'Reclaim Expired' : 'Reclaim In Progress',
+        variant: 'secondary' as const,
+        icon: Clock,
+        className:
+          'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800',
+      }
+    }
 
     if (hasActiveCard) {
       return {
@@ -171,7 +202,7 @@ export function MemberCard({
         icon: CreditCard,
         className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800'
       }
-    } else if (cardStatus === 'DISABLED') {
+    } else if (cardStatus === 'DISABLED' || (memberStatus.displayStatus !== 'ACTIVE' && member.gymMemberProfile?.cardUid)) {
       return {
         label: 'Card Disabled',
         variant: 'secondary' as const,
@@ -360,18 +391,18 @@ export function MemberCard({
       )}
 
         {/* Action section */}
-        <div className="flex flex-col gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          {/* Card Status Badge */}
-          <div className="flex items-center gap-2">
-            {(() => {
-              const cardStatus = getCardStatusInfo()
-              const Icon = cardStatus.icon
-              const badge = (
-                <Badge variant={cardStatus.variant} className={`text-xs px-2 py-1 flex items-center gap-1 ${cardStatus.className}`}>
-                  <Icon className="h-3 w-3" />
-                  {cardStatus.label}
-                </Badge>
-              )
+          <div className="flex flex-col gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+           {/* Card Status Badge */}
+           <div className="flex items-center gap-2">
+             {(() => {
+               const cardStatus = getCardStatusInfo()
+               const Icon = cardStatus.icon
+                const badge = (
+                  <Badge variant={cardStatus.variant} className={`text-xs px-2 py-1 flex items-center gap-1 ${cardStatus.className}`}>
+                    <Icon className="h-3 w-3" />
+                    {cardStatus.label}
+                  </Badge>
+                )
 
               // Show UID tooltip for active cards
               if (cardStatus.label === 'Card Active' && member.gymMemberProfile?.cardUid) {
@@ -395,20 +426,20 @@ export function MemberCard({
               return badge
             })()}
 
-            {/* Additional info badges for super admin */}
-            {isSuperAdmin && member.tenant && (
-              <Badge variant="outline" className="text-xs px-3 py-1 w-fit">
-                {member.tenant.name}
-              </Badge>
-            )}
-          </div>
+             {/* Additional info badges for super admin */}
+             {isSuperAdmin && member.tenant && (
+               <Badge variant="outline" className="text-xs px-3 py-1 w-fit">
+                 {member.tenant.name}
+               </Badge>
+             )}
+           </div>
 
-         <div className="flex flex-row items-center justify-end gap-2 w-full">
-          {/* Primary Card Actions - Moved to right side */}
-          {(() => {
-            const cardStatus = member.gymMemberProfile?.cardStatus
-            const canManage = canManageMember()
-            const currentState = getMemberStatus()
+          <div className="flex flex-row items-center justify-end gap-2 w-full">
+            {/* Primary Card Actions - Moved to right side */}
+            {(() => {
+              const cardStatus = member.gymMemberProfile?.cardStatus
+              const canManage = canManageMember()
+              const currentState = getMemberStatus()
 
             if (!canManage || currentState === 'DELETED') return null
 
@@ -524,22 +555,32 @@ export function MemberCard({
               }
            }
 
-           return (
-             <button
-               type="button"
-               className={`px-4 py-2.5 text-sm rounded-lg font-semibold transition-all duration-200 min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] ${getButtonClasses()}`}
-               onClick={getClickHandler()}
-               disabled={!canManage}
-             >
-               {canManage ? displayLabel : `${displayLabel}`}
-             </button>
-           )
-         })()}
+            return (
+              <button
+                type="button"
+                className={`px-4 py-2.5 text-sm rounded-lg font-semibold transition-all duration-200 min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] ${getButtonClasses()}`}
+                onClick={getClickHandler()}
+                disabled={!canManage}
+              >
+                {canManage ? displayLabel : `${displayLabel}`}
+              </button>
+            )
+          })()}
 
-         {/* Dropdown Menu */}
-         <DropdownMenu>
-           <DropdownMenuTrigger asChild>
-             <Button
+          {reclaimPendingForMember && (
+            <button
+              type="button"
+              className="px-4 py-2.5 text-sm rounded-lg font-semibold transition-all duration-200 min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] border border-purple-200 dark:border-purple-800 bg-white dark:bg-gray-900 hover:bg-purple-50 dark:hover:bg-purple-950 text-purple-700 dark:text-purple-400 shadow-sm hover:shadow-md"
+              onClick={resumeReclaim}
+            >
+              Reclaim Card
+            </button>
+          )}
+
+          {/* Dropdown Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
                variant="outline"
                size="lg"
                className="h-[44px] px-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg shadow-sm hover:shadow-md transition-all"

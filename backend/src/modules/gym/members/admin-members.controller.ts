@@ -163,6 +163,41 @@ export class AdminMembersController {
     return { cancelled: true };
   }
 
+  @Post('pending-assignment/restart')
+  @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
+  async restartPendingReclaim(
+    @Body() body: { memberId: string; gymId?: string },
+    @Req() req: RequestWithUser,
+  ) {
+    const performedBy = req.user?.id;
+    if (!performedBy) {
+      throw new Error('User not authenticated');
+    }
+
+    if (!body?.memberId) {
+      throw new BadRequestException('memberId is required');
+    }
+
+    const member = await this.gymMembersService.getMemberById(body.memberId);
+    const memberGymId = member.gymMemberProfile?.primaryBranchId;
+    if (!memberGymId) {
+      throw new BadRequestException('Member has no associated gym');
+    }
+
+    const targetGymId = body.gymId ?? memberGymId;
+    if (targetGymId !== memberGymId) {
+      throw new BadRequestException('gymId does not match member gym');
+    }
+
+    this.ensureGymAccess(req, targetGymId);
+
+    return this.gymMembersService.restartReclaimPending(
+      targetGymId,
+      body.memberId,
+      performedBy,
+    );
+  }
+
   private resolveGymId(req: RequestWithUser, gymId?: string): string {
     if (gymId) return gymId;
     const branchAccess = req.user?.branchAccess;
