@@ -703,17 +703,17 @@ export default function MembersPage() {
                <p className="text-sm text-muted-foreground">
                  Choose how many days to extend the membership
                </p>
-               <div className="grid grid-cols-2 gap-2">
-                 {[30, 60, 90, 180].map((days) => (
-                   <Button
-                     key={days}
-                     variant={renewalDays === days ? "default" : "outline"}
-                     onClick={() => handleRenewalDaysChange(days)}
-                     className="h-12"
-                   >
-                     {days} days
-                   </Button>
-                 ))}
+                <div className="grid grid-cols-2 gap-2">
+                  {[15, 30].map((days) => (
+                    <Button
+                      key={days}
+                      variant={renewalDays === days ? "default" : "outline"}
+                      onClick={() => handleRenewalDaysChange(days)}
+                      className="h-12"
+                    >
+                      {days} days
+                    </Button>
+                  ))}
                  <Button
                    variant={showCustomRenewalInput ? "default" : "outline"}
                    onClick={handleShowCustomRenewal}

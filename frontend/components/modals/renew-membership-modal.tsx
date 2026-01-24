@@ -107,17 +107,17 @@ export function RenewMembershipModal({
                  <p className="text-sm text-muted-foreground mb-3">
                    Choose how many days to extend the membership
                  </p>
-                 <div className="grid grid-cols-2 gap-2">
-                    {[30, 60, 90, 180].map((days) => (
-                      <Button
-                        key={days}
-                        variant={selectedDays === days ? "default" : "outline"}
-                        onClick={() => handleDaysChange(days)}
-                        className="h-12"
-                      >
-                       {days} days
-                     </Button>
-                   ))}
+                  <div className="grid grid-cols-2 gap-2">
+                     {[15, 30].map((days) => (
+                       <Button
+                         key={days}
+                         variant={selectedDays === days ? "default" : "outline"}
+                         onClick={() => handleDaysChange(days)}
+                         className="h-12"
+                       >
+                        {days} days
+                      </Button>
+                    ))}
                    <Button
                      variant={showCustomDaysInput ? "default" : "outline"}
                      onClick={handleShowCustomDays}

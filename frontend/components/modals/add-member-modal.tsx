@@ -676,18 +676,18 @@ export function AddMemberModal({
                  <p className="text-sm text-muted-foreground mb-3">
                    Choose how many days the membership should be valid for
                  </p>
-                 <div className="grid grid-cols-2 gap-2 mb-3">
-                   {[30, 60, 90, 180].map((days) => (
-                      <Button
-                        key={days}
-                        type="button"
-                        variant={formData.membershipDays === days ? "default" : "outline"}
-                        onClick={() => handleDaysChange(days)}
-                        className="h-12"
-                      >
-                       {days} days
-                     </Button>
-                   ))}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {[15, 30].map((days) => (
+                       <Button
+                         key={days}
+                         type="button"
+                         variant={formData.membershipDays === days ? "default" : "outline"}
+                         onClick={() => handleDaysChange(days)}
+                         className="h-12"
+                       >
+                        {days} days
+                      </Button>
+                    ))}
                    <Button
                      type="button"
                      variant={formData.showCustomDaysInput ? "default" : "outline"}
