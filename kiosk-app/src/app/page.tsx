@@ -223,21 +223,21 @@ export default function KioskPage() {
         return 'SUCCESS';
       case 'RECLAIMED':
         return 'SUCCESS';
-        case 'DENY_EXPIRED':
-        case 'DENY_DISABLED':
-        case 'DENY_GYM_MISMATCH':
-        case 'DENY_AUTO_ASSIGNED_EXPIRED':
-        case 'DENY_EXPIRED_PENDING':
-          return 'ACCESS DENIED';
-        case 'DENY_RECLAIM_MISMATCH':
-          return 'ERROR';
-        case 'DENY_UNKNOWN':
-        case 'DENY_INVENTORY':
-        case 'ERROR':
-        case 'IGNORED_DUPLICATE_TAP':
-          return 'WAIT';
-        default:
-          return 'ERROR';
+      case 'DENY_EXPIRED':
+      case 'DENY_DISABLED':
+      case 'DENY_GYM_MISMATCH':
+      case 'DENY_AUTO_ASSIGNED_EXPIRED':
+      case 'DENY_EXPIRED_PENDING':
+      case 'DENY_UNKNOWN':
+      case 'DENY_INVENTORY':
+        return 'ACCESS DENIED';
+      case 'DENY_RECLAIM_MISMATCH':
+        return 'ERROR';
+      case 'ERROR':
+      case 'IGNORED_DUPLICATE_TAP':
+        return 'WAIT';
+      default:
+        return 'ERROR';
       }
     }
     return 'TAP CARD';

@@ -371,10 +371,11 @@ export class AccessService {
           cardUid,
           memberId: operationalCard.memberId!,
         });
-        return {
+         return {
           result: 'DENY_EXPIRED',
           memberName: `${operationalCard.member.firstName} ${operationalCard.member.lastName}`,
           expiresAt: subscription?.endDate?.toISOString(),
+          message: 'Membership expired',
         };
       }
     } else if (
@@ -395,9 +396,10 @@ export class AccessService {
         ? `${operationalCard.member.firstName || 'Unknown'} ${operationalCard.member.lastName || 'User'}`
         : 'Unknown Member';
       console.log('DENY_DISABLED: memberName =', memberName);
-      return {
+       return {
         result: 'DENY_DISABLED',
         memberName,
+        message: 'Card disabled',
       };
     }
 
