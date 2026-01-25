@@ -9,7 +9,8 @@ import {
   UserPlus,
   Calendar,
   Crown,
-  Shield
+  Shield,
+  CalendarDays
 } from 'lucide-react'
 import { Role } from '@/types'
 
@@ -55,6 +56,13 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: Calendar,
     roles: ['OWNER' as Role, 'MANAGER' as Role],
     description: 'Manage tenant membership plans'
+  },
+  {
+    name: 'Daily',
+    href: '/daily',
+    icon: CalendarDays,
+    roles: ['OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role],
+    description: 'Daily walk-in entries and reports'
   },
 
   // Member-specific

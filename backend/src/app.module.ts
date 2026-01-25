@@ -18,6 +18,7 @@ import { BusinessUnitsModule } from './modules/business-units/business-units.mod
 import { SystemSettingsModule } from './core/system-settings/system-settings.module';
 import { EmailModule } from './core/email/email.module';
 import { AccessModule } from './modules/access/access.module';
+import { DailyModule } from './modules/daily/daily.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { AccessModule } from './modules/access/access.module';
     SystemSettingsModule,
     EmailModule,
     AccessModule,
+    DailyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

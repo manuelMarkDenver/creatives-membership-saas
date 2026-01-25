@@ -178,7 +178,7 @@ export default function KioskPage() {
     ].includes(result);
 
     if (
-      ['ALLOW', 'ASSIGNED', 'ALLOW_AUTO_ASSIGNED', 'RECLAIMED'].includes(result)
+      ['ALLOW', 'ASSIGNED', 'ALLOW_AUTO_ASSIGNED', 'RECLAIMED', 'DAILY_OK'].includes(result)
     ) {
       // Success sound - high pitch, short
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
@@ -207,6 +207,7 @@ export default function KioskPage() {
       case 'ASSIGNED': return 'bg-green-500';
       case 'ALLOW_AUTO_ASSIGNED': return 'bg-green-500';
       case 'RECLAIMED': return 'bg-green-500';
+      case 'DAILY_OK': return 'bg-green-500';
       case 'IGNORED_DUPLICATE_TAP': return 'bg-amber-500';
       default: return 'bg-red-500';
     }
@@ -215,14 +216,16 @@ export default function KioskPage() {
   const getText = () => {
     if (result) {
       switch (result.result) {
-        case 'ALLOW':
-          return 'SUCCESS';
-      case 'ASSIGNED':
-        return 'SUCCESS';
-      case 'ALLOW_AUTO_ASSIGNED':
-        return 'SUCCESS';
-      case 'RECLAIMED':
-        return 'SUCCESS';
+         case 'ALLOW':
+           return 'SUCCESS';
+       case 'ASSIGNED':
+         return 'SUCCESS';
+       case 'ALLOW_AUTO_ASSIGNED':
+         return 'SUCCESS';
+       case 'RECLAIMED':
+         return 'SUCCESS';
+       case 'DAILY_OK':
+         return 'DAILY RECORDED';
       case 'DENY_EXPIRED':
       case 'DENY_DISABLED':
       case 'DENY_GYM_MISMATCH':
@@ -267,12 +270,15 @@ export default function KioskPage() {
       case 'DENY_GYM_MISMATCH':
         message = 'This card belongs to a different gym location.\nPlease visit the gym where your membership is registered.';
         break;
-      case 'ASSIGNED':
-        message = `Card Assigned to ${result.memberName || 'Member'}`;
-        break;
-      case 'RECLAIMED':
-        message = `Card reclaimed for ${result.memberName || 'Member'}`;
-        break;
+       case 'ASSIGNED':
+         message = `Card Assigned to ${result.memberName || 'Member'}`;
+         break;
+       case 'RECLAIMED':
+         message = `Card reclaimed for ${result.memberName || 'Member'}`;
+         break;
+       case 'DAILY_OK':
+         message = 'Daily walk-in recorded';
+         break;
       case 'IGNORED_DUPLICATE_TAP':
         message = 'Tap Once';
         break;

@@ -4,6 +4,7 @@ import { TerminalsService } from './terminals.service';
 import { EventsService } from './events.service';
 import { CardAssignmentService } from './card-assignment.service';
 import { TapCooldownService } from './tap-cooldown.service';
+import { DailyRepository } from '../daily/repositories/daily.repository';
 
 @Injectable()
 export class AccessService {
@@ -13,6 +14,7 @@ export class AccessService {
     private eventsService: EventsService,
     private cardAssignmentService: CardAssignmentService,
     private tapCooldownService: TapCooldownService,
+    private dailyRepository: DailyRepository,
   ) {}
 
   async checkAccess(terminalId: string, encodedCardUid: string) {
@@ -258,7 +260,7 @@ export class AccessService {
       await this.eventsService.logEvent({
         gymId,
         terminalId,
-        type: 'ACCESS_DENY_GYM_MISMATCH',
+        type: 'ACCESS_DENY_WRONG_GYM',
         cardUid,
         memberId: operationalCard.memberId || undefined,
         meta: {
@@ -275,7 +277,7 @@ export class AccessService {
         ? `${operationalCard.member.firstName || 'Unknown'} ${operationalCard.member.lastName || 'User'}`
         : 'Unknown Member';
       return {
-        result: 'DENY_GYM_MISMATCH',
+        result: 'DENY_UNKNOWN',
         memberName,
       };
     }
@@ -328,6 +330,89 @@ export class AccessService {
       }
     }
 
+    // Handle DAILY cards
+    if (
+      operationalCard &&
+      operationalCard.gymId === gymId &&
+      operationalCard.type === 'DAILY'
+    ) {
+      // Check inventory card for gym scope and disabled status
+      const inventoryCard = await this.prisma.inventoryCard.findUnique({
+        where: { uid: cardUid },
+        include: { gym: true },
+      });
+
+      // Check inventory gym scope
+      if (inventoryCard && inventoryCard.allocatedGymId !== gymId) {
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'ACCESS_DENY_WRONG_GYM',
+          cardUid,
+          meta: {
+            inventoryGymId: inventoryCard.allocatedGymId,
+            terminalGymId: gymId,
+            mismatchType: 'inventory_gym',
+          },
+        });
+        console.log(
+          `🚨 INVENTORY GYM MISMATCH: Inventory gym ${inventoryCard.allocatedGymId} != Terminal gym ${gymId} - ACCESS DENIED`,
+        );
+        return { result: 'DENY_UNKNOWN' };
+      }
+
+      // Check inventory disabled status (overrides operational state)
+      if (inventoryCard && inventoryCard.status === 'DISABLED') {
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'ACCESS_DENY_DISABLED',
+          cardUid,
+        });
+        return { result: 'DENY_DISABLED' };
+      }
+
+      // Check operational card active status
+      if (!operationalCard.active) {
+        await this.eventsService.logEvent({
+          gymId,
+          terminalId,
+          type: 'ACCESS_DENY_DISABLED',
+          cardUid,
+        });
+        return { result: 'DENY_DISABLED' };
+      }
+
+      // Get daily walk-in amount from branch
+      const branch = await this.prisma.branch.findUnique({
+        where: { id: gymId },
+        select: { dailyWalkInAmount: true },
+      });
+
+      const amount = branch?.dailyWalkInAmount || 100;
+
+      // Create DailyEntry
+      await this.dailyRepository.create({
+        gym: { connect: { id: gymId } },
+        ...(terminalId && { terminal: { connect: { id: terminalId } } }),
+        cardUid,
+        amount,
+        status: 'RECORDED',
+        occurredAt: new Date(),
+      });
+
+      await this.eventsService.logEvent({
+        gymId,
+        terminalId,
+        type: 'DAILY_ENTRY_RECORDED',
+        cardUid,
+        meta: { amount },
+      });
+
+      return { result: 'DAILY_OK' };
+    }
+
+    // Handle MONTHLY cards
     if (
       operationalCard &&
       operationalCard.gymId === gymId &&

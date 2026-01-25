@@ -61,6 +61,7 @@ model Branch {
   email                  String?
   isActive               Boolean                  @default(true)
   isMainBranch           Boolean                  @default(false)
+  dailyWalkInAmount      Int                      @default(100)
   branchData             Json?
   createdAt              DateTime                 @default(now())
   createdBy              String?
@@ -71,6 +72,7 @@ model Branch {
   deletedByUser          User?                    @relation("BranchDeletedBy", fields: [deletedBy], references: [id])
   tenant                 Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   cards                  Card[]
+  dailyEntries           DailyEntry[]
   events                 Event[]
   primaryMemberProfiles  GymMemberProfile[]       @relation("PrimaryBranchProfiles")
   gymMemberSubscriptions GymMemberSubscription[]
@@ -561,6 +563,7 @@ model Terminal {
   createdAt    DateTime      @default(now())
   events       Event[]
   tapCooldowns TapCooldown[]
+  dailyEntries DailyEntry[]
   gym          Branch        @relation(fields: [gymId], references: [id], onDelete: Cascade)
   tenant       Tenant?       @relation(fields: [tenantId], references: [id])
 
@@ -635,6 +638,26 @@ model Event {
 
   @@index([gymId, createdAt])
   @@index([type])
+}
+
+model DailyEntry {
+  id             String           @id @default(cuid())
+  gymId          String
+  terminalId     String?
+  cardUid        String
+  occurredAt     DateTime         @default(now())
+  amount         Int
+  status         DailyEntryStatus @default(RECORDED)
+  voidedAt       DateTime?
+  voidedByUserId String?
+  voidReason     String?
+  createdAt      DateTime         @default(now())
+
+  gym            Branch           @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  terminal       Terminal?        @relation(fields: [terminalId], references: [id], onDelete: SetNull)
+
+  @@index([gymId, occurredAt])
+  @@index([cardUid, occurredAt])
 }
 
 model AuthEvent {
@@ -850,6 +873,11 @@ enum InventoryCardStatus {
 enum CardType {
   MONTHLY
   DAILY
+}
+
+enum DailyEntryStatus {
+  RECORDED
+  VOIDED
 }
 
 enum AssignmentPurpose {

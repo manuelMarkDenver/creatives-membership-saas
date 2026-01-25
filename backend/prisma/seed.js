@@ -1524,6 +1524,29 @@ async function seedTestAccessData() {
     console.log(`✅ Created inventory card: ${card.uid} (${card.status})`);
   }
 
+  // Create the 5 specific inventory cards for DAILY testing
+  const dailyInventoryUids = [
+    '0004453082',
+    '0004313846', 
+    '0004330508',
+    '0004513866',
+    '0004327711'
+  ];
+
+  for (const uid of dailyInventoryUids) {
+    const card = await prisma.inventoryCard.upsert({
+      where: { uid },
+      update: {},
+      create: {
+        uid,
+        status: 'AVAILABLE',
+        allocatedGymId: branch.id,
+        batchId: 'DAILY-BATCH-1',
+      },
+    });
+    console.log(`✅ Created DAILY inventory card: ${card.uid} (${card.status})`);
+  }
+
   // Add expired card to inventory as ASSIGNED
   const expiredInvCard = await prisma.inventoryCard.upsert({
     where: { uid: 'EXPIRED-CARD-001' },
@@ -1616,6 +1639,20 @@ async function seedTestAccessData() {
     console.log(`✅ Created pending assignment for Sofia Ramos`);
   }
 
+  // Create DAILY operational card for testing
+  await prisma.card.upsert({
+    where: { uid: '0004453082' },
+    update: {},
+    create: {
+      uid: '0004453082',
+      gymId: branch.id,
+      type: 'DAILY',
+      active: true,
+      memberId: null, // DAILY cards don't have members
+    },
+  });
+  console.log(`✅ Created DAILY operational card: 0004453082`);
+
   console.log('🎯 Test access data seeded successfully!');
   console.log(`   • Terminal: test-terminal-1 (secret: test-secret-123)`);
   console.log(`   • Available cards: TEST-CARD-002 to TEST-CARD-005`);
@@ -1623,6 +1660,7 @@ async function seedTestAccessData() {
   console.log(`   • Expired card: EXPIRED-CARD-001 (Amy)`);
   console.log(`   • Disabled card: DISABLED-CARD-001 (John)`);
   console.log(`   • Pending: Sofia Ramos`);
+  console.log(`   • DAILY card: 0004453082`);
 }
 
 main()
