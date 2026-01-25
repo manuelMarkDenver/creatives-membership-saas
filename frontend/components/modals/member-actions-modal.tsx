@@ -39,15 +39,18 @@ import { useMemberStatus, useActionReasons, useActivateMember, useCancelMember, 
 import type { MemberActionRequest } from '@/lib/api/gym-members'
 import { useActiveMembershipPlans } from '@/lib/hooks/use-membership-plans'
 import { ReclaimPendingModal } from '@/components/modals/reclaim-pending-modal'
+import type { User } from '@/types'
 
 export type MemberActionType = 'activate' | 'cancel' | 'restore' | 'renew' | 'assign_plan' | 'disable_card' | 'enable_card'
 
 interface MemberActionsModalProps {
   isOpen: boolean
   onClose: () => void
-  memberId: string
+  member?: User
+  memberId?: string
   actionType: MemberActionType
   onActionComplete?: () => void
+  onReclaimNeeded?: (reclaimInfo: { gymId: string; memberName: string; expiresAt: string }) => void
 }
 
 const actionConfig = {
@@ -128,9 +131,11 @@ const formatReasonOption = (reason: string): string => {
 export function MemberActionsModal({
   isOpen,
   onClose,
+  member,
   memberId,
   actionType,
-  onActionComplete
+  onActionComplete,
+  onReclaimNeeded
 }: MemberActionsModalProps) {
   const [reason, setReason] = useState('')
   const [notes, setNotes] = useState('')
@@ -138,19 +143,23 @@ export function MemberActionsModal({
   const [selectedCardUid, setSelectedCardUid] = useState('')
   const [cancelReason, setCancelReason] = useState('')
   const [cancelCardReturned, setCancelCardReturned] = useState(false)
-  const [cancelReclaimInfo, setCancelReclaimInfo] = useState<{ gymId: string; memberName: string; expiresAt: string } | null>(null)
-  const [showCancelReclaimModal, setShowCancelReclaimModal] = useState(false)
   
   const config = actionConfig[actionType]
   const IconComponent = config.icon
 
+  // Determine member ID to use
+  const resolvedMemberId = memberId || member?.id
+  
   // Fetch member data and action reasons
-  const { data: memberData, isLoading: memberLoading } = useMemberStatus(memberId)
+  const { data: memberData, isLoading: memberLoading } = useMemberStatus(resolvedMemberId || '')
   const { data: actionReasons, isLoading: reasonsLoading } = useActionReasons()
   const { data: membershipPlans } = useActiveMembershipPlans()
+  
+  // Use provided member data or fetched data
+  const resolvedMemberData = member || memberData
 
   // For enable_card, fetch member's disabled cards
-  const disabledCards = memberData?.cards?.filter((card: any) => !card.active) || []
+  const disabledCards = resolvedMemberData?.cards?.filter((card: any) => !card.active) || []
   
   // Ensure membershipPlans is always an array
   const safeMembershipPlans = Array.isArray(membershipPlans) ? membershipPlans : []
@@ -188,7 +197,7 @@ export function MemberActionsModal({
     })?.reasons || []).filter((reason: any) => reason && reason.trim() !== '')
   ))
 
-  // Reset form when modal opens
+   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
       setReason('')
@@ -197,11 +206,16 @@ export function MemberActionsModal({
       setSelectedCardUid('')
       setCancelReason('')
       setCancelCardReturned(false)
-      setCancelReclaimInfo(null)
     }
   }, [isOpen])
 
   const handleSubmit = async () => {
+    // Check if we have a member ID
+    if (!resolvedMemberId) {
+      toast.error('No member ID provided')
+      return
+    }
+
     // For assign_plan, we don't need reason, just plan selection
     if (actionType !== 'assign_plan' && actionType !== 'disable_card' && actionType !== 'enable_card' && !reason) {
       toast.error('Please select a reason')
@@ -213,13 +227,13 @@ export function MemberActionsModal({
       return
     }
 
-    const memberName = memberData ? `${memberData.firstName || 'Unknown'} ${memberData.lastName || 'User'}` : 'Member'
+    const memberName = resolvedMemberData ? `${resolvedMemberData.firstName || 'Unknown'} ${resolvedMemberData.lastName || 'User'}` : 'Member'
 
     try {
       switch (actionType) {
         case 'activate':
           await activateMutation.mutateAsync({
-            memberId,
+            memberId: resolvedMemberId,
             data: { reason, notes }
           })
           toast.success(`Successfully activated ${memberName}`)
@@ -227,7 +241,7 @@ export function MemberActionsModal({
 
         case 'restore':
           await restoreMutation.mutateAsync({
-            memberId,
+            memberId: resolvedMemberId,
             data: { reason, notes }
           })
           toast.success(`Successfully restored ${memberName}`)
@@ -235,7 +249,7 @@ export function MemberActionsModal({
 
         case 'renew':
           await renewMutation.mutateAsync({
-            memberId,
+            memberId: resolvedMemberId,
             data: { gymMembershipPlanId: selectedPlanId }
           })
           toast.success(`Successfully renewed ${memberName}'s membership`)
@@ -243,7 +257,7 @@ export function MemberActionsModal({
 
         case 'assign_plan':
           await assignPlanMutation.mutateAsync({
-            memberId,
+            memberId: resolvedMemberId,
             membershipPlanId: selectedPlanId
           })
           toast.success(`Successfully assigned membership plan to ${memberName}`)
@@ -251,7 +265,7 @@ export function MemberActionsModal({
 
         case 'disable_card':
           await disableCardMutation.mutateAsync({
-            memberId,
+            memberId: resolvedMemberId,
             data: { reason, notes }
           })
           toast.success(`Successfully disabled ${memberName}'s card`)
@@ -263,7 +277,7 @@ export function MemberActionsModal({
             return
           }
           await enableCardMutation.mutateAsync({
-            memberId,
+            memberId: resolvedMemberId,
             data: { cardUid: selectedCardUid, reason }
           })
           toast.success(`Successfully enabled ${memberName}'s card`)
@@ -289,41 +303,81 @@ export function MemberActionsModal({
   }
 
   const handleCancelAction = () => {
-    const memberName = `${memberData.firstName || 'Unknown'} ${memberData.lastName || 'User'}`.trim() || 'Member'
+    if (!resolvedMemberId) {
+      toast.error('No member ID provided')
+      return
+    }
+
+    const memberName = `${resolvedMemberData?.firstName || 'Unknown'} ${resolvedMemberData?.lastName || 'User'}`.trim() || 'Member'
 
     cancelMutation.mutate(
       {
-        memberId,
+        memberId: resolvedMemberId,
         data: {
           reason: cancelReason.trim() || undefined,
           cardReturned: cancelCardReturned,
         },
       },
       {
-        onSuccess: (result) => {
-          onClose()
-          resetCancelForm()
-          setCancelReclaimInfo(null)
-          onActionComplete?.()
+         onSuccess: (result) => {
+           console.log('Cancel API response:', result)
+           console.log('Card returned:', cancelCardReturned)
+           console.log('Full member data structure:', JSON.stringify(resolvedMemberData, null, 2))
+           console.log('Primary branch ID:', resolvedMemberData?.gymMemberProfile?.primaryBranchId)
+           console.log('Subscription object:', resolvedMemberData?.subscription)
+           console.log('Gym subscriptions array:', resolvedMemberData?.gymSubscriptions)
+           
+            if (result.reclaimPending) {
+             // Try multiple sources for branch ID
+             // Check gymMemberProfile first, then subscription (singular), then gymSubscriptions (plural)
+             const branchId = 
+               resolvedMemberData?.gymMemberProfile?.primaryBranchId || 
+               resolvedMemberData?.subscription?.branchId ||
+               resolvedMemberData?.gymSubscriptions?.[0]?.branchId
+             
+             console.log('Looking for branch ID in member data:', {
+               gymMemberProfile: resolvedMemberData?.gymMemberProfile,
+               subscription: resolvedMemberData?.subscription,
+               gymSubscriptions: resolvedMemberData?.gymSubscriptions,
+               foundBranchId: branchId
+             })
+             
+             if (!branchId) {
+               console.error('No branch ID found for reclaim', resolvedMemberData)
+               toast.error('Cannot start reclaim: No gym branch associated with member')
+               return
+             }
+             
+             const expiresAt =
+               result.expiresAt || new Date(Date.now() + 10 * 60 * 1000).toISOString()
+             const reclaimInfo = {
+               gymId: branchId,
+               memberName,
+               expiresAt,
+             }
+             
+              console.log('Showing reclaim modal with info:', reclaimInfo)
+              // Call parent callback for reclaim BEFORE closing modal
+              onReclaimNeeded?.(reclaimInfo)
+              toast.info(`Reclaim pending for ${memberName}`)
+              
+              // Close modal after a short delay to ensure parent state updates
+              setTimeout(() => {
+                onClose()
+                resetCancelForm()
+                onActionComplete?.()
+              }, 100)
+              return
+            }
 
-          if (
-            result.reclaimPending &&
-            memberData.gymMemberProfile?.primaryBranchId
-          ) {
-            const expiresAt =
-              result.expiresAt || new Date(Date.now() + 10 * 60 * 1000).toISOString()
-            setCancelReclaimInfo({
-              gymId: memberData.gymMemberProfile.primaryBranchId,
-              memberName,
-              expiresAt,
-            })
-            setShowCancelReclaimModal(true)
-            toast.info(`Reclaim pending for ${memberName}`)
-            return
-          }
-
-          toast.success(`Successfully cancelled ${memberName}'s membership`)
-        },
+            console.log('No reclaim needed or missing branch ID')
+            toast.success(`Successfully cancelled ${memberName}'s membership`)
+            
+            // Close modal for non-reclaim cancellations
+            onClose()
+            resetCancelForm()
+            onActionComplete?.()
+         },
         onError: (error: any) => {
           console.error('cancel failed:', error)
           const errorMessage =
@@ -338,11 +392,11 @@ export function MemberActionsModal({
     )
   }
 
-  const isLoading = memberLoading || reasonsLoading
+  const isLoading = (!member && memberLoading) || reasonsLoading
   const isMutating = activateMutation.isPending || cancelMutation.isPending || restoreMutation.isPending || renewMutation.isPending || assignPlanMutation.isPending || disableCardMutation.isPending || enableCardMutation.isPending
 
-  // Early return with loading state
-  if (isLoading) {
+  // Early return with loading state (only if we need to fetch member data)
+  if (!member && isLoading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[500px]">
@@ -355,7 +409,7 @@ export function MemberActionsModal({
   }
 
   // Early return if no member data
-  if (!memberData) {
+  if (!resolvedMemberData) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[500px]">
@@ -369,7 +423,7 @@ export function MemberActionsModal({
 
   
   // Safe status icon selection
-  const currentState = memberData.currentState as keyof typeof statusIcons
+  const currentState = resolvedMemberData.currentState as keyof typeof statusIcons
   const StatusIcon = (currentState && statusIcons[currentState]) 
     ? statusIcons[currentState].icon 
     : Info
@@ -378,19 +432,18 @@ export function MemberActionsModal({
     : 'text-gray-400'
 
   if (actionType === 'cancel') {
-    const memberName = `${memberData.firstName || 'Unknown'} ${memberData.lastName || 'User'}`.trim() || 'Member'
+    const memberName = `${resolvedMemberData.firstName || 'Unknown'} ${resolvedMemberData.lastName || 'User'}`.trim() || 'Member'
     return (
       <>
-        <Dialog
-          open={isOpen}
-          onOpenChange={(open) => {
-            if (!open) {
-              resetCancelForm()
-              setCancelReclaimInfo(null)
-              onClose()
-            }
-          }}
-        >
+         <Dialog
+           open={isOpen}
+           onOpenChange={(open) => {
+             if (!open) {
+               resetCancelForm()
+               onClose()
+             }
+           }}
+         >
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-red-600">
@@ -402,20 +455,13 @@ export function MemberActionsModal({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-4">
-              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                <p className="font-semibold text-yellow-700">Warning</p>
-                <p className="text-sm text-yellow-800">
-                  The member will be suspended and will need a new membership to regain access.
-                </p>
-              </div>
-
-              {/* Action Warning/Info */}
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-                <p className="text-sm text-amber-800">
-                  <strong>Warning:</strong> This will immediately cancel the member's access to gym facilities. This action will be logged in their history.
-                </p>
-              </div>
+             <div className="space-y-4 py-4">
+               <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                 <p className="font-semibold text-yellow-700">Warning</p>
+                 <p className="text-sm text-yellow-800">
+                   This will immediately cancel the member's access to gym facilities. The member will be suspended and will need a new membership to regain access. This action will be logged in their history.
+                 </p>
+               </div>
 
               <div className="space-y-2">
                 <Label>Cancellation Notes (optional)</Label>
@@ -427,56 +473,55 @@ export function MemberActionsModal({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Card Returned?</Label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className={`flex-1 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
-                      cancelCardReturned
-                        ? 'bg-white text-slate-900 border-slate-900 shadow-sm'
-                        : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
-                    }`}
-                    onClick={() => setCancelCardReturned(true)}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    className={`flex-1 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
-                      !cancelCardReturned
-                        ? 'bg-white text-slate-900 border-slate-900 shadow-sm'
-                        : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
-                    }`}
-                    onClick={() => setCancelCardReturned(false)}
-                  >
-                    No
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500">
-                  Choose "Yes" only if the member handed back their card. The kiosk will then verify it before updating inventory.
-                </p>
-              </div>
+               <div className="space-y-2">
+                 <Label>Card Returned?</Label>
+                 <div className="flex gap-2">
+                   <button
+                     type="button"
+                     className={`flex-1 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
+                       cancelCardReturned
+                         ? 'bg-green-50 text-green-700 border-green-500 shadow-sm'
+                         : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
+                     }`}
+                     onClick={() => setCancelCardReturned(true)}
+                   >
+                     Yes
+                   </button>
+                   <button
+                     type="button"
+                     className={`flex-1 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
+                       !cancelCardReturned
+                         ? 'bg-red-50 text-red-700 border-red-500 shadow-sm'
+                         : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
+                     }`}
+                     onClick={() => setCancelCardReturned(false)}
+                   >
+                     No
+                   </button>
+                 </div>
+                 <p className="text-xs text-slate-500">
+                   Choose "Yes" only if the member handed back their card. The kiosk will then verify it before updating inventory.
+                 </p>
+               </div>
 
-              {memberData.subscription && (
-                <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
-                  <p className="text-xs text-gray-600">Active Plan</p>
-                  <p className="font-semibold text-gray-900">{memberData.subscription.gymMembershipPlan?.name || 'Unknown Plan'}</p>
-                  <p className="text-xs text-gray-500">
-                    Valid until {new Date(memberData.subscription.endDate).toLocaleDateString()}
-                  </p>
-                </div>
-              )}
+               {resolvedMemberData.subscription && (
+                 <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                   <p className="text-xs text-gray-600">Active Plan</p>
+                   <p className="font-semibold text-gray-900">{resolvedMemberData.subscription.gymMembershipPlan?.name || 'Unknown Plan'}</p>
+                   <p className="text-xs text-gray-500">
+                     Valid until {new Date(resolvedMemberData.subscription.endDate).toLocaleDateString()}
+                   </p>
+                 </div>
+               )}
             </div>
 
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => {
-                  resetCancelForm()
-                  setCancelReclaimInfo(null)
-                  onClose()
-                }}
+                 onClick={() => {
+                   resetCancelForm()
+                   onClose()
+                 }}
                 disabled={cancelMutation.isPending}
               >
                 Keep Active
@@ -494,23 +539,11 @@ export function MemberActionsModal({
                      : 'Cancel Membership'}
                </Button>
             </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {cancelReclaimInfo && (
-          <ReclaimPendingModal
-            gymId={cancelReclaimInfo.gymId}
-            memberName={cancelReclaimInfo.memberName}
-            initialExpiresAt={cancelReclaimInfo.expiresAt}
-            isOpen={showCancelReclaimModal}
-            onClose={() => {
-              setShowCancelReclaimModal(false)
-            }}
-          />
-        )}
-      </>
-    )
-  }
+           </DialogContent>
+         </Dialog>
+       </>
+     )
+   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -525,48 +558,48 @@ export function MemberActionsModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Member Information */}
-          {memberData && (
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-semibold">{memberData.firstName} {memberData.lastName}</h4>
-                  <p className="text-sm text-muted-foreground">{memberData.email}</p>
-                </div>
-                <div className="text-right">
-                  <div className={`flex items-center gap-1 ${statusColor}`}>
-                    <StatusIcon className="h-4 w-4" />
-                    <span className="text-sm font-medium">{memberData.currentState || 'Unknown'}</span>
-                  </div>
-                </div>
-              </div>
+         <div className="space-y-6">
+           {/* Member Information */}
+           {resolvedMemberData && (
+             <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
+               <div className="flex items-center justify-between">
+                 <div>
+                   <h4 className="font-semibold">{resolvedMemberData.firstName} {resolvedMemberData.lastName}</h4>
+                   <p className="text-sm text-muted-foreground">{resolvedMemberData.email}</p>
+                 </div>
+                 <div className="text-right">
+                   <div className={`flex items-center gap-1 ${statusColor}`}>
+                     <StatusIcon className="h-4 w-4" />
+                     <span className="text-sm font-medium">{resolvedMemberData.currentState || 'Unknown'}</span>
+                   </div>
+                 </div>
+               </div>
 
-              {/* Current subscription info */}
-               {memberData.subscription && (
-                 <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                   <div className="grid grid-cols-2 gap-4 text-xs">
+               {/* Current subscription info */}
+                {resolvedMemberData.subscription && (
+                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Plan:</span>
+                        <p className="font-medium">{resolvedMemberData.subscription.gymMembershipPlan?.name || 'Unknown Plan'}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Price:</span>
+                        <p className="font-medium text-green-600">₱{resolvedMemberData.subscription.gymMembershipPlan?.price || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Start:</span>
+                        <p className="font-medium">{new Date(resolvedMemberData.subscription.startDate).toLocaleDateString()}</p>
+                      </div>
                      <div>
-                       <span className="text-muted-foreground">Plan:</span>
-                       <p className="font-medium">{memberData.subscription.gymMembershipPlan?.name || 'Unknown Plan'}</p>
+                       <span className="text-muted-foreground">End:</span>
+                       <p className="font-medium">{new Date(resolvedMemberData.subscription.endDate).toLocaleDateString()}</p>
                      </div>
-                     <div>
-                       <span className="text-muted-foreground">Price:</span>
-                       <p className="font-medium text-green-600">₱{memberData.subscription.gymMembershipPlan?.price || 'N/A'}</p>
-                     </div>
-                     <div>
-                       <span className="text-muted-foreground">Start:</span>
-                       <p className="font-medium">{new Date(memberData.subscription.startDate).toLocaleDateString()}</p>
-                     </div>
-                    <div>
-                      <span className="text-muted-foreground">End:</span>
-                      <p className="font-medium">{new Date(memberData.subscription.endDate).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+                   </div>
+                 </div>
+               )}
+             </div>
+           )}
 
            {/* Card Selection (for enable_card) */}
            {actionType === 'enable_card' && (
@@ -690,7 +723,7 @@ export function MemberActionsModal({
            <Button
              variant={config.buttonVariant}
              onClick={handleSubmit}
-             disabled={(actionType !== 'assign_plan' && !reason) || ((actionType === 'renew' || actionType === 'assign_plan') && !selectedPlanId) || (actionType === 'enable_card' && !selectedCardUid) || isMutating}
+              disabled={(actionType !== 'assign_plan' && !reason) || ((actionType === 'renew' || actionType === 'assign_plan') && !selectedPlanId) || (actionType === 'enable_card' && !selectedCardUid) || isMutating || !resolvedMemberId}
            >
             <IconComponent className="w-4 h-4 mr-2" />
             {isMutating ? `${config.buttonText.split(' ')[0]}ing...` : config.buttonText}

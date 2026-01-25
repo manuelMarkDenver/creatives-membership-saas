@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useProfile, useUsersByTenant, userKeys } from '@/lib/hooks/use-gym-users'
 import { useSystemMemberStats } from '@/lib/hooks/use-stats'
@@ -43,6 +43,7 @@ import { ChangePlanModal } from '@/components/modals/change-plan-modal'
 import { AssignCardModal } from '@/components/modals/assign-card-modal'
 import { ReplaceCardModal } from '@/components/modals/replace-card-modal'
 import { ReclaimPendingModal } from '@/components/modals/reclaim-pending-modal'
+import { MemberActionsModal } from '@/components/modals/member-actions-modal'
 import { MemberCard } from '@/components/members/member-card'
 import { StatsOverview } from '@/components/members/stats-overview'
 import { useRenewMemberSubscription, useRenewMembership, useCancelMember } from '@/lib/hooks/use-gym-member-actions'
@@ -64,14 +65,25 @@ export default function MembersPage() {
   const [showMemberInfoModal, setShowMemberInfoModal] = useState(false)
   const [showAddMemberModal, setShowAddMemberModal] = useState(false)
   const [showRenewalModal, setShowRenewalModal] = useState(false)
-  const [showCancellationModal, setShowCancellationModal] = useState(false)
   const [selectedMemberForAction, setSelectedMemberForAction] = useState<User | null>(null)
   const [renewalDays, setRenewalDays] = useState<number | null>(null)
   const [showCustomRenewalInput, setShowCustomRenewalInput] = useState(false)
-  const [cancellationReason, setCancellationReason] = useState('')
-  const [cardReturned, setCardReturned] = useState(false)
   const [reclaimInfo, setReclaimInfo] = useState<{ gymId: string; memberName: string; expiresAt: string } | null>(null)
   const [showReclaimModal, setShowReclaimModal] = useState(false)
+
+  // Debug: Monitor reclaimInfo state changes
+  useEffect(() => {
+    console.log('🔍 PARENT: reclaimInfo changed:', reclaimInfo)
+    console.log('🔍 PARENT: showReclaimModal changed:', showReclaimModal)
+    console.log('🔍 PARENT: Modal should be visible:', showReclaimModal && reclaimInfo)
+    
+    if (showReclaimModal && reclaimInfo) {
+      console.log('🎯 PARENT: Reclaim modal SHOULD be showing now!')
+      console.log('🎯 PARENT: Member:', reclaimInfo.memberName)
+      console.log('🎯 PARENT: Gym ID:', reclaimInfo.gymId)
+      console.log('🎯 PARENT: Expires at:', reclaimInfo.expiresAt)
+    }
+  }, [reclaimInfo, showReclaimModal])
   const [showTransactionModal, setShowTransactionModal] = useState(false)
   const [selectedMemberForTransactions, setSelectedMemberForTransactions] = useState<User | null>(null)
   const [showPlansRequiredModal, setShowPlansRequiredModal] = useState(false)
@@ -123,7 +135,6 @@ export default function MembersPage() {
   
   // Mutation hooks for membership operations
   const renewMembershipMutation = useRenewMembership()
-  const cancelMembershipMutation = useCancelMember()
   
   // Helper function to refresh all members data
   const refreshMembersData = async () => {
@@ -160,64 +171,7 @@ export default function MembersPage() {
 
   // Helper functions
 
-  const handleCancellation = () => {
-    if (!selectedMemberForAction) {
-      toast.error('No member selected for cancellation')
-      return
-    }
 
-    const memberName = `${selectedMemberForAction.firstName} ${selectedMemberForAction.lastName}`.trim()
-
-    cancelMembershipMutation.mutate(
-      {
-        memberId: selectedMemberForAction.id,
-        data: {
-          reason: cancellationReason.trim() || undefined,
-          cardReturned,
-        },
-      },
-      {
-        onSuccess: async (result) => {
-          setShowCancellationModal(false)
-          setSelectedMemberForAction(null)
-          setCancellationReason('')
-          setCardReturned(false)
-
-           await refreshMembersData()
-           
-           // Invalidate pending assignments query when reclaim is created
-           queryClient.invalidateQueries({ queryKey: ['pending-assignments'] })
-
-           if (
-             result.reclaimPending &&
-             selectedMemberForAction.gymMemberProfile?.primaryBranchId
-           ) {
-             const expiresAt =
-               result.expiresAt || new Date(Date.now() + 10 * 60 * 1000).toISOString()
-             setReclaimInfo({
-               gymId: selectedMemberForAction.gymMemberProfile.primaryBranchId,
-               memberName: memberName || 'Member',
-               expiresAt,
-             })
-             setShowReclaimModal(true)
-             toast.info(`Reclaim pending for ${memberName || 'this member'}`)
-             return
-           }
-
-           toast.success(`Membership cancelled successfully for ${memberName || 'this member'}`)
-        },
-        onError: (error: unknown) => {
-          const errorMessage =
-            error && typeof error === 'object' && 'response' in error
-              ? (error.response as { data?: { message?: string } })?.data?.message
-              : 'Please try again.'
-           toast.error(`Failed to cancel membership\n${errorMessage || 'Please try again.'}`, {
-            autoClose: 5000,
-          })
-        },
-      },
-    )
-  }
 
   // Helper function to get member's branch ID (use primaryBranchId as source of truth)
   const getMemberBranchId = (member: MemberData): string | null => {
@@ -563,10 +517,6 @@ export default function MembersPage() {
                        setSelectedMemberForAction(member)
                        setShowRenewalModal(true)
                      }}
-                     onCancelSubscription={(member: User) => {
-                       setSelectedMemberForAction(member)
-                       setShowCancellationModal(true)
-                     }}
                      onChangePlan={(member: User) => {
                        setSelectedMemberForChangePlan(member)
                       setShowChangePlanModal(true)
@@ -575,11 +525,52 @@ export default function MembersPage() {
                         setSelectedMemberForAssignCard(member)
                         setShowAssignCardModal(true)
                       }}
-                      onReplaceCard={(member: User) => {
-                        setSelectedMemberForReplaceCard(member)
-                        setShowReplaceCardModal(true)
-                      }}
-                    onMemberDeleted={async () => {
+                       onReplaceCard={(member: User) => {
+                         setSelectedMemberForReplaceCard(member)
+                         setShowReplaceCardModal(true)
+                       }}
+                       onReclaimCard={async (member: User) => {
+                         console.log('🔄 PARENT: onReclaimCard called for member:', member.id)
+                         
+                         try {
+                           // Get the member's gym ID
+                           const gymId = member.gymMemberProfile?.primaryBranchId
+                           if (!gymId) {
+                             toast.error('Member has no associated gym')
+                             return
+                           }
+                           
+                           // Fetch pending assignment
+                           const membersApi = (await import('@/lib/api/gym-members')).membersApi
+                           const pending = await membersApi.getPendingAssignment(gymId)
+                           
+                           if (!pending || pending.memberId !== member.id || pending.purpose !== 'RECLAIM') {
+                             toast.info('No reclaim pending for this member')
+                             return
+                           }
+                           
+                           const memberName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email || 'Unknown'
+                           const reclaimInfo = {
+                             gymId,
+                             memberName,
+                             expiresAt: pending.expiresAt,
+                           }
+                           
+                           console.log('🔄 PARENT: Showing reclaim modal from member card:', reclaimInfo)
+                           setReclaimInfo(reclaimInfo)
+                           setShowReclaimModal(true)
+                           
+                         } catch (error: any) {
+                           console.error('Failed to load reclaim status:', error)
+                           toast.error(error?.response?.data?.message || 'Failed to load reclaim status')
+                         }
+                       }}
+                       onReclaimNeeded={(reclaimInfo) => {
+                         console.log('🔄 PARENT: onReclaimNeeded from member card:', reclaimInfo)
+                         setReclaimInfo(reclaimInfo)
+                         setShowReclaimModal(true)
+                       }}
+                     onMemberDeleted={async () => {
                       // Refresh members list after deletion
                       await refreshMembersData()
                     }}
@@ -774,116 +765,24 @@ export default function MembersPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+       </Dialog>
 
-      {/* Membership Cancellation Modal */}
-      <Dialog open={showCancellationModal} onOpenChange={(open) => {
-        setShowCancellationModal(open)
-        if (!open) {
-          setSelectedMemberForAction(null)
-          setCancellationReason('')
-          setCardReturned(false)
-        }
-      }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <UserX className="h-5 w-5" />
-              Cancel Membership
-            </DialogTitle>
-            <DialogDescription>
-              Canceling this membership will immediately disallow access for this member. This action can only be undone by creating a new membership.
-            </DialogDescription>
-          </DialogHeader>
+        <MemberActionsModal
+          isOpen={!!selectedMemberForAction}
+          onClose={() => setSelectedMemberForAction(null)}
+          member={selectedMemberForAction || undefined}
+          actionType="cancel"
+          onReclaimNeeded={(reclaimInfo) => {
+            console.log('🚀 PARENT: onReclaimNeeded called with:', reclaimInfo)
+            console.log('📊 PARENT: Current showReclaimModal before:', showReclaimModal)
+            console.log('📊 PARENT: Current reclaimInfo before:', reclaimInfo)
+            setReclaimInfo(reclaimInfo)
+            setShowReclaimModal(true)
+            console.log('✅ PARENT: State updated - should show modal now')
+          }}
+        />
 
-          <div className="space-y-4 py-4">
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="text-sm text-yellow-800 font-medium">Warning</p>
-              <p className="text-sm text-yellow-700">
-                Once cancelled, the member will be denied access until a new membership is issued. You may optionally reclaim their card if it has been returned.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Cancellation Notes (optional)</Label>
-              <Textarea
-                placeholder="Add a note or reason for the cancellation"
-                value={cancellationReason}
-                onChange={(e) => setCancellationReason(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Card Returned?</Label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className={`flex-1 rounded-lg border px-4 py-2 text-sm font-semibold transition duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
-                      cardReturned
-                        ? 'bg-white text-slate-900 border-slate-900 shadow-sm'
-                        : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
-                    }`}
-                    onClick={() => setCardReturned(true)}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    className={`flex-1 rounded-lg border px-4 py-2 text-sm font-semibold transition duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
-                      !cardReturned
-                        ? 'bg-white text-slate-900 border-slate-900 shadow-sm'
-                        : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
-                    }`}
-                    onClick={() => setCardReturned(false)}
-                  >
-                    No
-                  </button>
-                </div>
-              <p className="text-xs text-slate-500">
-                Select "Yes" only if the member handed back the card. This will open a reclaim flow that waits for a tap at the kiosk.
-              </p>
-            </div>
-
-            {selectedMemberForAction?.gymSubscriptions?.[0] && (
-              <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
-                <p className="text-sm text-gray-600">Current Plan</p>
-                <p className="font-semibold text-gray-900">
-                  {selectedMemberForAction.gymSubscriptions[0].gymMembershipPlan?.name}
-                </p>
-                <p className="text-xs text-gray-500">
-                  Valid until {new Date(selectedMemberForAction.gymSubscriptions[0].endDate).toLocaleDateString()}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowCancellationModal(false)
-                setSelectedMemberForAction(null)
-                setCancellationReason('')
-                setCardReturned(false)
-              }}
-              disabled={cancelMembershipMutation.isPending}
-            >
-              Keep Active
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={cancelMembershipMutation.isPending}
-              onClick={handleCancellation}
-            >
-              <UserX className="w-4 h-4 mr-2" />
-              {cancelMembershipMutation.isPending ? 'Cancelling...' : 'Cancel Membership'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {reclaimInfo && (
+       {reclaimInfo && (
         <ReclaimPendingModal
           gymId={reclaimInfo.gymId}
           memberName={reclaimInfo.memberName}

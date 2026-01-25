@@ -53,10 +53,11 @@ interface MemberCardProps {
   onViewMemberInfo: (member: User) => void
   onViewTransactions: (member: User) => void
   onRenewSubscription: (member: User) => void
-  onCancelSubscription: (member: User) => void
   onChangePlan: (member: User) => void
   onAssignCard: (member: User) => void
   onReplaceCard: (member: User) => void
+  onReclaimCard?: (member: User) => void
+  onReclaimNeeded?: (reclaimInfo: { gymId: string; memberName: string; expiresAt: string }) => void
   onMemberDeleted: () => void
 }
 
@@ -66,10 +67,11 @@ export function MemberCard({
   onViewMemberInfo,
   onViewTransactions,
   onRenewSubscription,
-  onCancelSubscription,
   onChangePlan,
   onAssignCard,
   onReplaceCard,
+  onReclaimCard,
+  onReclaimNeeded,
   onMemberDeleted
 }: MemberCardProps) {
   const [showTransactionModal, setShowTransactionModal] = useState(false)
@@ -79,34 +81,29 @@ export function MemberCard({
   const [showMemberActionsModal, setShowMemberActionsModal] = useState(false)
   const [currentAction, setCurrentAction] = useState<MemberActionType>('activate')
   const [showMemberHistoryModal, setShowMemberHistoryModal] = useState(false)
-  const [showReclaimModal, setShowReclaimModal] = useState(false)
-  const [reclaimInfo, setReclaimInfo] = useState<{ gymId: string; memberName: string; expiresAt: string } | null>(null)
   const memberName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email || 'Unknown'
 
-  const resumeReclaim = async () => {
-    const gymId = member.gymMemberProfile?.primaryBranchId
-    if (!gymId) {
-      toast.error('Member has no associated gym')
-      return
-    }
-
-    try {
-      const pending = await membersApi.getPendingAssignment(gymId)
-      if (!pending || pending.memberId !== member.id || pending.purpose !== 'RECLAIM') {
-        toast.info('No reclaim pending for this member')
-        return
-      }
-
-      setReclaimInfo({
-        gymId,
-        memberName,
-        expiresAt: pending.expiresAt,
-      })
-      setShowReclaimModal(true)
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Failed to load reclaim status')
-    }
-  }
+  // Reclaim functionality moved to parent page modal system
+  // const resumeReclaim = async () => {
+  //   const gymId = member.gymMemberProfile?.primaryBranchId
+  //   if (!gymId) {
+  //     toast.error('Member has no associated gym')
+  //     return
+  //   }
+  // 
+  //   try {
+  //     const pending = await membersApi.getPendingAssignment(gymId)
+  //     if (!pending || pending.memberId !== member.id || pending.purpose !== 'RECLAIM') {
+  //       toast.info('No reclaim pending for this member')
+  //       return
+  //     }
+  // 
+  //     // TODO: Pass reclaim request to parent component
+  //     console.log('Reclaim requested for member:', memberName, 'gym:', gymId)
+  //   } catch (error: any) {
+  //     toast.error(error?.response?.data?.message || 'Failed to load reclaim status')
+  //   }
+  // }
   
   // Get current user profile for branch permissions
   const { data: profile } = useProfile()
@@ -606,7 +603,10 @@ export function MemberCard({
                   case 'REPLACE':
                     return () => onReplaceCard?.(member)
                   case 'RECLAIM':
-                    return () => resumeReclaim?.()
+                    return () => {
+                      console.log('Pending reclaim assignment clicked for member:', member.id)
+                      onReclaimCard?.(member)
+                    }
                   default:
                     return () => onAssignCard?.(member)
                 }
@@ -622,9 +622,9 @@ export function MemberCard({
                   case 'EXPIRED':
                     return () => onRenewSubscription(member)
                    case 'EXPIRING':
-                     return () => onCancelSubscription(member)
-                  case 'ACTIVE':
-                    return () => onCancelSubscription(member)
+                      return () => openMemberActionModal('cancel')
+                   case 'ACTIVE':
+                     return () => openMemberActionModal('cancel')
                   case 'NO_SUBSCRIPTION':
                     return () => openMemberActionModal('assign_plan')
                   case 'SUSPENDED':
@@ -691,15 +691,7 @@ export function MemberCard({
             )
           })()}
 
-          {reclaimPendingForMember && (
-            <button
-              type="button"
-              className="px-4 py-2.5 text-sm rounded-lg font-semibold transition-all duration-200 min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] border border-purple-200 dark:border-purple-800 bg-white dark:bg-gray-900 hover:bg-purple-50 dark:hover:bg-purple-950 text-purple-700 dark:text-purple-400 shadow-sm hover:shadow-md"
-              onClick={resumeReclaim}
-            >
-              Reclaim Card
-            </button>
-          )}
+
 
           {/* Dropdown Menu */}
           <DropdownMenu>
@@ -758,18 +750,21 @@ export function MemberCard({
                     </DropdownMenuItem>
                   )
                 
-                case 'CANCELLED':
-                  return (
-                    <>
-                      {member.gymMemberProfile?.cardUid && (
-                        <DropdownMenuItem
-                          className="text-purple-600"
-                          onClick={resumeReclaim}
-                        >
-                          <CreditCard className="mr-2 h-4 w-4" />
-                          Resume Card Reclaim
-                        </DropdownMenuItem>
-                      )}
+                 case 'CANCELLED':
+                   return (
+                     <>
+                       {member.gymMemberProfile?.cardUid && !reclaimPendingForMember && (
+                         <DropdownMenuItem
+                           className="text-purple-600"
+               onClick={() => {
+                 console.log('Resume Card Reclaim dropdown clicked for member:', member.id)
+                 onReclaimCard?.(member)
+               }}
+                         >
+                           <CreditCard className="mr-2 h-4 w-4" />
+                           Resume Card Reclaim
+                         </DropdownMenuItem>
+                       )}
                       <DropdownMenuItem 
                         className="text-green-600"
                         onClick={() => openMemberActionModal('activate')}
@@ -915,11 +910,16 @@ export function MemberCard({
       />
       
       {/* Member Actions Modal */}
-      <MemberActionsModal
+       <MemberActionsModal
         isOpen={showMemberActionsModal}
         onClose={() => setShowMemberActionsModal(false)}
         memberId={member.id}
         actionType={currentAction}
+        onReclaimNeeded={(reclaimInfo) => {
+          console.log('🔄 MEMBER CARD: onReclaimNeeded called:', reclaimInfo)
+          // Pass reclaim info directly to parent
+          onReclaimNeeded?.(reclaimInfo)
+        }}
         onActionComplete={() => {
           // Refresh member data after action
           if (onMemberDeleted) {
@@ -949,15 +949,7 @@ export function MemberCard({
          }}
        />
 
-       {reclaimInfo && (
-         <ReclaimPendingModal
-           gymId={reclaimInfo.gymId}
-           memberName={reclaimInfo.memberName}
-           initialExpiresAt={reclaimInfo.expiresAt}
-           isOpen={showReclaimModal}
-           onClose={() => setShowReclaimModal(false)}
-         />
-       )}
+
     </div>
   )
 }
