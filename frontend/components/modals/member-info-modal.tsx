@@ -410,35 +410,6 @@ export function MemberInfoModal({
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    disabled={!isEditing}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="phoneNumber">Phone</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="phoneNumber"
-                    value={formData.phoneNumber}
-                    onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                    disabled={!isEditing}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-            </div>
-
             <div>
               <Label htmlFor="notes">Notes</Label>
               <Textarea
@@ -470,12 +441,45 @@ export function MemberInfoModal({
                )}
              </button>
              
-             {expandedSections.details && (
-               <div className="space-y-4 pl-6">
-                 {/* Personal Details */}
-                 <div className="space-y-4">
-                   <h4 className="font-medium text-sm">Personal Details</h4>
-                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {expandedSections.details && (
+                <div className="space-y-4 pl-6">
+                  {/* Contact Information */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm">Contact Information (Optional)</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="email" className="text-sm">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            id="email"
+                            value={formData.email}
+                            onChange={(e) => handleInputChange('email', e.target.value)}
+                            disabled={!isEditing}
+                            className="pl-10 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="phoneNumber" className="text-sm">Phone</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            id="phoneNumber"
+                            value={formData.phoneNumber}
+                            onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                            disabled={!isEditing}
+                            className="pl-10 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Personal Details */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <h4 className="font-medium text-sm">Personal Details</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                      <div>
                        <Label htmlFor="dateOfBirth" className="text-sm">Date of Birth</Label>
                        <Input

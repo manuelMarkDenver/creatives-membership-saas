@@ -169,7 +169,7 @@ export function AddMemberModal({
       errors.paymentAmount = 'Payment amount must be greater than 0'
     }
     
-    // Email validation only if provided
+    // Email validation only if provided (optional)
     if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = 'Please enter a valid email address'
     }
@@ -368,40 +368,7 @@ export function AddMemberModal({
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="email">Email Address</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    placeholder="john@example.com"
-                    className={`pl-10 ${currentErrors.email ? "border-red-500" : ""}`}
-                  />
-                </div>
-                {currentErrors.email && (
-                  <p className="text-sm text-red-500 mt-1">{currentErrors.email}</p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="phoneNumber">Phone Number</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="phoneNumber"
-                    value={formData.phoneNumber}
-                    onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                    placeholder="+63 912 345 6789"
-                    className="pl-10"
-                  />
-                </div>
-               </div>
-             </div>
-
-              {/* Days Selection (same as renewal modal) */}
+               {/* Days Selection (same as renewal modal) */}
              <div>
                <Label>Expiry Date *</Label>
                <p className="text-sm text-muted-foreground mb-3">
@@ -533,12 +500,46 @@ export function AddMemberModal({
                 )}
               </button>
               
-              {showOptionalDetails && (
-                <div className="space-y-4 pl-6">
-                  {/* Personal Details */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-sm">Personal Details</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+               {showOptionalDetails && (
+                 <div className="space-y-4 pl-6">
+                   {/* Contact Information */}
+                   <div className="space-y-4">
+                     <h4 className="font-medium text-sm">Contact Information (Optional)</h4>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                       <div>
+                         <Label htmlFor="email" className="text-sm">Email Address</Label>
+                         <div className="relative">
+                           <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                           <Input
+                             id="email"
+                             type="email"
+                             value={formData.email}
+                             onChange={(e) => handleInputChange('email', e.target.value)}
+                             placeholder="john@example.com"
+                             className="pl-10 text-sm"
+                           />
+                         </div>
+                       </div>
+                       <div>
+                         <Label htmlFor="phoneNumber" className="text-sm">Phone Number</Label>
+                         <div className="relative">
+                           <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                           <Input
+                             id="phoneNumber"
+                             value={formData.phoneNumber}
+                             onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                             placeholder="+63 912 345 6789"
+                             className="pl-10 text-sm"
+                           />
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+
+                   {/* Personal Details */}
+                   <div className="space-y-4 pt-4 border-t">
+                     <h4 className="font-medium text-sm">Personal Details</h4>
+                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="dateOfBirth" className="text-sm">Date of Birth</Label>
                         <Input
