@@ -19,6 +19,8 @@ function KioskPageContent() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminSessionTimer, setAdminSessionTimer] = useState<NodeJS.Timeout | null>(null);
   const [adminTimeLeft, setAdminTimeLeft] = useState(5 * 60 * 1000); // 5 minutes
+  const [debugMode, setDebugMode] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Start admin session
@@ -47,6 +49,64 @@ function KioskPageContent() {
     setIsAdminMode(true);
   }, [adminSessionTimer]);
 
+  // Reset kiosk to initial state (soft reload)
+  const resetKiosk = useCallback(() => {
+    if (!confirm('Reset kiosk to tapping mode? This will clear any current card reading.')) {
+      return;
+    }
+    
+    console.log('Resetting kiosk to initial state...');
+    
+    // Clear all state
+    setIsAdminMode(false);
+    setCardUid('');
+    setResult(null);
+    setDebugInfo('');
+    
+    if (adminSessionTimer) {
+      clearInterval(adminSessionTimer);
+      setAdminSessionTimer(null);
+    }
+    
+    // Ensure fullscreen
+    const elem = document.documentElement;
+    if (elem.requestFullscreen && !document.fullscreenElement) {
+      elem.requestFullscreen().catch(err => {
+        console.log(`Fullscreen error: ${err.message}`);
+      });
+    }
+    
+    // CRITICAL: Refocus input with multiple attempts
+    const refocusAttempts = [50, 150, 300]; // Multiple delays
+    refocusAttempts.forEach(delay => {
+      setTimeout(() => {
+        if (inputRef.current && !isAdminMode) {
+          inputRef.current.focus();
+          console.log(`Input focused after ${delay}ms (kiosk reset)`);
+        }
+      }, delay);
+    });
+  }, [adminSessionTimer, isAdminMode]);
+
+  // Toggle debug mode
+  const toggleDebugMode = useCallback(() => {
+    const newDebugMode = !debugMode;
+    setDebugMode(newDebugMode);
+    
+    // Store debug mode in localStorage for kiosk-lock-simple to read
+    localStorage.setItem('kiosk-debug-mode', newDebugMode.toString());
+    
+    console.log(`Debug mode ${newDebugMode ? 'enabled' : 'disabled'}`);
+    
+    if (newDebugMode) {
+      // Enable right-click and dev tools when debug mode is on
+      console.log('Right-click and dev tools enabled for debugging');
+      alert('Debug mode enabled: Right-click and keyboard shortcuts are now allowed');
+    } else {
+      alert('Debug mode disabled: Security restrictions re-enabled');
+    }
+  }, [debugMode]);
+
   // Lock kiosk (exit admin mode)
   const lockKiosk = useCallback(() => {
     setIsAdminMode(false);
@@ -63,6 +123,14 @@ function KioskPageContent() {
         console.log(`Fullscreen error: ${err.message}`);
       });
     }
+    
+    // CRITICAL: Refocus input after exiting admin mode
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        console.log('Refocused input after locking kiosk');
+      }
+    }, 100);
   }, [adminSessionTimer]);
 
   // Format time left
@@ -378,6 +446,11 @@ function KioskPageContent() {
     return message;
   };
 
+  // Set isClient to true after mount (prevents hydration errors)
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Check network connectivity
   useEffect(() => {
     const updateOnlineStatus = () => {
@@ -408,178 +481,306 @@ function KioskPageContent() {
     }
   }, []);
 
-  // Auto-focus the hidden input for RFID keyboard emulation
+  // Robust focus management for RFID keyboard emulation
   useEffect(() => {
-    if (inputRef.current && !result) {
-      inputRef.current.focus();
+    let focusInterval: NodeJS.Timeout | null = null;
+
+    const focusInput = () => {
+      // Only focus if we're in kiosk mode (not admin mode) and no result showing
+      if (inputRef.current && !result && !isAdminMode) {
+        inputRef.current.focus();
+        console.log('Input focused (kiosk mode)');
+        return true;
+      }
+      return false;
+    };
+
+    // Focus immediately if in kiosk mode
+    if (!isAdminMode) {
+      focusInput();
     }
-  }, [result]);
 
-  // Admin mode UI
-  if (isAdminMode) {
-    return (
-      <div className="fixed inset-0 bg-gray-900 text-white z-50 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto h-full flex flex-col">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold">Admin Mode</h1>
-              <p className="text-gray-400">Session expires in: {formatTimeLeft()}</p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  if (document.exitFullscreen && document.fullscreenElement) {
-                    document.exitFullscreen();
-                  }
-                  window.location.href = '/setup';
-                }}
-                className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm md:text-base"
-              >
-                Terminal Setup
-              </button>
-              <button
-                onClick={lockKiosk}
-                className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-sm md:text-base"
-              >
-                Lock Kiosk
-              </button>
-            </div>
-          </div>
+    // Focus on any click/tap (user might tap anywhere on screen)
+    const handleClick = () => {
+      focusInput();
+    };
 
-          {/* Quick Actions */}
-          <div className="bg-gray-800 rounded-lg p-4 md:p-6 mb-4 flex-1">
-            <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <button
-                onClick={() => window.open('http://localhost:3000', '_blank')}
-                className="bg-green-700 hover:bg-green-800 p-4 rounded-lg text-left"
-              >
-                <div className="text-lg font-medium">Main App</div>
-                <div className="text-sm text-gray-300">Open admin dashboard</div>
-              </button>
-              
-              <button
-                onClick={() => window.location.reload()}
-                className="bg-yellow-700 hover:bg-yellow-800 p-4 rounded-lg text-left"
-              >
-                <div className="text-lg font-medium">Reload Kiosk</div>
-                <div className="text-sm text-gray-300">Restart kiosk app</div>
-              </button>
-              
-              <button
-                onClick={() => {
-                  if (document.exitFullscreen && document.fullscreenElement) {
-                    document.exitFullscreen();
-                  }
-                  window.location.href = '/';
-                }}
-                className="bg-purple-700 hover:bg-purple-800 p-4 rounded-lg text-left"
-              >
-                <div className="text-lg font-medium">Exit Fullscreen</div>
-                <div className="text-sm text-gray-300">Return to normal browser</div>
-              </button>
-            </div>
+    // Focus on visibility change (tab switch, etc.)
+    const handleVisibilityChange = () => {
+      if (!document.hidden && !isAdminMode) {
+        setTimeout(focusInput, 100);
+      }
+    };
 
-            {/* Current Status */}
-            <div className="mt-8 bg-gray-900 rounded-lg p-4">
-              <h3 className="font-medium mb-2">Current Status</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-gray-400">Mode</div>
-                  <div className="text-green-400 font-medium">Admin (Card Unlocked)</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-400">Time Remaining</div>
-                  <div className="font-mono">{formatTimeLeft()}</div>
-                </div>
-              </div>
-            </div>
-          </div>
+    // Ultra-conservative safety net interval (30 seconds)
+    // Only runs in kiosk mode, checks if focus is actually lost
+    focusInterval = setInterval(() => {
+      if (!isAdminMode && inputRef.current && document.activeElement !== inputRef.current) {
+        console.log('Safety net (30s): Refocusing input');
+        focusInput();
+      }
+    }, 30000); // 30 seconds - ultra conservative safety net
 
-          {/* Instructions */}
-          <div className="text-center text-gray-400 text-sm mt-4">
-            <p>Kiosk will auto-lock when timer expires</p>
-            <p className="mt-1">To unlock again: Tap SUPER_ADMIN card</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    // Add event listeners
+    document.addEventListener('click', handleClick);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (focusInterval) {
+        clearInterval(focusInterval);
+      }
+      document.removeEventListener('click', handleClick);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [result, isAdminMode]);
+
+  // Handle admin mode transitions - CRITICAL FIX
+  useEffect(() => {
+    if (!isAdminMode) {
+      // Just entered kiosk mode (from admin mode or initial load)
+      console.log('Entered kiosk mode, focusing input...');
+      setTimeout(() => {
+        if (inputRef.current && !result) {
+          inputRef.current.focus();
+          console.log('Input focused after entering kiosk mode');
+        }
+      }, 200);
+    }
+  }, [isAdminMode, result]);
 
   return (
-    <div className={`h-screen flex flex-col transition-colors duration-300 ${getBackgroundColor()} relative overflow-hidden landscape:pb-64 portrait:pb-48 portrait:justify-center portrait:items-center`}>
-      {/* Network status indicator */}
-      {!isOnline && (
-        <div className="absolute top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2 animate-pulse">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="font-semibold">OFFLINE</span>
-        </div>
-      )}
-
-      {/* Debug info display - only in development */}
-      {debugInfo && process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-4 left-4 bg-black bg-opacity-90 text-white p-4 rounded-lg text-sm font-mono max-w-md z-50">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-xs opacity-70">UID Debug</span>
-            <button
-              onClick={() => setDebugInfo('')}
-              className="text-white hover:text-red-400 text-lg leading-none ml-2"
-              aria-label="Close debug"
-            >
-              ×
-            </button>
-          </div>
-          <div className="whitespace-pre-line text-xs">{debugInfo}</div>
-        </div>
-      )}
-
-      {/* Hidden input for RFID keyboard emulation */}
+    <>
+       {/* Hidden input for RFID keyboard emulation - ALWAYS PRESENT */}
       <input
         ref={inputRef}
         type="text"
         value={cardUid}
-        onChange={(e) => setCardUid(e.target.value)}
+        onChange={(e) => {
+          console.log('Input changed:', e.target.value);
+          setCardUid(e.target.value);
+        }}
         onKeyDown={(e) => {
+          console.log('Key pressed:', e.key, 'cardUid:', cardUid);
           if (e.key === 'Enter' && cardUid.length > 0) {
+            console.log('Enter pressed, calling handleTap');
             handleTap();
             setCardUid(''); // Clear after processing
           }
         }}
+        onBlur={() => {
+          console.log('Input blurred, refocusing...');
+          // Immediately refocus if blurred
+          setTimeout(() => {
+            if (inputRef.current && !result && !isAdminMode) {
+              inputRef.current.focus();
+              console.log('Input refocused after blur');
+            }
+          }, 10);
+        }}
+        onFocus={() => {
+          console.log('Input focused');
+        }}
         className="absolute top-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
-        autoFocus={!result}
+        autoFocus={!result && !isAdminMode}
+        inputMode="none" // Prevents on-screen keyboard on mobile
+        readOnly={false} // Allow keyboard input from RFID emulator
       />
-      <div className="w-[min(600px,70vw,60vh)] h-[min(600px,70vw,60vh)] portrait:w-[min(450px,75vw,65vh)] portrait:h-[min(450px,75vw,65vh)] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center mx-auto landscape:mt-8 portrait:mb-8">
-        <div className="text-center text-white px-8">
-          <h1 className={`font-bold mb-6 ${!result ? 'text-5xl portrait:text-6xl landscape:text-7xl lg:text-8xl' : 'text-4xl portrait:text-5xl landscape:text-6xl lg:text-7xl'}`}>
-            {getText()}
-          </h1>
-          {!result && cardUid && (
-            <div className="flex flex-col items-center space-y-4">
-              <div className="text-2xl sm:text-3xl lg:text-4xl opacity-70">Reading card</div>
-              <div className="flex space-x-2">
-                <div className="w-6 h-6 bg-white rounded-full animate-pulse"></div>
-                <div className="w-6 h-6 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-6 h-6 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+      
+       {/* Focus status indicator (debug only) */}
+      {process.env.NODE_ENV === 'development' && isClient && (
+        <div className="fixed bottom-2 left-2 text-xs bg-black bg-opacity-70 text-white px-2 py-1 rounded z-50">
+          Focus: {document.activeElement === inputRef.current ? '✅' : '❌'} | 
+          Mode: {isAdminMode ? 'Admin' : 'Kiosk'} |
+          Card: {cardUid || 'None'}
+        </div>
+      )}
+
+      {/* Admin Mode UI */}
+      {isAdminMode ? (
+        <div className="fixed inset-0 bg-gray-900 text-white z-40 p-4 md:p-8">
+          <div className="max-w-4xl mx-auto h-full flex flex-col">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold">Admin Mode</h1>
+                <p className="text-gray-400">Session expires in: {formatTimeLeft()}</p>
               </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (document.exitFullscreen && document.fullscreenElement) {
+                      document.exitFullscreen();
+                    }
+                    window.location.href = '/setup';
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm md:text-base"
+                >
+                  Terminal Setup
+                </button>
+                <button
+                  onClick={lockKiosk}
+                  className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-sm md:text-base"
+                >
+                  Lock Kiosk
+                </button>
+              </div>
+            </div>
+
+             {/* Quick Actions */}
+             <div className="bg-gray-800 rounded-lg p-4 md:p-6 mb-4 flex-1">
+               <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                 <button
+                   onClick={() => window.open('http://localhost:3000', '_blank')}
+                   className="bg-green-700 hover:bg-green-800 p-4 rounded-lg text-left"
+                 >
+                   <div className="text-lg font-medium">Main App</div>
+                   <div className="text-sm text-gray-300">Open admin dashboard</div>
+                 </button>
+                 
+                 <button
+                   onClick={resetKiosk}
+                   className="bg-yellow-700 hover:bg-yellow-800 p-4 rounded-lg text-left"
+                 >
+                   <div className="text-lg font-medium">Reset to Tapping</div>
+                   <div className="text-sm text-gray-300">Clear & restart card reading</div>
+                 </button>
+                 
+                 <button
+                   onClick={toggleDebugMode}
+                   className={`${debugMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-700 hover:bg-gray-800'} p-4 rounded-lg text-left`}
+                 >
+                   <div className="text-lg font-medium">
+                     {debugMode ? 'Debug Mode ON' : 'Debug Mode OFF'}
+                   </div>
+                   <div className="text-sm text-gray-300">
+                     {debugMode ? 'Right-click & dev tools enabled' : 'Enable debugging tools'}
+                   </div>
+                 </button>
+                 
+                 <button
+                   onClick={() => {
+                     if (document.exitFullscreen && document.fullscreenElement) {
+                       document.exitFullscreen();
+                     }
+                     window.location.href = '/';
+                   }}
+                   className="bg-purple-700 hover:bg-purple-800 p-4 rounded-lg text-left"
+                 >
+                   <div className="text-lg font-medium">Exit Fullscreen</div>
+                   <div className="text-sm text-gray-300">Return to normal browser</div>
+                 </button>
+               </div>
+
+              {/* Current Status */}
+              <div className="mt-8 bg-gray-900 rounded-lg p-4">
+                <h3 className="font-medium mb-2">Current Status</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-gray-400">Mode</div>
+                    <div className="text-green-400 font-medium">Admin (Card Unlocked)</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-400">Time Remaining</div>
+                    <div className="font-mono">{formatTimeLeft()}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="text-center text-gray-400 text-sm mt-4">
+              <p>Kiosk will auto-lock when timer expires</p>
+              <p className="mt-1">To unlock again: Tap SUPER_ADMIN card</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Kiosk Mode UI */
+        <div className={`h-screen flex flex-col transition-colors duration-300 ${getBackgroundColor()} relative overflow-hidden landscape:pb-64 portrait:pb-48 portrait:justify-center portrait:items-center`}>
+          {/* Network status indicator */}
+          {!isOnline && (
+            <div className="absolute top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2 animate-pulse">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="font-semibold">OFFLINE</span>
+            </div>
+          )}
+
+          {/* Debug info display - only in development */}
+          {debugInfo && process.env.NODE_ENV === 'development' && (
+            <div className="absolute top-4 left-4 bg-black bg-opacity-90 text-white p-4 rounded-lg text-sm font-mono max-w-md z-50">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-xs opacity-70">UID Debug</span>
+                <button
+                  onClick={() => setDebugInfo('')}
+                  className="text-white hover:text-red-400 text-lg leading-none ml-2"
+                  aria-label="Close debug"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="whitespace-pre-line text-xs">{debugInfo}</div>
+            </div>
+          )}
+
+          <div className="w-[min(600px,70vw,60vh)] h-[min(600px,70vw,60vh)] portrait:w-[min(450px,75vw,65vh)] portrait:h-[min(450px,75vw,65vh)] rounded-full border-8 border-white border-opacity-30 flex items-center justify-center mx-auto landscape:mt-8 portrait:mb-8">
+            <div className="text-center text-white px-8">
+              <h1 className={`font-bold mb-6 ${!result ? 'text-5xl portrait:text-6xl landscape:text-7xl lg:text-8xl' : 'text-4xl portrait:text-5xl landscape:text-6xl lg:text-7xl'}`}>
+                {getText()}
+              </h1>
+              {!result && cardUid && (
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="text-2xl sm:text-3xl lg:text-4xl opacity-70">Reading card</div>
+                  <div className="flex space-x-2">
+                    <div className="w-6 h-6 bg-white rounded-full animate-pulse"></div>
+                    <div className="w-6 h-6 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-6 h-6 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Detailed message - positioned below circle for both orientations */}
+          {getDetailedMessage() && (
+            <div className="absolute left-1/2 transform -translate-x-1/2 text-center text-white max-w-4xl px-8 portrait:bottom-24 landscape:bottom-1/4">
+              <p className="text-lg portrait:text-xl landscape:text-2xl lg:text-3xl xl:text-4xl font-bold leading-relaxed whitespace-pre-line drop-shadow-xl bg-black bg-opacity-30 rounded-lg px-4 py-3">
+                {getDetailedMessage()}
+              </p>
             </div>
           )}
         </div>
-      </div>
+       )}
 
-      {/* Detailed message - positioned below circle for both orientations */}
-      {getDetailedMessage() && (
-        <div className="absolute left-1/2 transform -translate-x-1/2 text-center text-white max-w-4xl px-8 portrait:bottom-24 landscape:bottom-1/4">
-          <p className="text-lg portrait:text-xl landscape:text-2xl lg:text-3xl xl:text-4xl font-bold leading-relaxed whitespace-pre-line drop-shadow-xl bg-black bg-opacity-30 rounded-lg px-4 py-3">
-            {getDetailedMessage()}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
+       {/* Tap overlay - only in kiosk mode, captures all taps and refocuses input */}
+       {!isAdminMode && (
+         <div 
+           className="fixed inset-0 z-30"
+           onClick={() => {
+             // Refocus hidden input on any tap
+             if (inputRef.current && !result && !isAdminMode) {
+               inputRef.current.focus();
+               console.log('Tap overlay: Input refocused');
+             }
+           }}
+           onTouchStart={() => {
+             // Refocus input
+             if (inputRef.current && !result && !isAdminMode) {
+               inputRef.current.focus();
+               console.log('Tap overlay: Input refocused (touch)');
+             }
+           }}
+           style={{ 
+             pointerEvents: 'auto',
+             cursor: 'default'
+           }}
+         />
+       )}
+     </>
+   );
+ }
 
 export default function KioskPage() {
   return (

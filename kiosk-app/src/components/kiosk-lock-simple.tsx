@@ -7,20 +7,34 @@ interface KioskLockSimpleProps {
 }
 
 export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
-  // Enter fullscreen mode
+  // Enter fullscreen mode (mobile/tablet compatible)
   const enterFullscreen = useCallback(() => {
     const elem = document.documentElement;
-    if (elem.requestFullscreen) {
-      elem.requestFullscreen().catch(err => {
+    
+    // Try different fullscreen methods for cross-browser compatibility
+    const requestFullscreen = elem.requestFullscreen || 
+                             (elem as any).webkitRequestFullscreen || 
+                             (elem as any).mozRequestFullScreen || 
+                             (elem as any).msRequestFullscreen;
+    
+    if (requestFullscreen) {
+      requestFullscreen.call(elem).catch(err => {
         console.log(`Fullscreen error: ${err.message}`);
+        // Try again after a short delay
+        setTimeout(enterFullscreen, 1000);
       });
     }
   }, []);
 
-  // Prevent context menu (right-click)
+  // Prevent context menu (right-click) - only in non-debug mode
   const handleContextMenu = useCallback((e: MouseEvent) => {
-    e.preventDefault();
-    return false;
+    // Check if debug mode is enabled via localStorage
+    const debugMode = localStorage.getItem('kiosk-debug-mode') === 'true';
+    if (!debugMode) {
+      e.preventDefault();
+      return false;
+    }
+    return true;
   }, []);
 
   // Prevent navigation away from page
@@ -29,33 +43,54 @@ export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
     e.returnValue = 'Kiosk mode is active. Use a separate device for admin tasks.';
   }, []);
 
-  // Prevent exiting fullscreen
+  // Prevent exiting fullscreen (cross-browser compatible)
   const handleFullscreenChange = useCallback(() => {
-    if (!document.fullscreenElement) {
+    const fullscreenElement = document.fullscreenElement || 
+                             (document as any).webkitFullscreenElement || 
+                             (document as any).mozFullScreenElement || 
+                             (document as any).msFullscreenElement;
+    
+    if (!fullscreenElement) {
+      console.log('Fullscreen exited, re-entering...');
       enterFullscreen();
     }
   }, [enterFullscreen]);
 
-  // Prevent ALL keyboard shortcuts
+  // Prevent ALL keyboard shortcuts - only in non-debug mode
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Block ALL function keys
-    if (e.key.startsWith('F') && e.key.length > 1) {
-      e.preventDefault();
-    }
+    // Check if debug mode is enabled via localStorage
+    const debugMode = localStorage.getItem('kiosk-debug-mode') === 'true';
     
-    // Block Escape key (exits fullscreen)
-    if (e.key === 'Escape') {
-      e.preventDefault();
+    if (!debugMode) {
+      // Block ALL function keys
+      if (e.key.startsWith('F') && e.key.length > 1) {
+        e.preventDefault();
+      }
+      
+      // Block Escape key (exits fullscreen)
+      if (e.key === 'Escape') {
+        e.preventDefault();
+      }
+      
+      // Block ALL modifier key combinations
+      if (e.ctrlKey || e.altKey || e.metaKey) {
+        e.preventDefault();
+      }
+      
+      // Block tab key (navigation)
+      if (e.key === 'Tab') {
+        e.preventDefault();
+      }
     }
-    
-    // Block ALL modifier key combinations
-    if (e.ctrlKey || e.altKey || e.metaKey) {
-      e.preventDefault();
-    }
-    
-    // Block tab key (navigation)
-    if (e.key === 'Tab') {
-      e.preventDefault();
+  }, []);
+
+  // Mobile/tablet specific: Prevent virtual keyboard
+  const preventVirtualKeyboard = useCallback((e: Event) => {
+    e.preventDefault();
+    // Focus back to hidden input if it exists
+    const hiddenInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+    if (hiddenInput) {
+      hiddenInput.focus();
     }
   }, []);
 
@@ -70,9 +105,17 @@ export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     
+    // Mobile/tablet: Prevent virtual keyboard triggers
+    document.addEventListener('touchstart', preventVirtualKeyboard, { passive: false });
+    document.addEventListener('touchend', preventVirtualKeyboard, { passive: false });
+    document.addEventListener('touchmove', preventVirtualKeyboard, { passive: false });
+    
     // Prevent drag/drop
     document.addEventListener('dragstart', (e) => e.preventDefault());
     document.addEventListener('drop', (e) => e.preventDefault());
+    
+    // Prevent text selection
+    document.addEventListener('selectstart', (e) => e.preventDefault());
     
     // Cleanup
     return () => {
@@ -80,10 +123,14 @@ export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
       document.removeEventListener('contextmenu', handleContextMenu);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('touchstart', preventVirtualKeyboard);
+      document.removeEventListener('touchend', preventVirtualKeyboard);
+      document.removeEventListener('touchmove', preventVirtualKeyboard);
       document.removeEventListener('dragstart', (e) => e.preventDefault());
       document.removeEventListener('drop', (e) => e.preventDefault());
+      document.removeEventListener('selectstart', (e) => e.preventDefault());
     };
-  }, [enterFullscreen, handleKeyDown, handleContextMenu, handleBeforeUnload, handleFullscreenChange]);
+  }, [enterFullscreen, handleKeyDown, handleContextMenu, handleBeforeUnload, handleFullscreenChange, preventVirtualKeyboard]);
 
   return (
     <>
@@ -100,12 +147,6 @@ export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
           Dev Mode: Use hardware buttons to exit
         </div>
       )}
-      
-      {/* Block all interactions except card input */}
-      <div 
-        className="fixed inset-0 z-40 pointer-events-none"
-        style={{ pointerEvents: 'none' }}
-      />
     </>
   );
 }
