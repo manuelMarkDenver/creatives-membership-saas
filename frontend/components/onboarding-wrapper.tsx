@@ -4,7 +4,7 @@ import { useOnboardingFlow, useUser } from '@/lib/hooks/use-onboarding'
 import BusinessDetailsModal from '@/components/modals/onboarding/business-details-modal'
 import SetPasswordModal from '@/components/modals/onboarding/set-password-modal'
 import CustomizeBranchModal from '@/components/modals/onboarding/customize-branch-modal'
-import CreateMembershipPlanModal from '@/components/modals/onboarding/create-membership-plan-modal'
+
 import OnboardingProgress, { createOnboardingSteps } from '@/components/onboarding-progress'
 
 interface OnboardingWrapperProps {
@@ -40,7 +40,6 @@ export default function OnboardingWrapper({ tenantId, children }: OnboardingWrap
     handleBusinessDetailsSet,
     handlePasswordSet,
     handleBranchCustomized,
-    handlePlanCreated,
   } = useOnboardingFlow(tenantId)
 
   // Show loading state while checking onboarding status
@@ -106,10 +105,7 @@ export default function OnboardingWrapper({ tenantId, children }: OnboardingWrap
           onBranchCustomized={handleBranchCustomized}
         />
 
-        <CreateMembershipPlanModal
-          open={showPlanModal}
-          onPlanCreated={handlePlanCreated}
-        />
+
       </div>
     </div>
   )

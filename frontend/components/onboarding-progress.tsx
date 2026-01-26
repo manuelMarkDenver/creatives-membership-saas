@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Lock, Shield, Building2, CreditCard, Settings } from 'lucide-react'
+import { Check, Shield, Building2, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface OnboardingStep {
@@ -147,7 +147,7 @@ export function createOnboardingSteps(status: {
   const steps: OnboardingStep[] = []
 
   if (isOAuth) {
-    // For OAuth users: business details -> branch -> plans
+    // For OAuth users: business details -> branch (skip plans for v1)
     steps.push(
       {
         id: 'business',
@@ -155,7 +155,7 @@ export function createOnboardingSteps(status: {
         description: 'Customize your business name and details',
         icon: Settings,
         completed: status.hasChangedPassword, // Business details are set after password
-        current: status.hasChangedPassword && !status.hasMembershipPlans,
+        current: status.hasChangedPassword && !status.isOnboardingComplete,
       },
       {
         id: 'branch',
@@ -163,19 +163,11 @@ export function createOnboardingSteps(status: {
         description: 'Add details about your location',
         icon: Building2,
         completed: status.hasChangedPassword, // Branch is customized after business details
-        current: status.hasChangedPassword && !status.hasMembershipPlans,
-      },
-      {
-        id: 'plans',
-        title: 'Create Membership Plans',
-        description: 'Set up pricing and membership options',
-        icon: CreditCard,
-        completed: status.hasMembershipPlans,
-        current: status.hasChangedPassword && !status.hasMembershipPlans,
+        current: status.hasChangedPassword && !status.isOnboardingComplete,
       }
     )
   } else {
-    // For regular users: password -> branch -> plans
+    // For regular users: password -> branch (skip plans for v1)
     steps.push(
       {
         id: 'password',
@@ -191,15 +183,7 @@ export function createOnboardingSteps(status: {
         description: 'Add details about your location',
         icon: Building2,
         completed: status.hasChangedPassword, // Branch is customized after password
-        current: status.hasChangedPassword && !status.hasMembershipPlans,
-      },
-      {
-        id: 'plans',
-        title: 'Create Membership Plans',
-        description: 'Set up pricing and membership options',
-        icon: CreditCard,
-        completed: status.hasMembershipPlans,
-        current: status.hasChangedPassword && !status.hasMembershipPlans,
+        current: status.hasChangedPassword && !status.isOnboardingComplete,
       }
     )
   }

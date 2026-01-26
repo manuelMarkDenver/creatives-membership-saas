@@ -48,6 +48,7 @@ import { useProfile } from '@/lib/hooks/use-gym-users'
 import { BranchTransferModal } from './branch-transfer-modal'
 import { ChangePlanModal } from './change-plan-modal'
 import { RenewMembershipModal } from './renew-membership-modal'
+import { getDisplayName, splitName } from '@/lib/utils/member-helpers'
 
 interface MemberInfoModalProps {
   isOpen: boolean
@@ -65,8 +66,7 @@ export function MemberInfoModal({
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
     // Basic info
-    firstName: '',
-    lastName: '',
+    name: '',
     email: '',
     phoneNumber: '',
     photoUrl: '',
@@ -103,13 +103,10 @@ export function MemberInfoModal({
   const [showChangePlanModal, setShowChangePlanModal] = useState(false)
   const [showRenewModal, setShowRenewModal] = useState(false)
   
-  // Collapsible sections state
+  // Collapsible sections state - max 2 accordions
   const [expandedSections, setExpandedSections] = useState({
-    personalDetails: false,
-    emergencyContact: false,
-    preferences: false,
-    membership: true, // Keep membership expanded by default
-    activity: true // Keep activity expanded by default
+    details: false, // Combined personal details, emergency contact, preferences
+    membershipActivity: true, // Combined membership and activity
   })
   
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -128,8 +125,7 @@ export function MemberInfoModal({
       const gymProfile = member.gymMemberProfile
 
       setFormData({
-        firstName: member.firstName || '',
-        lastName: member.lastName || '',
+        name: getDisplayName(member),
         email: member.email || '',
         phoneNumber: member.phoneNumber || '',
         photoUrl: member.photoUrl || '',
@@ -184,7 +180,7 @@ export function MemberInfoModal({
     try {
       console.log('🔍 Photo upload debug:', {
         memberId: member.id,
-        memberName: `${member.firstName} ${member.lastName}`,
+        memberName: getDisplayName(member),
         memberEmail: member.email
       })
       
@@ -232,10 +228,12 @@ export function MemberInfoModal({
 
   const handleSave = async () => {
     try {
-      // Prepare data for API
+      // Prepare data for API with backward compatibility
+      const { firstName, lastName } = splitName(formData.name)
       const updateData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        name: formData.name,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
         phoneNumber: formData.phoneNumber,
         photoUrl: formData.photoUrl,
         notes: formData.notes,
@@ -294,8 +292,7 @@ export function MemberInfoModal({
       const emergencyContact = gymProfile?.emergencyContact || ''
 
       setFormData({
-        firstName: member.firstName || '',
-        lastName: member.lastName || '',
+        name: getDisplayName(member) || '',
         email: member.email || '',
         phoneNumber: member.phoneNumber || '',
         photoUrl: member.photoUrl || '',
@@ -327,7 +324,7 @@ export function MemberInfoModal({
 
   if (!member) return null
 
-  const memberName = member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email
+  const memberName = getDisplayName(member)
 
   return (
     <>
@@ -402,25 +399,15 @@ export function MemberInfoModal({
               Basic Information
             </h4>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div>
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
+            <div>
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                disabled={!isEditing}
+                placeholder="Member name"
+              />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -465,390 +452,323 @@ export function MemberInfoModal({
             </div>
           </div>
 
-          {/* Personal Information - Collapsible */}
-          <div className="space-y-4">
-            <button
-              type="button"
-              onClick={() => toggleSection('personalDetails')}
-              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span className="font-medium">Personal Details</span>
-              </div>
-              {expandedSections.personalDetails ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
-            
-            {expandedSections.personalDetails && (
-              <div className="space-y-4 pl-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                    <Input
-                      id="dateOfBirth"
-                      type="date"
-                      value={formData.dateOfBirth}
-                      onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="gender">Gender</Label>
-                    <Select 
-                      value={formData.gender} 
-                      onValueChange={(value) => handleInputChange('gender', value)}
-                      disabled={!isEditing}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MALE">Male</SelectItem>
-                        <SelectItem value="FEMALE">Female</SelectItem>
-                        <SelectItem value="OTHER">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="fitnessLevel">Fitness Level</Label>
-                    <Select 
-                      value={formData.fitnessLevel} 
-                      onValueChange={(value) => handleInputChange('fitnessLevel', value)}
-                      disabled={!isEditing}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Beginner">Beginner</SelectItem>
-                        <SelectItem value="Intermediate">Intermediate</SelectItem>
-                        <SelectItem value="Advanced">Advanced</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="height">Height (cm)</Label>
-                    <Input
-                      id="height"
-                      type="number"
-                      value={formData.height}
-                      onChange={(e) => handleInputChange('height', e.target.value)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="weight">Weight (kg)</Label>
-                    <Input
-                      id="weight"
-                      type="number"
-                      value={formData.weight}
-                      onChange={(e) => handleInputChange('weight', e.target.value)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="fitnessGoals">Fitness Goals</Label>
-                  <Input
-                    id="fitnessGoals"
-                    value={formData.fitnessGoals}
-                    onChange={(e) => handleInputChange('fitnessGoals', e.target.value)}
-                    disabled={!isEditing}
-                    placeholder="e.g., Weight Loss, Muscle Gain, General Fitness"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Emergency Contact - Collapsible */}
-          <div className="space-y-4">
-            <button
-              type="button"
-              onClick={() => toggleSection('emergencyContact')}
-              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Heart className="h-4 w-4" />
-                <span className="font-medium">Emergency Contact</span>
-              </div>
-              {expandedSections.emergencyContact ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
-            
-            {expandedSections.emergencyContact && (
-              <div className="space-y-4 pl-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="emergencyContactName">Name</Label>
-                    <Input
-                      id="emergencyContactName"
-                      value={formData.emergencyContactName}
-                      onChange={(e) => handleInputChange('emergencyContactName', e.target.value)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="emergencyContactPhone">Phone</Label>
-                    <Input
-                      id="emergencyContactPhone"
-                      value={formData.emergencyContactPhone}
-                      onChange={(e) => handleInputChange('emergencyContactPhone', e.target.value)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="emergencyContactRelationship">Relationship</Label>
-                    <Input
-                      id="emergencyContactRelationship"
-                      value={formData.emergencyContactRelationship}
-                      onChange={(e) => handleInputChange('emergencyContactRelationship', e.target.value)}
-                      disabled={!isEditing}
-                      placeholder="e.g., Spouse, Parent, Friend"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Workout Preferences - Collapsible */}
-          <div className="space-y-4">
-            <button
-              type="button"
-              onClick={() => toggleSection('preferences')}
-              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                <span className="font-medium">Preferences</span>
-              </div>
-              {expandedSections.preferences ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
-            
-            {expandedSections.preferences && (
-              <div className="space-y-4 pl-6">
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                   <div>
-                     <Label htmlFor="preferredWorkoutTime">Preferred Workout Time</Label>
-                     <Select
-                       value={formData.preferredWorkoutTime}
-                       onValueChange={(value) => handleInputChange('preferredWorkoutTime', value)}
-                       disabled={!isEditing}
-                     >
-                       <SelectTrigger>
-                         <SelectValue placeholder="Select time" />
-                       </SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="Morning">Morning</SelectItem>
-                         <SelectItem value="Afternoon">Afternoon</SelectItem>
-                         <SelectItem value="Evening">Evening</SelectItem>
-                       </SelectContent>
-                     </Select>
+           {/* Details Accordion - Combined personal, emergency, preferences */}
+           <div className="space-y-4">
+             <button
+               type="button"
+               onClick={() => toggleSection('details')}
+               className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+             >
+               <div className="flex items-center gap-2">
+                 <Calendar className="h-4 w-4" />
+                 <span className="font-medium">Details (Optional)</span>
+               </div>
+               {expandedSections.details ? (
+                 <ChevronUp className="h-4 w-4" />
+               ) : (
+                 <ChevronDown className="h-4 w-4" />
+               )}
+             </button>
+             
+             {expandedSections.details && (
+               <div className="space-y-4 pl-6">
+                 {/* Personal Details */}
+                 <div className="space-y-4">
+                   <h4 className="font-medium text-sm">Personal Details</h4>
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                     <div>
+                       <Label htmlFor="dateOfBirth" className="text-sm">Date of Birth</Label>
+                       <Input
+                         id="dateOfBirth"
+                         type="date"
+                         value={formData.dateOfBirth}
+                         onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                         disabled={!isEditing}
+                         className="text-sm"
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor="gender" className="text-sm">Gender</Label>
+                       <Select 
+                         value={formData.gender} 
+                         onValueChange={(value) => handleInputChange('gender', value)}
+                         disabled={!isEditing}
+                       >
+                         <SelectTrigger className="text-sm">
+                           <SelectValue placeholder="Select gender" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="MALE">Male</SelectItem>
+                           <SelectItem value="FEMALE">Female</SelectItem>
+                           <SelectItem value="OTHER">Other</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div>
+                       <Label htmlFor="fitnessLevel" className="text-sm">Fitness Level</Label>
+                       <Select 
+                         value={formData.fitnessLevel} 
+                         onValueChange={(value) => handleInputChange('fitnessLevel', value)}
+                         disabled={!isEditing}
+                       >
+                         <SelectTrigger className="text-sm">
+                           <SelectValue placeholder="Select level" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="Beginner">Beginner</SelectItem>
+                           <SelectItem value="Intermediate">Intermediate</SelectItem>
+                           <SelectItem value="Advanced">Advanced</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
                    </div>
+
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div>
+                       <Label htmlFor="height" className="text-sm">Height (cm)</Label>
+                       <Input
+                         id="height"
+                         type="number"
+                         value={formData.height}
+                         onChange={(e) => handleInputChange('height', e.target.value)}
+                         disabled={!isEditing}
+                         className="text-sm"
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor="weight" className="text-sm">Weight (kg)</Label>
+                       <Input
+                         id="weight"
+                         type="number"
+                         value={formData.weight}
+                         onChange={(e) => handleInputChange('weight', e.target.value)}
+                         disabled={!isEditing}
+                         className="text-sm"
+                       />
+                     </div>
+                   </div>
+
                    <div>
-                     <Label htmlFor="favoriteEquipment">Favorite Equipment</Label>
+                     <Label htmlFor="fitnessGoals" className="text-sm">Fitness Goals</Label>
                      <Input
-                       id="favoriteEquipment"
-                       value={formData.favoriteEquipment}
-                       onChange={(e) => handleInputChange('favoriteEquipment', e.target.value)}
+                       id="fitnessGoals"
+                       value={formData.fitnessGoals}
+                       onChange={(e) => handleInputChange('fitnessGoals', e.target.value)}
                        disabled={!isEditing}
-                       placeholder="e.g., Cardio, Weights, Functional Training"
+                       placeholder="e.g., Weight Loss, Muscle Gain, General Fitness"
+                       className="text-sm"
                      />
                    </div>
                  </div>
 
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                   <div>
-                     <Label htmlFor="preferredTrainer">Preferred Trainer</Label>
-                     <Input
-                       id="preferredTrainer"
-                       value={formData.preferredTrainer}
-                       onChange={(e) => handleInputChange('preferredTrainer', e.target.value)}
-                       disabled={!isEditing}
-                       placeholder="e.g., Coach Mike Santos"
-                     />
-                   </div>
-                   <div>
-                     <Label htmlFor="trainerContactNumber">Trainer Contact</Label>
-                     <Input
-                       id="trainerContactNumber"
-                       value={formData.trainerContactNumber}
-                       onChange={(e) => handleInputChange('trainerContactNumber', e.target.value)}
-                       disabled={!isEditing}
-                       placeholder="e.g., +63 917 123 4567"
-                     />
+                 {/* Emergency Contact */}
+                 <div className="space-y-4 pt-4 border-t">
+                   <h4 className="font-medium text-sm">Emergency Contact</h4>
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                     <div>
+                       <Label htmlFor="emergencyContactName" className="text-sm">Name</Label>
+                       <Input
+                         id="emergencyContactName"
+                         value={formData.emergencyContactName}
+                         onChange={(e) => handleInputChange('emergencyContactName', e.target.value)}
+                         disabled={!isEditing}
+                         className="text-sm"
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor="emergencyContactPhone" className="text-sm">Phone</Label>
+                       <Input
+                         id="emergencyContactPhone"
+                         value={formData.emergencyContactPhone}
+                         onChange={(e) => handleInputChange('emergencyContactPhone', e.target.value)}
+                         disabled={!isEditing}
+                         className="text-sm"
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor="emergencyContactRelationship" className="text-sm">Relationship</Label>
+                       <Input
+                         id="emergencyContactRelationship"
+                         value={formData.emergencyContactRelationship}
+                         onChange={(e) => handleInputChange('emergencyContactRelationship', e.target.value)}
+                         disabled={!isEditing}
+                         placeholder="e.g., Spouse, Parent, Friend"
+                         className="text-sm"
+                       />
+                     </div>
                    </div>
                  </div>
-              </div>
-            )}
-          </div>
 
-          {/* Membership Information */}
-          {member.gymSubscriptions?.[0] && (
-            <div className="grid gap-4">
-              <h4 className="font-medium flex items-center gap-2">
-                <CreditCard className="h-4 w-4" />
-                Current Membership
-              </h4>
-              
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-purple-600">
-                    {member.gymSubscriptions?.[0]?.gymMembershipPlan?.name || 'No Plan'}
-                  </span>
-                  <Badge variant={member.gymSubscriptions?.[0]?.status === 'EXPIRED' ? "destructive" : "default"}>
-                    {member.gymSubscriptions?.[0]?.status === 'EXPIRED' ? 'Expired' : 'Active'}
-                  </Badge>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Price:</span>
-                    <span className="ml-2 font-medium text-green-600">
-                      ₱{member.gymSubscriptions?.[0]?.price || '0'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Type:</span>
-                    <span className="ml-2">{member.gymSubscriptions?.[0]?.gymMembershipPlan?.type || 'N/A'}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Start:</span>
-                    <span className="ml-2">{member.gymSubscriptions?.[0]?.startDate ? new Date(member.gymSubscriptions[0].startDate).toLocaleDateString() : 'N/A'}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">End:</span>
-                    <span className="ml-2">{member.gymSubscriptions?.[0]?.endDate ? new Date(member.gymSubscriptions[0].endDate).toLocaleDateString() : 'N/A'}</span>
-                  </div>
-                </div>
-                
-                {/* Branch Access Information */}
-                <div className="border-t pt-3 mt-3">
-                  <h5 className="flex items-center gap-2 text-sm font-medium mb-2">
-                    <Building className="h-4 w-4" />
-                    Branch Access
-                  </h5>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Primary Branch:</span>
-                      <div className="ml-2 font-medium text-blue-600">
-                        {member.gymSubscriptions?.[0]?.branch?.name || 
-                         member.gymMemberProfile?.primaryBranch?.name || 
-                         'Not assigned'}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Access Level:</span>
-                      <div className="ml-2">
-                        <Badge variant="outline" className="text-xs">
-                          {member.gymMemberProfile?.accessLevel === 'ALL_BRANCHES' ? 'All Branches' :
-                           member.gymMemberProfile?.accessLevel === 'MULTI_BRANCH' ? 'Multiple Branches' :
-                           member.gymMemberProfile?.accessLevel === 'SINGLE_BRANCH' ? 'Single Branch' :
-                           'All Branches'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  {member.gymMemberProfile?.accessLevel === 'ALL_BRANCHES' && (
-                    <div className="text-xs text-green-600 mt-2">
-                      ✓ Can visit any branch in the network
-                    </div>
-                  )}
-                  
-                    {/* Action Buttons */}
-                    <div className="flex justify-end gap-2 mt-3 pt-2 border-t">
-                       {/* TODO: Re-enable in V2 with feature flags */}
-                       {true && (
-                         <Button
-                           variant="outline"
-                           size="sm"
-                           onClick={() => setShowRenewModal(true)}
-                           className="flex items-center gap-2 text-xs"
-                         >
-                           <Calendar className="h-3 w-3" />
-                           Renew Membership
-                         </Button>
-                       )}
-                       {/* TODO: Re-enable in future version with proper implementation */}
-                       {false && (
-                         <Button
-                           variant="outline"
-                           size="sm"
-                           onClick={() => setShowChangePlanModal(true)}
-                           className="flex items-center gap-2 text-xs"
-                           disabled={member.gymSubscriptions?.[0]?.status !== 'ACTIVE'}
-                         >
-                           <CreditCard className="h-3 w-3" />
-                           Change Plan
-                         </Button>
-                       )}
-                       {/* TODO: Re-enable in future version with proper implementation */}
-                       {false && (
-                         <Button
-                           variant="outline"
-                           size="sm"
-                           onClick={() => setShowBranchTransferModal(true)}
-                           className="flex items-center gap-2 text-xs"
-                         >
-                           <ArrowRightLeft className="h-3 w-3" />
-                           Transfer Branch
-                         </Button>
-                       )}
+                 {/* Preferences */}
+                 <div className="space-y-4 pt-4 border-t">
+                   <h4 className="font-medium text-sm">Preferences</h4>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div>
+                       <Label htmlFor="preferredWorkoutTime" className="text-sm">Preferred Workout Time</Label>
+                       <Select
+                         value={formData.preferredWorkoutTime}
+                         onValueChange={(value) => handleInputChange('preferredWorkoutTime', value)}
+                         disabled={!isEditing}
+                       >
+                         <SelectTrigger className="text-sm">
+                           <SelectValue placeholder="Select time" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="Morning">Morning</SelectItem>
+                           <SelectItem value="Afternoon">Afternoon</SelectItem>
+                           <SelectItem value="Evening">Evening</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div>
+                       <Label htmlFor="favoriteEquipment" className="text-sm">Favorite Equipment</Label>
+                       <Input
+                         id="favoriteEquipment"
+                         value={formData.favoriteEquipment}
+                         onChange={(e) => handleInputChange('favoriteEquipment', e.target.value)}
+                         disabled={!isEditing}
+                         placeholder="e.g., Cardio, Weights, Functional Training"
+                         className="text-sm"
+                       />
+                     </div>
                    </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Activity Summary */}
-          {member.gymMemberProfile && (
-            <div className="grid gap-4">
-              <h4 className="font-medium flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Activity Summary
-              </h4>
-
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 text-center">
-                  <div className="font-bold text-blue-600 text-lg">
-                    {member.gymMemberProfile?.totalVisits || 0}
-                  </div>
-                  <div className="text-blue-600 dark:text-blue-400 text-xs">Total Visits</div>
-                </div>
-                <div className="bg-green-50 dark:bg-green-950 rounded-lg p-3 text-center">
-                  <div className="font-bold text-green-600 text-lg">
-                    {member.gymMemberProfile?.averageVisitsPerWeek || 0}
-                  </div>
-                  <div className="text-green-600 dark:text-green-400 text-xs">Visits/Week</div>
-                </div>
-                 <div className="bg-purple-50 dark:bg-purple-950 rounded-lg p-3 text-center">
-                   <div className="font-bold text-purple-600 text-lg">
-                     {member.gymMemberProfile?.lastVisit
-                       ? new Date(member.gymMemberProfile.lastVisit).toLocaleDateString()
-                       : 'N/A'
-                     }
-                   </div>
-                   <div className="text-purple-600 dark:text-purple-400 text-xs">Last Visit</div>
                  </div>
-              </div>
-            </div>
-          )}
+               </div>
+             )}
+           </div>
+
+           {/* Membership & Activity Accordion */}
+           <div className="space-y-4">
+             <button
+               type="button"
+               onClick={() => toggleSection('membershipActivity')}
+               className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+             >
+               <div className="flex items-center gap-2">
+                 <CreditCard className="h-4 w-4" />
+                 <span className="font-medium">Membership & Activity</span>
+               </div>
+               {expandedSections.membershipActivity ? (
+                 <ChevronUp className="h-4 w-4" />
+               ) : (
+                 <ChevronDown className="h-4 w-4" />
+               )}
+             </button>
+             
+             {expandedSections.membershipActivity && (
+               <div className="space-y-4 pl-6">
+                 {/* Membership Information */}
+                 {member.gymSubscriptions?.[0] && (
+                   <div className="space-y-4">
+                     <h4 className="font-medium text-sm">Current Membership</h4>
+                     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
+                       <div className="flex items-center justify-between">
+                         <span className="font-medium text-purple-600 text-sm">
+                           {member.gymSubscriptions?.[0]?.gymMembershipPlan?.name || 'No Plan'}
+                         </span>
+                         <Badge variant={member.gymSubscriptions?.[0]?.status === 'EXPIRED' ? "destructive" : "default"} className="text-xs">
+                           {member.gymSubscriptions?.[0]?.status === 'EXPIRED' ? 'Expired' : 'Active'}
+                         </Badge>
+                       </div>
+                       
+                       <div className="grid grid-cols-2 gap-4 text-xs">
+                         <div>
+                           <span className="text-muted-foreground">Price:</span>
+                           <span className="ml-2 font-medium text-green-600">
+                             ₱{member.gymSubscriptions?.[0]?.price || '0'}
+                           </span>
+                         </div>
+                         <div>
+                           <span className="text-muted-foreground">Type:</span>
+                           <span className="ml-2">{member.gymSubscriptions?.[0]?.gymMembershipPlan?.type || 'N/A'}</span>
+                         </div>
+                         <div>
+                           <span className="text-muted-foreground">Start:</span>
+                           <span className="ml-2">{member.gymSubscriptions?.[0]?.startDate ? new Date(member.gymSubscriptions[0].startDate).toLocaleDateString() : 'N/A'}</span>
+                         </div>
+                         <div>
+                           <span className="text-muted-foreground">End:</span>
+                           <span className="ml-2">{member.gymSubscriptions?.[0]?.endDate ? new Date(member.gymSubscriptions[0].endDate).toLocaleDateString() : 'N/A'}</span>
+                         </div>
+                       </div>
+                       
+                       {/* Branch Access Information */}
+                       <div className="border-t pt-3 mt-3">
+                         <h5 className="flex items-center gap-2 text-xs font-medium mb-2">
+                           <Building className="h-3 w-3" />
+                           Branch Access
+                         </h5>
+                         <div className="grid grid-cols-2 gap-4 text-xs">
+                           <div>
+                             <span className="text-muted-foreground">Primary Branch:</span>
+                             <div className="ml-2 font-medium text-blue-600">
+                               {member.gymSubscriptions?.[0]?.branch?.name || 
+                                member.gymMemberProfile?.primaryBranch?.name || 
+                                'Not assigned'}
+                             </div>
+                           </div>
+                           <div>
+                             <span className="text-muted-foreground">Access Level:</span>
+                             <div className="ml-2">
+                               <Badge variant="outline" className="text-xs">
+                                 {member.gymMemberProfile?.accessLevel === 'ALL_BRANCHES' ? 'All Branches' :
+                                  member.gymMemberProfile?.accessLevel === 'MULTI_BRANCH' ? 'Multiple Branches' :
+                                  member.gymMemberProfile?.accessLevel === 'SINGLE_BRANCH' ? 'Single Branch' :
+                                  'All Branches'}
+                               </Badge>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         {/* Action Buttons */}
+                         <div className="flex justify-end gap-2 mt-3 pt-2 border-t">
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={() => setShowRenewModal(true)}
+                             className="flex items-center gap-2 text-xs"
+                           >
+                             <Calendar className="h-3 w-3" />
+                             Renew Membership
+                           </Button>
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                 )}
+
+                 {/* Activity Summary */}
+                 {member.gymMemberProfile && (
+                   <div className="space-y-4 pt-4 border-t">
+                     <h4 className="font-medium text-sm">Activity Summary</h4>
+                     <div className="grid grid-cols-3 gap-4 text-xs">
+                       <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 text-center">
+                         <div className="font-bold text-blue-600 text-lg">
+                           {member.gymMemberProfile?.totalVisits || 0}
+                         </div>
+                         <div className="text-blue-600 dark:text-blue-400">Total Visits</div>
+                       </div>
+                       <div className="bg-green-50 dark:bg-green-950 rounded-lg p-3 text-center">
+                         <div className="font-bold text-green-600 text-lg">
+                           {member.gymMemberProfile?.averageVisitsPerWeek || 0}
+                         </div>
+                         <div className="text-green-600 dark:text-green-400">Visits/Week</div>
+                       </div>
+                       <div className="bg-purple-50 dark:bg-purple-950 rounded-lg p-3 text-center">
+                         <div className="font-bold text-purple-600 text-lg">
+                           {member.gymMemberProfile?.lastVisit
+                             ? new Date(member.gymMemberProfile.lastVisit).toLocaleDateString()
+                             : 'N/A'
+                           }
+                         </div>
+                         <div className="text-purple-600 dark:text-purple-400">Last Visit</div>
+                       </div>
+                     </div>
+                   </div>
+                 )}
+               </div>
+             )}
+           </div>
         </div>
 
         <DialogFooter className="flex-col space-y-4 pt-6 border-t">

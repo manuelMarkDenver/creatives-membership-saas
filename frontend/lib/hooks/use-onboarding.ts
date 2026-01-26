@@ -152,8 +152,13 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
       // After business details or password is set, show branch modal for customization
       setShowBranchModal(true)
     } else if (!status.hasMembershipPlans) {
-      // After branch is customized, show plan modal
-      setShowPlanModal(true)
+      // Skip plan modal for v1 - automatically complete onboarding
+      // After branch is customized, complete onboarding without plan
+      if (tenantId) {
+        completeOnboarding.mutateAsync(tenantId).catch((error) => {
+          console.error('Failed to complete onboarding without plan:', error)
+        })
+      }
     }
   }, [status, isLoading, user, tenantId, markPasswordChanged, businessDetailsSet])
 
@@ -239,41 +244,18 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
       // Update the branch
       await branchesApi.update(mainBranch.id, data)
 
-      // Mark branch as customized and move to next step
+      // Mark branch as customized and complete onboarding (skip plan step)
       setBranchCustomized(true)
       setShowBranchModal(false)
+      if (tenantId) {
+        await completeOnboarding.mutateAsync(tenantId)
+      }
       await refetch()
     },
     [mainBranch, refetch]
   )
 
-  /**
-   * Handle membership plan creation
-   */
-  const handlePlanCreated = useCallback(
-    async (data: {
-      name: string
-      description?: string
-      price: number
-      duration: number
-      type: string
-      accessLevel: string
-    }) => {
-      console.log('🎯 FRONTEND: Creating membership plan and completing onboarding');
 
-      // Create the membership plan
-      await createMembershipPlan(data)
-
-      // Close plan modal and complete onboarding
-      setShowPlanModal(false)
-      if (tenantId) {
-        console.log('🎯 FRONTEND: Calling completeOnboarding for tenant', tenantId);
-        await completeOnboarding.mutateAsync(tenantId)
-      }
-      await refetch()
-    },
-    [tenantId, completeOnboarding, refetch]
-  )
 
 
 
@@ -318,7 +300,6 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     handleBusinessDetailsSet,
     handlePasswordSet,
     handleBranchCustomized,
-    handlePlanCreated,
 
     // Utils
     refetchStatus: refetch,

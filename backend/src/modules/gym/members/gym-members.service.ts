@@ -30,12 +30,13 @@ export class GymMembersService {
 
   async createGymMember(data: any, tenantId: string) {
     try {
-      // Validate required fields
-      if (!data.firstName?.trim()) {
-        throw new BadRequestException('First name is required');
-      }
-      if (!data.lastName?.trim()) {
-        throw new BadRequestException('Last name is required');
+      // Validate required fields - support both name field (v1) and firstName/lastName (legacy)
+      const name = data.name?.trim();
+      const firstName = data.firstName?.trim();
+      const lastName = data.lastName?.trim();
+      
+      if (!name && (!firstName || !lastName)) {
+        throw new BadRequestException('Name is required (use either "name" field or "firstName" and "lastName" fields)');
       }
 
       // Determine target branch: use provided branchId or find first active branch
@@ -73,11 +74,24 @@ export class GymMembersService {
 
       // Create user, gym member profile, branch assignment, and subscription in a transaction
       const result = await this.prisma.$transaction(async (tx) => {
-        // 1. Create the user
+        // 1. Create the user - handle both name field (v1) and firstName/lastName (legacy)
+        let userFirstName = '';
+        let userLastName = '';
+        
+        if (name) {
+          // Split name into first and last names
+          const nameParts = name.split(' ');
+          userFirstName = nameParts[0] || '';
+          userLastName = nameParts.slice(1).join(' ') || '';
+        } else {
+          userFirstName = firstName || '';
+          userLastName = lastName || '';
+        }
+        
         const user = await tx.user.create({
           data: {
-            firstName: data.firstName.trim(),
-            lastName: data.lastName.trim(),
+            firstName: userFirstName,
+            lastName: userLastName,
             email: data.email?.trim().toLowerCase() || null,
             phoneNumber: data.phoneNumber?.trim() || null,
             role: 'CLIENT', // Platform-level role for gym members
@@ -113,18 +127,23 @@ export class GymMembersService {
           },
         });
 
-        // 4. Create subscription - days-based instead of plan-based
-        let subscription: any = null;
+        // 4. Create subscription - days-based instead of plan-based (required for v1)
         const days = data.days;
+        const paymentAmount = data.paymentAmount;
+
+        // Validate required fields for subscription
+        if (days === undefined || paymentAmount === undefined) {
+          throw new BadRequestException('days and paymentAmount are required for member creation');
+        }
 
         // Validate days parameter
-        if (!days || days <= 0 || days > 365) {
+        if (days <= 0 || days > 365) {
           throw new BadRequestException('days must be between 1 and 365');
         }
 
         // Validate payment amount is provided
-        if (!data.paymentAmount || data.paymentAmount <= 0) {
-          throw new BadRequestException('paymentAmount is required and must be greater than 0');
+        if (paymentAmount <= 0) {
+          throw new BadRequestException('paymentAmount must be greater than 0');
         }
 
         // Find or create a "Custom Membership" plan
@@ -143,30 +162,25 @@ export class GymMembersService {
               tenantId: tenantId,
               name: 'Custom Membership',
               description: 'Flexible membership with custom duration and pricing',
-              duration: 30, // Default duration, will be overridden
-              price: 0, // Will be overridden by actual payment
-              type: 'CUSTOM',
+              price: 0, // Custom pricing handled per subscription
+              duration: 30, // Default duration, but overridden by days parameter
+              type: 'MONTHLY',
               isActive: true,
             },
           });
         }
 
-        // Create subscription with custom duration
-        const startDate = new Date();
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + days);
-        endDate.setHours(23, 59, 59, 999); // End of day
-
-        subscription = await tx.gymMemberSubscription.create({
+        // Create the subscription
+        const subscription = await tx.gymMemberSubscription.create({
           data: {
             tenantId: tenantId,
             memberId: user.id,
             gymMembershipPlanId: customPlan.id,
             branchId: branch.id,
             status: 'ACTIVE',
-            startDate: startDate,
-            endDate: endDate,
-            price: data.paymentAmount,
+            startDate: new Date(),
+            endDate: new Date(Date.now() + days * 24 * 60 * 60 * 1000),
+            price: paymentAmount,
             currency: 'PHP',
             autoRenew: false,
           },
