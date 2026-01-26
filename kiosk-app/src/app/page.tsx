@@ -14,6 +14,7 @@ export default function KioskPage() {
   const [result, setResult] = useState<AccessResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>('');
+  const [isOnline, setIsOnline] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
 
@@ -82,6 +83,16 @@ export default function KioskPage() {
 
     if (isProcessing || normalizedUid.length === 0) {
       console.log('Skipping tap - isProcessing:', isProcessing, 'normalizedUid length:', normalizedUid.length);
+      return;
+    }
+
+    // Check if offline
+    if (!isOnline) {
+      setResult({ result: 'ERROR', message: 'Network offline - Please check internet connection' });
+      setTimeout(() => {
+        setCardUid('');
+        setResult(null);
+      }, 3000);
       return;
     }
 
@@ -300,6 +311,28 @@ export default function KioskPage() {
     return message;
   };
 
+  // Check network connectivity
+  useEffect(() => {
+    const updateOnlineStatus = () => {
+      const online = navigator.onLine;
+      setIsOnline(online);
+      console.log(`🌐 Network status: ${online ? 'Online' : 'Offline'}`);
+    };
+
+    // Set initial status
+    updateOnlineStatus();
+
+    // Add event listeners
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, []);
+
   // Check if terminal is configured
   useEffect(() => {
     const terminalId = localStorage.getItem('terminalId');
@@ -317,6 +350,16 @@ export default function KioskPage() {
 
   return (
     <div className={`h-screen flex flex-col transition-colors duration-300 ${getBackgroundColor()} relative overflow-hidden landscape:pb-64 portrait:pb-48 portrait:justify-center portrait:items-center`}>
+      {/* Network status indicator */}
+      {!isOnline && (
+        <div className="absolute top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2 animate-pulse">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="font-semibold">OFFLINE</span>
+        </div>
+      )}
+
       {/* Debug info display - only in development */}
       {debugInfo && process.env.NODE_ENV === 'development' && (
         <div className="absolute top-4 left-4 bg-black bg-opacity-90 text-white p-4 rounded-lg text-sm font-mono max-w-md z-50">

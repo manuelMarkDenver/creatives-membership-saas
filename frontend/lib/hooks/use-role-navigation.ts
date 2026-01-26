@@ -55,7 +55,8 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     href: '/membership-plans',
     icon: Calendar,
     roles: ['OWNER' as Role, 'MANAGER' as Role],
-    description: 'Manage tenant membership plans'
+    description: 'Manage tenant membership plans',
+    isFutureFeature: true
   },
   {
     name: 'Daily',
@@ -74,13 +75,13 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     description: 'Your membership details'
   },
 
-  // Active Features - Locations Management  
+  // Active Features - Branches Management  
   {
-    name: 'Locations',
+    name: 'Branches',
     href: '/locations',
     icon: MapPin,
     roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role],
-    description: 'Manage gym locations'
+    description: 'Manage gym branches'
   },
 
   // Future Features - Disabled/Coming Soon
@@ -121,6 +122,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: Settings,
     roles: ['OWNER' as Role],
     description: 'Configure your gym settings',
+    isFutureFeature: true
   },
   {
     name: 'Settings',

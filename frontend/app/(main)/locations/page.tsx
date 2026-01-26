@@ -414,15 +414,15 @@ export default function LocationsPage() {
       {/* Header - Mobile Optimized */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <MapPin className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-            {isSuperAdmin ? 'System Locations' : 'Gym Locations'}
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            {isSuperAdmin 
-              ? 'Manage all gym locations across tenants' 
-              : 'Manage your gym locations and their details'
-            }
+           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+             <MapPin className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
+             {isSuperAdmin ? 'System Branches' : 'Gym Branches'}
+           </h1>
+           <p className="text-sm sm:text-base text-muted-foreground">
+             {isSuperAdmin 
+               ? 'Manage all gym branches across tenants' 
+               : 'Manage your gym branches and their details'
+             }
           </p>
           
           {/* Role badge */}
@@ -446,8 +446,8 @@ export default function LocationsPage() {
       </div>
 
       {/* Mobile-First Stats Overview */}
-      <CollapsibleStatsOverview 
-        title="Location Statistics"
+       <CollapsibleStatsOverview 
+        title="Branch Statistics"
         stats={locationStats}
         compactSummary={compactSummary}
       />

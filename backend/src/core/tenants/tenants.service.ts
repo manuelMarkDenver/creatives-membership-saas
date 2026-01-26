@@ -918,6 +918,19 @@ export class TenantsService {
         `🎯 Starting onboarding completion for tenant ${tenantId}`,
       );
 
+      // First, check if onboarding is already completed
+      const existingTenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { onboardingCompletedAt: true, name: true }
+      });
+
+      if (existingTenant?.onboardingCompletedAt) {
+        this.logger.log(
+          `ℹ️ Onboarding already completed for tenant: ${existingTenant.name} (${tenantId}) at ${existingTenant.onboardingCompletedAt}`,
+        );
+        return existingTenant;
+      }
+
       const updatedTenant = await this.prisma.tenant.update({
         where: { id: tenantId },
         data: {
@@ -930,14 +943,11 @@ export class TenantsService {
         `✅ Marked onboarding complete for tenant: ${updatedTenant.name} (${updatedTenant.id})`,
       );
 
-      // Send notifications for onboarding completion
-      this.logger.log(`🎯 Starting email notifications for tenant ${tenantId}`);
-      this.logger.log(`EmailService available: ${!!this.emailService}`);
-
       try {
+        // Get tenant owner to send welcome email
         const owner = await this.prisma.user.findFirst({
           where: {
-            tenantId: tenantId,
+            tenantId,
             role: 'OWNER',
           },
           select: {
