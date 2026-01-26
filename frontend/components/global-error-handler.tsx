@@ -17,8 +17,8 @@ export function GlobalErrorHandler({ children }: GlobalErrorHandlerProps) {
         try {
           localStorage.clear()
           sessionStorage.clear()
-          // Force page reload to clean state
-          window.location.reload()
+          // Force page reload to clean state (with delay to avoid React conflicts)
+          setTimeout(() => window.location.reload(), 100)
         } catch (clearError) {
           console.error('Failed to clear storage on error:', clearError)
         }
@@ -36,7 +36,8 @@ export function GlobalErrorHandler({ children }: GlobalErrorHandlerProps) {
         try {
           localStorage.clear()
           sessionStorage.clear()
-          window.location.reload()
+          // Force page reload to clean state (with delay to avoid React conflicts)
+          setTimeout(() => window.location.reload(), 100)
         } catch (clearError) {
           console.error('Failed to clear storage on rejection:', clearError)
         }

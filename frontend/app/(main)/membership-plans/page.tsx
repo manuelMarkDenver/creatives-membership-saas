@@ -395,7 +395,10 @@ export default function MembershipPlansPage() {
           <Button variant="outline" onClick={() => { refetch() }}>
             Refresh
           </Button>
-          <Button variant="outline" onClick={async () => { await queryClient.clear(); window.location.reload() }}>
+          <Button variant="outline" onClick={async () => { 
+            await queryClient.clear(); 
+            setTimeout(() => window.location.reload(), 100);
+          }}>
             Clear Cache
           </Button>
           <Button onClick={() => setCreateDialogOpen(true)}>
