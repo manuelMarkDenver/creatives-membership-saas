@@ -55,7 +55,7 @@ function KioskPageContent() {
       return;
     }
     
-    console.log('Resetting kiosk to initial state...');
+    console.log('🚀 RESET TO TAPPING - Starting reset process...');
     
     // Clear all state
     setIsAdminMode(false);
@@ -76,21 +76,41 @@ function KioskPageContent() {
       });
     }
     
-    // CRITICAL: Refocus input with multiple attempts - force focus after reset
-    const refocusInput = () => {
+    // CRITICAL: Refocus input with AGGRESSIVE multiple attempts
+    // Wait for React to re-render after state changes
+    console.log('Starting aggressive refocus attempts...');
+    
+    const refocusInput = (attempt: number) => {
       if (inputRef.current) {
-        inputRef.current.focus();
-        console.log('Input focused after reset');
-        return true;
+        try {
+          inputRef.current.focus();
+          const isFocused = document.activeElement === inputRef.current;
+          console.log(`Refocus attempt ${attempt}: ${isFocused ? 'SUCCESS' : 'FAILED'}`);
+          return isFocused;
+        } catch (error) {
+          console.log(`Refocus attempt ${attempt}: ERROR - ${error}`);
+          return false;
+        }
       }
+      console.log(`Refocus attempt ${attempt}: inputRef.current is null`);
       return false;
     };
     
-    // Multiple attempts with increasing delays
-    setTimeout(() => refocusInput(), 50);
-    setTimeout(() => refocusInput(), 150);
-    setTimeout(() => refocusInput(), 300);
-    setTimeout(() => refocusInput(), 500); // Extra attempt
+    // AGGRESSIVE timing: Multiple attempts covering React render cycles
+    // 0ms, 50ms, 100ms, 200ms, 400ms, 800ms - covers all possible render timings
+    setTimeout(() => refocusInput(1), 0);
+    setTimeout(() => refocusInput(2), 50);
+    setTimeout(() => refocusInput(3), 100);
+    setTimeout(() => refocusInput(4), 200);
+    setTimeout(() => refocusInput(5), 400);
+    setTimeout(() => refocusInput(6), 800);
+    setTimeout(() => refocusInput(7), 1200); // Nuclear option
+    
+    // Also trigger the focus management useEffect by forcing a state update
+    setTimeout(() => {
+      // Force a dummy state update to trigger focus useEffect
+      setCardUid(prev => prev);
+    }, 10);
   }, [adminSessionTimer]);
 
   // Toggle debug mode
@@ -322,29 +342,36 @@ function KioskPageContent() {
        'DENY_RECLAIM_MISMATCH',
      ].includes(result);
 
-     // Volume: 100% in production for noisy gym, normal in development
+     // Volume: EXTRA LOUD in production (annoying!), normal in development
      const volume = process.env.NODE_ENV === 'production' ? 1.0 : 0.4;
+     const durationMultiplier = process.env.NODE_ENV === 'production' ? 1.5 : 1.0;
 
      if (
        ['ALLOW', 'ASSIGNED', 'ALLOW_AUTO_ASSIGNED', 'RECLAIMED', 'DAILY_OK', 'SUPER_ADMIN'].includes(result)
      ) {
-       // Success sound - high pitch, short
-       oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+       // Success sound - VERY high pitch, longer in production
+       const freq = process.env.NODE_ENV === 'production' ? 1200 : 800;
+       const duration = 0.2 * durationMultiplier;
+       oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
        oscillator.start(audioContext.currentTime);
-       oscillator.stop(audioContext.currentTime + 0.2);
+       oscillator.stop(audioContext.currentTime + duration);
      } else if (isDenyResult) {
-       // Deny sound - medium pitch, medium duration
-       oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+       // Deny sound - annoying medium pitch, longer in production
+       const freq = process.env.NODE_ENV === 'production' ? 900 : 600;
+       const duration = 0.4 * durationMultiplier;
+       oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
        oscillator.start(audioContext.currentTime);
-       oscillator.stop(audioContext.currentTime + 0.3);
+       oscillator.stop(audioContext.currentTime + duration);
      } else {
-       // Error sound - low pitch, long
-       oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+       // Error sound - grating low pitch, much longer in production
+       const freq = process.env.NODE_ENV === 'production' ? 700 : 400;
+       const duration = 0.8 * durationMultiplier;
+       oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
        oscillator.start(audioContext.currentTime);
-       oscillator.stop(audioContext.currentTime + 0.5);
+       oscillator.stop(audioContext.currentTime + duration);
      }
    };
 
