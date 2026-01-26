@@ -724,18 +724,20 @@ export function MemberInfoModal({
                            </div>
                          </div>
                          
-                         {/* Action Buttons */}
-                         <div className="flex justify-end gap-2 mt-3 pt-2 border-t">
-                           <Button
-                             variant="outline"
-                             size="sm"
-                             onClick={() => setShowRenewModal(true)}
-                             className="flex items-center gap-2 text-xs"
-                           >
-                             <Calendar className="h-3 w-3" />
-                             Renew Membership
-                           </Button>
-                         </div>
+                          {/* Action Buttons - Only show Renew for expired members */}
+                          {member.gymSubscriptions?.[0]?.status === 'EXPIRED' && (
+                            <div className="flex justify-end gap-2 mt-3 pt-2 border-t">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowRenewModal(true)}
+                                className="flex items-center gap-2 text-xs"
+                              >
+                                <Calendar className="h-3 w-3" />
+                                Renew Membership
+                              </Button>
+                            </div>
+                          )}
                        </div>
                      </div>
                    </div>

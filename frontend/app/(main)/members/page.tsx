@@ -39,7 +39,7 @@ import { User, Role } from '@/types'
 import { MemberInfoModal } from '@/components/modals/member-info-modal'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { MembershipPlansRequiredModal } from '@/components/modals/membership-plans-required-modal'
-import { ChangePlanModal } from '@/components/modals/change-plan-modal'
+
 import { AssignCardModal } from '@/components/modals/assign-card-modal'
 import { ReplaceCardModal } from '@/components/modals/replace-card-modal'
 import { ReclaimPendingModal } from '@/components/modals/reclaim-pending-modal'
@@ -87,8 +87,7 @@ export default function MembersPage() {
   const [showTransactionModal, setShowTransactionModal] = useState(false)
   const [selectedMemberForTransactions, setSelectedMemberForTransactions] = useState<User | null>(null)
   const [showPlansRequiredModal, setShowPlansRequiredModal] = useState(false)
-  const [showChangePlanModal, setShowChangePlanModal] = useState(false)
-  const [selectedMemberForChangePlan, setSelectedMemberForChangePlan] = useState<User | null>(null)
+
    const [showAssignCardModal, setShowAssignCardModal] = useState(false)
    const [selectedMemberForAssignCard, setSelectedMemberForAssignCard] = useState<User | null>(null)
    const [showReplaceCardModal, setShowReplaceCardModal] = useState(false)
@@ -513,15 +512,11 @@ export default function MembersPage() {
                       setSelectedMemberForTransactions(member)
                       setShowTransactionModal(true)
                     }}
-                     onRenewSubscription={(member: User) => {
-                       setSelectedMemberForAction(member)
-                       setShowRenewalModal(true)
-                     }}
-                     onChangePlan={(member: User) => {
-                       setSelectedMemberForChangePlan(member)
-                      setShowChangePlanModal(true)
-                    }}
-                      onAssignCard={(member: User) => {
+                      onRenewSubscription={(member: User) => {
+                        setSelectedMemberForAction(member)
+                        setShowRenewalModal(true)
+                      }}
+                       onAssignCard={(member: User) => {
                         setSelectedMemberForAssignCard(member)
                         setShowAssignCardModal(true)
                       }}
@@ -618,21 +613,6 @@ export default function MembersPage() {
       />
 
       {/* Change Plan Modal */}
-      <ChangePlanModal
-        isOpen={showChangePlanModal}
-        onClose={() => {
-          setShowChangePlanModal(false)
-          setSelectedMemberForChangePlan(null)
-        }}
-        member={selectedMemberForChangePlan}
-        onPlanChanged={async () => {
-          // Refresh members data to show updated plan
-          await refreshMembersData()
-          setShowChangePlanModal(false)
-          setSelectedMemberForChangePlan(null)
-        }}
-      />
-
       {/* Assign Card Modal */}
       <AssignCardModal
         isOpen={showAssignCardModal}

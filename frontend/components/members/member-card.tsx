@@ -53,7 +53,6 @@ interface MemberCardProps {
   onViewMemberInfo: (member: User) => void
   onViewTransactions: (member: User) => void
   onRenewSubscription: (member: User) => void
-  onChangePlan: (member: User) => void
   onAssignCard: (member: User) => void
   onReplaceCard: (member: User) => void
   onReclaimCard?: (member: User) => void
@@ -67,7 +66,6 @@ export function MemberCard({
   onViewMemberInfo,
   onViewTransactions,
   onRenewSubscription,
-  onChangePlan,
   onAssignCard,
   onReplaceCard,
   onReclaimCard,
@@ -524,22 +522,34 @@ export function MemberCard({
                    </button>
                  )}
 
-                 {/* Replace Card Button - for members with active cards */}
-                 {cardStatus === 'ACTIVE' && currentState === 'ACTIVE' && (
-                   <button
-                     type="button"
-                     className="px-4 py-2.5 text-sm bg-transparent hover:bg-purple-50 dark:hover:bg-purple-950 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
-                     onClick={() => onReplaceCard(member)}
-                   >
-                     <RefreshCw className="h-4 w-4" />
-                     {pendingAssignment?.memberId === member.id && pendingAssignment.purpose === 'REPLACE'
-                       ? pendingAssignment.isExpired ? 'Continue Card Replacement' : 'Continue Card Replacement'
-                       : 'Replace Card'}
-                   </button>
-                 )}
-              </>
-            )
-          })()}
+                  {/* Replace Card Button - for members with active cards */}
+                  {cardStatus === 'ACTIVE' && currentState === 'ACTIVE' && (
+                    <button
+                      type="button"
+                      className="px-4 py-2.5 text-sm bg-transparent hover:bg-purple-50 dark:hover:bg-purple-950 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
+                      onClick={() => onReplaceCard(member)}
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      {pendingAssignment?.memberId === member.id && pendingAssignment.purpose === 'REPLACE'
+                        ? pendingAssignment.isExpired ? 'Continue Card Replacement' : 'Continue Card Replacement'
+                        : 'Replace Card'}
+                    </button>
+                  )}
+
+                  {/* Disable Card Button - for members with active cards (mobile-friendly) */}
+                  {cardStatus === 'ACTIVE' && currentState === 'ACTIVE' && (
+                    <button
+                      type="button"
+                      className="px-4 py-2.5 text-sm bg-transparent hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
+                      onClick={() => openMemberActionModal('disable_card')}
+                    >
+                      <Ban className="h-4 w-4" />
+                      Disable Card
+                    </button>
+                  )}
+                </>
+              )
+            })()}
           {/* Status Button - Larger and More Touch-Friendly */}
           {(() => {
             const canManage = canManageMember();
@@ -800,13 +810,6 @@ export function MemberCard({
                   case 'ACTIVE':
                     return (
                       <>
-                        <DropdownMenuItem
-                          className="text-blue-600"
-                          onClick={() => onChangePlan?.(member)}
-                        >
-                          <Settings className="mr-2 h-4 w-4" />
-                          Change Plan
-                        </DropdownMenuItem>
                         {member.gymMemberProfile?.cardStatus === 'ACTIVE' && (
                           <DropdownMenuItem
                             className="text-red-600"
