@@ -115,6 +115,10 @@ export class GymAnalyticsService {
     const [
       currentTransactions,
       previousTransactions,
+      subscriptionRevenueDirect,
+      previousSubscriptionRevenueDirect,
+      dailyRevenue,
+      previousDailyRevenue,
       revenueByPlan,
       revenueByBranch,
       timeline,
@@ -130,6 +134,10 @@ export class GymAnalyticsService {
         where: prevWhereClause,
         _sum: { amount: true },
       }),
+      this.getSubscriptionRevenueDirect(tenantId, start, end, query.branchId),
+      this.getSubscriptionRevenueDirect(tenantId, prevStart, prevEnd, query.branchId),
+      this.getDailyRevenue(tenantId, start, end, query.branchId),
+      this.getDailyRevenue(tenantId, prevStart, prevEnd, query.branchId),
       this.getRevenueByPlan(tenantId, start, end, query.branchId),
       this.getRevenueByBranch(tenantId, start, end),
       this.getRevenueTimeline(tenantId, start, end, query.branchId),
@@ -137,9 +145,15 @@ export class GymAnalyticsService {
       this.getActiveMemberCount(tenantId, query.branchId),
     ]);
 
-    const totalRevenue = currentTransactions._sum.amount?.toNumber() || 0;
-    const previousPeriodRevenue =
-      previousTransactions._sum.amount?.toNumber() || 0;
+    // For v1: Use subscription prices directly if no transactions exist
+    const subscriptionRevenue = currentTransactions._sum.amount?.toNumber() || subscriptionRevenueDirect;
+    const previousSubscriptionRevenue =
+      previousTransactions._sum.amount?.toNumber() || previousSubscriptionRevenueDirect;
+    const totalDailyRevenue = dailyRevenue || 0;
+    const previousDailyRevenueAmount = previousDailyRevenue || 0;
+    
+    const totalRevenue = subscriptionRevenue + totalDailyRevenue;
+    const previousPeriodRevenue = previousSubscriptionRevenue + previousDailyRevenueAmount;
     const growthAmount = totalRevenue - previousPeriodRevenue;
     const growthRate =
       previousPeriodRevenue > 0
@@ -148,17 +162,21 @@ export class GymAnalyticsService {
     const averageRevenuePerMember =
       memberCount > 0 ? totalRevenue / memberCount : 0;
 
-    return {
-      totalRevenue,
-      previousPeriodRevenue,
-      growthRate,
-      growthAmount,
-      averageRevenuePerMember,
-      revenueByPlan,
-      revenueByBranch,
-      revenueTimeline: timeline,
-      paymentMethodBreakdown: paymentMethods,
-    };
+    const result = new RevenueMetricsDto();
+    result.totalRevenue = totalRevenue;
+    result.previousPeriodRevenue = previousPeriodRevenue;
+    result.growthRate = growthRate;
+    result.growthAmount = growthAmount;
+    result.averageRevenuePerMember = averageRevenuePerMember;
+    result.dailyRevenue = totalDailyRevenue;
+    result.subscriptionRevenue = subscriptionRevenue;
+    result.revenueByPlan = revenueByPlan;
+    result.revenueByBranch = revenueByBranch;
+    result.revenueTimeline = timeline;
+    result.paymentMethodBreakdown = paymentMethods;
+    
+    console.log('Revenue metrics result:', JSON.stringify(result, null, 2));
+    return result;
   }
 
   private async getRevenueByPlan(
@@ -198,13 +216,15 @@ export class GymAnalyticsService {
       }
     });
 
-    return Array.from(planMap.entries()).map(([planId, data]) => ({
-      planId,
-      planName: data.name,
-      revenue: data.revenue,
-      memberCount: data.count,
-      percentage: totalRevenue > 0 ? (data.revenue / totalRevenue) * 100 : 0,
-    }));
+    return Array.from(planMap.entries()).map(([planId, data]) => {
+      const dto = new RevenueByPlanDto();
+      dto.planId = planId;
+      dto.planName = data.name;
+      dto.revenue = data.revenue;
+      dto.memberCount = data.count;
+      dto.percentage = totalRevenue > 0 ? (data.revenue / totalRevenue) * 100 : 0;
+      return dto;
+    });
   }
 
   private async getRevenueByBranch(
@@ -212,17 +232,18 @@ export class GymAnalyticsService {
     start: Date,
     end: Date,
   ): Promise<RevenueByBranchDto[]> {
-    const transactions = await this.prisma.customerTransaction.findMany({
+    // Get subscriptions with branch info
+    const subscriptions = await this.prisma.gymMemberSubscription.findMany({
       where: {
         tenantId,
-        createdAt: { gte: start, lte: end },
-        status: 'COMPLETED',
-        gymMemberSubscriptionId: { not: null },
+        startDate: { gte: start, lte: end },
+        status: 'ACTIVE',
       },
       include: {
-        gymMemberSubscription: {
-          include: {
-            branch: true,
+        branch: true,
+        customerTransactions: {
+          where: {
+            status: 'COMPLETED',
           },
         },
       },
@@ -233,33 +254,37 @@ export class GymAnalyticsService {
       { name: string; revenue: number; memberIds: Set<string> }
     >();
 
-    transactions.forEach((t) => {
-      if (t.gymMemberSubscription?.branch) {
-        const branch = t.gymMemberSubscription.branch;
-        const revenue = t.amount.toNumber();
+    subscriptions.forEach((sub) => {
+      if (sub.branch) {
+        const branch = sub.branch;
+        // Use transaction amount if exists, otherwise use subscription price
+        const revenue = sub.customerTransactions.length > 0 
+          ? sub.customerTransactions.reduce((sum, t) => sum + t.amount.toNumber(), 0)
+          : sub.price.toNumber();
 
         const existing = branchMap.get(branch.id);
         if (existing) {
           existing.revenue += revenue;
-          existing.memberIds.add(t.customerId);
+          existing.memberIds.add(sub.memberId);
         } else {
           branchMap.set(branch.id, {
             name: branch.name,
             revenue,
-            memberIds: new Set([t.customerId]),
+            memberIds: new Set([sub.memberId]),
           });
         }
       }
     });
 
-    return Array.from(branchMap.entries()).map(([branchId, data]) => ({
-      branchId,
-      branchName: data.name,
-      revenue: data.revenue,
-      memberCount: data.memberIds.size,
-      averageRevenuePerMember:
-        data.memberIds.size > 0 ? data.revenue / data.memberIds.size : 0,
-    }));
+    return Array.from(branchMap.entries()).map(([branchId, data]) => {
+      const dto = new RevenueByBranchDto();
+      dto.branchId = branchId;
+      dto.branchName = data.name;
+      dto.revenue = data.revenue;
+      dto.memberCount = data.memberIds.size;
+      dto.averageRevenuePerMember = data.memberIds.size > 0 ? data.revenue / data.memberIds.size : 0;
+      return dto;
+    });
   }
 
   private async getRevenueTimeline(
@@ -298,11 +323,13 @@ export class GymAnalyticsService {
       }
     });
 
-    return Array.from(timelineMap.entries()).map(([date, data]) => ({
-      date,
-      revenue: data.revenue,
-      transactionCount: data.count,
-    }));
+    return Array.from(timelineMap.entries()).map(([date, data]) => {
+      const dto = new RevenueTimelineDto();
+      dto.date = date;
+      dto.revenue = data.revenue;
+      dto.transactionCount = data.count;
+      return dto;
+    });
   }
 
   private async getPaymentMethodBreakdown(
@@ -342,12 +369,70 @@ export class GymAnalyticsService {
       }
     });
 
-    return Array.from(methodMap.entries()).map(([method, data]) => ({
-      method,
-      amount: data.amount,
-      count: data.count,
-      percentage: totalAmount > 0 ? (data.amount / totalAmount) * 100 : 0,
-    }));
+    return Array.from(methodMap.entries()).map(([method, data]) => {
+      const dto = new PaymentMethodBreakdownDto();
+      dto.method = method;
+      dto.amount = data.amount;
+      dto.count = data.count;
+      dto.percentage = totalAmount > 0 ? (data.amount / totalAmount) * 100 : 0;
+      return dto;
+    });
+  }
+
+  private async getSubscriptionRevenueDirect(
+    tenantId: string,
+    start: Date,
+    end: Date,
+    branchId?: string,
+  ): Promise<number> {
+    const whereClause: any = {
+      tenantId,
+      startDate: {
+        gte: start,
+        lte: end,
+      },
+      status: 'ACTIVE',
+    };
+
+    if (branchId) {
+      whereClause.branchId = branchId;
+    }
+
+    const result = await this.prisma.gymMemberSubscription.aggregate({
+      where: whereClause,
+      _sum: { price: true },
+    });
+
+    return result._sum.price?.toNumber() || 0;
+  }
+
+  private async getDailyRevenue(
+    tenantId: string,
+    start: Date,
+    end: Date,
+    branchId?: string,
+  ): Promise<number> {
+    const whereClause: any = {
+      gym: {
+        tenantId,
+      },
+      occurredAt: {
+        gte: start,
+        lte: end,
+      },
+      status: 'RECORDED',
+    };
+
+    if (branchId) {
+      whereClause.gymId = branchId;
+    }
+
+    const result = await this.prisma.dailyEntry.aggregate({
+      where: whereClause,
+      _sum: { amount: true },
+    });
+
+    return result._sum.amount || 0;
   }
 
   private async getActiveMemberCount(

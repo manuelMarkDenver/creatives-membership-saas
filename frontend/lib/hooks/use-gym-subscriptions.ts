@@ -127,17 +127,15 @@ export function useRenewGymMembership() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({
+    mutationFn:     ({
       memberId,
-      gymMembershipPlanId,
-      paymentMethod
+      gymMembershipPlanId
     }: {
       memberId: string
       gymMembershipPlanId: string
-      paymentMethod?: string
     }) => gymSubscriptionsApi.renewMembership(memberId, {
-      gymMembershipPlanId,
-      paymentMethod: paymentMethod || 'cash'
+      gymMembershipPlanId
+      // v1: paymentMethod removed - always uses 'cash'
     }),
     onSuccess: (_, { memberId }) => {
       // Invalidate gym member subscription data

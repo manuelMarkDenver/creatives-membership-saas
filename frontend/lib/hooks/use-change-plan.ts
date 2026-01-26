@@ -9,7 +9,7 @@ interface ChangePlanRequest {
   data: {
     gymMembershipPlanId: string
     paymentAmount: number
-    paymentMethod: string
+    // v1: paymentMethod removed - always uses 'cash'
   }
 }
 

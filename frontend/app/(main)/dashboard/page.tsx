@@ -14,7 +14,7 @@ import ChangePasswordModal from '@/components/modals/change-password-modal'
 import { RevenueCard } from '@/components/analytics/revenue-card'
 import { TopPerformingPlansCard } from '@/components/analytics/top-performing-plans-card'
 import { MetricCard } from '@/components/analytics/metric-card'
-import { Building2, Users, MapPin, Crown, TrendingUp, Activity, Plus, Globe, Key, MoreHorizontal, ExternalLink, Settings, Eye, DollarSign, UserCheck, Percent } from 'lucide-react'
+import { Building2, Users, MapPin, Crown, TrendingUp, Activity, Plus, Globe, Key, MoreHorizontal, ExternalLink, Settings, Eye, DollarSign, UserCheck, Percent, CalendarDays, CreditCard } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import Link from 'next/link'
 import {
@@ -302,7 +302,7 @@ function SuperAdminDashboard() {
 function OwnerDashboard() {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [selectedBranch, setSelectedBranch] = useState<string>('all')
-  const [selectedPeriod, setSelectedPeriod] = useState<'this_week' | 'this_month' | 'this_year'>('this_month')
+  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'this_week' | 'this_month' | 'this_year'>('this_month')
 
   const { data: profile } = useProfile()
   const { data: branchesData, isLoading: branchesLoading, refetch: refetchBranches } = useBranchesByTenant(
@@ -349,17 +349,8 @@ function OwnerDashboard() {
     return <div className="animate-pulse">Loading Owner Dashboard...</div>
   }
 
-  // Calculate real stats from branches data
-  const totalMembers = branches.reduce((sum: number, branch: any) => {
-    return sum + (branch._count?.userBranches || 0)
-  }, 0)
-
-  const totalRevenue = branches.reduce((sum: number, branch: any) => {
-    // Calculate revenue from active subscriptions
-    const activeSubscriptions = branch.subscriptions?.filter((sub: any) => sub.status === 'ACTIVE') || []
-    return sum + activeSubscriptions.reduce((subSum: number, sub: any) => subSum + (sub.plan?.price || 0), 0)
-  }, 0)
-
+  // Calculate real stats from analytics data
+  const totalMembers = memberGrowth?.totalMembers || 0
   const activeBranches = branches.length // All branches are active (soft delete is used)
 
   // Prepare owner dashboard stats
@@ -375,10 +366,10 @@ function OwnerDashboard() {
     {
       key: 'revenue',
       label: 'Revenue',
-      value: totalRevenue > 0 ? `₱${(totalRevenue / 100).toLocaleString()}` : '₱0',
+      value: revenueMetrics?.totalRevenue ? formatPHPCompact(revenueMetrics.totalRevenue) : '₱0',
       icon: TrendingUp,
       color: 'text-green-700 dark:text-green-400',
-      description: 'Monthly subscriptions'
+      description: 'Total revenue'
     },
     {
       key: 'activeMembers',
@@ -449,6 +440,20 @@ function OwnerDashboard() {
       
       {/* Analytics Cards Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          title="Subscription Revenue"
+          value={formatPHP(revenueMetrics?.subscriptionRevenue || 0)}
+          subtitle="Membership income"
+          icon={CreditCard}
+          isLoading={revenueLoading}
+        />
+        <MetricCard
+          title="Daily Revenue"
+          value={formatPHP(revenueMetrics?.dailyRevenue || 0)}
+          subtitle="Walk-in entries"
+          icon={CalendarDays}
+          isLoading={revenueLoading}
+        />
         <RevenueCard
           totalRevenue={revenueMetrics?.totalRevenue || 0}
           growthRate={revenueMetrics?.growthRate || 0}
@@ -456,28 +461,13 @@ function OwnerDashboard() {
           isLoading={revenueLoading}
         />
         {showAdvancedAnalytics ? (
-          <>
-            <MetricCard
-              title="Avg Revenue/Member"
-              value={formatPHP(revenueMetrics?.averageRevenuePerMember || 0)}
-              icon={UserCheck}
-              isLoading={revenueLoading}
-            />
-            <MetricCard
-              title="Collection Rate"
-              value={`${ownerInsights?.collectionRate.toFixed(1) || 0}%`}
-              subtitle="Payments vs expected"
-              icon={Percent}
-              isLoading={insightsLoading}
-            />
-            <MetricCard
-              title="Renewal Rate"
-              value={`${ownerInsights?.subscriptionRenewalRate.toFixed(1) || 0}%`}
-              subtitle="Member retention"
-              icon={TrendingUp}
-              isLoading={insightsLoading}
-            />
-          </>
+          <MetricCard
+            title="Collection Rate"
+            value={`${ownerInsights?.collectionRate.toFixed(1) || 0}%`}
+            subtitle="Payments vs expected"
+            icon={Percent}
+            isLoading={insightsLoading}
+          />
         ) : (
           <MetricCard
             title="Total Members"

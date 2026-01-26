@@ -2,7 +2,7 @@ import { apiClient } from './client'
 
 export interface GymMemberSubscriptionRenewalData {
   gymMembershipPlanId: string
-  paymentMethod: string
+  // v1: paymentMethod removed - always uses 'cash'
 }
 
 export interface GymMemberSubscriptionCancellationData {
@@ -13,7 +13,7 @@ export interface GymMemberSubscriptionCancellationData {
 export interface GymMemberSubscriptionChangePlanData {
   gymMembershipPlanId: string
   paymentAmount: number
-  paymentMethod: string
+  // v1: paymentMethod removed - always uses 'cash'
 }
 
 export interface GymSubscriptionResponse {

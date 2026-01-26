@@ -16,6 +16,8 @@ export interface RevenueMetrics {
   growthRate: number;
   growthAmount: number;
   averageRevenuePerMember: number;
+  dailyRevenue: number;
+  subscriptionRevenue: number;
   revenueByPlan: {
     planId: string;
     planName: string;
@@ -122,10 +124,16 @@ export function useRevenueMetrics(params: AnalyticsQueryParams = {}) {
       if (params.startDate) searchParams.append('startDate', params.startDate);
       if (params.endDate) searchParams.append('endDate', params.endDate);
 
-      const response = await apiClient.get<RevenueMetrics>(
-        `/gym/analytics/revenue-metrics?${searchParams.toString()}`
-      );
-      return response.data;
+      try {
+        const response = await apiClient.get<RevenueMetrics>(
+          `/gym/analytics/revenue-metrics?${searchParams.toString()}`
+        );
+        console.log('Revenue metrics API response:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('Revenue metrics API error:', error);
+        throw error;
+      }
     },
     refetchOnMount: true,
     refetchOnWindowFocus: false,

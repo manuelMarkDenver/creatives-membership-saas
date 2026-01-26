@@ -123,6 +123,17 @@ export class CardAssignmentService {
       );
     }
 
+    // Check if this is a DAILY card by looking at operational card type
+    const operationalCard = await this.prisma.card.findUnique({
+      where: { uid: cardUid },
+    });
+    
+    if (operationalCard?.type === 'DAILY') {
+      console.log(`Card ${cardUid} is a DAILY card - not available for assignment`);
+      return false;
+    }
+
+    // DAILY cards are not available for assignment - they're for walk-ins only
     return card?.status === 'AVAILABLE' && card.allocatedGymId === gymId;
   }
 }

@@ -688,7 +688,7 @@ export default function LocationsPage() {
                       
                       <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-3 py-1">
                         <Users className="h-3 w-3 mr-1.5" />
-                        {(location._count as any)?.gymUserBranches || (location._count as any)?.activeMembers || 0} members
+                        {(location._count as any)?.gymMemberSubscriptions || (location._count as any)?.gymUserBranches || (location._count as any)?.activeMembers || 0} members
                       </Badge>
                       
                       <span className="text-xs text-gray-500 dark:text-gray-400">

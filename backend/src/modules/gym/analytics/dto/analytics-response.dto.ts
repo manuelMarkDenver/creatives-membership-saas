@@ -4,6 +4,8 @@ export class RevenueMetricsDto {
   growthRate: number;
   growthAmount: number;
   averageRevenuePerMember: number;
+  dailyRevenue: number;
+  subscriptionRevenue: number;
   revenueByPlan: RevenueByPlanDto[];
   revenueByBranch: RevenueByBranchDto[];
   revenueTimeline: RevenueTimelineDto[];

@@ -191,8 +191,8 @@ export class GymMembersService {
           },
         });
 
-        // 5. Create payment transaction if subscription was created
-        if (subscription && data.paymentMethod) {
+        // 5. Create payment transaction for the subscription (ALWAYS create for v1 - CASH only)
+        if (subscription) {
           await tx.customerTransaction.create({
             data: {
               tenantId: tenantId,
@@ -203,7 +203,7 @@ export class GymMembersService {
               amount: data.paymentAmount,
               currency: 'PHP',
               netAmount: data.paymentAmount,
-              paymentMethod: data.paymentMethod.toLowerCase(),
+              paymentMethod: 'cash', // v1: Only CASH payments
               transactionType: 'PAYMENT',
               status: 'COMPLETED',
               description: `Initial payment for ${days}-day custom membership`,
@@ -1150,6 +1150,26 @@ export class GymMembersService {
         endDate,
         price: membershipPlan.price,
         autoRenew: true,
+      },
+    });
+
+    // Create payment transaction for renewal (ALWAYS create for v1)
+    await this.prisma.customerTransaction.create({
+      data: {
+        tenantId: member.tenantId!,
+        customerId: memberId,
+        gymMemberSubscriptionId: newSubscription.id,
+        businessType: 'gym',
+        transactionCategory: 'membership',
+        amount: membershipPlan.price,
+        currency: 'PHP',
+        netAmount: membershipPlan.price,
+        paymentMethod: 'cash', // v1: Only CASH payments
+        transactionType: 'PAYMENT',
+        status: 'COMPLETED',
+        description: `Renewal payment for ${membershipPlan.name} membership`,
+        processedBy: performedBy,
+        createdAt: new Date(),
       },
     });
 
