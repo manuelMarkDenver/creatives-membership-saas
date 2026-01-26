@@ -595,9 +595,9 @@ function KioskPageContent() {
         </div>
       )}
 
-      {/* Admin Mode UI */}
+       {/* Admin Mode UI */}
       {isAdminMode ? (
-        <div className="fixed inset-0 bg-gray-900 text-white z-40 p-4 md:p-8">
+        <div className="fixed inset-0 bg-gray-900 text-white z-40 p-4 md:p-8" data-admin-mode="true">
           <div className="max-w-4xl mx-auto h-full flex flex-col">
             {/* Header */}
             <div className="flex justify-between items-center mb-6">

@@ -86,11 +86,17 @@ export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
 
   // Mobile/tablet specific: Prevent virtual keyboard
   const preventVirtualKeyboard = useCallback((e: Event) => {
-    e.preventDefault();
-    // Focus back to hidden input if it exists
-    const hiddenInput = document.querySelector('input[type="text"]') as HTMLInputElement;
-    if (hiddenInput) {
-      hiddenInput.focus();
+    // Only prevent virtual keyboard in kiosk mode, not admin mode
+    const debugMode = localStorage.getItem('kiosk-debug-mode') === 'true';
+    const isAdminMode = document.querySelector('[data-admin-mode="true"]') !== null;
+    
+    if (!debugMode && !isAdminMode) {
+      e.preventDefault();
+      // Focus back to hidden input if it exists
+      const hiddenInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+      if (hiddenInput) {
+        hiddenInput.focus();
+      }
     }
   }, []);
 
