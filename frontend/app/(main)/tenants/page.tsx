@@ -150,9 +150,12 @@ export default function TenantsPage() {
 
       // Invalidate profile query to refresh user data
       queryClient.invalidateQueries({ queryKey: ['profile'] })
+      
+      // Invalidate tenants query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['tenants'] })
 
-      // Reload page to refresh UI with updated tenant from localStorage
-      window.location.reload()
+      // Close the create form
+      setCreateFormOpen(false)
 
       // Show success message with temporary password if available
       if ((result as any)?.tempPassword) {
