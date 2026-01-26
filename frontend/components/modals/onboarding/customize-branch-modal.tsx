@@ -124,7 +124,15 @@ export default function CustomizeBranchModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={() => {}} modal>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      // This modal is controlled by parent, don't allow closing via Dialog
+      // But we need to provide a function to prevent infinite loops
+      if (!newOpen) {
+        // Dialog is trying to close, but we prevent it
+        // This happens on outside click or escape key (which we already prevent)
+        console.log('Dialog attempted to close but is prevented in onboarding');
+      }
+    }} modal>
       <DialogContent 
         className="sm:max-w-[600px]" 
         onPointerDownOutside={(e) => e.preventDefault()}

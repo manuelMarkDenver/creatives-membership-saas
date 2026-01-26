@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { onboardingApi, OnboardingStatus } from '@/lib/api/onboarding'
 import { branchesApi } from '@/lib/api/branches'
@@ -111,6 +111,12 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
   // Track if branch has been customized
   const [branchCustomized, setBranchCustomized] = useState(false)
 
+  // Use ref for completeOnboarding to avoid dependency issues
+  const completeOnboardingRef = useRef(completeOnboarding)
+  useEffect(() => {
+    completeOnboardingRef.current = completeOnboarding
+  })
+
   // Reset flags when tenantId changes
   useEffect(() => {
     setGooglePasswordSkipped(false)
@@ -151,16 +157,15 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     } else if (!branchCustomized) {
       // After business details or password is set, show branch modal for customization
       setShowBranchModal(true)
-    } else if (!status.hasMembershipPlans) {
-      // Skip plan modal for v1 - automatically complete onboarding
-      // After branch is customized, complete onboarding without plan
-      if (tenantId) {
-        completeOnboarding.mutateAsync(tenantId).catch((error) => {
-          console.error('Failed to complete onboarding without plan:', error)
+    } else {
+      // v1: After branch is customized, onboarding is complete (no plan step)
+      if (tenantId && !status.isOnboardingComplete) {
+        completeOnboardingRef.current.mutateAsync(tenantId).catch((error) => {
+          console.error('Failed to complete onboarding:', error)
         })
       }
     }
-  }, [status, isLoading, user, tenantId, markPasswordChanged, businessDetailsSet])
+  }, [status, isLoading, user, tenantId, markPasswordChanged, businessDetailsSet, branchCustomized, googlePasswordSkipped])
 
   /**
     * Handle business details setup
@@ -244,12 +249,9 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
       // Update the branch
       await branchesApi.update(mainBranch.id, data)
 
-      // Mark branch as customized and complete onboarding (skip plan step)
+      // Mark branch as customized
       setBranchCustomized(true)
       setShowBranchModal(false)
-      if (tenantId) {
-        await completeOnboarding.mutateAsync(tenantId)
-      }
       await refetch()
     },
     [mainBranch, refetch]
