@@ -159,23 +159,29 @@ export default function DailyPage() {
   const presetRanges = {
     today: () => {
       const today = new Date()
-      return { from: today, to: today }
+      const startOfDay = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0))
+      const endOfDay = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999))
+      return { from: startOfDay, to: endOfDay }
     },
     thisWeek: () => {
       const today = new Date()
       const startOfWeek = new Date(today)
       startOfWeek.setDate(today.getDate() - today.getDay())
-      return { from: startOfWeek, to: today }
+      const utcStartOfWeek = new Date(Date.UTC(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate(), 0, 0, 0, 0))
+      const utcEndOfDay = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999))
+      return { from: utcStartOfWeek, to: utcEndOfDay }
     },
     thisMonth: () => {
       const today = new Date()
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-      return { from: startOfMonth, to: today }
+      const utcStartOfMonth = new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0))
+      const utcEndOfDay = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999))
+      return { from: utcStartOfMonth, to: utcEndOfDay }
     },
     thisYear: () => {
       const today = new Date()
-      const startOfYear = new Date(today.getFullYear(), 0, 1)
-      return { from: startOfYear, to: today }
+      const utcStartOfYear = new Date(Date.UTC(today.getFullYear(), 0, 1, 0, 0, 0, 0))
+      const utcEndOfDay = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999))
+      return { from: utcStartOfYear, to: utcEndOfDay }
     }
   }
 

@@ -37,19 +37,40 @@ export class DailyRepository {
   }) {
     const { gymIds, startDate, endDate, status, skip, take } = params;
 
+    // Helper function to adjust date for filtering (handle date-only filtering)
+    const adjustDateForFiltering = (date: Date, isStartDate: boolean): Date => {
+      // Parse the ISO string to get the date components
+      const isoString = date.toISOString();
+      const [datePart] = isoString.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      
+      if (isStartDate) {
+        // Start of day in UTC: YYYY-MM-DDT00:00:00.000Z
+        return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+      } else {
+        // End of day in UTC: YYYY-MM-DDT23:59:59.999Z
+        return new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+      }
+    };
+
     const where: Prisma.DailyEntryWhereInput = {
       gymId: { in: gymIds },
-      ...(startDate && { occurredAt: { gte: startDate } }),
-      ...(endDate && { occurredAt: { lte: endDate } }),
+      ...(startDate && { createdAt: { gte: adjustDateForFiltering(startDate, true) } }),
+      ...(endDate && { createdAt: { lte: adjustDateForFiltering(endDate, false) } }),
       ...(status && { status }),
     };
 
     console.log(`🔍 DailyRepository.findMany query:`, {
       gymIds,
-      startDate,
-      endDate,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString(),
       status,
-      where: JSON.stringify(where),
+      where: JSON.stringify(where, (key, value) => {
+        if (value instanceof Date) {
+          return value.toISOString();
+        }
+        return value;
+      }),
     });
 
     const [entries, total] = await Promise.all([
@@ -59,7 +80,7 @@ export class DailyRepository {
           gym: true,
           terminal: true,
         },
-        orderBy: { occurredAt: 'desc' },
+        orderBy: { createdAt: 'desc' },
         skip,
         take,
       }),
@@ -80,10 +101,26 @@ export class DailyRepository {
   }) {
     const { gymIds, startDate, endDate } = params;
 
+    // Helper function to adjust date for filtering (handle date-only filtering)
+    const adjustDateForFiltering = (date: Date, isStartDate: boolean): Date => {
+      // Clone the date to avoid mutation
+      const adjusted = new Date(date);
+      
+      if (isStartDate) {
+        // For start date, set to beginning of day (00:00:00.000)
+        adjusted.setUTCHours(0, 0, 0, 0);
+      } else {
+        // For end date, set to end of day (23:59:59.999)
+        adjusted.setUTCHours(23, 59, 59, 999);
+      }
+      
+      return adjusted;
+    };
+
     const where: Prisma.DailyEntryWhereInput = {
       gymId: { in: gymIds },
-      ...(startDate && { occurredAt: { gte: startDate } }),
-      ...(endDate && { occurredAt: { lte: endDate } }),
+      ...(startDate && { createdAt: { gte: adjustDateForFiltering(startDate, true) } }),
+      ...(endDate && { createdAt: { lte: adjustDateForFiltering(endDate, false) } }),
     };
 
     const [recordedEntries, voidedEntries] = await Promise.all([

@@ -466,13 +466,26 @@ export class GymAnalyticsService {
     end: Date,
     branchId?: string,
   ): Promise<number> {
+    // Adjust dates for date-only filtering
+    const adjustDateForFiltering = (date: Date, isStartDate: boolean): Date => {
+      const isoString = date.toISOString();
+      const [datePart] = isoString.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      
+      if (isStartDate) {
+        return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+      } else {
+        return new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+      }
+    };
+
     const whereClause: any = {
       gym: {
         tenantId,
       },
-      occurredAt: {
-        gte: start,
-        lte: end,
+      createdAt: {
+        gte: adjustDateForFiltering(start, true),
+        lte: adjustDateForFiltering(end, false),
       },
       status: 'RECORDED',
     };
@@ -495,13 +508,26 @@ export class GymAnalyticsService {
     end: Date,
     branchId?: string,
   ): Promise<number> {
+    // Adjust dates for date-only filtering
+    const adjustDateForFiltering = (date: Date, isStartDate: boolean): Date => {
+      const isoString = date.toISOString();
+      const [datePart] = isoString.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      
+      if (isStartDate) {
+        return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+      } else {
+        return new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+      }
+    };
+
     const whereClause: any = {
       gym: {
         tenantId,
       },
-      occurredAt: {
-        gte: start,
-        lte: end,
+      createdAt: {
+        gte: adjustDateForFiltering(start, true),
+        lte: adjustDateForFiltering(end, false),
       },
       status: 'RECORDED',
     };
