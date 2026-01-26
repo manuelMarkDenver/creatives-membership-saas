@@ -304,46 +304,49 @@ function KioskPageContent() {
     }
   };
 
-  const playSound = (result: string) => {
-    const AudioContextClass = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    const audioContext = new AudioContextClass!();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+   const playSound = (result: string) => {
+     const AudioContextClass = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+     const audioContext = new AudioContextClass!();
+     const oscillator = audioContext.createOscillator();
+     const gainNode = audioContext.createGain();
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+     oscillator.connect(gainNode);
+     gainNode.connect(audioContext.destination);
 
-    const isDenyResult = [
-      'DENY_EXPIRED',
-      'DENY_DISABLED',
-      'DENY_GYM_MISMATCH',
-      'DENY_AUTO_ASSIGNED_EXPIRED',
-      'DENY_EXPIRED_PENDING',
-      'DENY_RECLAIM_MISMATCH',
-    ].includes(result);
+     const isDenyResult = [
+       'DENY_EXPIRED',
+       'DENY_DISABLED',
+       'DENY_GYM_MISMATCH',
+       'DENY_AUTO_ASSIGNED_EXPIRED',
+       'DENY_EXPIRED_PENDING',
+       'DENY_RECLAIM_MISMATCH',
+     ].includes(result);
 
-    if (
-      ['ALLOW', 'ASSIGNED', 'ALLOW_AUTO_ASSIGNED', 'RECLAIMED', 'DAILY_OK', 'SUPER_ADMIN'].includes(result)
-    ) {
-      // Success sound - high pitch, short
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.2);
-    } else if (isDenyResult) {
-      // Deny sound - medium pitch, medium duration
-      oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
-      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
-    } else {
-      // Error sound - low pitch, long
-      oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.5);
-    }
-  };
+     // Volume: 100% in production for noisy gym, normal in development
+     const volume = process.env.NODE_ENV === 'production' ? 1.0 : 0.4;
+
+     if (
+       ['ALLOW', 'ASSIGNED', 'ALLOW_AUTO_ASSIGNED', 'RECLAIMED', 'DAILY_OK', 'SUPER_ADMIN'].includes(result)
+     ) {
+       // Success sound - high pitch, short
+       oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+       gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+       oscillator.start(audioContext.currentTime);
+       oscillator.stop(audioContext.currentTime + 0.2);
+     } else if (isDenyResult) {
+       // Deny sound - medium pitch, medium duration
+       oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+       gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+       oscillator.start(audioContext.currentTime);
+       oscillator.stop(audioContext.currentTime + 0.3);
+     } else {
+       // Error sound - low pitch, long
+       oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+       gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+       oscillator.start(audioContext.currentTime);
+       oscillator.stop(audioContext.currentTime + 0.5);
+     }
+   };
 
   const getBackgroundColor = () => {
     if (!result) return 'bg-blue-500';
