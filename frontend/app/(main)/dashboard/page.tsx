@@ -12,9 +12,8 @@ import { Button } from '@/components/ui/button'
 import { CollapsibleStatsOverview, type StatItem } from '@/components/ui/collapsible-stats-overview'
 import ChangePasswordModal from '@/components/modals/change-password-modal'
 import { RevenueCard } from '@/components/analytics/revenue-card'
-import { TopPerformingPlansCard } from '@/components/analytics/top-performing-plans-card'
 import { MetricCard } from '@/components/analytics/metric-card'
-import { Building2, Users, MapPin, Crown, TrendingUp, Activity, Plus, Globe, Key, MoreHorizontal, ExternalLink, Settings, Eye, DollarSign, UserCheck, Percent, CalendarDays, CreditCard } from 'lucide-react'
+import { Building2, Users, MapPin, Crown, TrendingUp, Activity, Plus, Globe, Key, MoreHorizontal, ExternalLink, Settings, Eye, DollarSign, UserCheck, Percent, CalendarDays, CreditCard, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import Link from 'next/link'
 import {
@@ -28,6 +27,7 @@ function SuperAdminDashboard() {
   const { data: systemStats, isLoading: statsLoading } = useSystemStats()
   const { data: tenantsData, isLoading: tenantsLoading } = useTenants(undefined, { enabled: true })
   const tenants = tenantsData || []
+  const [recentTenantsExpanded, setRecentTenantsExpanded] = useState(true)
 
   if (statsLoading || tenantsLoading) {
     return <div className="animate-pulse">Loading Super Admin Dashboard...</div>
@@ -130,19 +130,39 @@ function SuperAdminDashboard() {
         compactSummary={compactSummary}
       />
 
-      {/* Recent Tenants - Priority Position for Mobile */}
+      {/* Recent Tenants - Collapsible on Mobile */}
       <Card className="border-2 shadow-md bg-white dark:bg-gray-800">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <div 
+          className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+          onClick={() => setRecentTenantsExpanded(!recentTenantsExpanded)}
+        >
+          <div className="flex items-center gap-2">
             <Globe className="h-5 w-5 text-blue-500" />
-            Recent Tenants
-          </CardTitle>
-          <CardDescription>
-            Latest gym tenants added to the system
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Recent Tenants</h3>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 w-8 p-0"
+            onClick={(e) => {
+              e.stopPropagation()
+              setRecentTenantsExpanded(!recentTenantsExpanded)
+            }}
+          >
+            {recentTenantsExpanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+        
+        {recentTenantsExpanded && (
+          <CardContent className="pt-0">
+            <p className="text-sm text-muted-foreground mb-4">
+              Latest gym tenants added to the system
+            </p>
+            <div className="space-y-4">
             {(tenants || []).slice(0, 5).map((tenant: any) => (
               <div key={tenant.id} className="group relative flex items-center justify-between p-6 border rounded-xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 dark:hover:from-gray-800 dark:hover:to-blue-900/20 transition-all duration-200 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800">
                 <div className="flex items-center space-x-4">
@@ -294,6 +314,7 @@ function SuperAdminDashboard() {
             ))}
           </div>
         </CardContent>
+        )}
       </Card>
     </div>
   )
@@ -303,6 +324,8 @@ function OwnerDashboard() {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [selectedBranch, setSelectedBranch] = useState<string>('all')
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'this_week' | 'this_month' | 'this_year'>('this_month')
+  const [analyticsExpanded, setAnalyticsExpanded] = useState(true)
+  const [branchOverviewExpanded, setBranchOverviewExpanded] = useState(true)
 
   const { data: profile } = useProfile()
   const { data: branchesData, isLoading: branchesLoading, refetch: refetchBranches } = useBranchesByTenant(
@@ -404,134 +427,197 @@ function OwnerDashboard() {
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <label className="text-sm font-medium mb-2 block">Branch Filter</label>
-          <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select branch" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Branches</SelectItem>
-              {branches.map((branch: any) => (
-                <SelectItem key={branch.id} value={branch.id}>
-                  {branch.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex-1">
-          <label className="text-sm font-medium mb-2 block">Time Period</label>
-          <Select value={selectedPeriod} onValueChange={(value: any) => setSelectedPeriod(value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="this_week">This Week</SelectItem>
-              <SelectItem value="this_month">This Month</SelectItem>
-              <SelectItem value="this_year">This Year</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      
-      {/* Analytics Cards Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Subscription Revenue"
-          value={formatPHP(revenueMetrics?.subscriptionRevenue || 0)}
-          subtitle="Membership income"
-          icon={CreditCard}
-          isLoading={revenueLoading}
-        />
-        <MetricCard
-          title="Daily Revenue"
-          value={formatPHP(revenueMetrics?.dailyRevenue || 0)}
-          subtitle="Walk-in entries"
-          icon={CalendarDays}
-          isLoading={revenueLoading}
-        />
-        <RevenueCard
-          totalRevenue={revenueMetrics?.totalRevenue || 0}
-          growthRate={revenueMetrics?.growthRate || 0}
-          growthAmount={revenueMetrics?.growthAmount || 0}
-          isLoading={revenueLoading}
-        />
-        {showAdvancedAnalytics ? (
-          <MetricCard
-            title="Collection Rate"
-            value={`${ownerInsights?.collectionRate.toFixed(1) || 0}%`}
-            subtitle="Payments vs expected"
-            icon={Percent}
-            isLoading={insightsLoading}
-          />
-        ) : (
-          <MetricCard
-            title="Total Members"
-            value={memberGrowth?.totalMembers?.toLocaleString() || '0'}
-            subtitle={selectedBranch === 'all' ? 'All branches' : 'Selected branch'}
-            icon={Users}
-            isLoading={memberGrowthLoading}
-          />
-        )}
-      </div>
-      
-      {/* Top Performing Plans */}
-      <TopPerformingPlansCard
-        plans={ownerInsights?.topPerformingPlans || []}
-        isLoading={insightsLoading}
+      {/* Mobile-First Stats Overview */}
+      <CollapsibleStatsOverview 
+        title="Business Overview"
+        stats={ownerStats}
+        compactSummary={ownerStats.slice(0, 3)} // Show all 3 stats in compact view
       />
 
-      {/* Branch Overview - Priority Position for Mobile */}
+      {/* Analytics Section - Collapsible on Mobile */}
+      <Card className="border-2 shadow-md">
+        <div 
+          className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+          onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-blue-500" />
+            <h3 className="font-semibold text-lg">Analytics & Reports</h3>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 w-8 p-0"
+            onClick={(e) => {
+              e.stopPropagation()
+              setAnalyticsExpanded(!analyticsExpanded)
+            }}
+          >
+            {analyticsExpanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+        
+        {analyticsExpanded && (
+          <div className="p-4 pt-0 space-y-4">
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">Branch Filter</label>
+                <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Branches</SelectItem>
+                    {branches.map((branch: any) => (
+                      <SelectItem key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">Time Period</label>
+                <Select value={selectedPeriod} onValueChange={(value: any) => setSelectedPeriod(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="this_week">This Week</SelectItem>
+                    <SelectItem value="this_month">This Month</SelectItem>
+                    <SelectItem value="this_year">This Year</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Analytics Cards Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+              <MetricCard
+                title="Subscription Revenue"
+                value={formatPHP(revenueMetrics?.subscriptionRevenue || 0)}
+                subtitle="Membership income"
+                icon={CreditCard}
+                isLoading={revenueLoading}
+              />
+              <MetricCard
+                title="Daily Revenue"
+                value={formatPHP(revenueMetrics?.dailyRevenue || 0)}
+                subtitle="Walk-in entries"
+                icon={CalendarDays}
+                isLoading={revenueLoading}
+              />
+              <RevenueCard
+                totalRevenue={revenueMetrics?.totalRevenue || 0}
+                growthRate={revenueMetrics?.growthRate || 0}
+                growthAmount={revenueMetrics?.growthAmount || 0}
+                isLoading={revenueLoading}
+              />
+              {showAdvancedAnalytics ? (
+                <MetricCard
+                  title="Collection Rate"
+                  value={`${ownerInsights?.collectionRate.toFixed(1) || 0}%`}
+                  subtitle="Payments vs expected"
+                  icon={Percent}
+                  isLoading={insightsLoading}
+                />
+              ) : (
+                <MetricCard
+                  title="Active Members"
+                  value={memberGrowth?.activeMembers?.toLocaleString() || '0'}
+                  subtitle={selectedBranch === 'all' ? 'All branches' : 'Selected branch'}
+                  icon={Users}
+                  isLoading={memberGrowthLoading}
+                />
+              )}
+              <MetricCard
+                title="Daily Sessions"
+                value={revenueMetrics?.dailyEntryCount?.toLocaleString() || '0'}
+                subtitle="Walk-in entries"
+                icon={Activity}
+                isLoading={revenueLoading}
+              />
+            </div>
+            
+
+          </div>
+        )}
+      </Card>
+
+      {/* Branch Overview - Collapsible on Mobile */}
       {branches.length > 0 && (
         <Card className="border-2 shadow-md bg-white dark:bg-gray-800">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <div 
+            className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+            onClick={() => setBranchOverviewExpanded(!branchOverviewExpanded)}
+          >
+            <div className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-blue-500" />
-              Branch Overview
-            </CardTitle>
-            <CardDescription>
-              Performance summary for all your locations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {branches.map((branch: any) => {
-                const performance = branchPerformance?.find((bp: any) => bp.branchId === branch.id)
-                const memberCount = branch._count?.gymUserBranches || branch._count?.activeMembers || 0
-                return (
-                  <div key={branch.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <div className="flex-1">
-                      <h4 className="font-semibold">{branch.name}</h4>
-                      <p className="text-sm text-muted-foreground">{branch.address || 'No address set'}</p>
-                      {performance && (
-                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            {memberCount} members
-                          </span>
-                          {performance.totalRevenue > 0 && (
-                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                              <TrendingUp className="h-3 w-3" />
-                              {formatPHP(performance.totalRevenue)} revenue
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="default">
-                        Active
-                      </Badge>
-                    </div>
-                  </div>
-                )
-              })}
+              <h3 className="font-semibold text-lg">Branch Overview</h3>
             </div>
-          </CardContent>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0"
+              onClick={(e) => {
+                e.stopPropagation()
+                setBranchOverviewExpanded(!branchOverviewExpanded)
+              }}
+            >
+              {branchOverviewExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          
+          {branchOverviewExpanded && (
+            <CardContent className="pt-0">
+              <p className="text-sm text-muted-foreground mb-4 px-4">
+                Performance summary for all your locations
+              </p>
+              <div className="space-y-4">
+                {branches.map((branch: any) => {
+                  const performance = branchPerformance?.find((bp: any) => bp.branchId === branch.id)
+                  const memberCount = branch._count?.gymUserBranches || branch._count?.activeMembers || 0
+                  return (
+                    <div key={branch.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <div className="flex-1">
+                        <h4 className="font-semibold">{branch.name}</h4>
+                        <p className="text-sm text-muted-foreground">{branch.address || 'No address set'}</p>
+                        {performance && (
+                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              {memberCount} members
+                            </span>
+                            {performance.totalRevenue > 0 && (
+                              <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                <TrendingUp className="h-3 w-3" />
+                                {formatPHP(performance.totalRevenue)} revenue
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="default">
+                          Active
+                        </Badge>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          )}
         </Card>
       )}
       

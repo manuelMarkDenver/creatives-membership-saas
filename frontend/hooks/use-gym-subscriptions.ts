@@ -73,10 +73,9 @@ export const useGymSubscriptions = (options: UseGymSubscriptionsOptions = {}) =>
 
   const renewMembershipWithRefresh = useCallback(async (
     memberId: string, 
-    gymMembershipPlanId: string, 
-    paymentMethod: string
+    gymMembershipPlanId: string
   ): Promise<GymSubscriptionResponse | null> => {
-    const result = await renewMembership(memberId, gymMembershipPlanId, paymentMethod)
+    const result = await renewMembership(memberId, gymMembershipPlanId)
     
     if (result) {
       // Refresh stats and member data after successful renewal

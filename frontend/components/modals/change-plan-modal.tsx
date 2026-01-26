@@ -110,8 +110,8 @@ export function ChangePlanModal({
       memberId: member.id,
       data: {
         gymMembershipPlanId: selectedPlanId,
-        paymentAmount: paymentAmountNum,
-        paymentMethod: 'cash' // Default to cash, could be made configurable
+        paymentAmount: paymentAmountNum
+        // v1: paymentMethod removed - always uses 'cash'
       }
     }, {
       onSuccess: () => {

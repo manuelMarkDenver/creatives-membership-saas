@@ -68,7 +68,7 @@ interface GymSubscriptionsStore {
   loadCurrentSubscription: (memberId: string) => Promise<void>
   loadMemberTransactions: (memberId: string) => Promise<void>
   loadSubscriptionHistory: (memberId: string) => Promise<void>
-  renewMembership: (memberId: string, gymMembershipPlanId: string, paymentMethod: string) => Promise<GymSubscriptionResponse | null>
+  renewMembership: (memberId: string, gymMembershipPlanId: string) => Promise<GymSubscriptionResponse | null>
   cancelMembership: (memberId: string, reason?: string, notes?: string) => Promise<GymSubscriptionResponse | null>
   
   // Getters
@@ -232,12 +232,12 @@ export const useGymSubscriptionsStore = create<GymSubscriptionsStore>()(
       },
       
       // Renew membership
-      renewMembership: async (memberId: string, gymMembershipPlanId: string, paymentMethod: string) => {
+      renewMembership: async (memberId: string, gymMembershipPlanId: string) => {
         set({ isProcessingRenewal: true, renewalError: null })
         try {
           const response = await gymSubscriptionsApi.renewMembership(memberId, {
-            gymMembershipPlanId,
-            paymentMethod
+            gymMembershipPlanId
+            // v1: paymentMethod removed - always uses 'cash'
           })
           
           // Update current subscription if provided

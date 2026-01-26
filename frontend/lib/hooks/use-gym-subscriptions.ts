@@ -134,7 +134,7 @@ export function useRenewGymMembership() {
       memberId: string
       gymMembershipPlanId: string
     }) => gymSubscriptionsApi.renewMembership(memberId, {
-      gymMembershipPlanId
+      gymMembershipPlanId,
       // v1: paymentMethod removed - always uses 'cash'
     }),
     onSuccess: (_, { memberId }) => {

@@ -18,6 +18,7 @@ export interface RevenueMetrics {
   averageRevenuePerMember: number;
   dailyRevenue: number;
   subscriptionRevenue: number;
+  dailyEntryCount: number;
   revenueByPlan: {
     planId: string;
     planName: string;

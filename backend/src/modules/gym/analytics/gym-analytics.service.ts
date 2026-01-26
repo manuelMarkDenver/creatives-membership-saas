@@ -89,11 +89,22 @@ export class GymAnalyticsService {
       status: 'COMPLETED',
     };
 
-    // Add branch filter if specified - need to filter via gymMemberSubscription relation
+    // Add branch filter if specified
     if (query.branchId) {
-      whereClause.gymMemberSubscription = {
-        branchId: query.branchId,
-      };
+      // Include transactions from subscriptions in this branch OR daily entries in this branch
+      whereClause.OR = [
+        {
+          gymMemberSubscription: {
+            branchId: query.branchId,
+          },
+        },
+        {
+          gymMemberSubscriptionId: null,
+          dailyEntry: {
+            gymId: query.branchId,
+          },
+        },
+      ];
     }
 
     const prevWhereClause: any = {
@@ -107,9 +118,19 @@ export class GymAnalyticsService {
 
     // Add branch filter to previous period as well
     if (query.branchId) {
-      prevWhereClause.gymMemberSubscription = {
-        branchId: query.branchId,
-      };
+      prevWhereClause.OR = [
+        {
+          gymMemberSubscription: {
+            branchId: query.branchId,
+          },
+        },
+        {
+          gymMemberSubscriptionId: null,
+          dailyEntry: {
+            gymId: query.branchId,
+          },
+        },
+      ];
     }
 
     const [
@@ -119,6 +140,8 @@ export class GymAnalyticsService {
       previousSubscriptionRevenueDirect,
       dailyRevenue,
       previousDailyRevenue,
+      dailyEntryCount,
+      previousDailyEntryCount,
       revenueByPlan,
       revenueByBranch,
       timeline,
@@ -138,6 +161,8 @@ export class GymAnalyticsService {
       this.getSubscriptionRevenueDirect(tenantId, prevStart, prevEnd, query.branchId),
       this.getDailyRevenue(tenantId, start, end, query.branchId),
       this.getDailyRevenue(tenantId, prevStart, prevEnd, query.branchId),
+      this.getDailyEntryCount(tenantId, start, end, query.branchId),
+      this.getDailyEntryCount(tenantId, prevStart, prevEnd, query.branchId),
       this.getRevenueByPlan(tenantId, start, end, query.branchId),
       this.getRevenueByBranch(tenantId, start, end),
       this.getRevenueTimeline(tenantId, start, end, query.branchId),
@@ -170,6 +195,7 @@ export class GymAnalyticsService {
     result.averageRevenuePerMember = averageRevenuePerMember;
     result.dailyRevenue = totalDailyRevenue;
     result.subscriptionRevenue = subscriptionRevenue;
+    result.dailyEntryCount = dailyEntryCount;
     result.revenueByPlan = revenueByPlan;
     result.revenueByBranch = revenueByBranch;
     result.revenueTimeline = timeline;
@@ -188,7 +214,22 @@ export class GymAnalyticsService {
     const subscriptions = await this.prisma.gymMemberSubscription.findMany({
       where: {
         tenantId,
-        startDate: { gte: start, lte: end },
+        // Include subscriptions that were active during the time period
+        // (same logic as getSubscriptionRevenueDirect)
+        OR: [
+          {
+            // Subscription started before period, ended after period
+            startDate: { lte: end },
+            endDate: { gte: start },
+          },
+          {
+            // Subscription started during period
+            startDate: {
+              gte: start,
+              lte: end,
+            },
+          },
+        ],
         ...(branchId ? { branchId } : {}),
       },
       include: {
@@ -387,11 +428,24 @@ export class GymAnalyticsService {
   ): Promise<number> {
     const whereClause: any = {
       tenantId,
-      startDate: {
-        gte: start,
-        lte: end,
-      },
-      status: 'ACTIVE',
+      // Include subscriptions that were active during the time period
+      // (started before or during, and ended after or during)
+      OR: [
+        {
+          // Subscription started before period, ended after period
+          startDate: { lte: end },
+          endDate: { gte: start },
+        },
+        {
+          // Subscription started during period
+          startDate: {
+            gte: start,
+            lte: end,
+          },
+        },
+      ],
+      // Include ALL subscriptions regardless of status (cancelled members still paid)
+      // We'll filter out refunded transactions separately if needed
     };
 
     if (branchId) {
@@ -433,6 +487,34 @@ export class GymAnalyticsService {
     });
 
     return result._sum.amount || 0;
+  }
+
+  private async getDailyEntryCount(
+    tenantId: string,
+    start: Date,
+    end: Date,
+    branchId?: string,
+  ): Promise<number> {
+    const whereClause: any = {
+      gym: {
+        tenantId,
+      },
+      occurredAt: {
+        gte: start,
+        lte: end,
+      },
+      status: 'RECORDED',
+    };
+
+    if (branchId) {
+      whereClause.gymId = branchId;
+    }
+
+    const result = await this.prisma.dailyEntry.count({
+      where: whereClause,
+    });
+
+    return result;
   }
 
   private async getActiveMemberCount(

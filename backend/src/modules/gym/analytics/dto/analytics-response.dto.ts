@@ -6,6 +6,7 @@ export class RevenueMetricsDto {
   averageRevenuePerMember: number;
   dailyRevenue: number;
   subscriptionRevenue: number;
+  dailyEntryCount: number;
   revenueByPlan: RevenueByPlanDto[];
   revenueByBranch: RevenueByBranchDto[];
   revenueTimeline: RevenueTimelineDto[];
