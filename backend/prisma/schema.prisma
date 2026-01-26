@@ -873,6 +873,7 @@ enum InventoryCardStatus {
 enum CardType {
   MONTHLY
   DAILY
+  SUPER_ADMIN
 }
 
 enum DailyEntryStatus {

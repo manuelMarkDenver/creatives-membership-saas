@@ -258,7 +258,35 @@ export class AccessService {
       'Operational card found:',
       !!operationalCard,
       operationalCard?.gymId === gymId ? 'same gym' : 'different gym',
+      'type:',
+      operationalCard?.type,
     );
+
+    // Handle SUPER_ADMIN cards - allow access regardless of gym
+    if (operationalCard && operationalCard.type === 'SUPER_ADMIN') {
+      console.log('SUPER_ADMIN card detected:', cardUid);
+      await this.eventsService.logEvent({
+        gymId,
+        terminalId,
+        type: 'SUPER_ADMIN_ACCESS',
+        cardUid,
+        memberId: operationalCard.memberId || undefined,
+        meta: {
+          cardGymId: operationalCard.gymId,
+          terminalGymId: gymId,
+          cardType: 'SUPER_ADMIN',
+        },
+      });
+      
+      // Return special result for SUPER_ADMIN
+      return {
+        result: 'SUPER_ADMIN',
+        message: 'Super Admin Access Granted',
+        memberName: operationalCard.member 
+          ? `${operationalCard.member.firstName} ${operationalCard.member.lastName}`
+          : 'Super Admin',
+      };
+    }
 
     // Check for gym/branch mismatches and deny access
     if (operationalCard && operationalCard.gymId !== gymId) {

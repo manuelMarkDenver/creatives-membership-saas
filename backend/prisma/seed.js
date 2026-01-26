@@ -1653,6 +1653,33 @@ async function seedTestAccessData() {
   });
   console.log(`✅ Created DAILY operational card: 0004453082`);
 
+  // Create SUPER_ADMIN operational card
+  await prisma.card.upsert({
+    where: { uid: '0000000001' },
+    update: {},
+    create: {
+      uid: '0000000001',
+      gymId: branch.id,
+      type: 'SUPER_ADMIN',
+      active: true,
+      memberId: null, // SUPER_ADMIN cards don't have members
+    },
+  });
+  console.log(`✅ Created SUPER_ADMIN operational card: 0000000001`);
+
+  // Also add SUPER_ADMIN card to inventory
+  await prisma.inventoryCard.upsert({
+    where: { uid: '0000000001' },
+    update: {},
+    create: {
+      uid: '0000000001',
+      status: 'ASSIGNED',
+      allocatedGymId: branch.id,
+      batchId: 'SUPER-ADMIN-BATCH',
+    },
+  });
+  console.log(`✅ Created SUPER_ADMIN inventory card: 0000000001`);
+
   console.log('🎯 Test access data seeded successfully!');
   console.log(`   • Terminal: test-terminal-1 (secret: test-secret-123)`);
   console.log(`   • Available cards: TEST-CARD-002 to TEST-CARD-005`);
@@ -1661,6 +1688,7 @@ async function seedTestAccessData() {
   console.log(`   • Disabled card: DISABLED-CARD-001 (John)`);
   console.log(`   • Pending: Sofia Ramos`);
   console.log(`   • DAILY card: 0004453082`);
+  console.log(`   • SUPER_ADMIN card: 0000000001`);
 }
 
 main()

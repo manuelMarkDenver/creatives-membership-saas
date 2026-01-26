@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import KioskLockSimple from '@/components/kiosk-lock-simple';
 
 type AccessResult = {
   result: string;
@@ -9,13 +10,67 @@ type AccessResult = {
   expiresAt?: string;
 };
 
-export default function KioskPage() {
+function KioskPageContent() {
   const [cardUid, setCardUid] = useState('');
   const [result, setResult] = useState<AccessResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>('');
   const [isOnline, setIsOnline] = useState(true);
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [adminSessionTimer, setAdminSessionTimer] = useState<NodeJS.Timeout | null>(null);
+  const [adminTimeLeft, setAdminTimeLeft] = useState(5 * 60 * 1000); // 5 minutes
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Start admin session
+  const startAdminSession = useCallback(() => {
+    // Clear existing timer
+    if (adminSessionTimer) {
+      clearInterval(adminSessionTimer);
+    }
+
+    // Set time left
+    setAdminTimeLeft(5 * 60 * 1000);
+
+    // Start countdown
+    const timer = setInterval(() => {
+      setAdminTimeLeft(prev => {
+        if (prev <= 1000) {
+          clearInterval(timer);
+          lockKiosk(); // Auto-lock when time expires
+          return 0;
+        }
+        return prev - 1000;
+      });
+    }, 1000);
+
+    setAdminSessionTimer(timer);
+    setIsAdminMode(true);
+  }, [adminSessionTimer]);
+
+  // Lock kiosk (exit admin mode)
+  const lockKiosk = useCallback(() => {
+    setIsAdminMode(false);
+    
+    if (adminSessionTimer) {
+      clearInterval(adminSessionTimer);
+      setAdminSessionTimer(null);
+    }
+    
+    // Re-enter fullscreen
+    const elem = document.documentElement;
+    if (elem.requestFullscreen && !document.fullscreenElement) {
+      elem.requestFullscreen().catch(err => {
+        console.log(`Fullscreen error: ${err.message}`);
+      });
+    }
+  }, [adminSessionTimer]);
+
+  // Format time left
+  const formatTimeLeft = () => {
+    const minutes = Math.floor(adminTimeLeft / 60000);
+    const seconds = Math.floor((adminTimeLeft % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
 
 
 
@@ -145,19 +200,25 @@ export default function KioskPage() {
         return;
       }
 
-      const data = await response.json();
-      console.log('API Response data:', data);
-       setResult(data);
+       const data = await response.json();
+       console.log('API Response data:', data);
+        setResult(data);
 
-      // Play sound based on result
-      playSound(data.result);
+       // Check if SUPER_ADMIN card
+       if (data.result === 'SUPER_ADMIN') {
+         console.log('SUPER_ADMIN card detected, entering admin mode');
+         startAdminSession();
+       }
 
-      // Auto reset after appropriate time
-      const resetTime = data.result === 'IGNORED_DUPLICATE_TAP' ? 3000 : 1000;
-      setTimeout(() => {
-        setCardUid('');
-        setResult(null);
-      }, resetTime);
+       // Play sound based on result
+       playSound(data.result);
+
+       // Auto reset after appropriate time
+       const resetTime = data.result === 'IGNORED_DUPLICATE_TAP' ? 3000 : 1000;
+       setTimeout(() => {
+         setCardUid('');
+         setResult(null);
+       }, resetTime);
 
     } catch (error) {
        setResult({ result: 'ERROR', message: 'Network error' });
@@ -189,7 +250,7 @@ export default function KioskPage() {
     ].includes(result);
 
     if (
-      ['ALLOW', 'ASSIGNED', 'ALLOW_AUTO_ASSIGNED', 'RECLAIMED', 'DAILY_OK'].includes(result)
+      ['ALLOW', 'ASSIGNED', 'ALLOW_AUTO_ASSIGNED', 'RECLAIMED', 'DAILY_OK', 'SUPER_ADMIN'].includes(result)
     ) {
       // Success sound - high pitch, short
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
@@ -219,6 +280,7 @@ export default function KioskPage() {
       case 'ALLOW_AUTO_ASSIGNED': return 'bg-green-500';
       case 'RECLAIMED': return 'bg-green-500';
       case 'DAILY_OK': return 'bg-green-500';
+      case 'SUPER_ADMIN': return 'bg-purple-500';
       case 'IGNORED_DUPLICATE_TAP': return 'bg-amber-500';
       default: return 'bg-red-500';
     }
@@ -237,6 +299,8 @@ export default function KioskPage() {
          return 'SUCCESS';
        case 'DAILY_OK':
          return 'DAILY RECORDED';
+       case 'SUPER_ADMIN':
+         return 'ADMIN ACCESS';
       case 'DENY_EXPIRED':
       case 'DENY_DISABLED':
       case 'DENY_GYM_MISMATCH':
@@ -290,12 +354,15 @@ export default function KioskPage() {
        case 'DAILY_OK':
          message = 'Daily walk-in recorded';
          break;
-      case 'IGNORED_DUPLICATE_TAP':
-        message = 'Tap Once';
-        break;
-      default:
-        message = result.message || 'Error';
-        break;
+       case 'SUPER_ADMIN':
+         message = result.message || 'Super Admin Access Granted';
+         break;
+       case 'IGNORED_DUPLICATE_TAP':
+         message = 'Tap Once';
+         break;
+       default:
+         message = result.message || 'Error';
+         break;
     }
 
     // Add expiration info for relevant cases
@@ -347,6 +414,98 @@ export default function KioskPage() {
       inputRef.current.focus();
     }
   }, [result]);
+
+  // Admin mode UI
+  if (isAdminMode) {
+    return (
+      <div className="fixed inset-0 bg-gray-900 text-white z-50 p-4 md:p-8">
+        <div className="max-w-4xl mx-auto h-full flex flex-col">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold">Admin Mode</h1>
+              <p className="text-gray-400">Session expires in: {formatTimeLeft()}</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  if (document.exitFullscreen && document.fullscreenElement) {
+                    document.exitFullscreen();
+                  }
+                  window.location.href = '/setup';
+                }}
+                className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm md:text-base"
+              >
+                Terminal Setup
+              </button>
+              <button
+                onClick={lockKiosk}
+                className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-sm md:text-base"
+              >
+                Lock Kiosk
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-gray-800 rounded-lg p-4 md:p-6 mb-4 flex-1">
+            <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <button
+                onClick={() => window.open('http://localhost:3000', '_blank')}
+                className="bg-green-700 hover:bg-green-800 p-4 rounded-lg text-left"
+              >
+                <div className="text-lg font-medium">Main App</div>
+                <div className="text-sm text-gray-300">Open admin dashboard</div>
+              </button>
+              
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-yellow-700 hover:bg-yellow-800 p-4 rounded-lg text-left"
+              >
+                <div className="text-lg font-medium">Reload Kiosk</div>
+                <div className="text-sm text-gray-300">Restart kiosk app</div>
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (document.exitFullscreen && document.fullscreenElement) {
+                    document.exitFullscreen();
+                  }
+                  window.location.href = '/';
+                }}
+                className="bg-purple-700 hover:bg-purple-800 p-4 rounded-lg text-left"
+              >
+                <div className="text-lg font-medium">Exit Fullscreen</div>
+                <div className="text-sm text-gray-300">Return to normal browser</div>
+              </button>
+            </div>
+
+            {/* Current Status */}
+            <div className="mt-8 bg-gray-900 rounded-lg p-4">
+              <h3 className="font-medium mb-2">Current Status</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-gray-400">Mode</div>
+                  <div className="text-green-400 font-medium">Admin (Card Unlocked)</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-400">Time Remaining</div>
+                  <div className="font-mono">{formatTimeLeft()}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div className="text-center text-gray-400 text-sm mt-4">
+            <p>Kiosk will auto-lock when timer expires</p>
+            <p className="mt-1">To unlock again: Tap SUPER_ADMIN card</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`h-screen flex flex-col transition-colors duration-300 ${getBackgroundColor()} relative overflow-hidden landscape:pb-64 portrait:pb-48 portrait:justify-center portrait:items-center`}>
@@ -419,5 +578,13 @@ export default function KioskPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function KioskPage() {
+  return (
+    <KioskLockSimple>
+      <KioskPageContent />
+    </KioskLockSimple>
   );
 }
