@@ -27,6 +27,7 @@ interface Branch {
 
 interface CustomizeBranchModalProps {
   open: boolean
+  onOpenChange?: (open: boolean) => void
   branch: Branch | null
   onBranchCustomized: (data: {
     name: string
@@ -39,6 +40,7 @@ interface CustomizeBranchModalProps {
 
 export default function CustomizeBranchModal({
   open,
+  onOpenChange,
   branch,
   onBranchCustomized,
   isLoading = false,
@@ -124,20 +126,8 @@ export default function CustomizeBranchModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(newOpen) => {
-      // This modal is controlled by parent, don't allow closing via Dialog
-      // But we need to provide a function to prevent infinite loops
-      if (!newOpen) {
-        // Dialog is trying to close, but we prevent it
-        // This happens on outside click or escape key (which we already prevent)
-        console.log('Dialog attempted to close but is prevented in onboarding');
-      }
-    }} modal>
-      <DialogContent 
-        className="sm:max-w-[600px]" 
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-      >
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mx-auto mb-4">
             <Building2 className="h-6 w-6 text-primary" />

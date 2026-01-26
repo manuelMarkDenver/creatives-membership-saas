@@ -36,7 +36,7 @@ export class DailyRepository {
     take?: number;
   }) {
     const { gymIds, startDate, endDate, status, skip, take } = params;
-    
+
     const where: Prisma.DailyEntryWhereInput = {
       gymId: { in: gymIds },
       ...(startDate && { occurredAt: { gte: startDate } }),
@@ -66,8 +66,10 @@ export class DailyRepository {
       this.prisma.dailyEntry.count({ where }),
     ]);
 
-    console.log(`🔍 DailyRepository.findMany result: ${entries.length} entries, ${total} total`);
-    
+    console.log(
+      `🔍 DailyRepository.findMany result: ${entries.length} entries, ${total} total`,
+    );
+
     return { entries, total };
   }
 
@@ -77,7 +79,7 @@ export class DailyRepository {
     endDate?: Date;
   }) {
     const { gymIds, startDate, endDate } = params;
-    
+
     const where: Prisma.DailyEntryWhereInput = {
       gymId: { in: gymIds },
       ...(startDate && { occurredAt: { gte: startDate } }),
@@ -96,9 +98,15 @@ export class DailyRepository {
     ]);
 
     const recordedCount = recordedEntries.length;
-    const recordedAmountTotal = recordedEntries.reduce((sum, entry) => sum + entry.amount, 0);
+    const recordedAmountTotal = recordedEntries.reduce(
+      (sum, entry) => sum + entry.amount,
+      0,
+    );
     const voidedCount = voidedEntries.length;
-    const voidedAmountTotal = voidedEntries.reduce((sum, entry) => sum + entry.amount, 0);
+    const voidedAmountTotal = voidedEntries.reduce(
+      (sum, entry) => sum + entry.amount,
+      0,
+    );
 
     return {
       recordedCount,

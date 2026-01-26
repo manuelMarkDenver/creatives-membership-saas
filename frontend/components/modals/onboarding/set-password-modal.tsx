@@ -81,12 +81,8 @@ export default function SetPasswordModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={() => {}} modal>
-      <DialogContent 
-        className="sm:max-w-[550px]" 
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-      >
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mx-auto mb-4">
             <Shield className="h-6 w-6 text-primary" />

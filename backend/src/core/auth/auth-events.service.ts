@@ -23,8 +23,13 @@ export class AuthEventsService {
       return result;
     } catch (error: any) {
       // Handle foreign key constraint violations (user doesn't exist)
-      if (error.code === 'P2003' && error.meta?.constraint?.includes('AuthEvent_userId_fkey')) {
-        console.warn(`Failed to log auth event for non-existent user ${data.userId}, logging without userId`);
+      if (
+        error.code === 'P2003' &&
+        error.meta?.constraint?.includes('AuthEvent_userId_fkey')
+      ) {
+        console.warn(
+          `Failed to log auth event for non-existent user ${data.userId}, logging without userId`,
+        );
         // Try again without userId
         try {
           const result = await this.prisma.authEvent.create({
@@ -36,7 +41,10 @@ export class AuthEventsService {
           console.log('Auth event created without userId, ID:', result.id);
           return result;
         } catch (retryError) {
-          console.error('Failed to log auth event even without userId:', retryError);
+          console.error(
+            'Failed to log auth event even without userId:',
+            retryError,
+          );
           throw retryError;
         }
       }

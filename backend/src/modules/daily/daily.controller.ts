@@ -41,32 +41,41 @@ export class DailyController {
       throw new Error('User must be associated with a tenant');
     }
 
-    console.log(`🔍 DailyController: User ${userId} (${role}), tenant ${tenantId}`);
-    
+    console.log(
+      `🔍 DailyController: User ${userId} (${role}), tenant ${tenantId}`,
+    );
+
     // Get user's accessible branches
     const userBranches = await this.prisma.gymUserBranch.findMany({
       where: { userId },
       select: { branchId: true },
     });
 
-    const accessibleBranchIds = userBranches.map(ub => ub.branchId);
-    console.log(`🔍 User has ${accessibleBranchIds.length} GymUserBranch records:`, accessibleBranchIds);
+    const accessibleBranchIds = userBranches.map((ub) => ub.branchId);
+    console.log(
+      `🔍 User has ${accessibleBranchIds.length} GymUserBranch records:`,
+      accessibleBranchIds,
+    );
 
     // Determine which branches user can access
     let allBranchIds: string[];
-    
+
     // OWNER role should see ALL branches of their tenant
     if (role === 'OWNER') {
       const allTenantBranches = await this.prisma.branch.findMany({
         where: { tenantId, deletedAt: null },
         select: { id: true, name: true },
       });
-      console.log(`🔍 OWNER: Showing all ${allTenantBranches.length} tenant branches`);
-      allBranchIds = allTenantBranches.map(b => b.id);
-    } 
+      console.log(
+        `🔍 OWNER: Showing all ${allTenantBranches.length} tenant branches`,
+      );
+      allBranchIds = allTenantBranches.map((b) => b.id);
+    }
     // MANAGER/STAFF with GymUserBranch records
     else if (accessibleBranchIds.length > 0) {
-      console.log(`🔍 MANAGER/STAFF: Showing ${accessibleBranchIds.length} assigned branches`);
+      console.log(
+        `🔍 MANAGER/STAFF: Showing ${accessibleBranchIds.length} assigned branches`,
+      );
       allBranchIds = accessibleBranchIds;
     }
     // Users without specific branch assignments (fallback)
@@ -75,8 +84,10 @@ export class DailyController {
         where: { tenantId, deletedAt: null },
         select: { id: true, name: true },
       });
-      console.log(`🔍 No branch assignments: Showing all ${allTenantBranches.length} tenant branches`);
-      allBranchIds = allTenantBranches.map(b => b.id);
+      console.log(
+        `🔍 No branch assignments: Showing all ${allTenantBranches.length} tenant branches`,
+      );
+      allBranchIds = allTenantBranches.map((b) => b.id);
     }
 
     // If branchId is specified in query, validate it's accessible to user
@@ -109,10 +120,15 @@ export class DailyController {
       },
       take: 10,
     });
-    console.log(`🔍 DEBUG: Found ${allDailyEntries.length} DailyEntry records for tenant ${tenantId}:`, allDailyEntries);
+    console.log(
+      `🔍 DEBUG: Found ${allDailyEntries.length} DailyEntry records for tenant ${tenantId}:`,
+      allDailyEntries,
+    );
 
     if (gymIds.length === 0) {
-      console.log(`⚠️ No gymIds found for user ${userId}. Returning empty response.`);
+      console.log(
+        `⚠️ No gymIds found for user ${userId}. Returning empty response.`,
+      );
       // Return empty response if no branches found
       return {
         entries: [],

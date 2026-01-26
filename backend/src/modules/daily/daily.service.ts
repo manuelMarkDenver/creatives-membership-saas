@@ -50,7 +50,7 @@ export class DailyService {
 
   async voidEntry(id: string, userId: string, reason?: string) {
     const entry = await this.dailyRepository.findById(id);
-    
+
     if (!entry) {
       throw new NotFoundException('Daily entry not found');
     }
@@ -83,7 +83,7 @@ export class DailyService {
 
   async unvoidEntry(id: string, userId: string, reason?: string) {
     const entry = await this.dailyRepository.findById(id);
-    
+
     if (!entry) {
       throw new NotFoundException('Daily entry not found');
     }

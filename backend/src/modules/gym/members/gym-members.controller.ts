@@ -223,11 +223,7 @@ export class GymMembersController {
     newEndDate.setDate(newEndDate.getDate() + days);
     newEndDate.setHours(23, 59, 59, 999); // End of day
 
-    return this.gymMembersService.renewMembership(
-      id,
-      newEndDate,
-      performedBy,
-    );
+    return this.gymMembersService.renewMembership(id, newEndDate, performedBy);
   }
 
   @Post(':id/assign-card')

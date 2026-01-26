@@ -55,7 +55,6 @@ export class AdminMembersController {
     );
   }
 
-
   @Get('pending-assignment')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
   async getPendingAssignmentData(
@@ -86,8 +85,6 @@ export class AdminMembersController {
 
     return this.gymMembersService.disableCard(memberId, body, performedBy);
   }
-
-
 
   @Post(':memberId/cancel')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)
@@ -159,7 +156,10 @@ export class AdminMembersController {
     const targetGymId = this.resolveGymId(req, gymId);
     this.ensureGymAccess(req, targetGymId);
 
-    await this.gymMembersService.cancelPendingAssignment(targetGymId, performedBy);
+    await this.gymMembersService.cancelPendingAssignment(
+      targetGymId,
+      performedBy,
+    );
     return { cancelled: true };
   }
 
@@ -218,7 +218,9 @@ export class AdminMembersController {
     }
 
     if (!user.branchAccess?.some((branch) => branch.branchId === gymId)) {
-      throw new ForbiddenException('Insufficient branch access for this operation');
+      throw new ForbiddenException(
+        'Insufficient branch access for this operation',
+      );
     }
   }
 }

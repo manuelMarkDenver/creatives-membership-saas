@@ -72,10 +72,12 @@ export class AccessService {
     console.log('Terminal gymId:', gymId, 'Terminal ID:', terminalId);
 
     // 0) Cooldown -> IGNORED_DUPLICATE_TAP
-    const cooldownCheck = await this.tapCooldownService.isDuplicateAndRecordTap({
-      terminalId,
-      cardUid,
-    });
+    const cooldownCheck = await this.tapCooldownService.isDuplicateAndRecordTap(
+      {
+        terminalId,
+        cardUid,
+      },
+    );
 
     if (cooldownCheck.isDuplicate) {
       await this.eventsService.logEvent({
@@ -95,10 +97,12 @@ export class AccessService {
     // If there's an active RECLAIM pending assignment, handle it first.
     // This must run before the operational-card checks so a disabled/expired operational card
     // does not block the reclaim flow.
-    const reclaimPending = await this.prisma.pendingMemberAssignment.findUnique({
-      where: { gymId },
-      include: { member: true },
-    });
+    const reclaimPending = await this.prisma.pendingMemberAssignment.findUnique(
+      {
+        where: { gymId },
+        include: { member: true },
+      },
+    );
 
     // Check if this card belongs to the member with pending reclaim
     // Only process reclaim logic if it's the same member
@@ -108,20 +112,25 @@ export class AccessService {
         where: { uid: cardUid },
         include: { member: true },
       });
-      
+
       // Check if this is a PENDING reclaim card for the reclaim member
-      const isReclaimCard = operationalCard && 
-        operationalCard.memberId === reclaimPending.memberId && 
+      const isReclaimCard =
+        operationalCard &&
+        operationalCard.memberId === reclaimPending.memberId &&
         operationalCard.isReclaimPending === true;
-      
+
       if (!isReclaimCard) {
         // This is NOT a reclaim card - skip reclaim logic
         // and proceed with normal access check
-        console.log(`Card ${cardUid} is not a reclaim card for member ${reclaimPending.memberId}. Skipping reclaim logic.`);
+        console.log(
+          `Card ${cardUid} is not a reclaim card for member ${reclaimPending.memberId}. Skipping reclaim logic.`,
+        );
       } else {
         // Check if expired
         if (new Date() > reclaimPending.expiresAt) {
-          await this.prisma.pendingMemberAssignment.delete({ where: { gymId } });
+          await this.prisma.pendingMemberAssignment.delete({
+            where: { gymId },
+          });
           await this.eventsService.logEvent({
             gymId,
             terminalId,
@@ -210,7 +219,11 @@ export class AccessService {
 
           await tx.gymMemberProfile.update({
             where: { userId: reclaimPending.memberId },
-            data: { cardStatus: 'NO_CARD', cardUid: null, cardAssignedAt: null },
+            data: {
+              cardStatus: 'NO_CARD',
+              cardUid: null,
+              cardAssignedAt: null,
+            },
           });
         });
 
@@ -456,7 +469,7 @@ export class AccessService {
           cardUid,
           memberId: operationalCard.memberId!,
         });
-         return {
+        return {
           result: 'DENY_EXPIRED',
           memberName: `${operationalCard.member.firstName} ${operationalCard.member.lastName}`,
           expiresAt: subscription?.endDate?.toISOString(),
@@ -481,7 +494,7 @@ export class AccessService {
         ? `${operationalCard.member.firstName || 'Unknown'} ${operationalCard.member.lastName || 'User'}`
         : 'Unknown Member';
       console.log('DENY_DISABLED: memberName =', memberName);
-       return {
+      return {
         result: 'DENY_DISABLED',
         memberName,
         message: 'Card disabled',
@@ -495,9 +508,9 @@ export class AccessService {
     const pending = reclaimPending
       ? reclaimPending
       : await this.prisma.pendingMemberAssignment.findUnique({
-      where: { gymId },
-      include: { member: true },
-    });
+          where: { gymId },
+          include: { member: true },
+        });
 
     console.log('Pending assignment found:', !!pending);
     if (pending) {
@@ -541,15 +554,18 @@ export class AccessService {
         where: { uid: cardUid },
         include: { member: true },
       });
-      
+
       // Check if this is a PENDING reclaim card for the reclaim member
-      const isReclaimCard = operationalCard && 
-        operationalCard.memberId === pending.memberId && 
+      const isReclaimCard =
+        operationalCard &&
+        operationalCard.memberId === pending.memberId &&
         operationalCard.isReclaimPending === true;
-      
+
       // If this is NOT a reclaim card, skip reclaim logic
       if (!isReclaimCard) {
-        console.log(`Auto-assigned: Card ${cardUid} is not a reclaim card for member ${pending.memberId}. Skipping reclaim logic.`);
+        console.log(
+          `Auto-assigned: Card ${cardUid} is not a reclaim card for member ${pending.memberId}. Skipping reclaim logic.`,
+        );
         return { result: 'DENY_UNKNOWN' }; // Let normal access check handle it
       }
       // Check if expired
@@ -612,7 +628,8 @@ export class AccessService {
           memberName: pending.member
             ? `${pending.member.firstName} ${pending.member.lastName}`
             : 'Unknown Member',
-          message: 'Wrong card for reclaim. Tap the returned card assigned to this member.',
+          message:
+            'Wrong card for reclaim. Tap the returned card assigned to this member.',
         };
       }
 

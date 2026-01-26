@@ -157,14 +157,8 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
     } else if (!branchCustomized) {
       // After business details or password is set, show branch modal for customization
       setShowBranchModal(true)
-    } else {
-      // v1: After branch is customized, onboarding is complete (no plan step)
-      if (tenantId && !status.isOnboardingComplete) {
-        completeOnboardingRef.current.mutateAsync(tenantId).catch((error) => {
-          console.error('Failed to complete onboarding:', error)
-        })
-      }
     }
+    // v1: No plan step needed - onboarding completion is handled in handleBranchCustomized
   }, [status, isLoading, user, tenantId, markPasswordChanged, businessDetailsSet, branchCustomized, googlePasswordSkipped])
 
   /**
@@ -186,7 +180,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
       // Mark business details as set
       setBusinessDetailsSet(true)
       setShowBusinessModal(false)
-      await refetch()
+      // No need to refetch - the status will update on next render
     },
     [tenantId, user, refetch]
   )
@@ -232,9 +226,9 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
       // Mark password as changed in onboarding
       await markPasswordChanged.mutateAsync(tenantId)
 
-      // Close password modal and refresh status
+      // Close password modal
       setShowPasswordModal(false)
-      await refetch()
+      // No need to refetch - markPasswordChanged already invalidates the query
     },
     [tenantId, user, markPasswordChanged, refetch]
   )
@@ -245,6 +239,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
   const handleBranchCustomized = useCallback(
     async (data: { name: string; address: string; phoneNumber?: string; email?: string }) => {
       if (!mainBranch) throw new Error('Branch not found')
+      if (!tenantId) throw new Error('Tenant ID is required')
 
       // Update the branch
       await branchesApi.update(mainBranch.id, data)
@@ -252,9 +247,18 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
       // Mark branch as customized
       setBranchCustomized(true)
       setShowBranchModal(false)
-      await refetch()
+      
+      // v1: After branch is customized, onboarding is complete (no plan step)
+      // Complete onboarding immediately - this will invalidate and refetch the status
+      try {
+        await completeOnboarding.mutateAsync(tenantId)
+      } catch (error) {
+        console.error('Failed to complete onboarding:', error)
+        // Still mark as customized even if completion fails
+      }
+      // Don't call refetch() here - completeOnboarding already invalidates the query
     },
-    [mainBranch, refetch]
+    [mainBranch, tenantId, completeOnboarding]
   )
 
 
@@ -267,7 +271,7 @@ export function useOnboardingFlow(tenantId: string | null | undefined) {
   useEffect(() => {
     const fetchMainBranch = async () => {
       if (!tenantId || !status) return
-      if (status.hasMembershipPlans || branchCustomized) return // Already past this step
+      if (branchCustomized) return // Already past this step
 
       try {
         const branches = await branchesApi.getByTenant(tenantId)
