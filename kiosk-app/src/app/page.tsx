@@ -76,17 +76,22 @@ function KioskPageContent() {
       });
     }
     
-    // CRITICAL: Refocus input with multiple attempts
-    const refocusAttempts = [50, 150, 300]; // Multiple delays
-    refocusAttempts.forEach(delay => {
-      setTimeout(() => {
-        if (inputRef.current && !isAdminMode) {
-          inputRef.current.focus();
-          console.log(`Input focused after ${delay}ms (kiosk reset)`);
-        }
-      }, delay);
-    });
-  }, [adminSessionTimer, isAdminMode]);
+    // CRITICAL: Refocus input with multiple attempts - force focus after reset
+    const refocusInput = () => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        console.log('Input focused after reset');
+        return true;
+      }
+      return false;
+    };
+    
+    // Multiple attempts with increasing delays
+    setTimeout(() => refocusInput(), 50);
+    setTimeout(() => refocusInput(), 150);
+    setTimeout(() => refocusInput(), 300);
+    setTimeout(() => refocusInput(), 500); // Extra attempt
+  }, [adminSessionTimer]);
 
   // Toggle debug mode
   const toggleDebugMode = useCallback(() => {

@@ -123,6 +123,37 @@ export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
     // Prevent text selection
     document.addEventListener('selectstart', (e) => e.preventDefault());
     
+    // Android: Try to prevent system gestures (limited effectiveness in web)
+    const preventSystemGestures = (e: TouchEvent) => {
+      // Detect swipe from top (notification shade) or bottom (navigation)
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        // If touch starts near top or bottom edge, try to prevent
+        if (touch.clientY < 50 || touch.clientY > window.innerHeight - 50) {
+          e.preventDefault();
+        }
+      }
+    };
+    
+    document.addEventListener('touchstart', preventSystemGestures, { passive: false });
+    document.addEventListener('touchmove', preventSystemGestures, { passive: false });
+    
+    // Re-enter fullscreen if exited (handles Android system gestures)
+    const checkAndReenterFullscreen = () => {
+      const fullscreenElement = document.fullscreenElement || 
+                               (document as any).webkitFullscreenElement || 
+                               (document as any).mozFullScreenElement || 
+                               (document as any).msFullscreenElement;
+      
+      if (!fullscreenElement) {
+        console.log('Fullscreen exited (possibly by system gesture), re-entering...');
+        setTimeout(enterFullscreen, 100);
+      }
+    };
+    
+    // Check more frequently for Android
+    const fullscreenCheckInterval = setInterval(checkAndReenterFullscreen, 1000);
+    
     // Cleanup
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
@@ -135,6 +166,9 @@ export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
       document.removeEventListener('dragstart', (e) => e.preventDefault());
       document.removeEventListener('drop', (e) => e.preventDefault());
       document.removeEventListener('selectstart', (e) => e.preventDefault());
+      document.removeEventListener('touchstart', preventSystemGestures);
+      document.removeEventListener('touchmove', preventSystemGestures);
+      clearInterval(fullscreenCheckInterval);
     };
   }, [enterFullscreen, handleKeyDown, handleContextMenu, handleBeforeUnload, handleFullscreenChange, preventVirtualKeyboard]);
 
