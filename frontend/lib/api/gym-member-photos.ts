@@ -1,6 +1,9 @@
 import { apiClient } from './client';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+if (!API_BASE_URL || API_BASE_URL === 'undefined') {
+  throw new Error('NEXT_PUBLIC_API_URL is not defined. Please check your .env.local file.');
+}
 
 export interface PhotoUploadResponse {
   success: boolean;
@@ -89,8 +92,11 @@ class GymMemberPhotosApi {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({ 
+        message: `Upload failed (Status: ${response.status})`,
+        error: 'Photo upload service unavailable'
+      }));
+      throw new Error(errorData.message || `Photo upload failed (Status: ${response.status})`);
     }
 
     return response.json();
@@ -106,8 +112,11 @@ class GymMemberPhotosApi {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Delete failed' }));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({ 
+        message: `Delete failed (Status: ${response.status})`,
+        error: 'Photo delete service unavailable'
+      }));
+      throw new Error(errorData.message || `Photo delete failed (Status: ${response.status})`);
     }
 
     return response.json();

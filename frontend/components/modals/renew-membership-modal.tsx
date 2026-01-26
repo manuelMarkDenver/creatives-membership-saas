@@ -107,25 +107,25 @@ export function RenewMembershipModal({
                  <p className="text-sm text-muted-foreground mb-3">
                    Choose how many days to extend the membership
                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                     {[15, 30].map((days) => (
-                       <Button
-                         key={days}
-                         variant={selectedDays === days ? "default" : "outline"}
-                         onClick={() => handleDaysChange(days)}
-                         className="h-12"
-                       >
-                        {days} days
-                      </Button>
-                    ))}
-                   <Button
-                     variant={showCustomDaysInput ? "default" : "outline"}
-                     onClick={handleShowCustomDays}
-                     className="h-12"
-                   >
-                     Custom
-                   </Button>
-                 </div>
+                   <div className="grid grid-cols-2 gap-2">
+                      {[15, 30].map((days) => (
+                        <Button
+                          key={days}
+                          variant={selectedDays === days ? "default" : "outline"}
+                          onClick={() => handleDaysChange(days)}
+                          className="min-h-[52px] sm:min-h-[44px] text-base sm:text-sm"
+                        >
+                         {days} days
+                       </Button>
+                     ))}
+                    <Button
+                      variant={showCustomDaysInput ? "default" : "outline"}
+                      onClick={handleShowCustomDays}
+                      className="min-h-[52px] sm:min-h-[44px] text-base sm:text-sm"
+                    >
+                      Custom
+                    </Button>
+                  </div>
 
                  {showCustomDaysInput && (
                    <div className="mt-3">
@@ -171,15 +171,20 @@ export function RenewMembershipModal({
           )}
         </div>
 
-        <DialogFooter className="flex gap-2">
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
           {!isConfirming ? (
             <>
-              <Button variant="outline" onClick={handleClose}>
+              <Button 
+                variant="outline" 
+                onClick={handleClose}
+                className="min-h-[52px] sm:min-h-[44px] text-base sm:text-sm px-5 py-3 sm:px-4 sm:py-2.5 flex-1"
+              >
                 Cancel
               </Button>
               <Button
                 onClick={() => setIsConfirming(true)}
                 disabled={!selectedDays}
+                className="min-h-[52px] sm:min-h-[44px] text-base sm:text-sm px-5 py-3 sm:px-4 sm:py-2.5 flex-1"
               >
                 Continue
               </Button>
@@ -190,12 +195,14 @@ export function RenewMembershipModal({
                 variant="outline"
                 onClick={() => setIsConfirming(false)}
                 disabled={renewMembershipMutation.isPending}
+                className="min-h-[52px] sm:min-h-[44px] text-base sm:text-sm px-5 py-3 sm:px-4 sm:py-2.5 flex-1"
               >
                 Back
               </Button>
               <Button
                 onClick={handleRenew}
                 disabled={renewMembershipMutation.isPending}
+                className="min-h-[52px] sm:min-h-[44px] text-base sm:text-sm px-5 py-3 sm:px-4 sm:py-2.5 flex-1"
               >
                 {renewMembershipMutation.isPending ? 'Extending...' : 'Confirm Extension'}
               </Button>

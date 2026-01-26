@@ -34,9 +34,11 @@ export class GymMembersService {
       const name = data.name?.trim();
       const firstName = data.firstName?.trim();
       const lastName = data.lastName?.trim();
-      
+
       if (!name && (!firstName || !lastName)) {
-        throw new BadRequestException('Name is required (use either "name" field or "firstName" and "lastName" fields)');
+        throw new BadRequestException(
+          'Name is required (use either "name" field or "firstName" and "lastName" fields)',
+        );
       }
 
       // Determine target branch: use provided branchId or find first active branch
@@ -77,7 +79,7 @@ export class GymMembersService {
         // 1. Create the user - handle both name field (v1) and firstName/lastName (legacy)
         let userFirstName = '';
         let userLastName = '';
-        
+
         if (name) {
           // Split name into first and last names
           const nameParts = name.split(' ');
@@ -87,7 +89,7 @@ export class GymMembersService {
           userFirstName = firstName || '';
           userLastName = lastName || '';
         }
-        
+
         const user = await tx.user.create({
           data: {
             firstName: userFirstName,
@@ -133,7 +135,9 @@ export class GymMembersService {
 
         // Validate required fields for subscription
         if (days === undefined || paymentAmount === undefined) {
-          throw new BadRequestException('days and paymentAmount are required for member creation');
+          throw new BadRequestException(
+            'days and paymentAmount are required for member creation',
+          );
         }
 
         // Validate days parameter
@@ -161,7 +165,8 @@ export class GymMembersService {
             data: {
               tenantId: tenantId,
               name: 'Custom Membership',
-              description: 'Flexible membership with custom duration and pricing',
+              description:
+                'Flexible membership with custom duration and pricing',
               price: 0, // Custom pricing handled per subscription
               duration: 30, // Default duration, but overridden by days parameter
               type: 'MONTHLY',
@@ -462,7 +467,8 @@ export class GymMembersService {
 
       const expectedCardUid = lastAssignedCard?.uid ?? null;
 
-      const shouldCreateReclaimPending = !!request.cardReturned && !!expectedCardUid;
+      const shouldCreateReclaimPending =
+        !!request.cardReturned && !!expectedCardUid;
 
       const cardUidsToDisable = Array.from(
         new Set(
@@ -471,7 +477,7 @@ export class GymMembersService {
             ...(expectedCardUid ? [expectedCardUid] : []),
           ].filter(Boolean),
         ),
-      ) as string[];
+      );
 
       await tx.gymMemberProfile.update({
         where: { id: member.gymMemberProfile!.id },
@@ -492,11 +498,11 @@ export class GymMembersService {
       // For both cancel flows we always disable the member's operational cards.
       // - If card is returned: card row stays until reclaim succeeds.
       // - If card is NOT returned: card row stays (lost/stolen) and inventory is DISABLED.
-       if (cardUidsToDisable.length > 0) {
-          const cardUpdateData = shouldCreateReclaimPending 
+      if (cardUidsToDisable.length > 0) {
+        const cardUpdateData = shouldCreateReclaimPending
           ? { active: false, isReclaimPending: true }
           : { active: false, isReclaimPending: false };
-        
+
         await tx.card.updateMany({
           where: { gymId, memberId, uid: { in: cardUidsToDisable } },
           data: cardUpdateData,
@@ -687,7 +693,11 @@ export class GymMembersService {
     };
   }
 
-  async restartReclaimPending(gymId: string, memberId: string, performedBy: string) {
+  async restartReclaimPending(
+    gymId: string,
+    memberId: string,
+    performedBy: string,
+  ) {
     const member = await this.getMemberById(memberId);
     if (!member.gymMemberProfile?.primaryBranchId) {
       throw new BadRequestException('Member has no primary gym');
@@ -699,11 +709,13 @@ export class GymMembersService {
     // Prefer the profile cardUid (we keep it during cancel+reclaim), fallback to last card.
     const expectedCardUid =
       member.gymMemberProfile.cardUid ||
-      (await this.prisma.card.findFirst({
-        where: { memberId, gymId, type: 'MONTHLY' },
-        orderBy: { createdAt: 'desc' },
-        select: { uid: true },
-      }))?.uid;
+      (
+        await this.prisma.card.findFirst({
+          where: { memberId, gymId, type: 'MONTHLY' },
+          orderBy: { createdAt: 'desc' },
+          select: { uid: true },
+        })
+      )?.uid;
 
     if (!expectedCardUid) {
       throw new BadRequestException('No card UID found to reclaim');
@@ -768,7 +780,11 @@ export class GymMembersService {
 
     // Check member status based on purpose
     if (purpose === 'ONBOARD') {
-      if (!['PENDING_CARD', 'NO_CARD'].includes(member.gymMemberProfile.cardStatus || '')) {
+      if (
+        !['PENDING_CARD', 'NO_CARD'].includes(
+          member.gymMemberProfile.cardStatus || '',
+        )
+      ) {
         throw new BadRequestException(
           `Cannot assign card to member with status ${member.gymMemberProfile.cardStatus}. Member must be in NO_CARD or PENDING_CARD status.`,
         );
@@ -1207,7 +1223,9 @@ export class GymMembersService {
     });
 
     if (!activeCard) {
-      throw new BadRequestException('Member must have an active operational MONTHLY card');
+      throw new BadRequestException(
+        'Member must have an active operational MONTHLY card',
+      );
     }
 
     // Validate end_date is in the future
@@ -1216,16 +1234,19 @@ export class GymMembersService {
     }
 
     // Find the latest subscription (for renewal, we can extend expired subscriptions)
-    const latestSubscription = await this.prisma.gymMemberSubscription.findFirst({
-      where: {
-        memberId: memberId,
-        tenantId: member.tenantId!,
-      },
-      orderBy: { endDate: 'desc' },
-    });
+    const latestSubscription =
+      await this.prisma.gymMemberSubscription.findFirst({
+        where: {
+          memberId: memberId,
+          tenantId: member.tenantId!,
+        },
+        orderBy: { endDate: 'desc' },
+      });
 
     if (!latestSubscription) {
-      throw new BadRequestException('Member must have an existing subscription to renew');
+      throw new BadRequestException(
+        'Member must have an existing subscription to renew',
+      );
     }
 
     // Get current endDate for audit
@@ -1236,7 +1257,7 @@ export class GymMembersService {
       where: { id: latestSubscription.id },
       data: {
         endDate: newEndDate,
-        status: 'ACTIVE',  // Set status to ACTIVE since we're renewing/extending
+        status: 'ACTIVE', // Set status to ACTIVE since we're renewing/extending
         updatedAt: new Date(),
       },
     });

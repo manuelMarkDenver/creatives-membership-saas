@@ -195,10 +195,16 @@ export function MemberInfoModal({
       } else {
         throw new Error(result.message || 'Upload failed')
       }
-    } catch (error) {
-      console.error('Photo upload error:', error)
-      toast.error('Failed to upload photo')
-    } finally {
+     } catch (error) {
+       console.error('Photo upload error:', error)
+       // Check if it's a Wasabi/storage error
+       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+       if (errorMessage.includes('500') || errorMessage.includes('AWS') || errorMessage.includes('Wasabi')) {
+         toast.error('Photo storage service temporarily unavailable - photo saved locally only')
+       } else {
+         toast.error('Photo upload failed - photo is optional')
+       }
+     } finally {
       setIsUploadingPhoto(false)
     }
   }
@@ -724,20 +730,19 @@ export function MemberInfoModal({
                            </div>
                          </div>
                          
-                          {/* Action Buttons - Only show Renew for expired members */}
-                          {member.gymSubscriptions?.[0]?.status === 'EXPIRED' && (
-                            <div className="flex justify-end gap-2 mt-3 pt-2 border-t">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowRenewModal(true)}
-                                className="flex items-center gap-2 text-xs"
-                              >
-                                <Calendar className="h-3 w-3" />
-                                Renew Membership
-                              </Button>
-                            </div>
-                          )}
+                           {/* Action Buttons - Only show Renew for expired members */}
+                           {member.gymSubscriptions?.[0]?.status === 'EXPIRED' && (
+                             <div className="flex justify-end gap-2 mt-3 pt-2 border-t">
+                               <Button
+                                 variant="outline"
+                                 onClick={() => setShowRenewModal(true)}
+                                 className="flex items-center gap-2 min-h-[44px] sm:min-h-[36px] text-sm sm:text-xs px-4 py-2.5 sm:px-3 sm:py-2"
+                               >
+                                 <Calendar className="h-4 w-4 sm:h-3 sm:w-3" />
+                                 Renew Membership
+                               </Button>
+                             </div>
+                           )}
                        </div>
                      </div>
                    </div>
@@ -782,24 +787,24 @@ export function MemberInfoModal({
             Member since: {new Date(member.createdAt).toLocaleDateString()}
           </div>
           
-          <div className="flex gap-3 w-full">
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
             {!isEditing ? (
               <>
-                <Button variant="outline" onClick={onClose} className="flex-1 h-12">
+                <Button variant="outline" onClick={onClose} className="flex-1 min-h-[52px] sm:min-h-[44px] text-base sm:text-sm px-5 py-3 sm:px-4 sm:py-2.5">
                   Close
                 </Button>
-                <Button onClick={() => setIsEditing(true)} className="flex-1 h-12">
+                <Button onClick={() => setIsEditing(true)} className="flex-1 min-h-[52px] sm:min-h-[44px] text-base sm:text-sm px-5 py-3 sm:px-4 sm:py-2.5">
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="outline" onClick={handleCancel} className="flex-1 h-12">
+                <Button variant="outline" onClick={handleCancel} className="flex-1 min-h-[52px] sm:min-h-[44px] text-base sm:text-sm px-5 py-3 sm:px-4 sm:py-2.5">
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
-                <Button onClick={handleSave} className="flex-1 h-12">
+                <Button onClick={handleSave} className="flex-1 min-h-[52px] sm:min-h-[44px] text-base sm:text-sm px-5 py-3 sm:px-4 sm:py-2.5">
                   <Save className="h-4 w-4 mr-2" />
                   Save Changes
                 </Button>

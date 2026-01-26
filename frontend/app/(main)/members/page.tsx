@@ -38,7 +38,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { User, Role } from '@/types'
 import { MemberInfoModal } from '@/components/modals/member-info-modal'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
-import { MembershipPlansRequiredModal } from '@/components/modals/membership-plans-required-modal'
+
 
 import { AssignCardModal } from '@/components/modals/assign-card-modal'
 import { ReplaceCardModal } from '@/components/modals/replace-card-modal'
@@ -86,7 +86,7 @@ export default function MembersPage() {
   }, [reclaimInfo, showReclaimModal])
   const [showTransactionModal, setShowTransactionModal] = useState(false)
   const [selectedMemberForTransactions, setSelectedMemberForTransactions] = useState<User | null>(null)
-  const [showPlansRequiredModal, setShowPlansRequiredModal] = useState(false)
+
 
    const [showAssignCardModal, setShowAssignCardModal] = useState(false)
    const [selectedMemberForAssignCard, setSelectedMemberForAssignCard] = useState<User | null>(null)
@@ -340,27 +340,14 @@ export default function MembersPage() {
         {true && !isSuperAdmin && (
           <Button
             onClick={() => {
-              if (safeMembershipPlans.length === 0) {
-                setShowPlansRequiredModal(true)
-              } else {
-                setShowAddMemberModal(true)
-              }
+              setShowAddMemberModal(true)
             }}
             size="lg"
-            title={safeMembershipPlans.length === 0 ? 'Create membership plans first' : 'Add a new member'}
+            title="Add a new member"
             className="w-full sm:w-auto"
           >
-            {safeMembershipPlans.length === 0 ? (
-              <>
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Create Plans First
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Member
-              </>
-            )}
+            <Plus className="w-4 h-4 mr-2" />
+            Add Member
           </Button>
         )}
       </div>
@@ -606,13 +593,7 @@ export default function MembersPage() {
       )}
 
       {/* Membership Plans Required Modal */}
-      <MembershipPlansRequiredModal
-        open={showPlansRequiredModal}
-        onOpenChange={setShowPlansRequiredModal}
-        tenantName={profile?.tenant?.name || 'your gym'}
-      />
 
-      {/* Change Plan Modal */}
       {/* Assign Card Modal */}
       <AssignCardModal
         isOpen={showAssignCardModal}

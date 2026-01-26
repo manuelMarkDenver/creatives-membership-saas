@@ -497,7 +497,7 @@ export function MemberCard({
              )}
            </div>
 
-          <div className="flex flex-row items-center justify-end gap-2 w-full">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-2 w-full">
             {/* Primary Card Actions - Moved to right side */}
             {(() => {
               const cardStatus = member.gymMemberProfile?.cardStatus
@@ -510,26 +510,26 @@ export function MemberCard({
               <>
                  {/* Assign Card Button - for members without cards or with PENDING_CARD status */}
                  {(cardStatus === 'NO_CARD' || cardStatus === 'PENDING_CARD' || !cardStatus) && currentState === 'ACTIVE' && (
-                   <button
-                     type="button"
-                     className="px-4 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
-                     onClick={() => onAssignCard(member)}
-                   >
-                     <CreditCard className="h-4 w-4" />
-                     {pendingAssignment?.memberId === member.id && pendingAssignment.purpose === 'ONBOARD'
-                       ? pendingAssignment.isExpired ? 'Continue Card Assignment' : 'Continue Card Assignment'
-                       : 'Assign Card'}
-                   </button>
+                    <button
+                      type="button"
+                      className="px-5 py-3 text-base sm:text-sm bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[52px] sm:min-h-[44px] w-full sm:w-auto sm:flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
+                      onClick={() => onAssignCard(member)}
+                    >
+                      <CreditCard className="h-5 w-5 sm:h-4 sm:w-4" />
+                      {pendingAssignment?.memberId === member.id && pendingAssignment.purpose === 'ONBOARD'
+                        ? pendingAssignment.isExpired ? 'Continue Card Assignment' : 'Continue Card Assignment'
+                        : 'Assign Card'}
+                    </button>
                  )}
 
                   {/* Replace Card Button - for members with active cards */}
                   {cardStatus === 'ACTIVE' && currentState === 'ACTIVE' && (
                     <button
                       type="button"
-                      className="px-4 py-2.5 text-sm bg-transparent hover:bg-purple-50 dark:hover:bg-purple-950 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
+                      className="px-5 py-3 text-base sm:text-sm bg-transparent hover:bg-purple-50 dark:hover:bg-purple-950 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[52px] sm:min-h-[44px] w-full sm:w-auto sm:flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
                       onClick={() => onReplaceCard(member)}
                     >
-                      <CreditCard className="h-4 w-4" />
+                      <CreditCard className="h-5 w-5 sm:h-4 sm:w-4" />
                       {pendingAssignment?.memberId === member.id && pendingAssignment.purpose === 'REPLACE'
                         ? pendingAssignment.isExpired ? 'Continue Card Replacement' : 'Continue Card Replacement'
                         : 'Replace Card'}
@@ -540,10 +540,10 @@ export function MemberCard({
                   {cardStatus === 'ACTIVE' && currentState === 'ACTIVE' && (
                     <button
                       type="button"
-                      className="px-4 py-2.5 text-sm bg-transparent hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
+                      className="px-5 py-3 text-base sm:text-sm bg-transparent hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md min-h-[52px] sm:min-h-[44px] w-full sm:w-auto sm:flex-1 sm:flex-initial sm:min-w-[120px] flex items-center justify-center gap-2"
                       onClick={() => openMemberActionModal('disable_card')}
                     >
-                      <Ban className="h-4 w-4" />
+                      <Ban className="h-5 w-5 sm:h-4 sm:w-4" />
                       Disable Card
                     </button>
                   )}
@@ -690,14 +690,14 @@ export function MemberCard({
            }
 
             return (
-              <button
-                type="button"
-                className={`px-4 py-2.5 text-sm rounded-lg font-semibold transition-all duration-200 min-h-[44px] flex-1 sm:flex-initial sm:min-w-[120px] ${getButtonClasses()}`}
-                onClick={getClickHandler()}
-                disabled={!canManage}
-              >
-                {canManage ? displayLabel : `${displayLabel}`}
-              </button>
+               <button
+                 type="button"
+                 className={`px-5 py-3 text-base sm:text-sm rounded-lg font-semibold transition-all duration-200 min-h-[52px] sm:min-h-[44px] w-full sm:w-auto flex-1 sm:flex-initial sm:min-w-[120px] ${getButtonClasses()}`}
+                 onClick={getClickHandler()}
+                 disabled={!canManage}
+               >
+                 {canManage ? displayLabel : `${displayLabel}`}
+               </button>
             )
           })()}
 
@@ -707,13 +707,14 @@ export function MemberCard({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-               variant="outline"
-               size="lg"
-               className="h-[44px] px-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg shadow-sm hover:shadow-md transition-all"
-             >
-               <MoreHorizontal className="h-4 w-4 sm:mr-2" />
-               <span className="hidden sm:inline">Actions</span>
-             </Button>
+                variant="outline"
+                size="lg"
+                className="h-[52px] sm:h-[44px] px-4 sm:px-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg shadow-sm hover:shadow-md transition-all w-full sm:w-auto"
+              >
+                <MoreHorizontal className="h-5 w-5 sm:h-4 sm:w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Actions</span>
+                <span className="sm:hidden">More Actions</span>
+              </Button>
            </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {/* Basic Info */}

@@ -272,9 +272,11 @@ export function AddMemberModal({
               } else {
                 throw new Error(result.message || 'Upload failed')
               }
-            } catch (photoError) {
-              console.warn('Photo upload failed, but member was created:', photoError)
-            }
+             } catch (photoError) {
+               console.warn('Photo upload failed, but member was created:', photoError)
+               // Don't show error toast since member was created successfully
+               // Photo is optional feature
+             }
           }
           
           toast.success(`Member ${formData.name.trim()} added successfully!`)
@@ -671,14 +673,19 @@ export function AddMemberModal({
         </div>
 
         <DialogFooter>
-          <div className="flex gap-2 w-full">
-            <Button variant="outline" onClick={handleClose} className="flex-1" disabled={createGymMemberMutation.isPending}>
+          <div className="flex flex-col sm:flex-row gap-2 w-full">
+            <Button 
+              variant="outline" 
+              onClick={handleClose} 
+              className="flex-1 min-h-[52px] sm:min-h-[44px] text-base sm:text-sm px-5 py-3 sm:px-4 sm:py-2.5" 
+              disabled={createGymMemberMutation.isPending}
+            >
               Cancel
             </Button>
             <Button 
               onClick={handleSubmit}
               disabled={createGymMemberMutation.isPending || !formData.name.trim()}
-              className="flex-1"
+              className="flex-1 min-h-[52px] sm:min-h-[44px] text-base sm:text-sm px-5 py-3 sm:px-4 sm:py-2.5"
             >
               {createGymMemberMutation.isPending ? 'Adding Member...' : 'Save Member'}
             </Button>
