@@ -24,6 +24,203 @@ export class GymMembersService {
     private eventsService: EventsService,
   ) {}
 
+  async importGymMembersForSuperAdmin(params: {
+    tenantId: string;
+    branchId: string;
+    members: Array<{
+      externalMemberId: string;
+      firstName: string;
+      lastName: string;
+      email?: string;
+      phoneNumber?: string;
+    }>;
+    performedBy: string;
+  }) {
+    const tenantId = params.tenantId;
+    const branchId = params.branchId;
+
+    const branch = await this.prisma.branch.findFirst({
+      where: { id: branchId, tenantId, isActive: true },
+      select: { id: true, tenantId: true, name: true },
+    });
+
+    if (!branch) {
+      throw new BadRequestException(
+        'Invalid branchId for tenantId (not found, inactive, or mismatched tenant)',
+      );
+    }
+
+    const results: Array<{
+      externalMemberId: string;
+      status: 'CREATED' | 'UPDATED' | 'FAILED';
+      memberId?: string;
+      error?: string;
+    }> = [];
+
+    for (const row of params.members) {
+      const externalMemberId = row?.externalMemberId?.trim();
+      const firstName = row?.firstName?.trim();
+      const lastName = row?.lastName?.trim();
+
+      if (!externalMemberId) {
+        results.push({
+          externalMemberId: row?.externalMemberId || '',
+          status: 'FAILED',
+          error: 'externalMemberId is required',
+        });
+        continue;
+      }
+
+      if (!firstName || !lastName) {
+        results.push({
+          externalMemberId,
+          status: 'FAILED',
+          error: 'firstName and lastName are required',
+        });
+        continue;
+      }
+
+      const email = row?.email?.trim().toLowerCase() || null;
+      const phoneNumber = row?.phoneNumber?.trim() || null;
+
+      try {
+        const outcome = await this.prisma.$transaction(async (tx) => {
+          const existingProfile = await tx.gymMemberProfile.findUnique({
+            where: {
+              tenantId_externalMemberId: {
+                tenantId,
+                externalMemberId,
+              },
+            },
+            select: { userId: true, primaryBranchId: true },
+          });
+
+          if (!existingProfile) {
+            const user = await tx.user.create({
+              data: {
+                tenantId,
+                role: 'CLIENT',
+                firstName,
+                lastName,
+                email,
+                phoneNumber,
+              },
+              select: { id: true },
+            });
+
+            await tx.gymMemberProfile.create({
+              data: {
+                userId: user.id,
+                tenantId,
+                externalMemberId,
+                role: 'GYM_MEMBER',
+                status: 'ACTIVE',
+                primaryBranchId: branchId,
+                accessLevel: 'ALL_BRANCHES',
+                cardStatus: 'NO_CARD',
+                joinedDate: new Date(),
+              },
+            });
+
+            await tx.gymUserBranch.upsert({
+              where: { userId_branchId: { userId: user.id, branchId } },
+              update: { tenantId, accessLevel: 'READ_ONLY', isPrimary: true },
+              create: {
+                userId: user.id,
+                branchId,
+                tenantId,
+                accessLevel: 'READ_ONLY',
+                isPrimary: true,
+              },
+            });
+
+            await tx.event.create({
+              data: {
+                gymId: branchId,
+                type: 'MEMBER_IMPORTED',
+                memberId: user.id,
+                actorUserId: params.performedBy,
+                meta: { externalMemberId },
+              },
+            });
+
+            return { status: 'CREATED' as const, memberId: user.id };
+          }
+
+          await tx.user.update({
+            where: { id: existingProfile.userId },
+            data: {
+              firstName,
+              lastName,
+              ...(email ? { email } : {}),
+              ...(phoneNumber ? { phoneNumber } : {}),
+            },
+          });
+
+          await tx.gymMemberProfile.update({
+            where: { userId: existingProfile.userId },
+            data: {
+              primaryBranchId: branchId,
+            },
+          });
+
+          await tx.gymUserBranch.upsert({
+            where: {
+              userId_branchId: { userId: existingProfile.userId, branchId },
+            },
+            update: { tenantId, accessLevel: 'READ_ONLY', isPrimary: true },
+            create: {
+              userId: existingProfile.userId,
+              branchId,
+              tenantId,
+              accessLevel: 'READ_ONLY',
+              isPrimary: true,
+            },
+          });
+
+          await tx.event.create({
+            data: {
+              gymId: branchId,
+              type: 'MEMBER_IMPORTED',
+              memberId: existingProfile.userId,
+              actorUserId: params.performedBy,
+              meta: { externalMemberId },
+            },
+          });
+
+          return { status: 'UPDATED' as const, memberId: existingProfile.userId };
+        });
+
+        results.push({
+          externalMemberId,
+          status: outcome.status,
+          memberId: outcome.memberId,
+        });
+      } catch (error) {
+        const message = (error as Error)?.message || 'Unknown error';
+        results.push({ externalMemberId, status: 'FAILED', error: message });
+      }
+    }
+
+    const summary = results.reduce(
+      (acc, r) => {
+        acc.total += 1;
+        if (r.status === 'CREATED') acc.created += 1;
+        if (r.status === 'UPDATED') acc.updated += 1;
+        if (r.status === 'FAILED') acc.failed += 1;
+        return acc;
+      },
+      { total: 0, created: 0, updated: 0, failed: 0 },
+    );
+
+    return {
+      tenantId,
+      branchId,
+      summary,
+      results,
+    };
+  }
+
   // ========================================
   // Gym Member Creation - Creates User + GymMemberProfile automatically
   // ========================================

@@ -15,6 +15,7 @@ import { GymMembersService } from './gym-members.service';
 import { AuthGuard } from '../../../core/auth/auth.guard';
 import { RBACGuard, RequiredRoles } from '../../../core/guard/rbac.guard';
 import { Role } from '@prisma/client';
+import { Request } from 'express';
 
 interface RequestWithUser extends Request {
   user?: {
@@ -29,10 +30,50 @@ interface RequestWithUser extends Request {
   headers: Request['headers'];
 }
 
+interface ImportGymMemberRowDto {
+  externalMemberId: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phoneNumber?: string;
+}
+
+interface ImportGymMembersDto {
+  tenantId: string;
+  branchId: string;
+  members: ImportGymMemberRowDto[];
+}
+
 @Controller('admin/members')
 @UseGuards(AuthGuard, RBACGuard)
 export class AdminMembersController {
   constructor(private readonly gymMembersService: GymMembersService) {}
+
+  @Post('import')
+  @RequiredRoles(Role.SUPER_ADMIN)
+  async importGymMembers(
+    @Body() body: ImportGymMembersDto,
+    @Req() req: RequestWithUser,
+  ) {
+    if (!req.user?.id) {
+      throw new Error('User not authenticated');
+    }
+
+    if (!body?.tenantId || !body?.branchId) {
+      throw new BadRequestException('tenantId and branchId are required');
+    }
+
+    if (!Array.isArray(body?.members) || body.members.length === 0) {
+      throw new BadRequestException('members must be a non-empty array');
+    }
+
+    return this.gymMembersService.importGymMembersForSuperAdmin({
+      tenantId: body.tenantId,
+      branchId: body.branchId,
+      members: body.members,
+      performedBy: req.user.id,
+    });
+  }
 
   @Post(':memberId/assign-card')
   @RequiredRoles(Role.OWNER, Role.MANAGER, Role.STAFF)

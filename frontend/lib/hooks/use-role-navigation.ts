@@ -10,7 +10,8 @@ import {
   Calendar,
   Crown,
   Shield,
-  CalendarDays
+  CalendarDays,
+  Upload
 } from 'lucide-react'
 import { Role } from '@/types'
 
@@ -31,6 +32,13 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: Crown,
     roles: ['SUPER_ADMIN' as Role],
     description: 'Manage all gym tenants'
+  },
+  {
+    name: 'Member Import',
+    href: '/admin/imports/members',
+    icon: Upload,
+    roles: ['SUPER_ADMIN' as Role],
+    description: 'Bulk import members via CSV'
   },
 
   // Dashboard - Available to all authenticated users
