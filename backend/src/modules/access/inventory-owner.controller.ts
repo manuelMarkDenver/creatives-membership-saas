@@ -18,13 +18,16 @@ export class InventoryOwnerController {
 
   @Get('summary')
   @RequiredRoles(Role.OWNER, Role.MANAGER)
-  async summary(@Req() req: any) {
+  async summary(@Req() req: any, @Query('branchId') branchId?: string) {
     const tenantId = req.user?.tenantId;
     if (!tenantId) {
       throw new BadRequestException('Missing tenant context');
     }
 
-    return this.inventoryCardsService.getTenantInventorySummary({ tenantId });
+    return this.inventoryCardsService.getTenantInventorySummary({
+      tenantId,
+      branchId: branchId || undefined,
+    });
   }
 
   @Get('assigned')
@@ -32,7 +35,9 @@ export class InventoryOwnerController {
   async assigned(
     @Req() req: any,
     @Query('branchId') branchId?: string,
-    @Query('limit') limit?: string,
+    @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
     const tenantId = req.user?.tenantId;
     if (!tenantId) {
@@ -42,7 +47,32 @@ export class InventoryOwnerController {
     return this.inventoryCardsService.listAssignedCardsForTenant({
       tenantId,
       branchId: branchId || undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
+      q: q || undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
+    });
+  }
+
+  @Get('available')
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  async available(
+    @Req() req: any,
+    @Query('branchId') branchId?: string,
+    @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) {
+      throw new BadRequestException('Missing tenant context');
+    }
+
+    return this.inventoryCardsService.listAvailableInventoryForTenant({
+      tenantId,
+      branchId: branchId || undefined,
+      q: q || undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
     });
   }
 }

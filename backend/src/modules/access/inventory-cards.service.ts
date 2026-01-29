@@ -7,6 +7,15 @@ import { Prisma } from '@prisma/client';
 export class InventoryCardsService {
   constructor(private prisma: PrismaService) {}
 
+  private async getExcludedUidsForOwnerInventory() {
+    // SUPER_ADMIN cards are global/admin-only and should never be surfaced as gym inventory.
+    const rows = await this.prisma.card.findMany({
+      where: { type: 'SUPER_ADMIN' },
+      select: { uid: true },
+    });
+    return new Set(rows.map((r) => r.uid));
+  }
+
   private buildSingleOutcome(params: {
     uid: string;
     targetBranchId: string;
@@ -458,16 +467,20 @@ export class InventoryCardsService {
     };
   }
 
-  async getTenantInventorySummary(params: { tenantId: string }) {
-    // SUPER_ADMIN cards are global/admin-only and should not be counted as tenant inventory.
-    const superAdminUids = await this.prisma.card.findMany({
-      where: { gym: { tenantId: params.tenantId }, type: 'SUPER_ADMIN' },
-      select: { uid: true },
-    });
-    const superAdminUidSet = new Set(superAdminUids.map((c) => c.uid));
+  async getTenantInventorySummary(params: { tenantId: string; branchId?: string }) {
+    const excludedUidSet = await this.getExcludedUidsForOwnerInventory();
+    const excludedUids = excludedUidSet.size > 0 ? Array.from(excludedUidSet) : null;
+
+    if (params.branchId) {
+      await this.assertBranchInTenant({ tenantId: params.tenantId, branchId: params.branchId });
+    }
 
     const branches = await this.prisma.branch.findMany({
-      where: { tenantId: params.tenantId, isActive: true },
+      where: {
+        tenantId: params.tenantId,
+        isActive: true,
+        ...(params.branchId ? { id: params.branchId } : {}),
+      },
       select: { id: true, name: true },
       orderBy: { createdAt: 'asc' },
     });
@@ -476,9 +489,8 @@ export class InventoryCardsService {
       by: ['allocatedGymId', 'status'],
       where: {
         gym: { tenantId: params.tenantId },
-        ...(superAdminUidSet.size > 0
-          ? { uid: { notIn: Array.from(superAdminUidSet) } }
-          : {}),
+        ...(params.branchId ? { allocatedGymId: params.branchId } : {}),
+        ...(excludedUids ? { uid: { notIn: excludedUids } } : {}),
       },
       _count: { _all: true },
     });
@@ -506,11 +518,10 @@ export class InventoryCardsService {
       by: ['gymId'],
       where: {
         gym: { tenantId: params.tenantId },
+        ...(params.branchId ? { gymId: params.branchId } : {}),
         type: 'MONTHLY',
         memberId: { not: null },
-        ...(superAdminUidSet.size > 0
-          ? { uid: { notIn: Array.from(superAdminUidSet) } }
-          : {}),
+        ...(excludedUids ? { uid: { notIn: excludedUids } } : {}),
       },
       _count: { _all: true },
     });
@@ -523,11 +534,10 @@ export class InventoryCardsService {
       by: ['gymId'],
       where: {
         gym: { tenantId: params.tenantId },
+        ...(params.branchId ? { gymId: params.branchId } : {}),
         type: 'DAILY',
         active: true,
-        ...(superAdminUidSet.size > 0
-          ? { uid: { notIn: Array.from(superAdminUidSet) } }
-          : {}),
+        ...(excludedUids ? { uid: { notIn: excludedUids } } : {}),
       },
       _count: { _all: true },
     });
@@ -580,6 +590,7 @@ export class InventoryCardsService {
 
     return {
       tenantId: params.tenantId,
+      branchId: params.branchId || null,
       totals,
       branches: branchSummaries,
     };
@@ -588,27 +599,59 @@ export class InventoryCardsService {
   async listAssignedCardsForTenant(params: {
     tenantId: string;
     branchId?: string;
-    limit?: number;
+    q?: string;
+    page?: number;
+    pageSize?: number;
   }) {
-    const limit = Math.min(Math.max(params.limit ?? 200, 1), 1000);
+    const excludedUidSet = await this.getExcludedUidsForOwnerInventory();
+    const excludedUids = excludedUidSet.size > 0 ? Array.from(excludedUidSet) : null;
+
+    const pageSize = Math.min(Math.max(params.pageSize ?? 25, 1), 100);
+    const page = Math.max(params.page ?? 1, 1);
+    const skip = (page - 1) * pageSize;
+    const q = params.q?.trim();
 
     if (params.branchId) {
       await this.assertBranchInTenant({ tenantId: params.tenantId, branchId: params.branchId });
     }
 
+    const where = {
+      gym: { tenantId: params.tenantId },
+      ...(params.branchId ? { gymId: params.branchId } : {}),
+      memberId: { not: null },
+      type: { notIn: ['SUPER_ADMIN', 'DAILY'] as any },
+      ...(excludedUids ? { uid: { notIn: excludedUids } } : {}),
+      ...(q
+        ? {
+            OR: [
+              { uid: { contains: q, mode: 'insensitive' as any } },
+              { member: { firstName: { contains: q, mode: 'insensitive' as any } } },
+              { member: { lastName: { contains: q, mode: 'insensitive' as any } } },
+              { member: { email: { contains: q, mode: 'insensitive' as any } } },
+              {
+                member: {
+                  AND: [
+                    { firstName: { contains: q.split(' ')[0] || q, mode: 'insensitive' as any } },
+                    { lastName: { contains: q.split(' ').slice(1).join(' ') || q, mode: 'insensitive' as any } },
+                  ],
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const total = await this.prisma.card.count({ where: where as any });
+
     const cards = await this.prisma.card.findMany({
-      where: {
-        gym: { tenantId: params.tenantId },
-        ...(params.branchId ? { gymId: params.branchId } : {}),
-        memberId: { not: null },
-        type: { notIn: ['SUPER_ADMIN', 'DAILY'] },
-      },
+      where: where as any,
       include: {
         gym: { select: { id: true, name: true } },
         member: { select: { id: true, firstName: true, lastName: true, email: true } },
       },
       orderBy: { createdAt: 'desc' },
-      take: limit,
+      skip,
+      take: pageSize,
     });
 
     const uids = cards.map((c) => c.uid);
@@ -621,6 +664,9 @@ export class InventoryCardsService {
     return {
       tenantId: params.tenantId,
       branchId: params.branchId || null,
+      page,
+      pageSize,
+      total,
       count: cards.length,
       items: cards.map((c) => {
         const inv = invByUid.get(c.uid);
@@ -643,6 +689,61 @@ export class InventoryCardsService {
             : null,
         };
       }),
+    };
+  }
+
+  async listAvailableInventoryForTenant(params: {
+    tenantId: string;
+    branchId?: string;
+    q?: string;
+    page?: number;
+    pageSize?: number;
+  }) {
+    const excludedUidSet = await this.getExcludedUidsForOwnerInventory();
+    const excludedUids = excludedUidSet.size > 0 ? Array.from(excludedUidSet) : null;
+
+    const pageSize = Math.min(Math.max(params.pageSize ?? 25, 1), 100);
+    const page = Math.max(params.page ?? 1, 1);
+    const skip = (page - 1) * pageSize;
+    const q = params.q?.trim();
+
+    if (params.branchId) {
+      await this.assertBranchInTenant({ tenantId: params.tenantId, branchId: params.branchId });
+    }
+
+    const where = {
+      gym: { tenantId: params.tenantId },
+      ...(params.branchId ? { allocatedGymId: params.branchId } : {}),
+      status: 'AVAILABLE' as const,
+      ...(excludedUids ? { uid: { notIn: excludedUids } } : {}),
+      ...(q ? { uid: { contains: q, mode: 'insensitive' as any } } : {}),
+    };
+
+    const total = await this.prisma.inventoryCard.count({ where: where as any });
+
+    const items = await this.prisma.inventoryCard.findMany({
+      where: where as any,
+      include: { gym: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: pageSize,
+    });
+
+    return {
+      tenantId: params.tenantId,
+      branchId: params.branchId || null,
+      page,
+      pageSize,
+      total,
+      count: items.length,
+      items: items.map((c) => ({
+        uid: c.uid,
+        status: c.status,
+        batchId: c.batchId,
+        createdAt: c.createdAt,
+        branchId: c.allocatedGymId,
+        branchName: c.gym?.name,
+      })),
     };
   }
 }
