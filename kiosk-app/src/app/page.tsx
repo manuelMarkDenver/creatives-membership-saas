@@ -23,6 +23,11 @@ function KioskPageContent() {
   const [isClient, setIsClient] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const shouldLog = process.env.NODE_ENV === 'development' && debugMode;
+  const log = (...args: any[]) => {
+    if (shouldLog) console.log(...args);
+  };
+
   // Start admin session
   const startAdminSession = useCallback(() => {
     // Clear existing timer
@@ -55,7 +60,7 @@ function KioskPageContent() {
       return;
     }
     
-    console.log('🚀 RESET TO TAPPING - Starting reset process...');
+    log('🚀 RESET TO TAPPING - Starting reset process...');
     
     // Clear all state
     setIsAdminMode(false);
@@ -71,28 +76,28 @@ function KioskPageContent() {
     // Ensure fullscreen
     const elem = document.documentElement;
     if (elem.requestFullscreen && !document.fullscreenElement) {
-      elem.requestFullscreen().catch(err => {
-        console.log(`Fullscreen error: ${err.message}`);
-      });
+       elem.requestFullscreen().catch(err => {
+         log(`Fullscreen error: ${err.message}`);
+       });
     }
     
     // CRITICAL: Refocus input with AGGRESSIVE multiple attempts
     // Wait for React to re-render after state changes
-    console.log('Starting aggressive refocus attempts...');
+    log('Starting aggressive refocus attempts...');
     
     const refocusInput = (attempt: number) => {
       if (inputRef.current) {
         try {
           inputRef.current.focus();
           const isFocused = document.activeElement === inputRef.current;
-          console.log(`Refocus attempt ${attempt}: ${isFocused ? 'SUCCESS' : 'FAILED'}`);
+           log(`Refocus attempt ${attempt}: ${isFocused ? 'SUCCESS' : 'FAILED'}`);
           return isFocused;
         } catch (error) {
-          console.log(`Refocus attempt ${attempt}: ERROR - ${error}`);
+           log(`Refocus attempt ${attempt}: ERROR - ${error}`);
           return false;
         }
       }
-      console.log(`Refocus attempt ${attempt}: inputRef.current is null`);
+       log(`Refocus attempt ${attempt}: inputRef.current is null`);
       return false;
     };
     
@@ -121,11 +126,11 @@ function KioskPageContent() {
     // Store debug mode in localStorage for kiosk-lock-simple to read
     localStorage.setItem('kiosk-debug-mode', newDebugMode.toString());
     
-    console.log(`Debug mode ${newDebugMode ? 'enabled' : 'disabled'}`);
+    log(`Debug mode ${newDebugMode ? 'enabled' : 'disabled'}`);
     
     if (newDebugMode) {
       // Enable right-click and dev tools when debug mode is on
-      console.log('Right-click and dev tools enabled for debugging');
+      log('Right-click and dev tools enabled for debugging');
       alert('Debug mode enabled: Right-click and keyboard shortcuts are now allowed');
     } else {
       alert('Debug mode disabled: Security restrictions re-enabled');
@@ -145,7 +150,7 @@ function KioskPageContent() {
     const elem = document.documentElement;
     if (elem.requestFullscreen && !document.fullscreenElement) {
       elem.requestFullscreen().catch(err => {
-        console.log(`Fullscreen error: ${err.message}`);
+        log(`Fullscreen error: ${err.message}`);
       });
     }
     
@@ -153,9 +158,9 @@ function KioskPageContent() {
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
-        console.log('Refocused input after locking kiosk');
-      }
-    }, 100);
+         log('Refocused input after locking kiosk');
+       }
+     }, 100);
   }, [adminSessionTimer]);
 
   // Format time left
@@ -227,10 +232,10 @@ function KioskPageContent() {
 
   const handleTap = async () => {
     const normalizedUid = normalizeCardUid(cardUid);
-    console.log('handleTap called with raw cardUid:', cardUid, 'normalized:', normalizedUid);
+    log('handleTap called with raw cardUid:', cardUid, 'normalized:', normalizedUid);
 
     if (isProcessing || normalizedUid.length === 0) {
-      console.log('Skipping tap - isProcessing:', isProcessing, 'normalizedUid length:', normalizedUid.length);
+      log('Skipping tap - isProcessing:', isProcessing, 'normalizedUid length:', normalizedUid.length);
       return;
     }
 
@@ -245,15 +250,14 @@ function KioskPageContent() {
     }
 
     setIsProcessing(true);
-    console.log('Starting card check process...');
+    log('Starting card check process...');
 
     try {
       const storedId = localStorage.getItem('terminalId');
       const storedSecret = localStorage.getItem('terminalSecret');
-      console.log('Terminal config - ID exists:', !!storedId, 'Secret exists:', !!storedSecret);
+      log('Terminal config - ID exists:', !!storedId, 'Secret exists:', !!storedSecret);
 
       if (!storedId || !storedSecret) {
-        console.error('Terminal not configured');
         setResult({ result: 'ERROR', message: 'Terminal not configured' });
         return;
       }
@@ -261,7 +265,7 @@ function KioskPageContent() {
       // Decode the stored encoded values
       const terminalId = atob(storedId);
       const terminalSecret = atob(storedSecret);
-      console.log('Decoded terminal ID:', terminalId);
+      log('Decoded terminal ID:', terminalId);
 
       // Base64 encode again for transmission
       const encodedId = btoa(terminalId);
@@ -269,10 +273,10 @@ function KioskPageContent() {
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL ||
         (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'https://happy-respect-production.up.railway.app');
-      console.log('API URL:', apiBase, 'ENV:', process.env.NODE_ENV, 'NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+      log('API URL:', apiBase, 'ENV:', process.env.NODE_ENV, 'NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
 
       const requestUrl = `${apiBase}/api/v1/access/check`;
-      console.log('🚀 KIOSK: Making API call to:', requestUrl, 'with normalized cardUid:', normalizedUid);
+      log('🚀 KIOSK: Making API call to:', requestUrl, 'with normalized cardUid:', normalizedUid);
 
       const response = await fetch(requestUrl, {
         method: 'POST',
@@ -284,22 +288,22 @@ function KioskPageContent() {
         body: JSON.stringify({ cardUid: normalizedUid }),
       });
 
-      console.log('API Response status:', response.status);
+      log('API Response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('API Error:', response.status, errorData);
+        log('API Error:', response.status, errorData);
         setResult({ result: 'ERROR', message: errorData.message || 'API Error' });
         return;
       }
 
        const data = await response.json();
-       console.log('API Response data:', data);
+        log('API Response data:', data);
         setResult(data);
 
        // Check if SUPER_ADMIN card
        if (data.result === 'SUPER_ADMIN') {
-         console.log('SUPER_ADMIN card detected, entering admin mode');
+         log('SUPER_ADMIN card detected, entering admin mode');
          startAdminSession();
        }
 
@@ -491,7 +495,7 @@ function KioskPageContent() {
     const updateOnlineStatus = () => {
       const online = navigator.onLine;
       setIsOnline(online);
-      console.log(`🌐 Network status: ${online ? 'Online' : 'Offline'}`);
+      log(`🌐 Network status: ${online ? 'Online' : 'Offline'}`);
     };
 
     // Set initial status
@@ -524,7 +528,7 @@ function KioskPageContent() {
       // Only focus if we're in kiosk mode (not admin mode) and no result showing
       if (inputRef.current && !result && !isAdminMode) {
         inputRef.current.focus();
-        console.log('Input focused (kiosk mode)');
+        log('Input focused (kiosk mode)');
         return true;
       }
       return false;
@@ -551,7 +555,7 @@ function KioskPageContent() {
     // Only runs in kiosk mode, checks if focus is actually lost
     focusInterval = setInterval(() => {
       if (!isAdminMode && inputRef.current && document.activeElement !== inputRef.current) {
-        console.log('Safety net (30s): Refocusing input');
+        log('Safety net (30s): Refocusing input');
         focusInput();
       }
     }, 30000); // 30 seconds - ultra conservative safety net
@@ -573,11 +577,11 @@ function KioskPageContent() {
   useEffect(() => {
     if (!isAdminMode) {
       // Just entered kiosk mode (from admin mode or initial load)
-      console.log('Entered kiosk mode, focusing input...');
+      log('Entered kiosk mode, focusing input...');
       setTimeout(() => {
         if (inputRef.current && !result) {
           inputRef.current.focus();
-          console.log('Input focused after entering kiosk mode');
+          log('Input focused after entering kiosk mode');
         }
       }, 200);
     }
@@ -591,29 +595,42 @@ function KioskPageContent() {
         type="text"
         value={cardUid}
         onChange={(e) => {
-          console.log('Input changed:', e.target.value);
-          setCardUid(e.target.value);
+          const next = e.target.value.replace(/\D+/g, '');
+          log('Input changed:', next);
+          setCardUid(next);
         }}
         onKeyDown={(e) => {
-          console.log('Key pressed:', e.key, 'cardUid:', cardUid);
-          if (e.key === 'Enter' && cardUid.length > 0) {
-            console.log('Enter pressed, calling handleTap');
-            handleTap();
-            setCardUid(''); // Clear after processing
+          // Some RFID readers emit extra keys like "Process".
+          // We only accept digits and Enter.
+          if (e.key === 'Enter') {
+            if (cardUid.length > 0) {
+              log('Enter pressed, calling handleTap');
+              handleTap();
+              setCardUid('');
+            }
+            return;
           }
+
+          if (e.key.length === 1 && /\d/.test(e.key)) {
+            log('Key pressed:', e.key, 'cardUid:', cardUid);
+            return;
+          }
+
+          // Ignore everything else (including "Process", modifiers, etc.)
+          e.preventDefault();
         }}
         onBlur={() => {
-          console.log('Input blurred, refocusing...');
+          log('Input blurred, refocusing...');
           // Immediately refocus if blurred
           setTimeout(() => {
             if (inputRef.current && !result && !isAdminMode) {
               inputRef.current.focus();
-              console.log('Input refocused after blur');
+              log('Input refocused after blur');
             }
           }, 10);
         }}
         onFocus={() => {
-          console.log('Input focused');
+          log('Input focused');
         }}
         className="absolute top-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
         autoFocus={!result && !isAdminMode}
@@ -622,7 +639,7 @@ function KioskPageContent() {
       />
       
        {/* Focus status indicator (debug only) */}
-      {process.env.NODE_ENV === 'development' && isClient && (
+      {process.env.NODE_ENV === 'development' && isClient && debugMode && (
         <div className="fixed bottom-2 left-2 text-xs bg-black bg-opacity-70 text-white px-2 py-1 rounded z-50">
           Focus: {document.activeElement === inputRef.current ? '✅' : '❌'} | 
           Mode: {isAdminMode ? 'Admin' : 'Kiosk'} |
@@ -797,16 +814,16 @@ function KioskPageContent() {
              // Refocus hidden input on any tap
              if (inputRef.current && !result && !isAdminMode) {
                inputRef.current.focus();
-               console.log('Tap overlay: Input refocused');
-             }
-           }}
-           onTouchStart={() => {
-             // Refocus input
-             if (inputRef.current && !result && !isAdminMode) {
-               inputRef.current.focus();
-               console.log('Tap overlay: Input refocused (touch)');
-             }
-           }}
+                log('Tap overlay: Input refocused');
+              }
+            }}
+            onTouchStart={() => {
+              // Refocus input
+              if (inputRef.current && !result && !isAdminMode) {
+                inputRef.current.focus();
+                log('Tap overlay: Input refocused (touch)');
+              }
+            }}
            style={{ 
              pointerEvents: 'auto',
              cursor: 'default'
