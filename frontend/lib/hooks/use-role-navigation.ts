@@ -40,6 +40,13 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     roles: ['SUPER_ADMIN' as Role],
     description: 'Bulk import members via CSV'
   },
+  {
+    name: 'Card Inventory',
+    href: '/admin/inventory-cards',
+    icon: CreditCard,
+    roles: ['SUPER_ADMIN' as Role],
+    description: 'Manage allocated card inventory'
+  },
 
   // Dashboard - Available to all authenticated users
   {
