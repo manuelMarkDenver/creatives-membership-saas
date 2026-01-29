@@ -61,6 +61,35 @@ function normalizeCardUid(rawUid: string): string {
   return cleaned
 }
 
+function describeInventoryOutcome(outcome: any) {
+  if (!outcome) return null
+
+  if (outcome.action === 'CREATED') {
+    return `Added to inventory: ${outcome.uid}`
+  }
+
+  if (outcome.action === 'ATTEMPTED_CREATE') {
+    return `Tried to add: ${outcome.uid} (may already exist)`
+  }
+
+  if (outcome.action === 'SKIPPED') {
+    if (outcome.reason === 'ALREADY_IN_INVENTORY_TARGET_BRANCH') {
+      return `Already in inventory for this branch: ${outcome.uid} (status: ${outcome.inventory?.status})`
+    }
+    if (outcome.reason === 'ALREADY_IN_INVENTORY_OTHER_BRANCH') {
+      return `Already in inventory for another branch: ${outcome.uid} (branch: ${outcome.inventory?.allocatedGymId}, status: ${outcome.inventory?.status})`
+    }
+    if (outcome.reason === 'ALREADY_IN_CARDS_TABLE') {
+      const assigned = outcome.card?.memberId ? 'assigned' : 'unassigned'
+      const active = outcome.card?.active ? 'active' : 'inactive'
+      return `Already exists as operational card: ${outcome.uid} (${assigned}, ${active}, branch: ${outcome.card?.gymId})`
+    }
+    return `Skipped: ${outcome.uid}`
+  }
+
+  return null
+}
+
 function parseCsvLine(line: string): string[] {
   const out: string[] = []
   let cur = ''
@@ -669,6 +698,11 @@ export default function AdminInventoryCardsPage() {
           {scanResult ? (
             <div className="rounded-lg border bg-muted/30 p-4">
               <div className="text-xs text-muted-foreground mb-2">Last result</div>
+              {scanResult?.result?.outcomes?.[0] ? (
+                <div className="mb-3 rounded-md border bg-background p-3 text-sm">
+                  {describeInventoryOutcome(scanResult.result.outcomes[0])}
+                </div>
+              ) : null}
               <div className="text-xs font-mono whitespace-pre-wrap break-words">
                 {JSON.stringify(scanResult, null, 2)}
               </div>
