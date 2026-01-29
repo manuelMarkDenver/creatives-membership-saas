@@ -457,4 +457,192 @@ export class InventoryCardsService {
       batchId: batchId || null,
     };
   }
+
+  async getTenantInventorySummary(params: { tenantId: string }) {
+    // SUPER_ADMIN cards are global/admin-only and should not be counted as tenant inventory.
+    const superAdminUids = await this.prisma.card.findMany({
+      where: { gym: { tenantId: params.tenantId }, type: 'SUPER_ADMIN' },
+      select: { uid: true },
+    });
+    const superAdminUidSet = new Set(superAdminUids.map((c) => c.uid));
+
+    const branches = await this.prisma.branch.findMany({
+      where: { tenantId: params.tenantId, isActive: true },
+      select: { id: true, name: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const grouped = await this.prisma.inventoryCard.groupBy({
+      by: ['allocatedGymId', 'status'],
+      where: {
+        gym: { tenantId: params.tenantId },
+        ...(superAdminUidSet.size > 0
+          ? { uid: { notIn: Array.from(superAdminUidSet) } }
+          : {}),
+      },
+      _count: { _all: true },
+    });
+
+    const byBranch = new Map<
+      string,
+      { AVAILABLE: number; ASSIGNED: number; DISABLED: number; total: number }
+    >();
+
+    for (const g of grouped) {
+      const current = byBranch.get(g.allocatedGymId) || {
+        AVAILABLE: 0,
+        ASSIGNED: 0,
+        DISABLED: 0,
+        total: 0,
+      };
+      const count = g._count._all;
+      current[g.status] = (current[g.status] || 0) + count;
+      current.total += count;
+      byBranch.set(g.allocatedGymId, current);
+    }
+
+    // Assigned-to-member (MONTHLY) cards (exclude SUPER_ADMIN, DAILY)
+    const assignedToMembersByBranch = await this.prisma.card.groupBy({
+      by: ['gymId'],
+      where: {
+        gym: { tenantId: params.tenantId },
+        type: 'MONTHLY',
+        memberId: { not: null },
+        ...(superAdminUidSet.size > 0
+          ? { uid: { notIn: Array.from(superAdminUidSet) } }
+          : {}),
+      },
+      _count: { _all: true },
+    });
+    const assignedToMembersMap = new Map(
+      assignedToMembersByBranch.map((x) => [x.gymId, x._count._all] as const),
+    );
+
+    // DAILY cards are assigned to a branch but not to a member.
+    const dailyCardsByBranch = await this.prisma.card.groupBy({
+      by: ['gymId'],
+      where: {
+        gym: { tenantId: params.tenantId },
+        type: 'DAILY',
+        active: true,
+        ...(superAdminUidSet.size > 0
+          ? { uid: { notIn: Array.from(superAdminUidSet) } }
+          : {}),
+      },
+      _count: { _all: true },
+    });
+    const dailyCardsMap = new Map(
+      dailyCardsByBranch.map((x) => [x.gymId, x._count._all] as const),
+    );
+
+    const branchSummaries = branches.map((b) => {
+      const counts = byBranch.get(b.id) || {
+        AVAILABLE: 0,
+        ASSIGNED: 0,
+        DISABLED: 0,
+        total: 0,
+      };
+
+      const assignedToMembers = assignedToMembersMap.get(b.id) || 0;
+      const dailyCards = dailyCardsMap.get(b.id) || 0;
+
+      return {
+        branchId: b.id,
+        branchName: b.name,
+        total: counts.total,
+        available: counts.AVAILABLE,
+        inventoryAssigned: counts.ASSIGNED,
+        disabled: counts.DISABLED,
+        assignedToMembers,
+        dailyCards,
+      };
+    });
+
+    const totals = branchSummaries.reduce(
+      (acc, s) => {
+        acc.total += s.total;
+        acc.available += s.available;
+        acc.inventoryAssigned += s.inventoryAssigned;
+        acc.disabled += s.disabled;
+        acc.assignedToMembers += s.assignedToMembers;
+        acc.dailyCards += s.dailyCards;
+        return acc;
+      },
+      {
+        total: 0,
+        available: 0,
+        inventoryAssigned: 0,
+        disabled: 0,
+        assignedToMembers: 0,
+        dailyCards: 0,
+      },
+    );
+
+    return {
+      tenantId: params.tenantId,
+      totals,
+      branches: branchSummaries,
+    };
+  }
+
+  async listAssignedCardsForTenant(params: {
+    tenantId: string;
+    branchId?: string;
+    limit?: number;
+  }) {
+    const limit = Math.min(Math.max(params.limit ?? 200, 1), 1000);
+
+    if (params.branchId) {
+      await this.assertBranchInTenant({ tenantId: params.tenantId, branchId: params.branchId });
+    }
+
+    const cards = await this.prisma.card.findMany({
+      where: {
+        gym: { tenantId: params.tenantId },
+        ...(params.branchId ? { gymId: params.branchId } : {}),
+        memberId: { not: null },
+        type: { notIn: ['SUPER_ADMIN', 'DAILY'] },
+      },
+      include: {
+        gym: { select: { id: true, name: true } },
+        member: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    const uids = cards.map((c) => c.uid);
+    const inventory = await this.prisma.inventoryCard.findMany({
+      where: { uid: { in: uids } },
+      select: { uid: true, status: true, allocatedGymId: true, batchId: true },
+    });
+    const invByUid = new Map(inventory.map((i) => [i.uid, i] as const));
+
+    return {
+      tenantId: params.tenantId,
+      branchId: params.branchId || null,
+      count: cards.length,
+      items: cards.map((c) => {
+        const inv = invByUid.get(c.uid);
+        return {
+          uid: c.uid,
+          type: c.type,
+          active: c.active,
+          assignedAt: c.createdAt,
+          branchId: c.gymId,
+          branchName: c.gym?.name,
+          memberId: c.memberId,
+          memberName: c.member ? `${c.member.firstName} ${c.member.lastName}` : null,
+          memberEmail: c.member?.email || null,
+          inventory: inv
+            ? {
+                status: inv.status,
+                allocatedGymId: inv.allocatedGymId,
+                batchId: inv.batchId,
+              }
+            : null,
+        };
+      }),
+    };
+  }
 }

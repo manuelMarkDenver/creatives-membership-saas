@@ -106,6 +106,13 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     roles: ['SUPER_ADMIN' as Role, 'OWNER' as Role, 'MANAGER' as Role, 'STAFF' as Role],
     description: 'Manage gym branches'
   },
+  {
+    name: 'Card Inventory',
+    href: '/inventory',
+    icon: CreditCard,
+    roles: ['OWNER' as Role, 'MANAGER' as Role],
+    description: 'Card inventory status and usage'
+  },
 
   // Future Features - Disabled/Coming Soon
   {

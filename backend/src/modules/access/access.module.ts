@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { AccessController } from './access.controller';
 import { InventoryCardsController } from './inventory-cards.controller';
 import { TerminalsAdminController } from './terminals-admin.controller';
+import { InventoryOwnerController } from './inventory-owner.controller';
 import { AccessService } from './access.service';
 import { TerminalsService } from './terminals.service';
 import { EventsService } from './events.service';
@@ -15,7 +16,12 @@ import { AccessRateLimitGuard } from './guards/access-rate-limit.guard';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => DailyModule)],
-  controllers: [AccessController, InventoryCardsController, TerminalsAdminController],
+  controllers: [
+    AccessController,
+    InventoryCardsController,
+    TerminalsAdminController,
+    InventoryOwnerController,
+  ],
   providers: [
     AccessService,
     TerminalsService,
