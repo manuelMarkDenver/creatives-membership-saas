@@ -23,10 +23,17 @@ function KioskPageContent() {
   const [isClient, setIsClient] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Mitigation: only accept "scanner-like" input (fast burst), not slow manual typing.
+  // RFID keyboard emulators usually send all digits within a very short window.
+  const scanStateRef = useRef<{ startAtMs: number; lastAtMs: number; maxGapMs: number } | null>(null);
+
   const shouldLog = process.env.NODE_ENV === 'development' && debugMode;
   const log = (...args: any[]) => {
     if (shouldLog) console.log(...args);
   };
+
+  const SCAN_TOTAL_MAX_MS = 450;
+  const SCAN_GAP_MAX_MS = 120;
 
   // Start admin session
   const startAdminSession = useCallback(() => {
@@ -594,29 +601,79 @@ function KioskPageContent() {
         ref={inputRef}
         type="text"
         value={cardUid}
-        onChange={(e) => {
-          const next = e.target.value.replace(/\D+/g, '');
-          log('Input changed:', next);
-          setCardUid(next);
+        onChange={() => {
+          // Intentionally ignore direct input changes; we build the UID from key events.
+          // This prevents pasting/typing from being treated like a scan.
         }}
         onKeyDown={(e) => {
+          // Block clipboard/paste/drop paths.
+          if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+            e.preventDefault();
+            setResult({ result: 'ERROR', message: 'Paste disabled. Please tap the card.' });
+            return;
+          }
+
           // Some RFID readers emit extra keys like "Process".
           // We only accept digits and Enter.
           if (e.key === 'Enter') {
             if (cardUid.length > 0) {
+              const nowMs = Date.now();
+              const scan = scanStateRef.current;
+              const startAtMs = scan?.startAtMs ?? nowMs;
+              const totalMs = nowMs - startAtMs;
+              const maxGapMs = scan?.maxGapMs ?? 0;
+
+              // If it took too long, treat as manual typing and reject.
+              if (totalMs > SCAN_TOTAL_MAX_MS || maxGapMs > SCAN_GAP_MAX_MS) {
+                setCardUid('');
+                scanStateRef.current = null;
+                setResult({
+                  result: 'ERROR',
+                  message: 'Manual typing disabled. Please tap the card.',
+                });
+                setTimeout(() => setResult(null), 1500);
+                return;
+              }
+
               log('Enter pressed, calling handleTap');
               handleTap();
               setCardUid('');
+              scanStateRef.current = null;
             }
             return;
           }
 
           if (e.key.length === 1 && /\d/.test(e.key)) {
-            log('Key pressed:', e.key, 'cardUid:', cardUid);
+            const nowMs = Date.now();
+            const prev = scanStateRef.current;
+            const startAtMs = prev?.startAtMs ?? nowMs;
+            const lastAtMs = prev?.lastAtMs ?? nowMs;
+            const gapMs = nowMs - lastAtMs;
+
+            scanStateRef.current = {
+              startAtMs,
+              lastAtMs: nowMs,
+              maxGapMs: Math.max(prev?.maxGapMs ?? 0, gapMs),
+            };
+
+            e.preventDefault();
+            setCardUid((current) => {
+              const next = (current + e.key).slice(0, 24);
+              log('Key pressed:', e.key, 'cardUid:', next);
+              return next;
+            });
             return;
           }
 
           // Ignore everything else (including "Process", modifiers, etc.)
+          e.preventDefault();
+        }}
+        onPaste={(e) => {
+          e.preventDefault();
+          setResult({ result: 'ERROR', message: 'Paste disabled. Please tap the card.' });
+          setTimeout(() => setResult(null), 1500);
+        }}
+        onDrop={(e) => {
           e.preventDefault();
         }}
         onBlur={() => {
