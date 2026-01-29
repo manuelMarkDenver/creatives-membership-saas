@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { AccessController } from './access.controller';
+import { InventoryCardsController } from './inventory-cards.controller';
 import { AccessService } from './access.service';
 import { TerminalsService } from './terminals.service';
 import { EventsService } from './events.service';
@@ -8,10 +9,11 @@ import { TapCooldownRepository } from './tap-cooldown.repository';
 import { TapCooldownService } from './tap-cooldown.service';
 import { PrismaModule } from '../../core/prisma/prisma.module';
 import { DailyModule } from '../daily/daily.module';
+import { InventoryCardsService } from './inventory-cards.service';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => DailyModule)],
-  controllers: [AccessController],
+  controllers: [AccessController, InventoryCardsController],
   providers: [
     AccessService,
     TerminalsService,
@@ -19,6 +21,7 @@ import { DailyModule } from '../daily/daily.module';
     CardAssignmentService,
     TapCooldownRepository,
     TapCooldownService,
+    InventoryCardsService,
   ],
   exports: [TerminalsService, EventsService, CardAssignmentService],
 })
