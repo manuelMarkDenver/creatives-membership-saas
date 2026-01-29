@@ -7,10 +7,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useProfile } from '@/lib/hooks/use-gym-users'
+import { useTenants } from '@/lib/hooks/use-tenants'
+import { useBranchesByTenant } from '@/lib/hooks/use-branches'
 import { apiClient } from '@/lib/api/client'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type { Branch, Tenant } from '@/types'
 
 export default function AdminTerminalsPage() {
   const { data: profile } = useProfile()
@@ -38,6 +42,18 @@ export default function AdminTerminalsPage() {
       </Card>
     )
   }
+
+  const { data: tenantsData, isLoading: tenantsLoading } = useTenants(undefined, {
+    enabled: profile?.role === 'SUPER_ADMIN',
+  })
+  const tenants: Tenant[] = Array.isArray(tenantsData)
+    ? tenantsData
+    : (tenantsData as any)?.data || []
+
+  const { data: branchesData, isLoading: branchesLoading } = useBranchesByTenant(tenantId)
+  const branches: Branch[] = Array.isArray(branchesData)
+    ? branchesData
+    : (branchesData as any)?.data || []
 
   const load = async () => {
     setError(null)
@@ -145,19 +161,52 @@ export default function AdminTerminalsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Tenant ID</Label>
-              <Input
+              <Select
                 value={tenantId}
-                onChange={(e) => setTenantId(e.target.value)}
-                placeholder="Paste tenantId (e.g. 9b2b6c5e-...)"
-              />
+                onValueChange={(v) => {
+                  setTenantId(v)
+                  setBranchId('')
+                  setNewBranchId('')
+                  setTerminals(null)
+                  setCreateResult(null)
+                  setError(null)
+                }}
+              >
+                <SelectTrigger disabled={tenantsLoading}>
+                  <SelectValue placeholder={tenantsLoading ? 'Loading tenants…' : 'Select tenant'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {tenants.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Branch ID (optional)</Label>
-              <Input
-                value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
-                placeholder="Paste branchId to filter (e.g. 3f6a1b2c-...)"
-              />
+              <Select
+                value={branchId || '__ALL__'}
+                onValueChange={(v) => {
+                  setBranchId(v === '__ALL__' ? '' : v)
+                  setTerminals(null)
+                }}
+              >
+                <SelectTrigger disabled={!tenantId || branchesLoading}>
+                  <SelectValue
+                    placeholder={!tenantId ? 'Select tenant first' : branchesLoading ? 'Loading branches…' : 'All branches'}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__ALL__">All branches</SelectItem>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -187,11 +236,26 @@ export default function AdminTerminalsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Branch ID</Label>
-              <Input
+              <Select
                 value={newBranchId}
-                onChange={(e) => setNewBranchId(e.target.value)}
-                placeholder="Paste branchId (e.g. 3f6a1b2c-...)"
-              />
+                onValueChange={(v) => {
+                  setNewBranchId(v)
+                  setCreateResult(null)
+                }}
+              >
+                <SelectTrigger disabled={!tenantId || branchesLoading}>
+                  <SelectValue
+                    placeholder={!tenantId ? 'Select tenant first' : branchesLoading ? 'Loading branches…' : 'Select branch'}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Terminal Name</Label>
