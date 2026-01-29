@@ -11,7 +11,6 @@ export class RoleGuard implements CanActivate {
 
     // Check if auth was bypassed (for local testing)
     if (request.headers['x-bypass-auth'] || request.headers['X-Bypass-Auth']) {
-      console.warn('⚠️  Role guard bypassed for local testing');
       return true;
     }
 

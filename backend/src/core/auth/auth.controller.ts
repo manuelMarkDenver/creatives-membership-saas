@@ -180,7 +180,6 @@ export class AuthController {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      console.error('Login error:', error);
       throw new InternalServerErrorException('Login failed');
     }
   }
@@ -258,7 +257,6 @@ export class AuthController {
         `${process.env.FRONTEND_URL}/auth/success?${params.toString()}`,
       );
     } catch (error) {
-      console.error('Google OAuth callback error:', error);
       const errorMessage =
         error instanceof Error ? error.message : 'Google authentication failed';
       return res.redirect(
@@ -444,7 +442,6 @@ export class AuthController {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      console.error('Password change error:', error);
       throw new InternalServerErrorException('Failed to change password');
     }
   }
@@ -534,13 +531,6 @@ export class AuthController {
       (req.headers['x-real-ip'] as string) ||
       'unknown';
 
-    console.log('Auth event received:', body, 'IP sources:', {
-      reqIp: req.ip,
-      remoteAddr: req.connection?.remoteAddress,
-      forwarded: req.headers['x-forwarded-for'],
-      realIp: req.headers['x-real-ip'],
-      finalIP: clientIP,
-    });
     try {
       await this.authEventsService.logAuthEvent({
         type: body.type,
@@ -552,10 +542,8 @@ export class AuthController {
         meta: body.meta,
       });
 
-      console.log('Auth event logged successfully:', body.type);
       return { success: true };
     } catch (error) {
-      console.error('Failed to log auth event:', error);
       // Don't fail the request if logging fails
       return { success: false, error: 'Failed to log event' };
     }

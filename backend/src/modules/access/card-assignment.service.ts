@@ -108,20 +108,9 @@ export class CardAssignmentService {
     gymId: string,
     cardUid: string,
   ): Promise<boolean> {
-    console.log(`Checking inventory for card ${cardUid} in gym ${gymId}`);
     const card = await this.prisma.inventoryCard.findUnique({
       where: { uid: cardUid },
     });
-
-    console.log('Inventory card found:', !!card);
-    if (card) {
-      console.log(
-        `Card status: ${card.status}, allocated to gym: ${card.allocatedGymId}`,
-      );
-      console.log(
-        `Availability check: ${card.status === 'AVAILABLE' && card.allocatedGymId === gymId}`,
-      );
-    }
 
     // Check if this is a DAILY card by looking at operational card type
     const operationalCard = await this.prisma.card.findUnique({
@@ -129,7 +118,6 @@ export class CardAssignmentService {
     });
     
     if (operationalCard?.type === 'DAILY') {
-      console.log(`Card ${cardUid} is a DAILY card - not available for assignment`);
       return false;
     }
 

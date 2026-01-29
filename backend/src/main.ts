@@ -7,7 +7,6 @@ import * as https from 'https';
 async function bootstrap() {
   const isProduction = process.env.NODE_ENV === 'production';
   const PORT = process.env.PORT || 5000;
-  console.log(`Starting the application on ${PORT}...`);
   const app = await NestFactory.create(AppModule);
   // Enable CORS
   app.enableCors({
@@ -39,6 +38,5 @@ async function bootstrap() {
 
   // Railway handles SSL, so always use HTTP
   await app.listen(PORT);
-  console.log(`Server listening on port ${PORT}`);
 }
 void bootstrap();

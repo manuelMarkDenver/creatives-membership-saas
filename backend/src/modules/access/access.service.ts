@@ -18,22 +18,13 @@ export class AccessService {
   ) {}
 
   async checkAccess(terminalId: string, encodedCardUid: string) {
-    console.log(
-      'Checking access for terminal:',
-      terminalId,
-      'raw encodedCardUid:',
-      encodedCardUid,
-    );
-
     // Try to decode if base64, otherwise use as is
     let cardUid: string;
-    console.log('🔍 Raw encodedCardUid received:', encodedCardUid);
 
     try {
       const decodedAttempt = Buffer.from(encodedCardUid, 'base64').toString(
         'utf-8',
       );
-      console.log('🔄 Base64 decode attempt:', decodedAttempt);
 
       // Check if it looks valid (not gibberish and reasonable length)
       if (
@@ -43,24 +34,14 @@ export class AccessService {
         /^\d+$/.test(decodedAttempt) // Should be numeric
       ) {
         cardUid = decodedAttempt;
-        console.log('✅ Using decoded cardUid:', cardUid);
       } else {
         // Not valid base64 result, use as plain
         cardUid = encodedCardUid;
-        console.log('📝 Using plain cardUid (invalid base64):', cardUid);
       }
     } catch (error) {
       // Not base64, use as plain
       cardUid = encodedCardUid;
-      console.log(
-        '📝 Using plain cardUid (decode error):',
-        cardUid,
-        'Error:',
-        error.message,
-      );
     }
-
-    console.log('🎯 Final cardUid used:', cardUid);
 
     // Terminal already validated by guard
     const terminal = await this.prisma.terminal.findUnique({
@@ -69,7 +50,6 @@ export class AccessService {
     });
     if (!terminal) throw new Error('Terminal not found');
     const gymId = terminal.gymId;
-    console.log('Terminal gymId:', gymId, 'Terminal ID:', terminalId);
 
     // 0) Cooldown -> IGNORED_DUPLICATE_TAP
     const cooldownCheck = await this.tapCooldownService.isDuplicateAndRecordTap(
@@ -122,9 +102,6 @@ export class AccessService {
       if (!isReclaimCard) {
         // This is NOT a reclaim card - skip reclaim logic
         // and proceed with normal access check
-        console.log(
-          `Card ${cardUid} is not a reclaim card for member ${reclaimPending.memberId}. Skipping reclaim logic.`,
-        );
       } else {
         // Check if expired
         if (new Date() > reclaimPending.expiresAt) {
@@ -254,17 +231,9 @@ export class AccessService {
       where: { uid: cardUid },
       include: { member: true, gym: true },
     });
-    console.log(
-      'Operational card found:',
-      !!operationalCard,
-      operationalCard?.gymId === gymId ? 'same gym' : 'different gym',
-      'type:',
-      operationalCard?.type,
-    );
 
     // Handle SUPER_ADMIN cards - allow access regardless of gym
     if (operationalCard && operationalCard.type === 'SUPER_ADMIN') {
-      console.log('SUPER_ADMIN card detected:', cardUid);
       await this.eventsService.logEvent({
         gymId,
         terminalId,
@@ -311,9 +280,6 @@ export class AccessService {
           mismatchType: 'gym',
         },
       });
-      console.log(
-        `🚨 GYM MISMATCH: Card gym ${operationalCard.gymId} != Terminal gym ${gymId} - ACCESS DENIED`,
-      );
       const memberName = operationalCard.member
         ? `${operationalCard.member.firstName || 'Unknown'} ${operationalCard.member.lastName || 'User'}`
         : 'Unknown Member';
@@ -347,9 +313,6 @@ export class AccessService {
             mismatchType: 'tenant',
           },
         });
-        console.log(
-          `🚨 TENANT MISMATCH: Card tenant ${cardTenantId} != Terminal tenant ${terminalTenantId}`,
-        );
       } else if (operationalCard.gymId !== gymId) {
         await this.eventsService.logEvent({
           gymId,
@@ -365,9 +328,6 @@ export class AccessService {
             mismatchType: 'branch',
           },
         });
-        console.log(
-          `🚨 BRANCH MISMATCH: Card gym ${operationalCard.gymId} != Terminal gym ${gymId}`,
-        );
       }
     }
 
@@ -396,9 +356,6 @@ export class AccessService {
             mismatchType: 'inventory_gym',
           },
         });
-        console.log(
-          `🚨 INVENTORY GYM MISMATCH: Inventory gym ${inventoryCard.allocatedGymId} != Terminal gym ${gymId} - ACCESS DENIED`,
-        );
         return { result: 'DENY_UNKNOWN' };
       }
 
@@ -460,10 +417,6 @@ export class AccessService {
       operationalCard.active &&
       operationalCard.member
     ) {
-      console.log(
-        'Card is active, checking subscription for member:',
-        operationalCard.memberId,
-      );
       // Get the latest subscription (regardless of status) to check expiry
       const subscription = await this.prisma.gymMemberSubscription.findFirst({
         where: {
@@ -509,7 +462,6 @@ export class AccessService {
       operationalCard.gymId === gymId &&
       !operationalCard.active
     ) {
-      console.log('Card exists but disabled');
       // Card exists but is disabled
       await this.eventsService.logEvent({
         gymId,
@@ -521,16 +473,12 @@ export class AccessService {
       const memberName = operationalCard.member
         ? `${operationalCard.member.firstName || 'Unknown'} ${operationalCard.member.lastName || 'User'}`
         : 'Unknown Member';
-      console.log('DENY_DISABLED: memberName =', memberName);
       return {
         result: 'DENY_DISABLED',
         memberName,
         message: 'Card disabled',
       };
     }
-
-    console.log('Card not found or not operational, checking pending');
-    console.log('Looking for pending assignment for gymId:', gymId);
 
     // Not operational - check pending assignment
     const pending = reclaimPending
@@ -540,31 +488,7 @@ export class AccessService {
           include: { member: true },
         });
 
-    console.log('Pending assignment found:', !!pending);
-    if (pending) {
-      console.log(
-        'Pending for member:',
-        pending.memberId,
-        'expires:',
-        pending.expiresAt,
-      );
-    } else {
-      console.log('No pending assignment for this gym');
-      // Check if there are any pending assignments at all
-      const allPending = await this.prisma.pendingMemberAssignment.findMany();
-      console.log('All pending assignments in system:', allPending.length);
-      allPending.forEach((p) =>
-        console.log('  Gym:', p.gymId, 'Member:', p.memberId),
-      );
-    }
-
     if (!pending) {
-      console.log(
-        '🚨 ACCESS_DENY_UNKNOWN: No pending assignment found for cardUid:',
-        cardUid,
-        'in gym:',
-        gymId,
-      );
       await this.eventsService.logEvent({
         gymId,
         terminalId,
@@ -591,9 +515,6 @@ export class AccessService {
 
       // If this is NOT a reclaim card, skip reclaim logic
       if (!isReclaimCard) {
-        console.log(
-          `Auto-assigned: Card ${cardUid} is not a reclaim card for member ${pending.memberId}. Skipping reclaim logic.`,
-        );
         return { result: 'DENY_UNKNOWN' }; // Let normal access check handle it
       }
       // Check if expired
@@ -743,9 +664,6 @@ export class AccessService {
           mismatchType: 'inventory',
         },
       });
-      console.log(
-        `🚨 INVENTORY MISMATCH: Card ${cardUid} not available for gym ${gymId}`,
-      );
 
       return { result: 'DENY_UNKNOWN' };
     }

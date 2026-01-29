@@ -10,21 +10,12 @@ export class TerminalAuthGuard implements CanActivate {
     const encodedId = request.headers['x-terminal-id-encoded'];
     const encodedSecret = request.headers['x-terminal-secret-encoded'];
 
-    console.log(
-      '🔐 TERMINAL AUTH: Headers - ID present:',
-      !!encodedId,
-      'Secret present:',
-      !!encodedSecret,
-    );
-
     if (!encodedId || !encodedSecret) {
-      console.log('❌ TERMINAL AUTH: Missing authentication headers');
       return false;
     }
 
     // Decode both
     const terminalId = Buffer.from(encodedId, 'base64').toString('utf-8');
-    console.log('🔐 TERMINAL AUTH: Decoded terminal ID:', terminalId);
 
     try {
       const terminal = await this.terminalsService.validateTerminal(
@@ -33,31 +24,12 @@ export class TerminalAuthGuard implements CanActivate {
       );
 
       if (!terminal) {
-        console.log('❌ TERMINAL AUTH: Terminal validation returned null');
         return false;
       }
-
-      // Log if terminal is not assigned to any gym
-      if (!terminal.gymId) {
-        console.log(
-          '🚨 TERMINAL CONFIG: Terminal not assigned to any gym:',
-          terminalId,
-        );
-      }
-
-      console.log(
-        '✅ TERMINAL AUTH: Success - Terminal:',
-        terminalId,
-        'Gym:',
-        terminal.gymId,
-        'Tenant:',
-        terminal.gym?.tenantId,
-      );
       request.terminal = terminal;
       request.terminalId = terminalId;
       return true;
     } catch (error) {
-      console.log('❌ TERMINAL AUTH: Validation error:', error.message);
       return false;
     }
   }

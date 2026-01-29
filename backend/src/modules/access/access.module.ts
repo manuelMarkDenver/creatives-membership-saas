@@ -27,7 +27,4 @@ import { InventoryCardsService } from './inventory-cards.service';
   exports: [TerminalsService, EventsService, CardAssignmentService],
 })
 export class AccessModule {
-  constructor() {
-    console.log('✅ AccessModule loaded');
-  }
 }

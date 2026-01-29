@@ -17,8 +17,6 @@ export class AuthGuard implements CanActivate {
 
     // Check if auth was bypassed (for local testing)
     if (request.headers['x-bypass-auth'] || request.headers['X-Bypass-Auth']) {
-      console.log('🔧 Processing bypass authentication');
-
       // Check for specific user email in bypass header
       const bypassUserEmail =
         request.headers['x-bypass-user'] ||
@@ -29,7 +27,6 @@ export class AuthGuard implements CanActivate {
       let bypassUser: AuthenticatedUser;
 
       if (bypassUserEmail) {
-        console.log(`🔧 Looking up bypass user: ${bypassUserEmail}`);
         const targetUser = await this.prisma.user.findFirst({
           where: { email: bypassUserEmail },
           include: {
@@ -54,9 +51,6 @@ export class AuthGuard implements CanActivate {
               isPrimary: ub.isPrimary,
             })),
           };
-          console.log(
-            `🔧 Bypass auth successful for: ${targetUser.email} (${targetUser.role})`,
-          );
         } else {
           throw new UnauthorizedException(
             `Bypass user not found: ${bypassUserEmail}`,
@@ -64,7 +58,6 @@ export class AuthGuard implements CanActivate {
         }
       } else {
         // Default to owner for testing
-        console.log('🔧 Using default owner for bypass auth');
         const ownerUser = await this.prisma.user.findFirst({
           where: { email: 'owner@muscle-mania.com' },
           include: {
@@ -145,14 +138,9 @@ export class AuthGuard implements CanActivate {
         })),
       };
 
-      console.log(
-        `🔐 JWT auth successful for: ${authenticatedUser.email} (${authenticatedUser.role})`,
-      );
-      console.log(`🔐 User tenantId: ${authenticatedUser.tenantId}`);
       request.user = authenticatedUser;
       return true;
     } catch (error) {
-      console.error('Auth error:', error);
       throw new UnauthorizedException('Authentication failed');
     }
   }
