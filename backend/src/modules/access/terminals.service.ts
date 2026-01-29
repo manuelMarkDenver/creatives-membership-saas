@@ -8,6 +8,36 @@ import * as crypto from 'crypto';
 export class TerminalsService {
   constructor(private prisma: PrismaService) {}
 
+  private terminalAuthCache = new Map<
+    string,
+    {
+      terminal: any;
+      expiresAtMs: number;
+      lastSeenUpdatedAtMs: number;
+    }
+  >();
+
+  private terminalAuthCacheTtlMs(): number {
+    const raw = process.env.TERMINAL_AUTH_CACHE_TTL_MS;
+    const parsed = raw ? parseInt(raw, 10) : NaN;
+    // Keep this short to avoid allowing old secrets after rotation.
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 5000;
+  }
+
+  private terminalLastSeenThrottleMs(): number {
+    const raw = process.env.TERMINAL_LAST_SEEN_THROTTLE_MS;
+    const parsed = raw ? parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 60_000;
+  }
+
+  private terminalAuthCacheKey(terminalId: string, decodedSecret: string): string {
+    const secretHash = crypto
+      .createHash('sha256')
+      .update(decodedSecret)
+      .digest('hex');
+    return `${terminalId}:${secretHash}`;
+  }
+
   private generateTerminalSecret(): string {
     // URL-safe, copy/paste friendly
     return crypto.randomBytes(24).toString('base64url');
@@ -142,8 +172,30 @@ export class TerminalsService {
     terminalId: string,
     encodedSecret: string,
   ): Promise<any> {
+    const nowMs = Date.now();
     // Decode the base64 encoded secret
     const secret = Buffer.from(encodedSecret, 'base64').toString('utf-8');
+
+    const cacheKey = this.terminalAuthCacheKey(terminalId, secret);
+    const cached = this.terminalAuthCache.get(cacheKey);
+    if (cached && nowMs < cached.expiresAtMs) {
+      const throttleMs = this.terminalLastSeenThrottleMs();
+      if (nowMs - cached.lastSeenUpdatedAtMs >= throttleMs) {
+        // Best-effort update; do not block access checks.
+        void this.prisma.terminal
+          .update({
+            where: { id: terminalId },
+            data: { lastSeenAt: new Date() },
+          })
+          .then(() => {
+            const entry = this.terminalAuthCache.get(cacheKey);
+            if (entry) entry.lastSeenUpdatedAtMs = Date.now();
+          })
+          .catch(() => undefined);
+      }
+
+      return cached.terminal;
+    }
 
     const terminal = await this.prisma.terminal.findUnique({
       where: { id: terminalId },
@@ -159,10 +211,21 @@ export class TerminalsService {
       throw new Error('Invalid terminal secret');
     }
 
-    // Update last seen
-    await this.prisma.terminal.update({
-      where: { id: terminalId },
-      data: { lastSeenAt: new Date() },
+    // Update last seen (throttled)
+    const throttleMs = this.terminalLastSeenThrottleMs();
+    const lastSeenMs = terminal.lastSeenAt ? terminal.lastSeenAt.getTime() : 0;
+    if (!lastSeenMs || nowMs - lastSeenMs >= throttleMs) {
+      await this.prisma.terminal.update({
+        where: { id: terminalId },
+        data: { lastSeenAt: new Date() },
+      });
+    }
+
+    // Cache validated terminal briefly to avoid bcrypt + DB on every tap.
+    this.terminalAuthCache.set(cacheKey, {
+      terminal,
+      expiresAtMs: nowMs + this.terminalAuthCacheTtlMs(),
+      lastSeenUpdatedAtMs: nowMs,
     });
 
     return terminal;

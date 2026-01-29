@@ -12,6 +12,7 @@ import {
 import { AccessService } from './access.service';
 import { TerminalsService } from './terminals.service';
 import { TerminalAuthGuard } from './guards/terminal-auth.guard';
+import { AccessRateLimitGuard } from './guards/access-rate-limit.guard';
 import { CardAssignmentService } from './card-assignment.service';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import {
@@ -48,7 +49,7 @@ export class AccessController {
   }
 
   @Post('check')
-  @UseGuards(TerminalAuthGuard)
+  @UseGuards(TerminalAuthGuard, AccessRateLimitGuard)
   async checkCardAccess(
     @Body() body: CheckAccessDto,
     @Req() req: any,
@@ -58,7 +59,7 @@ export class AccessController {
   }
 
   @Post('terminals/ping')
-  @UseGuards(TerminalAuthGuard)
+  @UseGuards(TerminalAuthGuard, AccessRateLimitGuard)
   async pingTerminal(@Req() req: any): Promise<PingResponseDto> {
     const terminal = req.terminal;
     return {

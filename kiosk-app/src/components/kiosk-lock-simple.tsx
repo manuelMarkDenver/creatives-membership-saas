@@ -7,8 +7,13 @@ interface KioskLockSimpleProps {
 }
 
 export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
+  const isDev = process.env.NODE_ENV === 'development';
+
   // Enter fullscreen mode (mobile/tablet compatible)
   const enterFullscreen = useCallback(() => {
+    if (isDev) {
+      return;
+    }
     const elem = document.documentElement;
     
     // Try different fullscreen methods for cross-browser compatibility
@@ -19,15 +24,20 @@ export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
     
     if (requestFullscreen) {
       requestFullscreen.call(elem).catch(err => {
+        // In production kiosk we keep retrying; in dev we don't attempt fullscreen at all.
         console.log(`Fullscreen error: ${err.message}`);
         // Try again after a short delay
         setTimeout(enterFullscreen, 1000);
       });
     }
-  }, []);
+  }, [isDev]);
 
   // Prevent context menu (right-click) - only in non-debug mode
   const handleContextMenu = useCallback((e: MouseEvent) => {
+    // Always allow right-click in development
+    if (process.env.NODE_ENV === 'development') {
+      return true;
+    }
     // Check if debug mode is enabled via localStorage
     const debugMode = localStorage.getItem('kiosk-debug-mode') === 'true';
     if (!debugMode) {
@@ -62,6 +72,9 @@ export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
 
   // Prevent exiting fullscreen (cross-browser compatible)
   const handleFullscreenChange = useCallback(() => {
+    if (isDev) {
+      return;
+    }
     const fullscreenElement = document.fullscreenElement || 
                              (document as any).webkitFullscreenElement || 
                              (document as any).mozFullScreenElement || 
@@ -71,10 +84,14 @@ export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
       console.log('Fullscreen exited, re-entering...');
       enterFullscreen();
     }
-  }, [enterFullscreen]);
+  }, [enterFullscreen, isDev]);
 
   // Prevent ALL keyboard shortcuts - only in non-debug mode
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Always allow devtools shortcuts in development
+    if (process.env.NODE_ENV === 'development') {
+      return;
+    }
     // Check if debug mode is enabled via localStorage
     const debugMode = localStorage.getItem('kiosk-debug-mode') === 'true';
     
@@ -119,6 +136,10 @@ export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
 
   // Setup event listeners
   useEffect(() => {
+    if (isDev) {
+      // In development, don't enforce fullscreen/lockdown.
+      return;
+    }
     // Enter fullscreen on mount
     enterFullscreen();
     
@@ -301,7 +322,7 @@ export default function KioskLockSimple({ children }: KioskLockSimpleProps) {
       window.removeEventListener('hashchange', preventURLChange);
       window.removeEventListener('popstate', preventURLChange);
     };
-  }, [enterFullscreen, handleKeyDown, handleContextMenu, handleBeforeUnload, handleFullscreenChange, preventVirtualKeyboard]);
+  }, [enterFullscreen, handleKeyDown, handleContextMenu, handleBeforeUnload, handleFullscreenChange, preventVirtualKeyboard, isDev]);
 
   // State for nuclear warning
   const [showWarning, setShowWarning] = useState(false);

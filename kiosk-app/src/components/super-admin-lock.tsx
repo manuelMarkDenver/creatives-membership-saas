@@ -13,6 +13,7 @@ export default function SuperAdminLock({
   superAdminPin = '7890', // Default super admin PIN
   adminSessionDuration = 5 * 60 * 1000 // 5 minutes
 }: SuperAdminLockProps) {
+  const isDev = process.env.NODE_ENV === 'development';
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [tapCount, setTapCount] = useState(0);
   const [showPinInput, setShowPinInput] = useState(false);
@@ -23,13 +24,16 @@ export default function SuperAdminLock({
 
   // Enter fullscreen mode
   const enterFullscreen = useCallback(() => {
+    if (isDev) {
+      return;
+    }
     const elem = document.documentElement;
     if (elem.requestFullscreen && !document.fullscreenElement) {
       elem.requestFullscreen().catch(err => {
         console.log(`Fullscreen error: ${err.message}`);
       });
     }
-  }, []);
+  }, [isDev]);
 
   // Exit fullscreen (admin only)
   const exitFullscreen = useCallback(() => {
@@ -160,8 +164,12 @@ export default function SuperAdminLock({
 
   // Prevent context menu
   const handleContextMenu = useCallback((e: MouseEvent) => {
+    // Allow right-click in dev and while in admin mode
+    if (process.env.NODE_ENV === 'development' || isAdminMode) {
+      return;
+    }
     e.preventDefault();
-  }, []);
+  }, [isAdminMode]);
 
   // Prevent navigation
   const handleBeforeUnload = useCallback((e: BeforeUnloadEvent) => {
@@ -173,13 +181,20 @@ export default function SuperAdminLock({
 
   // Prevent exiting fullscreen in kiosk mode
   const handleFullscreenChange = useCallback(() => {
+    if (isDev) {
+      return;
+    }
     if (!document.fullscreenElement && !isAdminMode) {
       enterFullscreen();
     }
-  }, [isAdminMode, enterFullscreen]);
+  }, [isAdminMode, enterFullscreen, isDev]);
 
   // Setup
   useEffect(() => {
+    if (isDev) {
+      // In development, don't enforce fullscreen/lockdown.
+      return;
+    }
     // Enter fullscreen on mount
     enterFullscreen();
     
@@ -202,7 +217,7 @@ export default function SuperAdminLock({
         clearInterval(adminSessionTimer);
       }
     };
-  }, [enterFullscreen, handleSecretTap, handleKeyDown, handleContextMenu, handleBeforeUnload, handleFullscreenChange, adminSessionTimer]);
+  }, [enterFullscreen, handleSecretTap, handleKeyDown, handleContextMenu, handleBeforeUnload, handleFullscreenChange, adminSessionTimer, isDev]);
 
   // Format time left
   const formatTimeLeft = () => {

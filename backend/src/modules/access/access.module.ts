@@ -11,6 +11,7 @@ import { TapCooldownService } from './tap-cooldown.service';
 import { PrismaModule } from '../../core/prisma/prisma.module';
 import { DailyModule } from '../daily/daily.module';
 import { InventoryCardsService } from './inventory-cards.service';
+import { AccessRateLimitGuard } from './guards/access-rate-limit.guard';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => DailyModule)],
@@ -23,6 +24,7 @@ import { InventoryCardsService } from './inventory-cards.service';
     TapCooldownRepository,
     TapCooldownService,
     InventoryCardsService,
+    AccessRateLimitGuard,
   ],
   exports: [TerminalsService, EventsService, CardAssignmentService],
 })
