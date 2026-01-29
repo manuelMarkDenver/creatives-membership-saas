@@ -11,7 +11,8 @@ import {
   Crown,
   Shield,
   CalendarDays,
-  Upload
+  Upload,
+  Monitor
 } from 'lucide-react'
 import { Role } from '@/types'
 
@@ -46,6 +47,13 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: CreditCard,
     roles: ['SUPER_ADMIN' as Role],
     description: 'Manage allocated card inventory'
+  },
+  {
+    name: 'Terminals',
+    href: '/admin/terminals',
+    icon: Monitor,
+    roles: ['SUPER_ADMIN' as Role],
+    description: 'Register and manage kiosks'
   },
 
   // Dashboard - Available to all authenticated users

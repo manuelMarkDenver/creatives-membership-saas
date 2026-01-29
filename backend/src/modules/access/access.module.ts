@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { AccessController } from './access.controller';
 import { InventoryCardsController } from './inventory-cards.controller';
+import { TerminalsAdminController } from './terminals-admin.controller';
 import { AccessService } from './access.service';
 import { TerminalsService } from './terminals.service';
 import { EventsService } from './events.service';
@@ -13,7 +14,7 @@ import { InventoryCardsService } from './inventory-cards.service';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => DailyModule)],
-  controllers: [AccessController, InventoryCardsController],
+  controllers: [AccessController, InventoryCardsController, TerminalsAdminController],
   providers: [
     AccessService,
     TerminalsService,
