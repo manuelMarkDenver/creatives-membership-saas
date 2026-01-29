@@ -23,7 +23,9 @@ export default function AdminTerminalsPage() {
   const [branchId, setBranchId] = useState('')
   const [terminals, setTerminals] = useState<any[] | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [browseError, setBrowseError] = useState<string | null>(null)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [actionsError, setActionsError] = useState<string | null>(null)
 
   const [newBranchId, setNewBranchId] = useState('')
   const [newName, setNewName] = useState('')
@@ -57,12 +59,13 @@ export default function AdminTerminalsPage() {
     : (branchesData as any)?.data || []
 
   const load = async () => {
-    setError(null)
+    setBrowseError(null)
+    setActionsError(null)
     setCreateResult(null)
     setTerminals(null)
 
     if (!tenantId.trim()) {
-      setError('tenantId is required')
+      setBrowseError('Tenant is required')
       return
     }
 
@@ -76,18 +79,18 @@ export default function AdminTerminalsPage() {
       })
       setTerminals(res.data)
     } catch (e) {
-      setError((e as any)?.message || 'Failed to load terminals')
+      setBrowseError((e as any)?.message || 'Failed to load terminals')
     } finally {
       setIsLoading(false)
     }
   }
 
   const create = async () => {
-    setError(null)
+    setCreateError(null)
     setCreateResult(null)
 
     if (!tenantId.trim() || !newBranchId.trim() || !newName.trim()) {
-      setError('tenantId, branchId, and name are required')
+      setCreateError('Tenant, branch, and terminal name are required')
       return
     }
 
@@ -101,18 +104,18 @@ export default function AdminTerminalsPage() {
       setCreateResult(res.data)
       await load()
     } catch (e) {
-      setError((e as any)?.message || 'Failed to create terminal')
+      setCreateError((e as any)?.message || 'Failed to create terminal')
     } finally {
       setIsCreating(false)
     }
   }
 
   const rotateSecret = async (terminalId: string) => {
-    setError(null)
+    setActionsError(null)
     setCreateResult(null)
 
     if (!tenantId.trim()) {
-      setError('tenantId is required')
+      setActionsError('Tenant is required')
       return
     }
 
@@ -122,14 +125,14 @@ export default function AdminTerminalsPage() {
       })
       setCreateResult(res.data)
     } catch (e) {
-      setError((e as any)?.message || 'Failed to rotate secret')
+      setActionsError((e as any)?.message || 'Failed to rotate secret')
     }
   }
 
   const toggleActive = async (terminalId: string, isActive: boolean) => {
-    setError(null)
+    setActionsError(null)
     if (!tenantId.trim()) {
-      setError('tenantId is required')
+      setActionsError('Tenant is required')
       return
     }
 
@@ -140,7 +143,7 @@ export default function AdminTerminalsPage() {
       })
       await load()
     } catch (e) {
-      setError((e as any)?.message || 'Failed to update terminal')
+      setActionsError((e as any)?.message || 'Failed to update terminal')
     }
   }
 
@@ -170,7 +173,9 @@ export default function AdminTerminalsPage() {
                   setNewBranchId('')
                   setTerminals(null)
                   setCreateResult(null)
-                  setError(null)
+                  setBrowseError(null)
+                  setCreateError(null)
+                  setActionsError(null)
                 }}
                 items={tenants.map((t) => ({
                   value: t.id,
@@ -209,11 +214,11 @@ export default function AdminTerminalsPage() {
             </div>
           </div>
 
-          {error && (
+          {browseError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Something went wrong</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{browseError}</AlertDescription>
             </Alert>
           )}
 
@@ -232,6 +237,14 @@ export default function AdminTerminalsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {createError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Something went wrong</AlertTitle>
+              <AlertDescription>{createError}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Branch ID</Label>
@@ -284,6 +297,16 @@ export default function AdminTerminalsPage() {
             <CardDescription>{terminals.length} total</CardDescription>
           </CardHeader>
           <CardContent>
+            {actionsError && (
+              <div className="mb-4">
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Something went wrong</AlertTitle>
+                  <AlertDescription>{actionsError}</AlertDescription>
+                </Alert>
+              </div>
+            )}
+
             <Table>
               <TableHeader>
                 <TableRow>
