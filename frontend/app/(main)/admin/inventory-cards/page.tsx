@@ -1,11 +1,12 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, Crown, CreditCard, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useTenants } from '@/lib/hooks/use-tenants'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
@@ -16,8 +17,49 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { Branch, Tenant } from '@/types'
 import { SearchableDropdown } from '@/components/ui/searchable-dropdown'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 type InventoryCardStatus = 'AVAILABLE' | 'ASSIGNED' | 'DISABLED'
+
+function normalizeCardUid(rawUid: string): string {
+  const cleaned = rawUid.trim().toUpperCase()
+
+  if (cleaned.length >= 8 && /^\d+$/.test(cleaned)) {
+    let candidate = cleaned
+
+    if (candidate.length === 20) {
+      candidate =
+        candidate[2] +
+        candidate[3] +
+        candidate[4] +
+        candidate[6] +
+        candidate[8] +
+        candidate[10] +
+        candidate[12] +
+        candidate[14] +
+        candidate[16] +
+        candidate[18]
+    } else {
+      if (candidate.length < 10) candidate = candidate.padStart(10, '0')
+      else if (candidate.length > 10) candidate = candidate.substring(0, 10)
+    }
+
+    if (!candidate.startsWith('000')) {
+      const reversed = candidate.split('').reverse().join('')
+      if (reversed.startsWith('000')) return reversed
+    }
+
+    return candidate
+  }
+
+  return cleaned
+}
 
 function parseCsvLine(line: string): string[] {
   const out: string[] = []
@@ -65,11 +107,22 @@ export default function AdminInventoryCardsPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<any>(null)
 
+  const [autoSaveScans, setAutoSaveScans] = useState(true)
+  const [scanInput, setScanInput] = useState('')
+  const [scannedUids, setScannedUids] = useState<string[]>([])
+  const [scanResult, setScanResult] = useState<any>(null)
+  const [isSavingScans, setIsSavingScans] = useState(false)
+  const [tapError, setTapError] = useState<string | null>(null)
+  const [tapModeOpen, setTapModeOpen] = useState(false)
+
+  const tapInputRef = useRef<HTMLInputElement | null>(null)
+
   const [statusFilter, setStatusFilter] = useState<InventoryCardStatus>('AVAILABLE')
   const [listResult, setListResult] = useState<any[] | null>(null)
   const [isListing, setIsListing] = useState(false)
 
   const preview = useMemo(() => uids.slice(0, 20), [uids])
+  const scannedPreview = useMemo(() => scannedUids.slice(-10).reverse(), [scannedUids])
 
   const { data: tenantsData, isLoading: tenantsLoading } = useTenants(undefined, {
     enabled: profile?.role === 'SUPER_ADMIN',
@@ -171,6 +224,110 @@ export default function AdminInventoryCardsPage() {
       setIsUploading(false)
     }
   }
+
+  const addScannedUid = async (raw: string) => {
+    setTapError(null)
+    setScanResult(null)
+
+    if (!tenantId.trim() || !branchId.trim()) {
+      setTapError('Select tenant and branch first')
+      return
+    }
+
+    const uid = normalizeCardUid(raw)
+    if (!uid) return
+
+    setScannedUids((prev) => (prev.includes(uid) ? prev : [...prev, uid]))
+
+    if (!autoSaveScans) {
+      setScanResult({ mode: 'COLLECT', uid })
+      return
+    }
+
+    setIsSavingScans(true)
+    try {
+      // Use bulk endpoint even for 1 uid (idempotent via skipDuplicates)
+      const res = await apiClient.post('/admin/inventory-cards/bulk', {
+        tenantId: tenantId.trim(),
+        branchId: branchId.trim(),
+        uids: [uid],
+        ...(batchId.trim() ? { batchId: batchId.trim() } : {}),
+      })
+      setScanResult({ mode: 'AUTO_SAVE', uid, result: res.data })
+    } catch (e) {
+      setTapError((e as any)?.message || 'Failed to save scanned card')
+    } finally {
+      setIsSavingScans(false)
+    }
+  }
+
+  const saveAllScans = async () => {
+    setTapError(null)
+    setScanResult(null)
+
+    if (!tenantId.trim() || !branchId.trim()) {
+      setTapError('Select tenant and branch first')
+      return
+    }
+
+    if (scannedUids.length === 0) {
+      setTapError('No scanned UIDs to save')
+      return
+    }
+
+    setIsSavingScans(true)
+    try {
+      const res = await apiClient.post('/admin/inventory-cards/bulk', {
+        tenantId: tenantId.trim(),
+        branchId: branchId.trim(),
+        uids: scannedUids,
+        ...(batchId.trim() ? { batchId: batchId.trim() } : {}),
+      })
+      setScanResult({ mode: 'BULK_SAVE', result: res.data })
+    } catch (e) {
+      setTapError((e as any)?.message || 'Failed to save scanned cards')
+    } finally {
+      setIsSavingScans(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!tapModeOpen) return
+
+    let focusInterval: ReturnType<typeof setInterval> | null = null
+
+    const focusInput = () => {
+      if (tapInputRef.current) {
+        tapInputRef.current.focus()
+      }
+    }
+
+    // Focus immediately
+    setTimeout(focusInput, 0)
+
+    // Focus on any click/tap
+    const handleClick = () => focusInput()
+    document.addEventListener('click', handleClick)
+
+    // Refocus on visibility change
+    const handleVisibilityChange = () => {
+      if (!document.hidden) setTimeout(focusInput, 100)
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // Safety net interval
+    focusInterval = setInterval(() => {
+      if (tapInputRef.current && document.activeElement !== tapInputRef.current) {
+        focusInput()
+      }
+    }, 3000)
+
+    return () => {
+      if (focusInterval) clearInterval(focusInterval)
+      document.removeEventListener('click', handleClick)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [tapModeOpen])
 
   const onList = async () => {
     setListResult(null)
@@ -337,6 +494,203 @@ export default function AdminInventoryCardsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Manual Tapping</CardTitle>
+          <CardDescription>
+            Scan cards using an RFID reader that types into an input (keyboard emulation). Use auto-save for consecutive taps.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Switch checked={autoSaveScans} onCheckedChange={setAutoSaveScans} />
+              <span className="text-sm">Auto-save each scan</span>
+            </div>
+            <div className="text-sm text-muted-foreground">Scanned this session: {scannedUids.length}</div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => {
+                if (!tenantId || !branchId) {
+                  setTapError('Select tenant and branch first')
+                  return
+                }
+                setTapError(null)
+                setTapModeOpen(true)
+              }}
+              disabled={!tenantId || !branchId}
+            >
+              Start Tap Mode
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setScannedUids([])
+                setScanResult(null)
+                setTapError(null)
+              }}
+              disabled={scannedUids.length === 0}
+            >
+              Clear session
+            </Button>
+            <Button
+              variant="outline"
+              onClick={saveAllScans}
+              disabled={autoSaveScans || scannedUids.length === 0 || isSavingScans}
+            >
+              {isSavingScans ? 'Saving…' : 'Save all'}
+            </Button>
+          </div>
+
+          {tapError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Something went wrong</AlertTitle>
+              <AlertDescription>{tapError}</AlertDescription>
+            </Alert>
+          )}
+
+          {scannedUids.length > 0 && (
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <div className="text-xs text-muted-foreground mb-2">Recent scans (last 10)</div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                {scannedPreview.map((u) => (
+                  <div key={u} className="font-mono text-xs truncate">{u}</div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={tapModeOpen}
+        onOpenChange={(open) => {
+          setTapModeOpen(open)
+          setScanInput('')
+          setTapError(null)
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-2xl"
+          onOpenAutoFocus={(e) => {
+            e.preventDefault()
+            setTimeout(() => tapInputRef.current?.focus(), 0)
+          }}
+        >
+          {/* Hidden input for RFID keyboard emulation - always focused while modal is open */}
+          <input
+            ref={tapInputRef}
+            type="text"
+            value={scanInput}
+            onChange={(e) => setScanInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === 'NumpadEnter' || e.key === 'Tab') {
+                if (e.key === 'Tab') e.preventDefault()
+                const raw = scanInput
+                setScanInput('')
+                void addScannedUid(raw)
+              }
+            }}
+            onBlur={() => {
+              setTimeout(() => {
+                if (tapModeOpen) tapInputRef.current?.focus()
+              }, 10)
+            }}
+            className="absolute top-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
+            autoFocus
+            inputMode="none"
+            readOnly={false}
+          />
+
+          <DialogHeader>
+            <DialogTitle>Tap Mode</DialogTitle>
+            <DialogDescription>
+              Tap cards now. This modal keeps focus on the scan input so you don’t accidentally type into other fields.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                  INVENTORY TAP MODE ACTIVE
+                </div>
+                <div className="text-xs text-emerald-900/80 dark:text-emerald-200/80">
+                  Target: tenant={tenantId} branch={branchId}{batchId ? ` batch=${batchId}` : ''}
+                </div>
+              </div>
+              <div className="text-sm text-emerald-900 dark:text-emerald-200">
+                Scanned: <span className="font-mono">{scannedUids.length}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Switch checked={autoSaveScans} onCheckedChange={setAutoSaveScans} />
+              <span className="text-sm">Auto-save each scan</span>
+            </div>
+            <Button variant="outline" onClick={() => tapInputRef.current?.focus()}>
+              Refocus
+            </Button>
+            <Button
+              onClick={saveAllScans}
+              disabled={autoSaveScans || scannedUids.length === 0 || isSavingScans}
+            >
+              {isSavingScans ? 'Saving…' : 'Save all'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setScannedUids([])
+                setScanResult(null)
+                setTapError(null)
+                setScanInput('')
+                setTimeout(() => tapInputRef.current?.focus(), 0)
+              }}
+              disabled={scannedUids.length === 0}
+            >
+              Clear session
+            </Button>
+          </div>
+
+          {tapError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Something went wrong</AlertTitle>
+              <AlertDescription>{tapError}</AlertDescription>
+            </Alert>
+          )}
+
+          {scanResult ? (
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <div className="text-xs text-muted-foreground mb-2">Last result</div>
+              <div className="text-xs font-mono whitespace-pre-wrap break-words">
+                {JSON.stringify(scanResult, null, 2)}
+              </div>
+            </div>
+          ) : null}
+
+          {scannedUids.length > 0 ? (
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <div className="text-xs text-muted-foreground mb-2">Recent scans (last 10)</div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                {scannedPreview.map((u) => (
+                  <div key={u} className="font-mono text-xs truncate">{u}</div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="text-xs text-muted-foreground">
+            Tip: You can tap anywhere on the page if focus is lost; Tap Mode will refocus the scanner input.
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {uploadResult && (
         <Card>
