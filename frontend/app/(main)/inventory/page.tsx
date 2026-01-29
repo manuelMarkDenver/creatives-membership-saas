@@ -19,8 +19,7 @@ function formatNumber(n: number) {
   return new Intl.NumberFormat().format(n)
 }
 
-function maskUid(uid: string, reveal: boolean) {
-  if (reveal) return uid
+function maskUid(uid: string) {
   const last4 = uid.slice(-4)
   return `•••• ${last4}`
 }
@@ -29,7 +28,6 @@ export default function InventoryPage() {
   const { data: profile } = useProfile()
   const tenantId = profile?.tenantId || ''
   const [branchId, setBranchId] = useState<string>('')
-  const [revealUids, setRevealUids] = useState(false)
 
   const [assignedQ, setAssignedQ] = useState('')
   const [assignedPage, setAssignedPage] = useState(1)
@@ -155,19 +153,10 @@ export default function InventoryPage() {
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={revealUids}
-              onChange={(e) => setRevealUids(e.target.checked)}
-            />
-            Reveal full card numbers
-          </label>
-
           <div className="flex items-start gap-2 text-xs text-muted-foreground">
             <Info className="h-4 w-4 mt-0.5" />
             <div>
-              Card numbers are masked by default to reduce shoulder-surfing risk.
+              Card numbers are masked to reduce shoulder-surfing risk.
             </div>
           </div>
         </CardContent>
@@ -436,7 +425,7 @@ export default function InventoryPage() {
                     <TableRow key={row.uid}>
                       <TableCell className="font-medium">{row.memberName || 'Unknown'}</TableCell>
                       <TableCell>{row.branchName || row.branchId}</TableCell>
-                      <TableCell className="font-mono">{maskUid(row.uid, revealUids)}</TableCell>
+                      <TableCell className="font-mono">{maskUid(row.uid)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Badge variant={row.active ? 'default' : 'secondary'}>
@@ -527,7 +516,7 @@ export default function InventoryPage() {
                 <TableBody>
                   {(available?.items || []).map((row: any) => (
                     <TableRow key={row.uid}>
-                      <TableCell className="font-mono">{maskUid(row.uid, revealUids)}</TableCell>
+                      <TableCell className="font-mono">{maskUid(row.uid)}</TableCell>
                       <TableCell>{row.branchName || row.branchId}</TableCell>
                       <TableCell className="font-mono text-xs">{row.batchId || ''}</TableCell>
                       <TableCell>
