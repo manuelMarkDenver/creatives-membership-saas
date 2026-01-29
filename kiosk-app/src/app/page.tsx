@@ -839,9 +839,9 @@ function KioskPageContent() {
               <h1 className={`font-bold mb-6 ${!result ? 'text-5xl portrait:text-6xl landscape:text-7xl lg:text-8xl' : 'text-4xl portrait:text-5xl landscape:text-6xl lg:text-7xl'}`}>
                 {getText()}
               </h1>
-              {!result && cardUid && (
+              {!result && isProcessing && (
                 <div className="flex flex-col items-center space-y-4">
-                  <div className="text-2xl sm:text-3xl lg:text-4xl opacity-70">Reading card</div>
+                  <div className="text-2xl sm:text-3xl lg:text-4xl opacity-70">Processing</div>
                   <div className="flex space-x-2">
                     <div className="w-6 h-6 bg-white rounded-full animate-pulse"></div>
                     <div className="w-6 h-6 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
