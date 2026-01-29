@@ -12,9 +12,9 @@ import { useBranchesByTenant } from '@/lib/hooks/use-branches'
 import { apiClient } from '@/lib/api/client'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { Branch, Tenant } from '@/types'
+import { SearchableDropdown } from '@/components/ui/searchable-dropdown'
 
 type ParsedRow = {
   externalMemberId: string
@@ -211,49 +211,45 @@ export default function AdminMemberImportPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Tenant ID</Label>
-              <Select
+              <SearchableDropdown
                 value={tenantId}
                 onValueChange={(v) => {
                   setTenantId(v)
                   setBranchId('')
                   setImportResult(null)
                 }}
-              >
-                <SelectTrigger disabled={tenantsLoading}>
-                  <SelectValue placeholder={tenantsLoading ? 'Loading tenants…' : 'Select tenant'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {tenants.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                items={tenants.map((t) => ({
+                  value: t.id,
+                  label: t.name,
+                  description: t.category,
+                }))}
+                placeholder={tenantsLoading ? 'Loading tenants…' : 'Select tenant'}
+                label="Tenants"
+                disabled={tenantsLoading}
+                searchPlaceholder="Search tenants…"
+                emptyText="No tenants found"
+              />
               <p className="text-xs text-muted-foreground">Required. Used to scope `externalMemberId` uniqueness.</p>
             </div>
             <div className="space-y-2">
               <Label>Branch ID</Label>
-              <Select
+              <SearchableDropdown
                 value={branchId}
                 onValueChange={(v) => {
                   setBranchId(v)
                   setImportResult(null)
                 }}
-              >
-                <SelectTrigger disabled={!tenantId || branchesLoading}>
-                  <SelectValue
-                    placeholder={!tenantId ? 'Select tenant first' : branchesLoading ? 'Loading branches…' : 'Select branch'}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {branches.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                items={branches.map((b) => ({
+                  value: b.id,
+                  label: b.name,
+                  description: b.address || undefined,
+                }))}
+                placeholder={!tenantId ? 'Select tenant first' : branchesLoading ? 'Loading branches…' : 'Select branch'}
+                label="Branches"
+                disabled={!tenantId || branchesLoading}
+                searchPlaceholder="Search branches…"
+                emptyText="No branches found"
+              />
               <p className="text-xs text-muted-foreground">Required. Members get this as their primary branch.</p>
             </div>
           </div>
