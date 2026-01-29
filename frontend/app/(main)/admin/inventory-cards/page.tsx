@@ -1,13 +1,17 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Crown, CreditCard, Upload } from 'lucide-react'
+import { AlertCircle, Crown, CreditCard, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { apiClient } from '@/lib/api/client'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 type InventoryCardStatus = 'AVAILABLE' | 'ASSIGNED' | 'DISABLED'
 
@@ -65,13 +69,15 @@ export default function AdminInventoryCardsPage() {
 
   if (!profile || profile.role !== 'SUPER_ADMIN') {
     return (
-      <div className="text-center py-12">
-        <Crown className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">Access Denied</h3>
-        <p className="mt-1 text-sm text-gray-500">
-          You need Super Admin privileges to manage card inventory.
-        </p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Crown className="h-5 w-5" />
+            Access Denied
+          </CardTitle>
+          <CardDescription>You need Super Admin privileges to manage card inventory.</CardDescription>
+        </CardHeader>
+      </Card>
     )
   }
 
@@ -179,118 +185,158 @@ export default function AdminInventoryCardsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Card Inventory</h1>
-          <p className="text-sm text-gray-500">
-            Bulk upload card UIDs into inventory for a specific tenant + branch.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Card Inventory</h1>
+        <p className="text-sm text-muted-foreground">
+          Bulk upload card UIDs into inventory for a specific tenant + branch.
+        </p>
       </div>
 
-      <div className="rounded-lg border bg-white p-6 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>tenantId</Label>
-            <Input value={tenantId} onChange={(e) => setTenantId(e.target.value)} placeholder="UUID" />
-          </div>
-          <div className="space-y-2">
-            <Label>branchId</Label>
-            <Input value={branchId} onChange={(e) => setBranchId(e.target.value)} placeholder="UUID" />
-          </div>
-          <div className="space-y-2">
-            <Label>batchId (optional)</Label>
-            <Input value={batchId} onChange={(e) => setBatchId(e.target.value)} placeholder="e.g. 2026-01-setup-01" />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label>CSV file</Label>
-          <Input type="file" accept=".csv,text/csv" onChange={(e) => onSelectFile(e.target.files?.[0] || null)} />
-          <p className="text-xs text-gray-500">Required header: uid (or cardUid).</p>
-        </div>
-
-        {parseError && (
-          <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{parseError}</div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={onUpload} disabled={isUploading || uids.length === 0}>
-            <Upload className="h-4 w-4 mr-2" />
-            {isUploading ? 'Uploading…' : `Upload (${uids.length})`}
-          </Button>
-
-          <div className="flex items-center gap-2">
-            <Label className="text-sm text-gray-600">Status</Label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as InventoryCardStatus)}
-              className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm"
-            >
-              <option value="AVAILABLE">AVAILABLE</option>
-              <option value="ASSIGNED">ASSIGNED</option>
-              <option value="DISABLED">DISABLED</option>
-            </select>
-          </div>
-
-          <Button variant="outline" onClick={onList} disabled={isListing}>
-            <CreditCard className="h-4 w-4 mr-2" />
-            {isListing ? 'Loading…' : `List ${statusFilter}`}
-          </Button>
-          <div className="text-sm text-gray-600">
-            {uids.length > 0 ? `Parsed ${uids.length} UIDs.` : 'No UIDs parsed yet.'}
-          </div>
-        </div>
-
-        {uids.length > 0 && (
-          <div className="rounded-md border bg-gray-50 p-3">
-            <div className="text-xs text-gray-500 mb-2">Preview (first 20)</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {preview.map((u) => (
-                <div key={u} className="font-mono text-xs truncate">{u}</div>
-              ))}
+      <Card>
+        <CardHeader>
+          <CardTitle>Upload</CardTitle>
+          <CardDescription>
+            Upload inventory cards only (assignment still happens via the existing kiosk tap flow).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Tenant ID</Label>
+              <Input
+                value={tenantId}
+                onChange={(e) => setTenantId(e.target.value)}
+                placeholder="Paste tenantId (e.g. 9b2b6c5e-...)"
+              />
             </div>
-            <div className="text-[11px] text-gray-400 mt-2">Raw CSV loaded: {rawCsv ? 'yes' : 'no'}</div>
+            <div className="space-y-2">
+              <Label>Branch ID</Label>
+              <Input
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                placeholder="Paste branchId (e.g. 3f6a1b2c-...)"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Batch ID (optional)</Label>
+              <Input
+                value={batchId}
+                onChange={(e) => setBatchId(e.target.value)}
+                placeholder="e.g. 2026-01-setup-01"
+              />
+              <p className="text-xs text-muted-foreground">
+                Useful for bulk disable/move operations.
+              </p>
+            </div>
           </div>
-        )}
-      </div>
+
+          <div className="space-y-2">
+            <Label>CSV File</Label>
+            <Input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(e) => onSelectFile(e.target.files?.[0] || null)}
+            />
+            <p className="text-xs text-muted-foreground">Required header: `uid` (or `cardUid`).</p>
+          </div>
+
+          {parseError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Can’t parse/upload</AlertTitle>
+              <AlertDescription>{parseError}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={onUpload} disabled={isUploading || uids.length === 0}>
+              <Upload className="h-4 w-4 mr-2" />
+              {isUploading ? 'Uploading…' : `Upload (${uids.length})`}
+            </Button>
+
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground">Status</Label>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as InventoryCardStatus)}
+              >
+                <SelectTrigger className="w-[170px]">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AVAILABLE">AVAILABLE</SelectItem>
+                  <SelectItem value="ASSIGNED">ASSIGNED</SelectItem>
+                  <SelectItem value="DISABLED">DISABLED</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button variant="outline" onClick={onList} disabled={isListing}>
+              <CreditCard className="h-4 w-4 mr-2" />
+              {isListing ? 'Loading…' : `List ${statusFilter}`}
+            </Button>
+
+            <div className="text-sm text-muted-foreground">
+              {uids.length > 0 ? `Parsed ${uids.length} UIDs.` : 'No UIDs parsed yet.'}
+            </div>
+          </div>
+
+          {uids.length > 0 && (
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <div className="text-xs text-muted-foreground mb-2">Preview (first 20)</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {preview.map((u) => (
+                  <div key={u} className="font-mono text-xs truncate">{u}</div>
+                ))}
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-2">Raw CSV loaded: {rawCsv ? 'yes' : 'no'}</div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {uploadResult && (
-        <div className="rounded-lg border bg-white p-6 space-y-2">
-          <h2 className="text-lg font-semibold">Upload Result</h2>
-          <Textarea value={JSON.stringify(uploadResult, null, 2)} readOnly className="font-mono h-40" />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload Result</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea value={JSON.stringify(uploadResult, null, 2)} readOnly className="font-mono h-40" />
+          </CardContent>
+        </Card>
       )}
 
       {listResult && (
-        <div className="rounded-lg border bg-white p-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Inventory List</h2>
-            <div className="text-sm text-gray-600">{listResult.length} cards</div>
-          </div>
-          <div className="overflow-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 pr-4">uid</th>
-                  <th className="text-left py-2 pr-4">status</th>
-                  <th className="text-left py-2 pr-4">batchId</th>
-                  <th className="text-left py-2 pr-4">createdAt</th>
-                </tr>
-              </thead>
-              <tbody>
+        <Card>
+          <CardHeader>
+            <CardTitle>Inventory</CardTitle>
+            <CardDescription>{listResult.length} cards</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>uid</TableHead>
+                  <TableHead>status</TableHead>
+                  <TableHead>batchId</TableHead>
+                  <TableHead>createdAt</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {listResult.map((c: any) => (
-                  <tr key={c.uid} className="border-b last:border-b-0">
-                    <td className="py-2 pr-4 font-mono">{c.uid}</td>
-                    <td className="py-2 pr-4">{c.status}</td>
-                    <td className="py-2 pr-4">{c.batchId || ''}</td>
-                    <td className="py-2 pr-4">{c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</td>
-                  </tr>
+                  <TableRow key={c.uid}>
+                    <TableCell className="font-mono">{c.uid}</TableCell>
+                    <TableCell>{c.status}</TableCell>
+                    <TableCell>{c.batchId || ''}</TableCell>
+                    <TableCell>
+                      {c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

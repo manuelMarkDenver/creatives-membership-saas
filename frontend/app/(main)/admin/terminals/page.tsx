@@ -1,13 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { Crown, Monitor, RefreshCcw } from 'lucide-react'
+import { AlertCircle, Crown, Monitor, RefreshCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { apiClient } from '@/lib/api/client'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 export default function AdminTerminalsPage() {
   const { data: profile } = useProfile()
@@ -24,13 +27,15 @@ export default function AdminTerminalsPage() {
 
   if (!profile || profile.role !== 'SUPER_ADMIN') {
     return (
-      <div className="text-center py-12">
-        <Crown className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">Access Denied</h3>
-        <p className="mt-1 text-sm text-gray-500">
-          You need Super Admin privileges to manage terminals.
-        </p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Crown className="h-5 w-5" />
+            Access Denied
+          </CardTitle>
+          <CardDescription>You need Super Admin privileges to manage terminals.</CardDescription>
+        </CardHeader>
+      </Card>
     )
   }
 
@@ -126,120 +131,144 @@ export default function AdminTerminalsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Terminals</h1>
-        <p className="text-sm text-gray-500">
-          Register kiosks (tablet terminals) and rotate secrets when needed.
+        <p className="text-sm text-muted-foreground">
+          Register kiosks (tablet terminals), rotate secrets, and deactivate lost devices.
         </p>
       </div>
 
-      <div className="rounded-lg border bg-white p-6 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>tenantId</Label>
-            <Input value={tenantId} onChange={(e) => setTenantId(e.target.value)} placeholder="UUID" />
+      <Card>
+        <CardHeader>
+          <CardTitle>Browse</CardTitle>
+          <CardDescription>Load terminals by tenant (optional: filter by branch).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Tenant ID</Label>
+              <Input
+                value={tenantId}
+                onChange={(e) => setTenantId(e.target.value)}
+                placeholder="Paste tenantId (e.g. 9b2b6c5e-...)"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Branch ID (optional)</Label>
+              <Input
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                placeholder="Paste branchId to filter (e.g. 3f6a1b2c-...)"
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>branchId (optional filter)</Label>
-            <Input value={branchId} onChange={(e) => setBranchId(e.target.value)} placeholder="UUID" />
-          </div>
-        </div>
 
-        {error && (
-          <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
-        )}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Something went wrong</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        <Button onClick={load} disabled={isLoading}>
-          <Monitor className="h-4 w-4 mr-2" />
-          {isLoading ? 'Loading…' : 'Load terminals'}
-        </Button>
-      </div>
+          <Button onClick={load} disabled={isLoading}>
+            <Monitor className="h-4 w-4 mr-2" />
+            {isLoading ? 'Loading…' : 'Load terminals'}
+          </Button>
+        </CardContent>
+      </Card>
 
-      <div className="rounded-lg border bg-white p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Create Terminal</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>branchId</Label>
-            <Input value={newBranchId} onChange={(e) => setNewBranchId(e.target.value)} placeholder="UUID" />
+      <Card>
+        <CardHeader>
+          <CardTitle>Create Terminal</CardTitle>
+          <CardDescription>
+            The secret is shown once. Copy it into the kiosk setup screen.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Branch ID</Label>
+              <Input
+                value={newBranchId}
+                onChange={(e) => setNewBranchId(e.target.value)}
+                placeholder="Paste branchId (e.g. 3f6a1b2c-...)"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Terminal Name</Label>
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Front Desk Kiosk" />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>name</Label>
-            <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Front Desk Kiosk" />
-          </div>
-        </div>
-        <Button onClick={create} disabled={isCreating}>
-          {isCreating ? 'Creating…' : 'Create terminal'}
-        </Button>
-        <p className="text-xs text-gray-500">
-          The secret is shown once. Copy it into the kiosk setup screen.
-        </p>
-      </div>
+
+          <Button onClick={create} disabled={isCreating}>
+            {isCreating ? 'Creating…' : 'Create terminal'}
+          </Button>
+        </CardContent>
+      </Card>
 
       {createResult && (
-        <div className="rounded-lg border bg-white p-6 space-y-2">
-          <h2 className="text-lg font-semibold">Secret / Response</h2>
-          <Textarea value={JSON.stringify(createResult, null, 2)} readOnly className="font-mono h-40" />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Secret / Response</CardTitle>
+            <CardDescription>Copy the secret immediately; it won’t be shown again.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea value={JSON.stringify(createResult, null, 2)} readOnly className="font-mono h-40" />
+          </CardContent>
+        </Card>
       )}
 
       {terminals && (
-        <div className="rounded-lg border bg-white p-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Terminals</h2>
-            <div className="text-sm text-gray-600">{terminals.length} total</div>
-          </div>
-          <div className="overflow-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 pr-4">id</th>
-                  <th className="text-left py-2 pr-4">name</th>
-                  <th className="text-left py-2 pr-4">branch</th>
-                  <th className="text-left py-2 pr-4">active</th>
-                  <th className="text-left py-2 pr-4">lastSeenAt</th>
-                  <th className="text-left py-2 pr-4">actions</th>
-                </tr>
-              </thead>
-              <tbody>
+        <Card>
+          <CardHeader>
+            <CardTitle>Terminals</CardTitle>
+            <CardDescription>{terminals.length} total</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>id</TableHead>
+                  <TableHead>name</TableHead>
+                  <TableHead>branch</TableHead>
+                  <TableHead>active</TableHead>
+                  <TableHead>lastSeenAt</TableHead>
+                  <TableHead>actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {terminals.map((t) => (
-                  <tr key={t.id} className="border-b last:border-b-0">
-                    <td className="py-2 pr-4 font-mono">{t.id}</td>
-                    <td className="py-2 pr-4">{t.name}</td>
-                    <td className="py-2 pr-4">
+                  <TableRow key={t.id}>
+                    <TableCell className="font-mono">{t.id}</TableCell>
+                    <TableCell>{t.name}</TableCell>
+                    <TableCell>
                       <div className="font-mono text-xs">{t.gymId}</div>
-                      <div className="text-xs text-gray-500">{t.gym?.name || ''}</div>
-                    </td>
-                    <td className="py-2 pr-4">
-                      <span className={t.isActive ? 'text-green-700' : 'text-gray-500'}>
+                      <div className="text-xs text-muted-foreground">{t.gym?.name || ''}</div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={t.isActive ? 'text-emerald-600' : 'text-muted-foreground'}>
                         {t.isActive ? 'active' : 'inactive'}
                       </span>
-                    </td>
-                    <td className="py-2 pr-4">
+                    </TableCell>
+                    <TableCell>
                       {t.lastSeenAt ? new Date(t.lastSeenAt).toLocaleString() : ''}
-                    </td>
-                    <td className="py-2 pr-4">
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => rotateSecret(t.id)}
-                        >
+                        <Button variant="outline" size="sm" onClick={() => rotateSecret(t.id)}>
                           <RefreshCcw className="h-4 w-4 mr-2" />
                           Rotate secret
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleActive(t.id, !t.isActive)}
-                        >
+                        <Button variant="outline" size="sm" onClick={() => toggleActive(t.id, !t.isActive)}>
                           {t.isActive ? 'Deactivate' : 'Activate'}
                         </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

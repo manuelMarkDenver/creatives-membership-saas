@@ -1,13 +1,16 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Crown, Upload } from 'lucide-react'
+import { AlertCircle, Crown, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { apiClient } from '@/lib/api/client'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 type ParsedRow = {
   externalMemberId: string
@@ -66,13 +69,15 @@ export default function AdminMemberImportPage() {
 
   if (!profile || profile.role !== 'SUPER_ADMIN') {
     return (
-      <div className="text-center py-12">
-        <Crown className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">Access Denied</h3>
-        <p className="mt-1 text-sm text-gray-500">
-          You need Super Admin privileges to import members.
-        </p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Crown className="h-5 w-5" />
+            Access Denied
+          </CardTitle>
+          <CardDescription>You need Super Admin privileges to import members.</CardDescription>
+        </CardHeader>
+      </Card>
     )
   }
 
@@ -171,114 +176,141 @@ export default function AdminMemberImportPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Member Import</h1>
-          <p className="text-sm text-gray-500">
-            Upload a CSV and import members into a specific tenant + branch.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Member Import</h1>
+        <p className="text-sm text-muted-foreground">
+          Bulk import members to a specific tenant + branch (no card assignment).
+        </p>
       </div>
 
-      <div className="rounded-lg border bg-white p-6 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Target</CardTitle>
+          <CardDescription>
+            Use the IDs from your existing admin pages (Tenant ID from `Tenants`, Branch ID from `Branches`).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Tenant ID</Label>
+              <Input
+                value={tenantId}
+                onChange={(e) => setTenantId(e.target.value)}
+                placeholder="Paste tenantId (e.g. 9b2b6c5e-...)"
+              />
+              <p className="text-xs text-muted-foreground">Required. Used to scope `externalMemberId` uniqueness.</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Branch ID</Label>
+              <Input
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                placeholder="Paste branchId (e.g. 3f6a1b2c-...)"
+              />
+              <p className="text-xs text-muted-foreground">Required. Members get this as their primary branch.</p>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label>tenantId</Label>
-            <Input value={tenantId} onChange={(e) => setTenantId(e.target.value)} placeholder="UUID" />
+            <Label>CSV File</Label>
+            <Input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(e) => onSelectFile(e.target.files?.[0] || null)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Required headers: `externalMemberId`, `firstName`, `lastName`. Optional: `email`, `phoneNumber`.
+            </p>
           </div>
-          <div className="space-y-2">
-            <Label>branchId</Label>
-            <Input value={branchId} onChange={(e) => setBranchId(e.target.value)} placeholder="UUID" />
+
+          {parseError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Can’t parse/import</AlertTitle>
+              <AlertDescription>{parseError}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={onImport} disabled={isImporting || rows.length === 0}>
+              <Upload className="h-4 w-4 mr-2" />
+              {isImporting ? 'Importing…' : `Import (${rows.length})`}
+            </Button>
+            <div className="text-sm text-muted-foreground">
+              {rows.length > 0 ? `Parsed ${rows.length} rows.` : 'No rows parsed yet.'}
+            </div>
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label>CSV file</Label>
-          <Input
-            type="file"
-            accept=".csv,text/csv"
-            onChange={(e) => onSelectFile(e.target.files?.[0] || null)}
-          />
-          <p className="text-xs text-gray-500">
-            Required headers: externalMemberId, firstName, lastName. Optional: email, phoneNumber.
-          </p>
-        </div>
-
-        {parseError && (
-          <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{parseError}</div>
-        )}
-
-        <div className="flex items-center gap-3">
-          <Button onClick={onImport} disabled={isImporting || rows.length === 0}>
-            <Upload className="h-4 w-4 mr-2" />
-            {isImporting ? 'Importing…' : `Import (${rows.length})`}
-          </Button>
-          <div className="text-sm text-gray-600">
-            {rows.length > 0 ? `Parsed ${rows.length} rows.` : 'No rows parsed yet.'}
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {rows.length > 0 && (
-        <div className="rounded-lg border bg-white p-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Preview (first 10)</h2>
-            <div className="text-xs text-gray-500">Raw CSV loaded: {rawCsv ? 'yes' : 'no'}</div>
-          </div>
-          <div className="overflow-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 pr-4">externalMemberId</th>
-                  <th className="text-left py-2 pr-4">firstName</th>
-                  <th className="text-left py-2 pr-4">lastName</th>
-                  <th className="text-left py-2 pr-4">email</th>
-                  <th className="text-left py-2 pr-4">phoneNumber</th>
-                </tr>
-              </thead>
-              <tbody>
+        <Card>
+          <CardHeader>
+            <CardTitle>Preview</CardTitle>
+            <CardDescription>
+              First 10 rows. Raw CSV loaded: {rawCsv ? 'yes' : 'no'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>externalMemberId</TableHead>
+                  <TableHead>firstName</TableHead>
+                  <TableHead>lastName</TableHead>
+                  <TableHead>email</TableHead>
+                  <TableHead>phoneNumber</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {preview.map((r, i) => (
-                  <tr key={`${r.externalMemberId}-${i}`} className="border-b last:border-b-0">
-                    <td className="py-2 pr-4 font-mono">{r.externalMemberId}</td>
-                    <td className="py-2 pr-4">{r.firstName}</td>
-                    <td className="py-2 pr-4">{r.lastName}</td>
-                    <td className="py-2 pr-4">{r.email || ''}</td>
-                    <td className="py-2 pr-4">{r.phoneNumber || ''}</td>
-                  </tr>
+                  <TableRow key={`${r.externalMemberId}-${i}`}>
+                    <TableCell className="font-mono">{r.externalMemberId}</TableCell>
+                    <TableCell>{r.firstName}</TableCell>
+                    <TableCell>{r.lastName}</TableCell>
+                    <TableCell>{r.email || ''}</TableCell>
+                    <TableCell>{r.phoneNumber || ''}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       {importResult && (
-        <div className="rounded-lg border bg-white p-6 space-y-3">
-          <h2 className="text-lg font-semibold">Import Result</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <div className="text-gray-500">Total</div>
-              <div className="font-semibold">{importResult?.summary?.total ?? '-'}</div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Import Result</CardTitle>
+            <CardDescription>Row-level success/failure summary.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div className="text-muted-foreground">Total</div>
+                <div className="font-semibold">{importResult?.summary?.total ?? '-'}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Created</div>
+                <div className="font-semibold">{importResult?.summary?.created ?? '-'}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Updated</div>
+                <div className="font-semibold">{importResult?.summary?.updated ?? '-'}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Failed</div>
+                <div className="font-semibold">{importResult?.summary?.failed ?? '-'}</div>
+              </div>
             </div>
-            <div>
-              <div className="text-gray-500">Created</div>
-              <div className="font-semibold">{importResult?.summary?.created ?? '-'}</div>
-            </div>
-            <div>
-              <div className="text-gray-500">Updated</div>
-              <div className="font-semibold">{importResult?.summary?.updated ?? '-'}</div>
-            </div>
-            <div>
-              <div className="text-gray-500">Failed</div>
-              <div className="font-semibold">{importResult?.summary?.failed ?? '-'}</div>
-            </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label>Raw response</Label>
-            <Textarea value={JSON.stringify(importResult, null, 2)} readOnly className="font-mono h-64" />
-          </div>
-        </div>
+            <div className="space-y-2">
+              <Label>Raw Response</Label>
+              <Textarea value={JSON.stringify(importResult, null, 2)} readOnly className="font-mono h-64" />
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )
