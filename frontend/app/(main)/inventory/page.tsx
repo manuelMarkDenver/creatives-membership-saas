@@ -4,13 +4,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, Crown, CreditCard, Info } from 'lucide-react'
 import { useProfile } from '@/lib/hooks/use-gym-users'
 import { useBranchesByTenant } from '@/lib/hooks/use-branches'
-import { useAssignedInventory, useAvailableInventory, useInventorySummary } from '@/lib/hooks/use-inventory'
+import { useAssignedInventory, useAvailableInventory, useDailyCards, useInventorySummary } from '@/lib/hooks/use-inventory'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SearchableDropdown } from '@/components/ui/searchable-dropdown'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { Branch } from '@/types'
 
 function formatNumber(n: number) {
@@ -34,6 +36,10 @@ export default function InventoryPage() {
 
   const [availableQ, setAvailableQ] = useState('')
   const [availablePage, setAvailablePage] = useState(1)
+
+  const [dailyOpen, setDailyOpen] = useState(false)
+  const [dailyQ, setDailyQ] = useState('')
+  const [dailyPage, setDailyPage] = useState(1)
 
   const pageSize = 25
 
@@ -64,6 +70,13 @@ export default function InventoryPage() {
     branchId: branchId || undefined,
     q: availableQ || undefined,
     page: availablePage,
+    pageSize,
+  })
+
+  const { data: daily } = useDailyCards({
+    branchId: branchId || undefined,
+    q: dailyQ || undefined,
+    page: dailyPage,
     pageSize,
   })
 
@@ -106,7 +119,7 @@ export default function InventoryPage() {
     inventoryAssigned: totals.inventoryAssigned ?? 0,
   }
 
-  const [openSection, setOpenSection] = useState<'stats' | 'assigned' | 'available'>('stats')
+  const [openSection, setOpenSection] = useState<'stats' | 'assigned' | 'available' | 'daily'>('stats')
 
   return (
     <div className="space-y-6">
@@ -216,6 +229,25 @@ export default function InventoryPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-semibold">{formatNumber(normalizedTotals.dailyCards)}</div>
+                  {normalizedTotals.dailyCards === 1 && (summary?.branches?.[0]?.dailyCardLast4?.[0] || summary?.branches?.find((b: any) => b.branchId === branchId)?.dailyCardLast4?.[0]) ? (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="font-mono underline underline-offset-4"
+                            onClick={() => setDailyOpen(true)}
+                          >
+                            {summary?.branches?.find((b: any) => b.branchId === branchId)?.dailyCardLast4?.[0] ||
+                              summary?.branches?.[0]?.dailyCardLast4?.[0]}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent sideOffset={6}>
+                          Tap to view daily card details
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
               <Card className="border">
@@ -263,6 +295,89 @@ export default function InventoryPage() {
           </CardContent>
         ) : null}
       </Card>
+
+      {normalizedTotals.dailyCards > 1 ? (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-3">
+            <div>
+              <CardTitle>Daily Cards</CardTitle>
+              <CardDescription>Walk-in cards for the selected branch.</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setOpenSection(openSection === 'daily' ? 'stats' : 'daily')}
+            >
+              {openSection === 'daily' ? 'Collapse' : 'Expand'}
+              <ChevronDown
+                className={openSection === 'daily' ? 'ml-2 h-4 w-4 rotate-180' : 'ml-2 h-4 w-4'}
+              />
+            </Button>
+          </CardHeader>
+          {openSection === 'daily' ? (
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="w-[min(420px,100%)]">
+                  <Input
+                    value={dailyQ}
+                    onChange={(e) => {
+                      setDailyQ(e.target.value)
+                      setDailyPage(1)
+                    }}
+                    placeholder="Search card number…"
+                  />
+                </div>
+                <div className="text-sm text-muted-foreground">{formatNumber(daily?.total ?? 0)} total</div>
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Card</TableHead>
+                    <TableHead>Branch</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(daily?.items || []).map((row: any, idx: number) => (
+                    <TableRow key={`${row.branchId}-${idx}`}
+                      onClick={() => setDailyOpen(true)}
+                      className="cursor-pointer"
+                      title="Tap to view details"
+                    >
+                      <TableCell className="font-mono">{row.uidLast4}</TableCell>
+                      <TableCell>{row.branchName || row.branchId}</TableCell>
+                      <TableCell>
+                        <Badge variant={row.active ? 'default' : 'secondary'}>
+                          {row.active ? 'active' : 'inactive'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  onClick={() => setDailyPage((p) => Math.max(1, p - 1))}
+                  disabled={dailyPage <= 1}
+                >
+                  Prev
+                </Button>
+                <div className="text-sm text-muted-foreground">Page {dailyPage}</div>
+                <Button
+                  variant="outline"
+                  onClick={() => setDailyPage((p) => p + 1)}
+                  disabled={!daily?.total || dailyPage * pageSize >= (daily?.total ?? 0)}
+                >
+                  Next
+                </Button>
+              </div>
+            </CardContent>
+          ) : null}
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -444,6 +559,20 @@ export default function InventoryPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      <Dialog open={dailyOpen} onOpenChange={setDailyOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Daily Card</DialogTitle>
+            <DialogDescription>
+              Daily cards are masked here for safety. Use Super Admin tools to view full UIDs.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground">
+            If you need to match a physical card, label it using the last 4 digits.
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

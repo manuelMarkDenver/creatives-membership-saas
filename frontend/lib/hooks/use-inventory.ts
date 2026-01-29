@@ -73,3 +73,32 @@ export function useAvailableInventory(params: {
     },
   })
 }
+
+export function useDailyCards(params: {
+  branchId?: string
+  q?: string
+  page?: number
+  pageSize?: number
+}) {
+  return useQuery({
+    queryKey: [
+      'inventory',
+      'daily',
+      params.branchId || null,
+      params.q || '',
+      params.page || 1,
+      params.pageSize || 25,
+    ],
+    queryFn: async () => {
+      const res = await apiClient.get('/inventory/daily', {
+        params: {
+          ...(params.branchId ? { branchId: params.branchId } : {}),
+          ...(params.q ? { q: params.q } : {}),
+          page: String(params.page ?? 1),
+          pageSize: String(params.pageSize ?? 25),
+        },
+      })
+      return res.data
+    },
+  })
+}

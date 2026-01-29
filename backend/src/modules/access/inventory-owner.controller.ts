@@ -75,4 +75,27 @@ export class InventoryOwnerController {
       pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
     });
   }
+
+  @Get('daily')
+  @RequiredRoles(Role.OWNER, Role.MANAGER)
+  async daily(
+    @Req() req: any,
+    @Query('branchId') branchId?: string,
+    @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) {
+      throw new BadRequestException('Missing tenant context');
+    }
+
+    return this.inventoryCardsService.listDailyCardsForTenant({
+      tenantId,
+      branchId: branchId || undefined,
+      q: q || undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
+    });
+  }
 }

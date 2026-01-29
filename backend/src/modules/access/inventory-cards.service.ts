@@ -16,6 +16,11 @@ export class InventoryCardsService {
     return new Set(rows.map((r) => r.uid));
   }
 
+  private maskLast4(uid: string): string {
+    const last4 = uid.slice(-4);
+    return `•••• ${last4}`;
+  }
+
   private buildSingleOutcome(params: {
     uid: string;
     targetBranchId: string;
@@ -545,6 +550,28 @@ export class InventoryCardsService {
       dailyCardsByBranch.map((x) => [x.gymId, x._count._all] as const),
     );
 
+    // Provide daily card last-4 samples for the selected branch (or per-branch samples when unfiltered)
+    const dailyCardSamples = await this.prisma.card.findMany({
+      where: {
+        gym: { tenantId: params.tenantId },
+        ...(params.branchId ? { gymId: params.branchId } : {}),
+        type: 'DAILY',
+        active: true,
+        ...(excludedUids ? { uid: { notIn: excludedUids } } : {}),
+      },
+      select: { uid: true, gymId: true },
+      orderBy: { createdAt: 'desc' },
+      take: params.branchId ? 10 : 50,
+    });
+    const dailySamplesByBranch = new Map<string, string[]>();
+    for (const row of dailyCardSamples) {
+      const list = dailySamplesByBranch.get(row.gymId) || [];
+      if (list.length < 10) {
+        list.push(this.maskLast4(row.uid));
+        dailySamplesByBranch.set(row.gymId, list);
+      }
+    }
+
     const branchSummaries = branches.map((b) => {
       const counts = byBranch.get(b.id) || {
         AVAILABLE: 0,
@@ -555,6 +582,7 @@ export class InventoryCardsService {
 
       const assignedToMembers = assignedToMembersMap.get(b.id) || 0;
       const dailyCards = dailyCardsMap.get(b.id) || 0;
+      const dailyCardLast4 = dailySamplesByBranch.get(b.id) || [];
 
       return {
         branchId: b.id,
@@ -565,6 +593,7 @@ export class InventoryCardsService {
         disabled: counts.DISABLED,
         assignedToMembers,
         dailyCards,
+        dailyCardLast4,
       };
     });
 
@@ -743,6 +772,60 @@ export class InventoryCardsService {
         createdAt: c.createdAt,
         branchId: c.allocatedGymId,
         branchName: c.gym?.name,
+      })),
+    };
+  }
+
+  async listDailyCardsForTenant(params: {
+    tenantId: string;
+    branchId?: string;
+    q?: string;
+    page?: number;
+    pageSize?: number;
+  }) {
+    const excludedUidSet = await this.getExcludedUidsForOwnerInventory();
+    const excludedUids = excludedUidSet.size > 0 ? Array.from(excludedUidSet) : null;
+
+    const pageSize = Math.min(Math.max(params.pageSize ?? 25, 1), 100);
+    const page = Math.max(params.page ?? 1, 1);
+    const skip = (page - 1) * pageSize;
+    const q = params.q?.trim();
+
+    if (params.branchId) {
+      await this.assertBranchInTenant({ tenantId: params.tenantId, branchId: params.branchId });
+    }
+
+    const where = {
+      gym: { tenantId: params.tenantId },
+      ...(params.branchId ? { gymId: params.branchId } : {}),
+      type: 'DAILY' as any,
+      active: true,
+      ...(excludedUids ? { uid: { notIn: excludedUids } } : {}),
+      ...(q ? { uid: { contains: q, mode: 'insensitive' as any } } : {}),
+    };
+
+    const total = await this.prisma.card.count({ where: where as any });
+    const cards = await this.prisma.card.findMany({
+      where: where as any,
+      include: { gym: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: pageSize,
+    });
+
+    return {
+      tenantId: params.tenantId,
+      branchId: params.branchId || null,
+      page,
+      pageSize,
+      total,
+      count: cards.length,
+      items: cards.map((c) => ({
+        uidLast4: this.maskLast4(c.uid),
+        active: c.active,
+        branchId: c.gymId,
+        branchName: c.gym?.name,
+        createdAt: c.createdAt,
       })),
     };
   }
