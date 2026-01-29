@@ -236,6 +236,7 @@ model GymMemberProfile {
   id                       String                      @id @default(uuid())
   userId                   String                      @unique
   tenantId                 String
+  externalMemberId         String?
   primaryBranchId          String?
   accessLevel              BranchAccessLevel           @default(ALL_BRANCHES)
   role                     GymRole                     @default(GYM_MEMBER)
@@ -275,6 +276,7 @@ model GymMemberProfile {
   tenant                   Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user                     User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([tenantId, externalMemberId])
   @@index([tenantId])
 }
 
